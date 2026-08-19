@@ -35,11 +35,25 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
   Future<void> processScan(String bundleNo, String action) async {
     try {
-      await DioClient.dio.post('/bundle/scan', data: {
-        'bundle_no': bundleNo,
-        'action': action,
+      await DioClient.dio.post('/scanner/sync', data: {
+        'payloads': [
+          {
+            'barcode': bundleNo,
+            'context': action,
+            'timestamp': DateTime.now().toIso8601String(),
+          }
+        ]
       });
       state = state.copyWith(message: 'Scan uploaded successfully: $bundleNo');
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.statusCode! >= 400 && e.response!.statusCode! < 500) {
+        // Bad request or unauthorized, don't queue it forever
+        state = state.copyWith(message: 'Scan rejected: ${e.response?.data["message"] ?? e.message}');
+      } else {
+        await LocalDatabase.insertScan(bundleNo, action);
+        await refreshPendingCount();
+        state = state.copyWith(message: 'Offline: Scan queued locally: $bundleNo');
+      }
     } catch (e) {
       await LocalDatabase.insertScan(bundleNo, action);
       await refreshPendingCount();
@@ -52,26 +66,37 @@ class SyncNotifier extends StateNotifier<SyncState> {
     
     state = state.copyWith(isSyncing: true, message: 'Syncing...');
     final scans = await LocalDatabase.getPendingScans();
-    int successCount = 0;
-
-    for (var scan in scans) {
-      try {
-        await DioClient.dio.post('/bundle/scan', data: {
-          'bundle_no': scan['bundle_no'],
-          'action': scan['status'],
-        });
-        successCount++;
-      } catch (e) {
-        break; // break on network failure
-      }
+    
+    if (scans.isEmpty) {
+      state = state.copyWith(isSyncing: false, message: 'Nothing to sync');
+      return;
     }
 
-    if (successCount == scans.length) {
+    final payloads = scans.map((scan) => {
+      'barcode': scan['bundle_no'],
+      'context': scan['status'],
+      'timestamp': scan['timestamp'],
+    }).toList();
+
+    try {
+      await DioClient.dio.post('/scanner/sync', data: {
+        'payloads': payloads,
+      });
       await LocalDatabase.clearScans();
-      state = state.copyWith(isSyncing: false, pendingCount: 0, message: 'Sync complete! ($successCount items)');
-    } else {
+      state = state.copyWith(isSyncing: false, pendingCount: 0, message: 'Sync complete! (${scans.length} items)');
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.statusCode! >= 400 && e.response!.statusCode! < 500) {
+        // Clear scans if they are permanently invalid to unblock queue, 
+        // but typically we'd show an error. Let's just clear for now.
+        await LocalDatabase.clearScans();
+        state = state.copyWith(isSyncing: false, pendingCount: 0, message: 'Offline scans were rejected by server.');
+      } else {
+        await refreshPendingCount();
+        state = state.copyWith(isSyncing: false, message: 'Sync failed: Check connection.');
+      }
+    } catch (e) {
       await refreshPendingCount();
-      state = state.copyWith(isSyncing: false, message: 'Partial sync: Check connection.');
+      state = state.copyWith(isSyncing: false, message: 'Sync failed: Unknown error.');
     }
   }
 }

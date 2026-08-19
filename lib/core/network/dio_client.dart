@@ -1,22 +1,31 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class DioClient {
   static final Dio dio = Dio(BaseOptions(
-    // NOTE: Change this to your PC's local IP address (e.g., 192.168.1.100:3000) for a physical device
-    // Or 10.0.2.2:3000 for Android Emulator
-    baseUrl: 'http://10.0.2.2:3000', 
+    baseUrl: const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000'), 
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ))
     ..interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('access_token');
+        const storage = FlutterSecureStorage();
+        final token = await storage.read(key: 'access_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          const storage = FlutterSecureStorage();
+          await storage.delete(key: 'access_token');
+          await storage.delete(key: 'user_role');
+          // Since we use Riverpod, the authProvider state manages UI, 
+          // but we can clear storage so next app reload drops them to login.
+          // In a full app, we'd trigger a logout event.
+        }
+        return handler.next(e);
+      }
     ));
 }

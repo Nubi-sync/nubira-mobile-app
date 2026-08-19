@@ -75,10 +75,9 @@ class LinemanDashboard extends ConsumerWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                // In future: Pass context 'RECEIVE'
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
+                  MaterialPageRoute(builder: (_) => const CameraScannerScreen(scanContext: 'RECEIVE')),
                 );
               },
               icon: const Icon(Icons.download, size: 32, color: Colors.white),
@@ -92,10 +91,9 @@ class LinemanDashboard extends ConsumerWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                // In future: Pass context 'ISSUE'
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
+                  MaterialPageRoute(builder: (_) => const CameraScannerScreen(scanContext: 'ISSUE')),
                 );
               },
               icon: const Icon(Icons.upload, size: 32, color: Colors.white),

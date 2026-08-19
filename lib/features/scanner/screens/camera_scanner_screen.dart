@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/sync_provider.dart';
 
 class CameraScannerScreen extends ConsumerStatefulWidget {
-  const CameraScannerScreen({Key? key}) : super(key: key);
+  final String scanContext;
+  
+  const CameraScannerScreen({Key? key, required this.scanContext}) : super(key: key);
 
   @override
   ConsumerState<CameraScannerScreen> createState() => _CameraScannerScreenState();
@@ -13,6 +15,12 @@ class CameraScannerScreen extends ConsumerStatefulWidget {
 class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> {
   final MobileScannerController controller = MobileScannerController();
   bool _isProcessing = false;
+  
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   void _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
@@ -22,7 +30,7 @@ class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> {
       final code = barcodes.first.rawValue!;
       setState(() => _isProcessing = true);
       
-      await ref.read(syncProvider.notifier).processScan(code, 'COMPLETED');
+      await ref.read(syncProvider.notifier).processScan(code, widget.scanContext);
       
       if (mounted) {
         Navigator.pop(context);

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/network/dio_client.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
@@ -26,16 +26,19 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
+  final _storage = const FlutterSecureStorage();
+
   AuthNotifier() : super(AuthState()) {
     _checkToken();
   }
 
   Future<void> _checkToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('access_token') != null) {
+    final token = await _storage.read(key: 'access_token');
+    if (token != null) {
+      final role = await _storage.read(key: 'user_role');
       state = state.copyWith(
         isAuthenticated: true,
-        userRole: prefs.getString('user_role'),
+        userRole: role,
       );
     }
   }
@@ -51,9 +54,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = response.data['access_token'];
       final role = response.data['user']['role'];
       
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', token);
-      await prefs.setString('user_role', role);
+      await _storage.write(key: 'access_token', value: token);
+      await _storage.write(key: 'user_role', value: role);
       
       state = state.copyWith(isLoading: false, isAuthenticated: true, userRole: role);
     } on DioException catch (e) {
@@ -67,9 +69,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
   
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('user_role');
+    await _storage.delete(key: 'access_token');
+    await _storage.delete(key: 'user_role');
     state = state.copyWith(isAuthenticated: false);
   }
 }
