@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../../dashboard/lineman_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -43,71 +44,114 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
       if (next.error != null && previous?.error != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(next.error!), 
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     });
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Nubira Floor',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Worker & QC Login',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Brand Logo/Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.factory_rounded, size: 64, color: AppTheme.primaryBlue),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                const SizedBox(height: 32),
+                Text(
+                  'Nubira Floor',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.primaryBlueDark,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: authState.isLoading
-                    ? null
-                    : () {
-                        ref.read(authProvider.notifier).login(
-                          _usernameController.text,
-                          _passwordController.text,
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.blue,
+                const SizedBox(height: 8),
+                Text(
+                  'Secure Login for Factory Operators',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 16,
+                  ),
                 ),
-                child: authState.isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Login', style: TextStyle(fontSize: 16, color: Colors.white)),
-              ),
-            ],
+                const SizedBox(height: 48),
+
+                // Form Container
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _usernameController,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your ID',
+                          prefixIcon: Icon(Icons.badge_rounded, color: AppTheme.primaryBlue),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        decoration: const InputDecoration(
+                          hintText: 'Password',
+                          prefixIcon: Icon(Icons.lock_rounded, color: AppTheme.primaryBlue),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authState.isLoading
+                              ? null
+                              : () {
+                                  ref.read(authProvider.notifier).login(
+                                    _usernameController.text,
+                                    _passwordController.text,
+                                  );
+                                },
+                          child: authState.isLoading
+                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Login to Dashboard'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+

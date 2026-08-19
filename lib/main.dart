@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/scanner/providers/sync_provider.dart';
+import 'core/theme/app_theme.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -49,10 +50,7 @@ class NubiraApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Nubira Mobile',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const LoginScreen(),
       debugShowCheckedModeBanner: false,
     );

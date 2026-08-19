@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class DioClient {
   static final Dio dio = Dio(BaseOptions(
-    baseUrl: const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000'), 
+    baseUrl: const String.fromEnvironment('API_URL', defaultValue: 'https://suits-gloves-stayed-matrix.trycloudflare.com'), 
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ))
