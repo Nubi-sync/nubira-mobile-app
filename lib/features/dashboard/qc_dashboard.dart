@@ -2,46 +2,185 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
-import '../scanner/screens/camera_scanner_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../../main.dart'; // supabase client
 
 class QcDashboard extends ConsumerStatefulWidget {
-  const QcDashboard({Key? key}) : super(key: key);
+  const QcDashboard({super.key});
 
   @override
   ConsumerState<QcDashboard> createState() => _QcDashboardState();
 }
 
 class _QcDashboardState extends ConsumerState<QcDashboard> {
-  int _currentStep = 0;
-  String? _scannedBarcode;
-  
-  final _passedQtyController = TextEditingController();
-  final _rejectedQtyController = TextEditingController();
-  String _defectReason = 'NONE';
+  bool _isLoading = true;
+  List<dynamic> _pendingProduction = [];
 
-  void _onScanSuccess(String barcode) {
-    setState(() {
-      _scannedBarcode = barcode;
-      _currentStep = 1; // Move to form step
-    });
+  @override
+  void initState() {
+    super.initState();
+    _fetchPendingProduction();
   }
 
-  void _submitQc() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('QC Data Saved Offline/Online!'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppTheme.successGreen,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  Future<void> _fetchPendingProduction() async {
+    setState(() => _isLoading = true);
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0];
+
+      // 1. Fetch total produced by each lineman for each article today
+      final producedRes = await supabase
+          .from('daily_product')
+          .select('''
+            lineman_id,
+            article_id,
+            quantity,
+            profiles!daily_product_lineman_id_fkey ( username ),
+            articles ( art_no, description )
+          ''')
+          .eq('entry_date', today);
+
+      // 2. Fetch total already checked in qc_logs for today
+      final checkedRes = await supabase
+          .from('qc_logs')
+          .select('from_lineman_id, article_id, qty_passed, qty_rejected')
+          .eq('stage', 'CHECKING')
+          .eq('entry_date', today);
+
+      // Aggregate produced
+      final Map<String, dynamic> aggregated = {};
+      for (var row in producedRes) {
+        final key = '${row['lineman_id']}_${row['article_id']}';
+        if (!aggregated.containsKey(key)) {
+          aggregated[key] = {
+            'lineman_id': row['lineman_id'],
+            'article_id': row['article_id'],
+            'username': row['profiles']['username'],
+            'art_no': row['articles']['art_no'],
+            'description': row['articles']['description'],
+            'total_produced': 0,
+            'total_checked': 0,
+          };
+        }
+        aggregated[key]['total_produced'] += (row['quantity'] as int);
+      }
+
+      // Aggregate checked
+      for (var row in checkedRes) {
+        final key = '${row['from_lineman_id']}_${row['article_id']}';
+        if (aggregated.containsKey(key)) {
+          final passed = row['qty_passed'] ?? 0;
+          final rejected = row['qty_rejected'] ?? 0;
+          aggregated[key]['total_checked'] += (passed + rejected) as int;
+        }
+      }
+
+      // Filter only those with pending items to check
+      final pendingList = aggregated.values
+          .where((item) => (item['total_produced'] - item['total_checked']) > 0)
+          .toList();
+
+      setState(() {
+        _pendingProduction = pendingList;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showQcDialog(dynamic item) {
+    final pendingQty = item['total_produced'] - item['total_checked'];
+    final passedController = TextEditingController(text: pendingQty.toString());
+    final rejectedController = TextEditingController(text: '0');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('QC Check - ${item['art_no']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Lineman: ${item['username']}'),
+            Text('Pending to check: $pendingQty pieces'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passedController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Passed Quantity (OK)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: rejectedController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Rejected Quantity (Defect)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final passed = int.tryParse(passedController.text) ?? 0;
+              final rejected = int.tryParse(rejectedController.text) ?? 0;
+              final totalInput = passed + rejected;
+
+              if (totalInput <= 0 || totalInput > pendingQty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text('Total must be between 1 and $pendingQty')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              await _submitQcCheck(item, passed, rejected);
+            },
+            child: const Text('Submit QC'),
+          ),
+        ],
       ),
     );
-    setState(() {
-      _scannedBarcode = null;
-      _passedQtyController.clear();
-      _rejectedQtyController.clear();
-      _currentStep = 0; // Back to scan step
-    });
+  }
+
+  Future<void> _submitQcCheck(dynamic item, int passed, int rejected) async {
+    try {
+      await supabase.from('qc_logs').insert({
+        'article_id': item['article_id'],
+        'stage': 'CHECKING',
+        'from_lineman_id': item['lineman_id'],
+        'qty_passed': passed,
+        'qty_rejected': rejected,
+        'entry_date': DateTime.now().toIso8601String().split('T')[0],
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QC Check saved successfully!'), backgroundColor: Colors.green),
+        );
+        _fetchPendingProduction(); // Refresh the list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -49,173 +188,86 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('QC Inspection Area'),
+        title: const Text('Production QC'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchPendingProduction,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(
-            primary: AppTheme.primaryBlue,
-            secondary: AppTheme.primaryBlueDark,
-          ),
-        ),
-        child: Stepper(
-          currentStep: _currentStep,
-          elevation: 0,
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          controlsBuilder: (context, details) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 24.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: details.onStepContinue,
-                      child: Text(_currentStep == 0 ? 'Proceed' : 'Submit QC Data'),
-                    ),
-                  ),
-                  if (_currentStep > 0) ...[
-                    const SizedBox(width: 12),
-                    TextButton(
-                      onPressed: details.onStepCancel,
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.textMuted,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
-          onStepContinue: () {
-            if (_currentStep == 0) {
-              if (_scannedBarcode == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please scan a bundle first!'),
-                    backgroundColor: Colors.orange.shade800,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-                return;
-              }
-              setState(() => _currentStep += 1);
-            } else if (_currentStep == 1) {
-              _submitQc();
-            }
-          },
-          onStepCancel: () {
-            if (_currentStep > 0) {
-              setState(() => _currentStep -= 1);
-            }
-          },
-          steps: [
-            Step(
-              title: Text('Scan Bundle', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 16),
-                  if (_scannedBarcode != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.successGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.successGreen.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle_rounded, color: AppTheme.successGreen),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Scanned: $_scannedBarcode',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.successGreen),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _pendingProduction.isEmpty
+              ? const Center(child: Text('No pending production to check today.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _pendingProduction.length,
+                  itemBuilder: (context, index) {
+                    final item = _pendingProduction[index];
+                    final pendingQty = item['total_produced'] - item['total_checked'];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Lineman: ${item['username']}',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade50,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'Pending: $pendingQty',
+                                    style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.w600),
+                                  ),
+                                )
+                              ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text('Art No: ${item['art_no']} - ${item['description'] ?? ''}', style: TextStyle(color: Colors.grey.shade700)),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => _showQcDialog(item),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryBlue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text('Perform QC Check'),
+                              ),
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      // Simulated scan for now
-                      _onScanSuccess('B-UUID-1');
-                    },
-                    icon: const Icon(Icons.qr_code_scanner_rounded),
-                    label: const Text('Simulate Scan'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.primaryBlue,
-                      elevation: 0,
-                      side: BorderSide(color: AppTheme.primaryBlue.withOpacity(0.3)),
-                    ),
-                  )
-                ],
-              ),
-              isActive: _currentStep >= 0,
-              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-            ),
-            Step(
-              title: Text('QC Inspection Form', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
-              content: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passedQtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Passed Quantity (e.g., 48)',
-                      prefixIcon: Icon(Icons.check_circle_outline_rounded, color: AppTheme.successGreen),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _rejectedQtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Rejected Quantity (e.g., 2)',
-                      prefixIcon: Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _defectReason,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted),
-                    items: ['NONE', 'STITCHING_ERROR', 'FABRIC_STAIN', 'SIZING_ISSUE']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) => setState(() => _defectReason = val!),
-                    decoration: const InputDecoration(
-                      labelText: 'Defect Reason',
-                      prefixIcon: Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
-                    ),
-                  )
-                ],
-              ),
-              isActive: _currentStep >= 1,
-            ),
-          ],
-        ),
-      ),
+                    );
+                  },
+                ),
     );
   }
 }
-

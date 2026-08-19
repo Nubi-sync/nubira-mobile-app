@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.nubira.mobile_app"
-    compileSdk = 36
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

@@ -1,39 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/screens/login_screen.dart';
-import 'features/scanner/providers/sync_provider.dart';
 import 'core/theme/app_theme.dart';
 
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      // In a real implementation, we'd initialize the SyncNotifier or a standalone SyncService here
-      // and call the API to flush the SQLite queue.
-      print("Background Task running: $task");
-      // Simulate sync
-      // await syncOfflineDataBackground(); 
-    } catch (err) {
-      print("Background Task failed: $err");
-      return Future.value(false);
-    }
-    return Future.value(true);
-  });
-}
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  Workmanager().initialize(
-    callbackDispatcher, 
-    isInDebugMode: true 
-  );
-
-  Workmanager().registerPeriodicTask(
-    "1", 
-    "offlineSyncTask", 
-    frequency: const Duration(minutes: 15),
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: 'https://nnhzqvdmkarpwtkzjnra.supabase.co',
+    publishableKey: 'sb_publishable_WRZgkU7XhqbK3HSGRFMfDQ_o2JLnTMF',
   );
 
   runApp(
@@ -43,6 +20,9 @@ void main() async {
   );
 }
 
+// Global Supabase client
+final supabase = Supabase.instance.client;
+
 class NubiraApp extends StatelessWidget {
   const NubiraApp({super.key});
 
@@ -51,7 +31,7 @@ class NubiraApp extends StatelessWidget {
     return MaterialApp(
       title: 'Nubira Mobile',
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const LoginScreen(), // We will update this to check auth state next
       debugShowCheckedModeBanner: false,
     );
   }

@@ -2,249 +2,217 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
-import '../scanner/screens/camera_scanner_screen.dart';
-import '../scanner/providers/sync_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../../main.dart'; // supabase client
 
-class LinemanDashboard extends ConsumerWidget {
-  const LinemanDashboard({Key? key}) : super(key: key);
+class LinemanDashboard extends ConsumerStatefulWidget {
+  const LinemanDashboard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncProvider);
+  ConsumerState<LinemanDashboard> createState() => _LinemanDashboardState();
+}
 
-    ref.listen<SyncState>(syncProvider, (previous, next) {
-      if (next.message != null && previous?.message != next.message) {
+class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
+  bool _isLoading = true;
+  List<dynamic> _allotments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMyAllotments();
+  }
+
+  Future<void> _fetchMyAllotments() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        final res = await supabase
+            .from('allotments')
+            .select('''
+              id,
+              target_qty,
+              status,
+              article_id,
+              articles ( art_no, description, stitching_rate )
+            ''')
+            .eq('lineman_id', user.id)
+            .eq('status', 'IN_PROGRESS');
+        
+        setState(() {
+          _allotments = res;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.message!),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppTheme.textDark,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          SnackBar(content: Text('Error loading targets: $e')),
         );
       }
-    });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showProductionDialog(dynamic allotment) {
+    final qtyController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Enter Production - ${allotment['articles']['art_no']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Target: ${allotment['target_qty']} pieces'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Pieces Completed Today',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final qty = int.tryParse(qtyController.text);
+              if (qty == null || qty <= 0) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter valid quantity')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              await _submitProduction(allotment, qty);
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitProduction(dynamic allotment, int qty) async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      await supabase.from('daily_product').insert({
+        'lineman_id': user.id,
+        'employee_id': user.id, // Lineman themselves
+        'article_id': allotment['article_id'],
+        'quantity': qty,
+        'entry_date': DateTime.now().toIso8601String().split('T')[0],
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Production saved!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('Lineman Area'),
+        title: const Text('My Work (Lineman)'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchMyAllotments,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Greeting
-              Text(
-                'Welcome back,',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ready for Production?',
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Sync Status Card
-              _buildSyncCard(context, ref, syncState),
-              const SizedBox(height: 40),
-
-              // Action Label
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Action Cards Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionCard(
-                      context,
-                      title: 'Receive\nBundle',
-                      icon: Icons.arrow_downward_rounded,
-                      color: AppTheme.successGreen,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CameraScannerScreen(scanContext: 'RECEIVE')),
-                        );
-                      },
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : _allotments.isEmpty 
+          ? const Center(child: Text('No targets assigned to you today.'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _allotments.length,
+              itemBuilder: (context, index) {
+                final a = _allotments[index];
+                final art = a['articles'];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Art No: ${art['art_no']}',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Target: ${a['target_qty']}',
+                                style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w600),
+                              ),
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Description: ${art['description'] ?? '-'}', style: TextStyle(color: Colors.grey.shade700)),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => _showProductionDialog(a),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text('Enter Production'),
+                          ),
+                        )
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildActionCard(
-                      context,
-                      title: 'Issue\nBundle',
-                      icon: Icons.arrow_upward_rounded,
-                      color: AppTheme.primaryBlue,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CameraScannerScreen(scanContext: 'ISSUE')),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSyncCard(BuildContext context, WidgetRef ref, SyncState syncState) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryBlue.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: syncState.pendingCount > 0 
-                  ? Colors.orange.shade50 
-                  : AppTheme.primaryBlue.withOpacity(0.1),
-              shape: BoxShape.circle,
+                );
+              },
             ),
-            child: Icon(
-              syncState.pendingCount > 0 ? Icons.cloud_upload_rounded : Icons.cloud_done_rounded,
-              color: syncState.pendingCount > 0 ? Colors.orange.shade700 : AppTheme.primaryBlue,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Offline Queue',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${syncState.pendingCount} scans pending',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: syncState.pendingCount > 0 ? Colors.orange.shade700 : AppTheme.textMuted,
-                    fontWeight: syncState.pendingCount > 0 ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (syncState.pendingCount > 0)
-            ElevatedButton(
-              onPressed: syncState.isSyncing 
-                  ? null 
-                  : () => ref.read(syncProvider.notifier).syncOfflineData(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.textDark,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: syncState.isSyncing 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Sync'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        splashColor: color.withOpacity(0.1),
-        highlightColor: color.withOpacity(0.05),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: color.withOpacity(0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.1),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 18,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
-
