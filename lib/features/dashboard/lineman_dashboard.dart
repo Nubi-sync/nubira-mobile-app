@@ -16,7 +16,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
   bool _isLoading = true;
   List<dynamic> _allotments = [];
   List<dynamic> _assignments = [];
-  List<dynamic> _employees = [];
+  List<String> _recentWorkerNames = [];
   int _totalAssigned = 0;
   int _totalDone = 0;
 
@@ -47,13 +47,43 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
             .eq('lineman_id', user.id)
             .eq('status', 'IN_PROGRESS');
 
-        // 2. Fetch today's worker assignments by this lineman
+        final allotmentIds = allotmentsRes.map((a) => a['id'] as String).toList();
+
+        // 2. Fetch variants (Size-Color Matrix) for these allotments
+        List<dynamic> variantsRes = [];
+        if (allotmentIds.isNotEmpty) {
+          try {
+            variantsRes = await supabase
+                .from('allotment_variants')
+                .select('id, allotment_id, color, size, quantity, completed_qty')
+                .inFilter('allotment_id', allotmentIds);
+          } catch (e) {
+            debugPrint('Variants table not yet created or empty: $e');
+          }
+        }
+
+        // 3. Fetch materials checklist for these allotments
+        List<dynamic> materialsRes = [];
+        if (allotmentIds.isNotEmpty) {
+          try {
+            materialsRes = await supabase
+                .from('allotment_materials')
+                .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, lineman_received_at')
+                .inFilter('allotment_id', allotmentIds);
+          } catch (e) {
+            debugPrint('Materials table not yet created or empty: $e');
+          }
+        }
+
+        // 4. Fetch today's worker assignments by this lineman
         final assignmentsRes = await supabase
             .from('worker_assignments')
             .select('''
               id,
               allotment_id,
-              worker_id,
+              worker_name,
+              color,
+              size,
               article_id,
               assigned_qty,
               completed_qty,
@@ -62,19 +92,26 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               assigned_at,
               completed_at,
               entry_date,
-              articles ( art_no, description ),
-              worker:profiles!worker_assignments_worker_id_fkey ( id, username )
+              articles ( art_no, description )
             ''')
             .eq('lineman_id', user.id)
             .eq('entry_date', today)
             .order('assigned_at', ascending: false);
 
-        // 3. Fetch active employees list for worker selection dropdown
-        final empRes = await supabase
-            .from('profiles')
-            .select('id, username, role')
-            .eq('is_active', true)
-            .order('username');
+        // 5. Fetch past distinct worker names for quick auto-suggestions
+        final pastRes = await supabase
+            .from('worker_assignments')
+            .select('worker_name')
+            .eq('lineman_id', user.id)
+            .limit(100);
+
+        final Set<String> distinctNames = {};
+        for (var p in pastRes) {
+          final name = p['worker_name'] as String?;
+          if (name != null && name.trim().isNotEmpty) {
+            distinctNames.add(name.trim());
+          }
+        }
 
         // Calculate totals
         int assigned = 0;
@@ -85,7 +122,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
         for (var a in assignmentsRes) {
           final qty = (a['assigned_qty'] as int?) ?? 0;
           assigned += qty;
-          final allotId = a['allotment_id'] as String;
+          final allotId = a['allotment_id'] as String? ?? '';
           assignedPerAllotment[allotId] = (assignedPerAllotment[allotId] ?? 0) + qty;
 
           if (a['status'] == 'DONE') {
@@ -95,20 +132,25 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
           }
         }
 
-        // Enrich allotments with assignment stats
+        // Enrich allotments with variants, materials & assignment stats
         final enriched = allotmentsRes.map((a) {
           final aId = a['id'] as String;
+          final alVariants = variantsRes.where((v) => v['allotment_id'] == aId).toList();
+          final alMaterials = materialsRes.where((m) => m['allotment_id'] == aId).toList();
+
           return {
             ...a,
             'total_assigned': assignedPerAllotment[aId] ?? 0,
             'total_done': donePerAllotment[aId] ?? 0,
+            'variants': alVariants,
+            'materials': alMaterials,
           };
         }).toList();
 
         setState(() {
           _allotments = enriched;
           _assignments = assignmentsRes;
-          _employees = empRes;
+          _recentWorkerNames = distinctNames.toList();
           _totalAssigned = assigned;
           _totalDone = done;
         });
@@ -124,29 +166,219 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     }
   }
 
-  // ======= ASSIGN WORKER DIALOG =======
+  // ======= MATERIAL HANDOVER VERIFICATION =======
+  Future<void> _confirmMaterialReceipt(dynamic allotment) async {
+    final materials = (allotment['materials'] as List<dynamic>?) ?? [];
+    if (materials.isEmpty) return;
+
+    final confirm = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.inventory_2_rounded, color: Color(0xFF047857), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Material Handover Verification',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                      ),
+                      Text(
+                        'Article: ${allotment['articles']?['art_no'] ?? ''}',
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Admin has issued the following materials for this allotment. Please verify physical count on the floor:',
+              style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
+            ),
+            const SizedBox(height: 14),
+
+            // Materials List
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: materials.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                itemBuilder: (_, idx) {
+                  final mat = materials[idx];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            mat['item_name'] ?? 'Item',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textDark),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            mat['required_qty'] ?? '',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.blue.shade800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(ctx, true),
+                icon: const Icon(Icons.verified_rounded, size: 20),
+                label: const Text('Confirm Material Received & Verified âœ…'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        await supabase
+            .from('allotment_materials')
+            .update({
+              'lineman_received': true,
+              'lineman_received_at': nowIso,
+            })
+            .eq('allotment_id', allotment['id']);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Raw materials verified & acknowledged! âœ…'),
+              backgroundColor: AppTheme.successGreen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          _fetchDashboardData();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
+    }
+  }
+
+  // ======= ASSIGN WORKER DIALOG (WITH SIZE & COLOR) =======
   void _showAssignWorkerDialog(dynamic allotment) {
+    final workerNameController = TextEditingController();
     final qtyController = TextEditingController();
     final notesController = TextEditingController();
-    String selectedWorkerId = _employees.isNotEmpty ? _employees.first['id'] : '';
 
     final target = (allotment['target_qty'] as int?) ?? 0;
     final alreadyAssigned = (allotment['total_assigned'] as int?) ?? 0;
     final remaining = target - alreadyAssigned;
 
+    final variants = (allotment['variants'] as List<dynamic>?) ?? [];
+    
+    // Extract unique colors and sizes from variants
+    final Set<String> colorSet = {};
+    final Set<String> sizeSet = {};
+    for (var v in variants) {
+      if (v['color'] != null && (v['color'] as String).isNotEmpty) {
+        colorSet.add(v['color']);
+      }
+      if (v['size'] != null && (v['size'] as String).isNotEmpty) {
+        sizeSet.add(v['size']);
+      }
+    }
+
+    final colorsList = colorSet.toList();
+    final sizesList = sizeSet.toList();
+
+    String selectedColor = colorsList.isNotEmpty ? colorsList.first : 'Default';
+    String selectedSize = sizesList.isNotEmpty ? sizesList.first : 'Standard';
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           title: Row(
             children: [
-              const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryBlue, size: 26),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryBlue, size: 22),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Assign Worker - ${allotment['articles']?['art_no'] ?? ''}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -158,61 +390,148 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               children: [
                 // Info Banner
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.blue.shade100),
                   ),
                   child: Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Total Target: $target pcs', style: TextStyle(color: Colors.blue.shade800, fontWeight: FontWeight.w600, fontSize: 13)),
-                          Text('Remaining: $remaining pcs', style: TextStyle(color: remaining > 0 ? Colors.green.shade700 : Colors.red.shade700, fontWeight: FontWeight.w600, fontSize: 13)),
+                          Expanded(
+                            child: Text(
+                              'Target: $target pcs',
+                              style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Remaining: $remaining pcs',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: remaining > 0 ? const Color(0xFF047857) : Colors.red.shade700,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          Text('Already Assigned: $alreadyAssigned pcs', style: TextStyle(color: Colors.blue.shade600, fontSize: 12)),
+                          Text(
+                            'Assigned so far: $alreadyAssigned pcs',
+                            style: TextStyle(color: Colors.blue.shade700, fontSize: 11),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
 
-                // Worker Dropdown
-                const Text('Select Worker', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                // Worker Name Input with suggestions
+                const Text('Worker / Tailor Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFCBD5E1)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedWorkerId.isNotEmpty ? selectedWorkerId : null,
-                      isExpanded: true,
-                      hint: const Text('Select Worker'),
-                      items: _employees.map<DropdownMenuItem<String>>((emp) {
-                        return DropdownMenuItem<String>(
-                          value: emp['id'],
-                          child: Text(emp['username'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setDialogState(() => selectedWorkerId = val);
-                      },
-                    ),
-                  ),
+                Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return _recentWorkerNames;
+                    }
+                    return _recentWorkerNames.where((String option) {
+                      return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                    });
+                  },
+                  onSelected: (String selection) {
+                    workerNameController.text = selection;
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    controller.addListener(() {
+                      workerNameController.text = controller.text;
+                    });
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Ramesh, Suresh, Mukesh...',
+                        prefixIcon: const Icon(Icons.badge_rounded, size: 20),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    );
+                  },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // Color & Size Selectors (if defined on allotment)
+                if (colorsList.isNotEmpty || sizesList.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      if (colorsList.isNotEmpty)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: selectedColor,
+                                    isExpanded: true,
+                                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
+                                    onChanged: (v) {
+                                      if (v != null) setDialogState(() => selectedColor = v);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (colorsList.isNotEmpty && sizesList.isNotEmpty) const SizedBox(width: 10),
+                      if (sizesList.isNotEmpty)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: selectedSize,
+                                    isExpanded: true,
+                                    items: sizesList.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)))).toList(),
+                                    onChanged: (v) {
+                                      if (v != null) setDialogState(() => selectedSize = v);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
                 // Quantity Input
                 const Text('Quantity to Assign (pcs)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
@@ -220,28 +539,32 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 TextField(
                   controller: qtyController,
                   keyboardType: TextInputType.number,
-                  autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'Max $remaining pcs',
                     prefixIcon: const Icon(Icons.pin_rounded, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Notes
-                const Text('Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                // Notes Input
+                const Text('Remarks / Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: notesController,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. Collar batch',
-                    prefixIcon: Icon(Icons.notes_rounded, size: 20),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Front stitching bundle',
+                    prefixIcon: const Icon(Icons.notes_rounded, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
               ],
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -249,7 +572,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final workerName = workerNameController.text.trim();
                 final qty = int.tryParse(qtyController.text);
+
+                if (workerName.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter worker name')));
+                  return;
+                }
                 if (qty == null || qty <= 0) {
                   ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter valid quantity')));
                   return;
@@ -258,12 +587,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                   ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Cannot assign more than $remaining pcs')));
                   return;
                 }
-                if (selectedWorkerId.isEmpty) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Select a worker')));
-                  return;
-                }
+
                 Navigator.pop(ctx);
-                await _createAssignment(allotment, selectedWorkerId, qty, notesController.text);
+                await _createAssignment(
+                  allotment, 
+                  workerName, 
+                  selectedColor, 
+                  selectedSize, 
+                  qty, 
+                  notesController.text
+                );
               },
               child: const Text('Assign Work'),
             ),
@@ -273,7 +606,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     );
   }
 
-  Future<void> _createAssignment(dynamic allotment, String workerId, int qty, String notes) async {
+  Future<void> _createAssignment(
+    dynamic allotment, 
+    String workerName, 
+    String color, 
+    String size, 
+    int qty, 
+    String notes
+  ) async {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
@@ -281,7 +621,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       await supabase.from('worker_assignments').insert({
         'allotment_id': allotment['id'],
         'lineman_id': user.id,
-        'worker_id': workerId,
+        'worker_name': workerName,
+        'color': color,
+        'size': size,
         'article_id': allotment['article_id'],
         'assigned_qty': qty,
         'status': 'PENDING',
@@ -292,7 +634,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Assigned $qty pcs to worker!'),
+            content: Text('Assigned $qty pcs ($color / $size) to $workerName!'),
             backgroundColor: AppTheme.successGreen,
             behavior: SnackBarBehavior.floating,
           ),
@@ -310,15 +652,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
   // ======= MARK AS DONE =======
   Future<void> _markAsDone(dynamic assignment) async {
+    final workerName = assignment['worker_name'] ?? 'Worker';
+    final qty = assignment['assigned_qty'];
+    final color = assignment['color'] ?? '';
+    final size = assignment['size'] ?? '';
+    final tag = (color.isNotEmpty || size.isNotEmpty) ? ' ($color / $size)' : '';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Mark as Done?'),
         content: Text(
-          'Worker: ${assignment['worker']?['username'] ?? 'Worker'}\n'
-          'Qty: ${assignment['assigned_qty']} pcs\n\n'
-          'Kya ye kaam complete ho gaya hai?',
+          'Worker: $workerName\n'
+          'Batch: $qty pcs$tag\n\n'
+          'Kya $workerName ka kaam complete ho gaya hai?',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -335,27 +683,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       try {
         await supabase.from('worker_assignments').update({
           'status': 'DONE',
-          'completed_qty': assignment['assigned_qty'],
+          'completed_qty': qty,
           'completed_at': DateTime.now().toUtc().toIso8601String(),
         }).eq('id', assignment['id']);
 
-        // Also log to daily_product for backward compatibility with reports
-        final user = supabase.auth.currentUser;
-        if (user != null) {
-          await supabase.from('daily_product').insert({
-            'lineman_id': user.id,
-            'employee_id': assignment['worker_id'],
-            'article_id': assignment['article_id'],
-            'quantity': assignment['assigned_qty'],
-            'notes': 'Auto-logged from worker assignment',
-            'entry_date': DateTime.now().toIso8601String().split('T')[0],
-          });
-        }
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Worker ka kaam Done mark ho gaya! âœ…'),
+            SnackBar(
+              content: Text('$workerName ka kaam Done mark ho gaya! âœ…'),
               backgroundColor: AppTheme.successGreen,
               behavior: SnackBarBehavior.floating,
             ),
@@ -381,6 +716,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       return;
     }
 
+    final nameController = TextEditingController(text: assignment['worker_name'] ?? '');
     final qtyController = TextEditingController(text: assignment['assigned_qty'].toString());
     final notesController = TextEditingController(text: assignment['notes'] ?? '');
 
@@ -394,7 +730,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Edit - ${assignment['worker']?['username'] ?? 'Worker'}',
+                'Edit - ${assignment['worker_name'] ?? 'Worker'}',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
               ),
             ),
@@ -405,6 +741,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Worker Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(hintText: 'Worker Name', prefixIcon: Icon(Icons.person, size: 20)),
+              ),
+              const SizedBox(height: 14),
               const Text('Quantity (pcs)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               TextField(
@@ -412,7 +756,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(hintText: 'e.g. 100', prefixIcon: Icon(Icons.pin_rounded, size: 20)),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Text('Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               TextField(
@@ -426,7 +770,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () async {
+              final wName = nameController.text.trim();
               final qty = int.tryParse(qtyController.text);
+              if (wName.isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter worker name')));
+                return;
+              }
               if (qty == null || qty <= 0) {
                 ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter valid quantity')));
                 return;
@@ -434,6 +783,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               Navigator.pop(ctx);
               try {
                 await supabase.from('worker_assignments').update({
+                  'worker_name': wName,
                   'assigned_qty': qty,
                   'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
                 }).eq('id', assignment['id']);
@@ -465,12 +815,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       return;
     }
 
+    final workerName = assignment['worker_name'] ?? 'Worker';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Assignment?'),
-        content: Text('Remove ${assignment['assigned_qty']} pcs from ${assignment['worker']?['username'] ?? 'Worker'}?'),
+        content: Text('Remove ${assignment['assigned_qty']} pcs assigned to $workerName?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -499,7 +851,6 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     }
   }
 
-  // ======= ASSIGNMENT STATUS HELPERS =======
   Color _statusColor(String status) {
     switch (status) {
       case 'DONE':
@@ -578,7 +929,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ====== GREETING HEADER ======
+                    // GREETING HEADER
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -600,7 +951,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                               children: [
                                 Text('Welcome, $userName!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 6),
-                                const Text('Assign work to your workers', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                const Text('Line Supervisor â€¢ Cut-to-Sew Floor', style: TextStyle(color: Colors.white70, fontSize: 13)),
                               ],
                             ),
                           ),
@@ -615,7 +966,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
                     const SizedBox(height: 20),
 
-                    // ====== SUMMARY STATS ======
+                    // SUMMARY STATS
                     Row(
                       children: [
                         _buildStatCard('Total Assigned', '$_totalAssigned pcs', Icons.assignment_rounded, const Color(0xFF3B82F6)),
@@ -626,7 +977,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
                     const SizedBox(height: 24),
 
-                    // ====== ALLOTMENTS SECTION ======
+                    // ALLOTMENTS SECTION
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -660,7 +1011,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: const Center(
-                          child: Text('No allotment assigned.\nContact Admin.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
+                          child: Text('No allotment assigned.\nContact Admin to assign style target.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
                         ),
                       )
                     else
@@ -668,7 +1019,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
                     const SizedBox(height: 24),
 
-                    // ====== WORKER ASSIGNMENTS LIST ======
+                    // WORKER ASSIGNMENTS LIST
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -702,7 +1053,6 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     );
   }
 
-  // ====== STAT CARD WIDGET ======
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
@@ -736,7 +1086,6 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     );
   }
 
-  // ====== ALLOTMENT CARD WITH ASSIGN BUTTON ======
   Widget _buildAllotmentCard(dynamic a) {
     final art = a['articles'];
     final target = (a['target_qty'] as int?) ?? 1;
@@ -746,9 +1095,20 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     final progress = target > 0 ? (done / target).clamp(0.0, 1.0) : 0.0;
     final percent = (progress * 100).toInt();
 
+    final variants = (a['variants'] as List<dynamic>?) ?? [];
+    final materials = (a['materials'] as List<dynamic>?) ?? [];
+    final hasMaterials = materials.isNotEmpty;
+    final materialsConfirmed = hasMaterials && materials.every((m) => m['lineman_received'] == true);
+
+    // Group variants by color
+    final Map<String, List<dynamic>> colorGroups = {};
+    for (var v in variants) {
+      final c = (v['color'] as String?) ?? 'Default';
+      colorGroups.putIfAbsent(c, () => []).add(v);
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -758,63 +1118,144 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Material Handover Alert Banner (If materials issued by admin but not verified)
+          if (hasMaterials)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              decoration: BoxDecoration(
+                color: materialsConfirmed ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(bottom: BorderSide(color: materialsConfirmed ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A))),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    materialsConfirmed ? Icons.verified_rounded : Icons.pending_actions_rounded,
+                    color: materialsConfirmed ? const Color(0xFF047857) : const Color(0xFFD97706),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      materialsConfirmed 
+                        ? 'Raw Materials Verified & Received (${materials.length} items)'
+                        : 'Raw Materials Issued (${materials.length} items) â€¢ Verification Pending',
+                      style: TextStyle(
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold,
+                        color: materialsConfirmed ? const Color(0xFF047857) : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                  if (!materialsConfirmed)
+                    TextButton(
+                      onPressed: () => _confirmMaterialReceipt(a),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        backgroundColor: const Color(0xFFD97706),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Verify âœ…', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                ],
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Art No: ${art?['art_no'] ?? '-'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppTheme.primaryBlueDark)),
-                    const SizedBox(height: 4),
-                    Text(art?['description'] ?? 'Garment', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Art No: ${art?['art_no'] ?? '-'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppTheme.primaryBlueDark)),
+                          const SizedBox(height: 4),
+                          Text(art?['description'] ?? 'Garment Style', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: percent >= 100 ? const Color(0xFFECFDF5) : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: percent >= 100 ? const Color(0xFFA7F3D0) : Colors.blue.shade200),
+                      ),
+                      child: Text('$percent%', style: TextStyle(color: percent >= 100 ? const Color(0xFF047857) : AppTheme.primaryBlue, fontWeight: FontWeight.w900, fontSize: 14)),
+                    ),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: percent >= 100 ? const Color(0xFFECFDF5) : Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: percent >= 100 ? const Color(0xFFA7F3D0) : Colors.blue.shade200),
+
+                const SizedBox(height: 16),
+
+                // Size & Color Matrix Chips
+                if (colorGroups.isNotEmpty) ...[
+                  const Text('Size & Color Ratios:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: colorGroups.entries.map((cg) {
+                      final sizeStr = cg.value.map((v) => '${v['size']}:${v['quantity']}').join(', ');
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          '${cg.key} ($sizeStr)',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Progress Bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 10,
+                    backgroundColor: const Color(0xFFF1F5F9),
+                    valueColor: AlwaysStoppedAnimation<Color>(percent >= 100 ? AppTheme.successGreen : AppTheme.primaryBlue),
+                  ),
                 ),
-                child: Text('$percent%', style: TextStyle(color: percent >= 100 ? const Color(0xFF047857) : AppTheme.primaryBlue, fontWeight: FontWeight.w900, fontSize: 14)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: AlwaysStoppedAnimation<Color>(percent >= 100 ? AppTheme.successGreen : AppTheme.primaryBlue),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _miniLabel('Target', '$target pcs', Colors.grey.shade700),
-              const SizedBox(width: 16),
-              _miniLabel('Assigned', '$assigned pcs', const Color(0xFF3B82F6)),
-              const SizedBox(width: 16),
-              _miniLabel('Done', '$done pcs', const Color(0xFF10B981)),
-              const SizedBox(width: 16),
-              _miniLabel('Left', '$remaining pcs', remaining > 0 ? Colors.orange : Colors.grey),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
-              icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
-              label: Text(remaining > 0 ? 'Assign to Worker ($remaining left)' : 'Fully Assigned âœ…'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _miniLabel('Target', '$target pcs', Colors.grey.shade700),
+                    const SizedBox(width: 8),
+                    _miniLabel('Assigned', '$assigned pcs', const Color(0xFF3B82F6)),
+                    const SizedBox(width: 8),
+                    _miniLabel('Done', '$done pcs', const Color(0xFF10B981)),
+                    const SizedBox(width: 8),
+                    _miniLabel('Left', '$remaining pcs', remaining > 0 ? Colors.orange : Colors.grey),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
+                    label: Text(remaining > 0 ? 'Assign Worker ($remaining left)' : 'Fully Assigned âœ…'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -827,20 +1268,25 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       child: Column(
         children: [
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color)),
+          const SizedBox(height: 2),
           Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
         ],
       ),
     );
   }
 
-  // ====== WORKER ASSIGNMENT CARD ======
   Widget _buildAssignmentCard(dynamic a) {
-    final workerName = a['worker']?['username'] ?? 'Worker';
+    final workerName = a['worker_name'] ?? 'Worker';
     final artNo = a['articles']?['art_no'] ?? '-';
     final qty = (a['assigned_qty'] as int?) ?? 0;
     final status = a['status'] ?? 'PENDING';
     final assignedTime = _formatTime(a['assigned_at']);
     final doneTime = _formatTime(a['completed_at']);
+
+    final color = a['color'] as String? ?? '';
+    final size = a['size'] as String? ?? '';
+    final hasVariant = (color.isNotEmpty && color != 'Default') || (size.isNotEmpty && size != 'Standard');
+    final variantTag = hasVariant ? '$color â€¢ Size $size' : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -859,27 +1305,25 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
           children: [
             Row(
               children: [
-                // Worker Avatar
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: _statusColor(status).withValues(alpha: 0.15),
                   child: Icon(_statusIcon(status), color: _statusColor(status), size: 24),
                 ),
                 const SizedBox(width: 14),
-
-                // Worker Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(workerName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.textDark)),
                       const SizedBox(height: 3),
-                      Text('Art: $artNo  â€¢  $qty pcs', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(
+                        hasVariant ? 'Art: $artNo â€¢ $variantTag â€¢ $qty pcs' : 'Art: $artNo â€¢ $qty pcs',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
-
-                // Status Badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
@@ -890,31 +1334,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 ),
               ],
             ),
-
             const SizedBox(height: 10),
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
             const SizedBox(height: 10),
-
-            // Bottom Row: Timestamps + Actions
             Row(
               children: [
-                // Assigned Time
                 Icon(Icons.access_time_rounded, size: 14, color: Colors.grey.shade500),
                 const SizedBox(width: 4),
-                Text('Assigned: $assignedTime', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-
+                Text('Given: $assignedTime', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 if (status == 'DONE') ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   const Icon(Icons.check_circle_outline, size: 14, color: Color(0xFF10B981)),
                   const SizedBox(width: 4),
                   Text('Done: $doneTime', style: const TextStyle(fontSize: 11, color: Color(0xFF10B981))),
                 ],
-
                 const Spacer(),
-
-                // Actions
                 if (status != 'DONE') ...[
-                  // Mark Done Button
                   InkWell(
                     onTap: () => _markAsDone(a),
                     borderRadius: BorderRadius.circular(8),
@@ -935,7 +1370,6 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  // Edit/Delete Popup
                   PopupMenuButton<String>(
                     padding: EdgeInsets.zero,
                     icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey),
