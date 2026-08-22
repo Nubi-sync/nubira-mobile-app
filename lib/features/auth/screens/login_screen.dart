@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../../dashboard/lineman_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
+import '../../dashboard/dispatch_dashboard.dart';
 import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next.isAuthenticated && next.userRole != null) {
         Widget destination;
         switch (next.userRole) {
+          case 'DISPATCH':
+            destination = const DispatchDashboard();
+            break;
           case 'STORE':
             destination = const StoreDashboard();
             break;

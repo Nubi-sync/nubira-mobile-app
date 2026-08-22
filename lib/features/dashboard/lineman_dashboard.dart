@@ -951,7 +951,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                               children: [
                                 Text('Welcome, $userName!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 6),
-                                const Text('Line Supervisor â€¢ Cut-to-Sew Floor', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Text('Line Supervisor • Cut-to-Sew Floor', style: TextStyle(color: Colors.white70, fontSize: 13)),
                               ],
                             ),
                           ),
@@ -1139,7 +1139,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                     child: Text(
                       materialsConfirmed 
                         ? 'Raw Materials Verified & Received (${materials.length} items)'
-                        : 'Raw Materials Issued (${materials.length} items) â€¢ Verification Pending',
+                        : 'Raw Materials Issued (${materials.length} items) • Verification Pending',
                       style: TextStyle(
                         fontSize: 12, 
                         fontWeight: FontWeight.bold,
@@ -1248,7 +1248,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                   child: ElevatedButton.icon(
                     onPressed: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
                     icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
-                    label: Text(remaining > 0 ? 'Assign Worker ($remaining left)' : 'Fully Assigned âœ…'),
+                    label: Text(remaining > 0 ? 'Assign Worker ($remaining left)' : 'Fully Assigned ✅'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1286,7 +1286,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     final color = a['color'] as String? ?? '';
     final size = a['size'] as String? ?? '';
     final hasVariant = (color.isNotEmpty && color != 'Default') || (size.isNotEmpty && size != 'Standard');
-    final variantTag = hasVariant ? '$color â€¢ Size $size' : '';
+    final variantTag = hasVariant ? '$color • Size $size' : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

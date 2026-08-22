@@ -465,7 +465,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('âœ… Passed Qty (OK)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+                            const Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 16),
+                                SizedBox(width: 4),
+                                Text('Passed Qty (OK)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+                              ],
+                            ),
                             const SizedBox(height: 6),
                             TextField(
                               controller: passedController,
@@ -485,7 +491,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('âŒ Defect Qty', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFBE123C))),
+                            const Row(
+                              children: [
+                                Icon(Icons.cancel_rounded, color: Color(0xFFBE123C), size: 16),
+                                SizedBox(width: 4),
+                                Text('Defect Qty', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFBE123C))),
+                              ],
+                            ),
                             const SizedBox(height: 6),
                             TextField(
                               controller: rejectedController,
@@ -635,8 +647,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       unselectedLabelColor: Color(0xFF64748B),
                       tabs: [
-                        Tab(text: 'ðŸ“¤ Return to Lineman'),
-                        Tab(text: 'ðŸ“¥ Receive Repaired'),
+                        Tab(text: 'Return to Lineman'),
+                        Tab(text: 'Receive Repaired'),
                       ],
                     ),
                   ),
@@ -738,7 +750,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       'remarks': issueController.text.trim().isEmpty ? 'Alteration rework' : issueController.text.trim(),
                       'entry_date': DateTime.now().toIso8601String().split('T')[0],
                     });
-                    scaffoldMessenger.showSnackBar(SnackBar(content: Text('Returned $qty pcs to Lineman for repair ðŸ”§'), backgroundColor: Colors.orange));
+                    scaffoldMessenger.showSnackBar(SnackBar(content: Text('Returned $qty pcs to Lineman for repair 🔧'), backgroundColor: Colors.orange));
                     _fetchQcData();
                   } catch (e) {
                     scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
@@ -784,7 +796,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('$artNo â€¢ With $lmName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF9A3412))),
+                  Text('$artNo • With $lmName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF9A3412))),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
@@ -800,7 +812,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 child: ElevatedButton.icon(
                   onPressed: () => _promptReceiveRepaired(ctx, item),
                   icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text('Receive Repaired Pieces âœ…'),
+                  label: const Text('Receive Repaired Pieces ✅'),
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
@@ -824,13 +836,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Article: ${item['article']?['art_no']} â€¢ ${item['qty_rejected']} pcs sent', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            Text('Article: ${item['article']?['art_no']} • ${item['qty_rejected']} pcs sent', style: const TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 14),
-            const Text('Fixed & OK Quantity (Adds to Passed! âœ…)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+            const Text('Fixed & OK Quantity (Adds to Passed! ✅)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
             const SizedBox(height: 4),
             TextField(controller: fixedController, keyboardType: TextInputType.number, decoration: const InputDecoration(border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            const Text('Scrap / Damaged Quantity âŒ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFBE123C))),
+            const Text('Scrap / Damaged Quantity ❌', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFBE123C))),
             const SizedBox(height: 4),
             TextField(controller: scrapController, keyboardType: TextInputType.number, decoration: const InputDecoration(border: OutlineInputBorder())),
           ],
@@ -1071,7 +1083,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
                           scaffoldMessenger.showSnackBar(
                             SnackBar(
-                              content: Text('Transferred $totalPacked pcs ($tBundles bundles) to Store Godown! ðŸ¬'),
+                              content: Text('Transferred $totalPacked pcs ($tBundles bundles) to Store Godown!'),
                               backgroundColor: AppTheme.successGreen,
                             ),
                           );
@@ -1338,13 +1350,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       mainDetails = 'Received ${log['qty_received']} pcs from $lmName';
     } else if (stage == 'CHECKING') {
       badgeColor = const Color(0xFF059669);
-      badgeText = 'âœ… Inspected';
+      badgeText = 'Checked';
       final p = log['qty_passed'] ?? 0;
       final r = log['qty_rejected'] ?? 0;
-      mainDetails = '$p Passed â€¢ $r Defect (${log['defect_type'] ?? 'NONE'})';
+      mainDetails = '$p Passed • $r Defect (${log['defect_type'] ?? 'NONE'})';
     } else if (stage == 'MENDING') {
       badgeColor = Colors.orange;
-      badgeText = 'ðŸ”§ Mending';
+      badgeText = 'Mending';
       final status = log['mending_status'] ?? '';
       if (status == 'REPAIR_COMPLETED') {
         mainDetails = 'Repaired: ${log['mending_returned_qty']} fixed & added to passed';
@@ -1353,7 +1365,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       }
     } else if (stage == 'BULKING') {
       badgeColor = Colors.purple;
-      badgeText = 'ðŸ“¦ Packed to Store';
+      badgeText = 'Packed to Store';
       final bSize = log['bundle_size'] ?? 0;
       final tBundles = log['total_bundles'] ?? 0;
       mainDetails = 'Packed ${bSize * tBundles} pcs ($tBundles bundles x $bSize pcs) to Godown';

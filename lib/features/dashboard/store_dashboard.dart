@@ -525,7 +525,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: challanController,
-                    decoration: InputDecoration(hintText: 'e.g. Challan #DC-402 â€¢ Truck MH-04-1234', prefixIcon: const Icon(Icons.local_shipping_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+                    decoration: InputDecoration(hintText: 'e.g. Challan #DC-402 • Truck MH-04-1234', prefixIcon: const Icon(Icons.local_shipping_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
                   ),
 
                   const SizedBox(height: 20),
@@ -562,7 +562,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                           });
 
                           scaffoldMessenger.showSnackBar(
-                            SnackBar(content: Text('Dispatched $qty pcs from Store Godown! ðŸ“¤'), backgroundColor: const Color(0xFF2563EB)),
+                            SnackBar(content: Text('Dispatched $qty pcs from Store Godown!'), backgroundColor: const Color(0xFF2563EB)),
                           );
                           _fetchStoreData();
                         } catch (e) {
@@ -665,7 +665,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
-                              child: Text('ðŸ“¥ IN (Stock Received)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'IN' ? Colors.white : const Color(0xFF64748B))),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.arrow_downward_rounded, size: 14, color: selectedAction == 'IN' ? Colors.white : const Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text('IN (Stock Received)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'IN' ? Colors.white : const Color(0xFF64748B))),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -685,7 +692,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
-                              child: Text('ðŸ“¤ OUT (Issued to Line)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'OUT' ? Colors.white : const Color(0xFF64748B))),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.arrow_upward_rounded, size: 14, color: selectedAction == 'OUT' ? Colors.white : const Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text('OUT (Issued to Line)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'OUT' ? Colors.white : const Color(0xFF64748B))),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -819,7 +833,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                         scaffoldMessenger.showSnackBar(
                           SnackBar(
-                            content: Text('${selectedAction == "IN" ? "Added" : "Issued"} $qty $selectedUnit of ${itemController.text.trim()} ðŸ§µ'),
+                            content: Text('${selectedAction == "IN" ? "Added" : "Issued"} $qty $selectedUnit of ${itemController.text.trim()}'),
                             backgroundColor: selectedAction == 'IN' ? const Color(0xFF047857) : Colors.orange,
                           ),
                         );
@@ -1051,7 +1065,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final isIN = log['action'] == 'IN';
       final badgeColor = isIN ? const Color(0xFF047857) : Colors.orange.shade800;
       final badgeBg = isIN ? const Color(0xFFECFDF5) : Colors.orange.shade50;
-      final badgeText = isIN ? 'ðŸ§µ Trims IN' : 'ðŸ§µ Trims OUT';
+      final badgeText = isIN ? 'Trims IN' : 'Trims OUT';
       final itemName = log['item_name'] ?? 'Item';
       final qty = log['quantity'] ?? 0;
       final unit = log['unit'] ?? 'pcs';
@@ -1085,7 +1099,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "â€¢ $party" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                  Text('${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "• $party" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
                   if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text('Note: ${log['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
@@ -1102,12 +1116,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final isIN = log['type'] == 'INWARD';
       final badgeColor = isIN ? const Color(0xFF047857) : const Color(0xFF2563EB);
       final badgeBg = isIN ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF);
-      final badgeText = isIN ? 'ðŸ“¥ Inward' : 'ðŸ“¤ Outward';
+      final badgeText = isIN ? 'Inward' : 'Outward';
       final artNo = log['art_no'] ?? '-';
       final color = log['color'] ?? '';
       final size = log['size'] ?? '';
       final hasVariant = color.isNotEmpty || size.isNotEmpty;
-      final variantStr = hasVariant ? ' â€¢ $color ($size)' : '';
+      final variantStr = hasVariant ? ' • $color ($size)' : '';
       final qty = log['quantity'] ?? 0;
       final party = log['party_name'] ?? '';
       final challan = log['challan_no'] ?? '';
@@ -1140,7 +1154,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "â€¢ $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                  Text('${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "• $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
                   if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text('Note: ${log['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
