@@ -350,7 +350,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         });
 
                         scaffoldMessenger.showSnackBar(
-                          SnackBar(content: Text('Inwarded $qty pcs to Store Godown! ðŸ“¥'), backgroundColor: AppTheme.successGreen),
+                          SnackBar(content: Text('Inwarded $qty pcs to Store Godown'), backgroundColor: AppTheme.successGreen),
                         );
                         _fetchStoreData();
                       } catch (e) {

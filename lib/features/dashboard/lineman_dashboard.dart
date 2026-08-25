@@ -25,10 +25,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   int _selectedTabIndex = 0; // 0: Live Floor, 1: Lot History
 
   bool _isLoading = true;
+  List<dynamic> _activeMendingTasks = [];
   List<dynamic> _activeAllotments = [];
   List<dynamic> _completedAllotments = [];
   List<dynamic> _todayAssignments = [];
   List<String> _recentWorkerNames = [];
+  int _totalTargetToday = 0;
   int _totalAssignedToday = 0;
   int _totalDoneToday = 0;
 
@@ -221,11 +223,45 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           }
         }
 
+        // 5. Fetch active mending tasks assigned to this lineman from QC
+        List<dynamic> activeMending = [];
+        try {
+          final mendingRes = await supabase
+              .from('qc_logs')
+              .select('''
+                id,
+                article_id,
+                qty_rejected,
+                defect_type,
+                color,
+                size,
+                remarks,
+                mending_status,
+                entry_date,
+                created_at,
+                article:articles ( art_no, description )
+              ''')
+              .eq('from_lineman_id', user.id)
+              .neq('mending_status', 'REPAIR_COMPLETED')
+              .order('created_at', ascending: false);
+
+          activeMending = mendingRes.where((m) => (m['qty_rejected'] as int? ?? 0) > 0).toList();
+        } catch (e) {
+          debugPrint('Mending fetch error: $e');
+        }
+
+        int totalTarget = 0;
+        for (var a in enrichedActive) {
+          totalTarget += (a['target_qty'] as int? ?? 0);
+        }
+
         setState(() {
+          _activeMendingTasks = activeMending;
           _activeAllotments = enrichedActive;
           _completedAllotments = enrichedCompleted;
           _todayAssignments = todayAssignments;
           _recentWorkerNames = distinctNames.toList();
+          _totalTargetToday = totalTarget;
           _totalAssignedToday = assignedToday;
           _totalDoneToday = doneToday;
         });
@@ -1427,14 +1463,35 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             delayMs: 60,
             child: Row(
               children: [
-                _buildStatCard('Assigned Today', '$_totalAssignedToday pcs', Icons.assignment_rounded, AppTheme.steel),
+                _buildStatCard(
+                  'Floor Target',
+                  '$_totalTargetToday pcs',
+                  Icons.assignment_rounded,
+                  AppTheme.steel,
+                  subtitle: '$_totalAssignedToday pcs with workers',
+                ),
                 const SizedBox(width: 12),
-                _buildStatCard('Work Done Today', '$_totalDoneToday pcs', Icons.check_circle_rounded, AppTheme.green),
+                _buildStatCard(
+                  'Work Done Today',
+                  '$_totalDoneToday pcs',
+                  Icons.check_circle_rounded,
+                  AppTheme.green,
+                  subtitle: '${_totalTargetToday > 0 ? ((_totalDoneToday / _totalTargetToday) * 100).toStringAsFixed(0) : 0}% completed',
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 20),
+
+          // Mending & Repairs from QC (If Any)
+          if (_activeMendingTasks.isNotEmpty) ...[
+            _AnimatedFadeSlide(
+              delayMs: 90,
+              child: _buildMendingTasksSection(),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           // Active Allotments Section
           _AnimatedFadeSlide(
@@ -2412,6 +2469,163 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   }
 
   // ==========================================
+  // MENDING & REPAIRS FROM QC BANNER
+  // ==========================================
+  Widget _buildMendingTasksSection() {
+    int totalMendingPieces = 0;
+    for (var m in _activeMendingTasks) {
+      totalMendingPieces += (m['qty_rejected'] as int? ?? 0);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.amberMist,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.amber, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.amber.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppTheme.amber,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.build_rounded, color: Colors.white, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mending Tasks from QC',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.amber,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$totalMendingPieces pcs pending',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'QC has flagged the following pieces for floor repair/alteration. Please assign tailors to fix and return to QC desk.',
+            style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+          ),
+          const SizedBox(height: 10),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _activeMendingTasks.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, idx) {
+              final task = _activeMendingTasks[idx];
+              final artNo = task['article']?['art_no'] ?? '-';
+              final qty = task['qty_rejected'] ?? 0;
+              final defect = task['defect_type'] ?? 'Defect';
+              final color = task['color'] as String? ?? '';
+              final size = task['size'] as String? ?? '';
+              final variantStr = (color.isNotEmpty || size.isNotEmpty) ? ' • $color ($size)' : '';
+              final remarks = task['remarks'] as String?;
+
+              return Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Art: $artNo$variantStr',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: AppTheme.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Defect: $defect',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11.5,
+                              color: AppTheme.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (remarks != null && remarks.isNotEmpty) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              'Note: $remarks',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 10.5,
+                                color: AppTheme.inkSoft,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.amberMist,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.amber.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        '$qty pcs',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.amber,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
   // SKELETON SHIMMER LOADING
   // ==========================================
   Widget _buildAnimatedSkeletonLoading() {
@@ -2508,7 +2722,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? subtitle}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -2544,8 +2758,10 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      color: color,
+                      color: AppTheme.ink,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     label,
@@ -2554,7 +2770,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       fontWeight: FontWeight.w500,
                       color: AppTheme.inkSoft,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.publicSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2811,4 +3042,5 @@ class _BouncyTapState extends State<_BouncyTap> {
       ),
     );
   }
+
 }

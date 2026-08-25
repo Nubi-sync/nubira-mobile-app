@@ -330,10 +330,10 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
                           Expanded(
                             child: Text(
                               diff == 0
-                                  ? 'Exact Match! Counted $counted pcs tally perfectly âœ…'
+                                  ? 'Exact Match: Counted $counted pcs tally perfectly'
                                   : (diff < 0
                                       ? 'âš ï¸ SHORTAGE ALERT: $diff pcs missing! (Counted: $counted vs Expected: $expected)'
-                                      : 'ðŸ“¦ SURPLUS ALERT: +$diff pcs extra! (Counted: $counted vs Expected: $expected)'),
+                                      : 'SURPLUS ALERT: +$diff pcs extra (Counted: $counted vs Expected: $expected)'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -384,7 +384,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
 
                           scaffoldMessenger.showSnackBar(
                             SnackBar(
-                              content: Text('Recorded counting of $cnt pcs ${diff != 0 ? "(Mismatch $diff pcs)" : "âœ…"}'),
+                              content: Text('Recorded counting of $cnt pcs ${diff != 0 ? "(Mismatch $diff pcs)" : "[Verified]"}'),
                               backgroundColor: diff == 0 ? AppTheme.successGreen : Colors.orange.shade800,
                             ),
                           );
@@ -720,7 +720,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
 
                           scaffoldMessenger.showSnackBar(
                             SnackBar(
-                              content: Text('Created Challan #$challanNo for $totalPcs pcs! ðŸšš'),
+                              content: Text('Created Challan #$challanNo for $totalPcs pcs'),
                               backgroundColor: const Color(0xFF047857),
                             ),
                           );
@@ -887,19 +887,19 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
                     child: OutlinedButton.icon(
                       onPressed: () {
                         final slipText = '''
-ðŸ“¦ NUBIRA CREATION - DELIVERY CHALLAN #$challanNo
-ðŸ“… Date: $date
+NUBIRA CREATION - DELIVERY CHALLAN #$challanNo
+Date: $date
 ðŸ¢ Buyer: $buyer
 ðŸ“ Destination: $dest
-ðŸšš Vehicle: $vehicle | Driver: $driver ($driverPhone)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Vehicle: $vehicle | Driver: $driver ($driverPhone)
+----------------------------------
 TOTAL QUANTITY: $total Pieces
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-âœ… Verified & Dispatched from Factory
+----------------------------------
+[Verified & Dispatched from Factory]
 ''';
                         Clipboard.setData(ClipboardData(text: slipText));
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('Challan text copied! Ready to paste in WhatsApp ðŸ“²')),
+                          const SnackBar(content: Text('Challan text copied to clipboard')),
                         );
                       },
                       icon: const Icon(Icons.copy_rounded, size: 18),
@@ -1209,7 +1209,7 @@ TOTAL QUANTITY: $total Pieces
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('Buyer: $buyer â€¢ $vehicle', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                Text('Buyer: $buyer • $vehicle', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -1224,7 +1224,7 @@ TOTAL QUANTITY: $total Pieces
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
-                  child: const Text('View Slip âž”', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                  child: const Text('View Slip', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
                 ),
               ),
             ],
@@ -1263,7 +1263,7 @@ TOTAL QUANTITY: $total Pieces
                     Text('$artNo', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textDark)),
                     if (color.isNotEmpty || size.isNotEmpty) ...[
                       const SizedBox(width: 6),
-                      Text('â€¢ $color ($size)', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text('• $color ($size)', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                     const Spacer(),
                     Container(
