@@ -1,3 +1,4 @@
+import '../../core/widgets/connectivity_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_provider.dart';
@@ -867,6 +868,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       appBar: AppBar(
         title: const Text('Store Ledger'),
         actions: [
+          const ConnectivityIndicator(),
+          const SizedBox(width: 4),
           IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: 'Refresh', onPressed: _fetchStoreData),
           IconButton(
             icon: const Icon(Icons.logout_rounded),

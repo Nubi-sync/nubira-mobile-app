@@ -1,3 +1,4 @@
+import '../../core/widgets/connectivity_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_provider.dart';
@@ -566,6 +567,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           actions: [
+          const ConnectivityIndicator(),
+          const SizedBox(width: 4),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel', style: TextStyle(color: Colors.grey)),

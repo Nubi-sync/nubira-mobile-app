@@ -2,84 +2,116 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Define Brand Colors
-  static const Color primaryBlue = Color(0xFF2563EB); // Modern Blue-600
-  static const Color primaryBlueDark = Color(0xFF1E3A8A); // Blue-900
-  static const Color successGreen = Color(0xFF16A34A); // Green-600
-  static const Color backgroundLight = Color(0xFFF8FAFC); // Slate-50
-  static const Color textDark = Color(0xFF1E293B); // Slate-800
-  static const Color textMuted = Color(0xFF64748B); // Slate-500
+  // Nubira Creation Core Design Tokens
+  static const Color bg = Color(0xFFEEF1F5);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color ink = Color(0xFF1C2733);
+  static const Color inkSoft = Color(0xFF5B6B7C);
+  static const Color inkFaint = Color(0xFF8B9AAB);
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color steel = Color(0xFF2B4C7E);
+  static const Color steelDark = Color(0xFF1F3A63);
+  static const Color steelMist = Color(0xFFEEF3FA);
+  static const Color steelTint = Color(0xFFDBE6F5);
+  static const Color stitch = Color(0xFFC8802B);
+  
+  static const Color red = Color(0xFFC0392B);
+  static const Color redMist = Color(0xFFFBEAE8);
+  static const Color green = Color(0xFF1F9D63);
+  static const Color greenMist = Color(0xFFE6F6EE);
+  static const Color amber = Color(0xFFC8802B);
+  static const Color amberMist = Color(0xFFFBF0E1);
+
+  // Backward compatibility aliases
+  static const Color primaryBlue = steel;
+  static const Color primaryBlueDark = steelDark;
+  static const Color successGreen = green;
+  static const Color backgroundLight = bg;
+  static const Color textDark = ink;
+  static const Color textMuted = inkSoft;
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryBlue,
-        background: backgroundLight,
-        primary: primaryBlue,
+      brightness: Brightness.light,
+      colorScheme: const ColorScheme.light(
+        surface: bg,
+        primary: steel,
         onPrimary: Colors.white,
+        secondary: steelDark,
+        error: red,
       ),
-      scaffoldBackgroundColor: backgroundLight,
-      textTheme: GoogleFonts.interTextTheme().copyWith(
-        displayLarge: GoogleFonts.inter(color: textDark, fontWeight: FontWeight.bold),
-        titleLarge: GoogleFonts.inter(color: textDark, fontWeight: FontWeight.bold),
-        bodyLarge: GoogleFonts.inter(color: textDark),
-        bodyMedium: GoogleFonts.inter(color: textMuted),
+      scaffoldBackgroundColor: bg,
+      textTheme: GoogleFonts.publicSansTextTheme().copyWith(
+        displayLarge: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.bold),
+        displayMedium: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.w700),
+        titleLarge: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.w600),
+        bodyLarge: GoogleFonts.publicSans(color: ink, fontWeight: FontWeight.w500),
+        bodyMedium: GoogleFonts.publicSans(color: inkSoft),
+        bodySmall: GoogleFonts.publicSans(color: inkFaint),
+        labelSmall: GoogleFonts.jetBrainsMono(color: inkFaint, fontSize: 10),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+      appBarTheme: AppBarTheme(
+        backgroundColor: card,
         elevation: 0,
         centerTitle: false,
-        iconTheme: IconThemeData(color: textDark),
-        titleTextStyle: TextStyle(
-          color: textDark,
-          fontSize: 22,
+        iconTheme: const IconThemeData(color: ink),
+        titleTextStyle: GoogleFonts.fraunces(
+          color: ink,
+          fontSize: 19,
           fontWeight: FontWeight.bold,
-          letterSpacing: -0.5,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          elevation: 2,
-          shadowColor: primaryBlue.withOpacity(0.3),
-          backgroundColor: primaryBlue,
+          elevation: 0,
+          backgroundColor: steel,
           foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(48),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(10),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          textStyle: GoogleFonts.publicSans(
+            fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       cardTheme: CardTheme(
-        color: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
+        color: card,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(11),
+          side: const BorderSide(color: border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        fillColor: card,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: border, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: primaryBlue, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: steel, width: 1.5),
         ),
-        hintStyle: GoogleFonts.inter(color: textMuted),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: red, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: red, width: 1.5),
+        ),
+        hintStyle: GoogleFonts.publicSans(color: inkFaint, fontSize: 13),
       ),
     );
   }

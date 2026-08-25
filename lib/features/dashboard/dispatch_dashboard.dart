@@ -1,3 +1,4 @@
+import '../../core/widgets/connectivity_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -939,6 +940,8 @@ TOTAL QUANTITY: $total Pieces
       appBar: AppBar(
         title: const Text('Dispatch Area'),
         actions: [
+          const ConnectivityIndicator(),
+          const SizedBox(width: 4),
           IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: 'Refresh', onPressed: _fetchDispatchData),
           IconButton(
             icon: const Icon(Icons.logout_rounded),

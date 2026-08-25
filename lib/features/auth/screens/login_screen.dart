@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/auth_provider.dart';
 import '../../dashboard/lineman_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/connectivity_indicator.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -18,10 +22,153 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  bool _obscurePassword = true;
+  bool _rememberMe = true;
+
+  // Field validation states
+  String? _usernameError;
+  String? _passwordError;
+
+  // App version tag
+  String _appVersion = 'v1.0.0';
+
+  // Lockout countdown timer
+  Timer? _lockoutTimer;
+  int _remainingLockoutSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = 'v${info.version}';
+        });
+      }
+    } catch (_) {}
+
+    // Pre-fill remembered username
+    final authState = ref.read(authProvider);
+    if (authState.cachedUsername != null && authState.cachedUsername!.isNotEmpty) {
+      _usernameController.text = authState.cachedUsername!;
+    }
+
+    _checkLockoutTimer();
+  }
+
+  void _checkLockoutTimer() {
+    final authState = ref.read(authProvider);
+    if (authState.isLockedOut) {
+      _remainingLockoutSeconds = authState.remainingLockoutSeconds;
+      _lockoutTimer?.cancel();
+      _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_remainingLockoutSeconds <= 1) {
+          timer.cancel();
+          setState(() {
+            _remainingLockoutSeconds = 0;
+          });
+        } else {
+          setState(() {
+            _remainingLockoutSeconds--;
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _lockoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleSubmit() {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    setState(() {
+      _usernameError = username.isEmpty ? "Operator ID can't be empty" : null;
+      _passwordError = password.isEmpty ? "Password can't be empty" : null;
+    });
+
+    if (username.isEmpty || password.isEmpty) return;
+
+    ref.read(authProvider.notifier).login(
+      username,
+      password,
+      rememberMe: _rememberMe,
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+        title: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: AppTheme.steelMist,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.lock_reset_rounded, color: AppTheme.steel, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Password Recovery',
+                style: GoogleFonts.fraunces(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Shop floor operator accounts are provisioned and managed by factory administration.\n\nPlease contact your Plant Admin or Line Supervisor to reset your password.',
+          style: GoogleFonts.publicSans(
+            fontSize: 13,
+            color: AppTheme.inkSoft,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.steel,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              minimumSize: const Size(100, 40),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Understood',
+              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
+    // Listen for Auth Changes & Route to Dashboards
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.userRole != null) {
         Widget destination;
@@ -42,115 +189,485 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
 
         Navigator.pushReplacement(
-          context, 
+          context,
           MaterialPageRoute(builder: (_) => destination),
         );
       }
-      if (next.error != null && previous?.error != next.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!), 
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+
+      if (next.isLockedOut && (previous == null || !previous.isLockedOut)) {
+        _checkLockoutTimer();
       }
     });
 
+    final isLocked = authState.isLockedOut || _remainingLockoutSeconds > 0;
+    final lockoutMin = _remainingLockoutSeconds ~/ 60;
+    final lockoutSec = _remainingLockoutSeconds % 60;
+    final lockoutTimeString = '${lockoutMin.toString().padLeft(2, '0')}:${lockoutSec.toString().padLeft(2, '0')}';
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Brand Logo/Header
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withOpacity(0.1),
-                    shape: BoxShape.circle,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  
+                  // ==========================================
+                  // 1. BRAND HEADER
+                  // ==========================================
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: AppTheme.steel,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.steelDark.withValues(alpha: 0.2),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      // TODO: replace with actual Nubira logo asset
+                      child: const Center(
+                        child: Icon(
+                          Icons.precision_manufacturing_rounded,
+                          size: 34,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Icon(Icons.factory_rounded, size: 64, color: AppTheme.primaryBlue),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Nubira Floor',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primaryBlueDark,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Secure Login for Factory Operators',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 48),
+                  const SizedBox(height: 16),
 
-                // Form Container
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                  // Brand Name (Fraunces 700 26px)
+                  Text(
+                    'Nubira Floor',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.fraunces(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _usernameController,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                        decoration: const InputDecoration(
-                          hintText: 'Enter your ID',
-                          prefixIcon: Icon(Icons.badge_rounded, color: AppTheme.primaryBlue),
+                  const SizedBox(height: 6),
+
+                  // Stitch Dashed Rule (90px wide, var(--stitch) #C8802B)
+                  Center(
+                    child: SizedBox(
+                      width: 90,
+                      height: 2,
+                      child: CustomPaint(
+                        painter: _DashedLinePainter(
+                          color: AppTheme.stitch,
+                          dashWidth: 5,
+                          dashSpace: 4,
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                        decoration: const InputDecoration(
-                          hintText: 'Password',
-                          prefixIcon: Icon(Icons.lock_rounded, color: AppTheme.primaryBlue),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: authState.isLoading
-                              ? null
-                              : () {
-                                  ref.read(authProvider.notifier).login(
-                                    _usernameController.text,
-                                    _passwordController.text,
-                                  );
-                                },
-                          child: authState.isLoading
-                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Login to Dashboard'),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+
+                  // Tracked Caps Label
+                  Text(
+                    'FACTORY OPERATOR LOGIN',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.5,
+                      color: AppTheme.inkSoft,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Subtitle
+                  Text(
+                    'Secure sign-in for shop floor staff',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: AppTheme.inkFaint,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ==========================================
+                  // 2. CONNECTIVITY BANNER (OFFLINE STATE)
+                  // ==========================================
+                  const ConnectivityIndicator(showLabel: true),
+                  const SizedBox(height: 16),
+
+                  // ==========================================
+                  // 3. MAIN FORM CARD
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(color: AppTheme.border, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        
+                        // Operator ID Field
+                        Text(
+                          'OPERATOR ID',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: AppTheme.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _usernameController,
+                          enabled: !authState.isLoading && !isLocked,
+                          style: GoogleFonts.publicSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.ink,
+                          ),
+                          onChanged: (val) {
+                            if (_usernameError != null) {
+                              setState(() => _usernameError = null);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Enter your Operator ID',
+                            prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.steel, size: 20),
+                            fillColor: _usernameError != null ? AppTheme.redMist : AppTheme.card,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: _usernameError != null ? AppTheme.red : AppTheme.border,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_usernameError != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, size: 13, color: AppTheme.red),
+                              const SizedBox(width: 4),
+                              Text(
+                                _usernameError!,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10.5,
+                                  color: AppTheme.red,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+
+                        // Password Field
+                        Text(
+                          'PASSWORD',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: AppTheme.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          enabled: !authState.isLoading && !isLocked,
+                          style: GoogleFonts.publicSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.ink,
+                          ),
+                          onChanged: (val) {
+                            if (_passwordError != null) {
+                              setState(() => _passwordError = null);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.steel, size: 20),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                color: AppTheme.inkFaint,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            fillColor: _passwordError != null ? AppTheme.redMist : AppTheme.card,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: _passwordError != null ? AppTheme.red : AppTheme.border,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_passwordError != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, size: 13, color: AppTheme.red),
+                              const SizedBox(width: 4),
+                              Text(
+                                _passwordError!,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10.5,
+                                  color: AppTheme.red,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+
+                        // Remember Me & Forgot Password Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Remember Me Checkbox
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _rememberMe = !_rememberMe;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: _rememberMe,
+                                        activeColor: AppTheme.steel,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _rememberMe = val ?? true;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Remember ID',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 12,
+                                        color: AppTheme.inkSoft,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Forgot Password Link
+                            GestureDetector(
+                              onTap: _showForgotPasswordDialog,
+                              child: Text(
+                                'Forgot password?',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.steel,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ==========================================
+                        // 4. LOGIN BUTTON (IDLE / LOADING / LOCKOUT)
+                        // ==========================================
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: (authState.isLoading || isLocked) ? null : _handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.steel,
+                              disabledBackgroundColor: AppTheme.steel.withValues(alpha: 0.55),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            child: authState.isLoading
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Signing in…',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        isLocked ? 'Locked ($lockoutTimeString)' : 'Login to Dashboard',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      if (!isLocked) ...[
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
+                                      ],
+                                    ],
+                                  ),
+                          ),
+                        ),
+
+                        // Verifying with server caption
+                        if (authState.isLoading) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Verifying with server…',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10.5,
+                              color: AppTheme.inkFaint,
+                            ),
+                          ),
+                        ],
+
+                        // ==========================================
+                        // 5. ERROR STATE & ATTEMPT TRACKING
+                        // ==========================================
+                        if (authState.error != null && !authState.isLoading) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.redMist,
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(color: AppTheme.red.withValues(alpha: 0.3), width: 1),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.error_outline_rounded, size: 18, color: AppTheme.red),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        authState.isNetworkError
+                                            ? "Couldn't reach server"
+                                            : isLocked
+                                                ? "Too many failed attempts"
+                                                : "Incorrect ID or password",
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.red,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        authState.isNetworkError
+                                            ? "Please check your Wi-Fi or mobile data."
+                                            : isLocked
+                                                ? "Try again in $lockoutTimeString, or contact your admin."
+                                                : "Double-check with your admin if you're not sure.",
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 11,
+                                          color: AppTheme.red.withValues(alpha: 0.85),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isLocked && authState.failedAttempts > 0) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '${authState.failedAttempts} of 5 attempts used',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10.5,
+                                color: AppTheme.inkFaint,
+                              ),
+                            ),
+                          ],
+                        ],
+
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // ==========================================
+                  // 6. VERSION FOOTER
+                  // ==========================================
+                  Text(
+                    'NUBIRA FLOOR · $_appVersion',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.inkFaint,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+
+                ],
+              ),
             ),
           ),
         ),
@@ -159,3 +676,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
+// Custom Painter for dashed stitch rule
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  final double dashWidth;
+  final double dashSpace;
+
+  _DashedLinePainter({
+    required this.color,
+    this.dashWidth = 5,
+    this.dashSpace = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double startX = 0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = size.height;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, 0),
+        Offset(startX + dashWidth, 0),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
