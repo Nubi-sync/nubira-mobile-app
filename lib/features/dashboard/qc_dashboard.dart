@@ -813,7 +813,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 child: ElevatedButton.icon(
                   onPressed: () => _promptReceiveRepaired(ctx, item),
                   icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text('Receive Repaired Pieces ✅'),
+                  label: const Text('Receive Repaired Pieces'),
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ),
@@ -839,7 +839,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           children: [
             Text('Article: ${item['article']?['art_no']} • ${item['qty_rejected']} pcs sent', style: const TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 14),
-            const Text('Fixed & OK Quantity (Adds to Passed! ✅)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+            const Text('Fixed & OK Quantity (Adds to Passed)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
             const SizedBox(height: 4),
             TextField(controller: fixedController, keyboardType: TextInputType.number, decoration: const InputDecoration(border: OutlineInputBorder())),
             const SizedBox(height: 12),

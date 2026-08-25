@@ -43,9 +43,9 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: bg,
       textTheme: GoogleFonts.publicSansTextTheme().copyWith(
-        displayLarge: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.bold),
-        displayMedium: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.w700),
-        titleLarge: GoogleFonts.fraunces(color: ink, fontWeight: FontWeight.w600),
+        displayLarge: GoogleFonts.plusJakartaSans(color: ink, fontWeight: FontWeight.bold),
+        displayMedium: GoogleFonts.plusJakartaSans(color: ink, fontWeight: FontWeight.w700),
+        titleLarge: GoogleFonts.plusJakartaSans(color: ink, fontWeight: FontWeight.w600),
         bodyLarge: GoogleFonts.publicSans(color: ink, fontWeight: FontWeight.w500),
         bodyMedium: GoogleFonts.publicSans(color: inkSoft),
         bodySmall: GoogleFonts.publicSans(color: inkFaint),
@@ -56,7 +56,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: ink),
-        titleTextStyle: GoogleFonts.fraunces(
+        titleTextStyle: GoogleFonts.plusJakartaSans(
           color: ink,
           fontSize: 19,
           fontWeight: FontWeight.bold,

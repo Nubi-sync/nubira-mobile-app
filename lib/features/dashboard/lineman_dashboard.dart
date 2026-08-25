@@ -1,9 +1,12 @@
-import '../../core/widgets/connectivity_indicator.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/connectivity_indicator.dart';
 import '../../../main.dart';
 
 class LinemanDashboard extends ConsumerStatefulWidget {
@@ -13,28 +16,82 @@ class LinemanDashboard extends ConsumerStatefulWidget {
   ConsumerState<LinemanDashboard> createState() => _LinemanDashboardState();
 }
 
-class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
+class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
+    with SingleTickerProviderStateMixin {
+  // Named Constants
+  static const int searchThreshold = 15;
+  static const int overdueThresholdMinutes = 120;
+
+  int _selectedTabIndex = 0; // 0: Live Floor, 1: Lot History
+
   bool _isLoading = true;
-  List<dynamic> _allotments = [];
-  List<dynamic> _assignments = [];
+  List<dynamic> _activeAllotments = [];
+  List<dynamic> _completedAllotments = [];
+  List<dynamic> _todayAssignments = [];
   List<String> _recentWorkerNames = [];
-  int _totalAssigned = 0;
-  int _totalDone = 0;
+  int _totalAssignedToday = 0;
+  int _totalDoneToday = 0;
+
+  // Search filters
+  String _liveSearchQuery = '';
+  String _historySearchQuery = '';
+  final _liveSearchController = TextEditingController();
+  final _historySearchController = TextEditingController();
+
+  // First-time swipe hint state
+  bool _showSwipeHint = true;
+
+  // Shimmer animation controller
+  late AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
+    _shimmerController = AnimationController.unbounded(vsync: this)
+      ..repeat(min: -0.5, max: 1.5, period: const Duration(milliseconds: 1200));
+
+    _loadPreferences();
     _fetchDashboardData();
   }
 
-  Future<void> _fetchDashboardData() async {
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    _liveSearchController.dispose();
+    _historySearchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dismissed = prefs.getBool('lineman_swipe_hint_dismissed') ?? false;
+    if (mounted) {
+      setState(() {
+        _showSwipeHint = !dismissed;
+      });
+    }
+  }
+
+  Future<void> _dismissSwipeHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lineman_swipe_hint_dismissed', true);
+    if (mounted) {
+      setState(() {
+        _showSwipeHint = false;
+      });
+    }
+  }
+
+    Future<void> _fetchDashboardData() async {
     setState(() => _isLoading = true);
     try {
       final user = supabase.auth.currentUser;
       if (user != null) {
         final today = DateTime.now().toIso8601String().split('T')[0];
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> archivedIds = prefs.getStringList('lineman_archived_lots') ?? [];
 
-        // 1. Fetch In-Progress Allotments for this lineman
+        // 1. Fetch ALL Allotments assigned to this lineman
         final allotmentsRes = await supabase
             .from('allotments')
             .select('''
@@ -46,38 +103,38 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               articles ( id, art_no, description, stitching_rate )
             ''')
             .eq('lineman_id', user.id)
-            .eq('status', 'IN_PROGRESS');
+            .order('allotment_date', ascending: false);
 
-        final allotmentIds = allotmentsRes.map((a) => a['id'] as String).toList();
+        final allAllotmentIds = allotmentsRes.map((a) => a['id'] as String).toList();
 
-        // 2. Fetch variants (Size-Color Matrix) for these allotments
+        // 2. Fetch variants for these allotments
         List<dynamic> variantsRes = [];
-        if (allotmentIds.isNotEmpty) {
+        if (allAllotmentIds.isNotEmpty) {
           try {
             variantsRes = await supabase
                 .from('allotment_variants')
                 .select('id, allotment_id, color, size, quantity, completed_qty')
-                .inFilter('allotment_id', allotmentIds);
+                .inFilter('allotment_id', allAllotmentIds);
           } catch (e) {
-            debugPrint('Variants table not yet created or empty: $e');
+            debugPrint('Variants fetch error: $e');
           }
         }
 
-        // 3. Fetch materials checklist for these allotments
+        // 3. Fetch materials checklist for allotments
         List<dynamic> materialsRes = [];
-        if (allotmentIds.isNotEmpty) {
+        if (allAllotmentIds.isNotEmpty) {
           try {
             materialsRes = await supabase
                 .from('allotment_materials')
                 .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, lineman_received_at')
-                .inFilter('allotment_id', allotmentIds);
+                .inFilter('allotment_id', allAllotmentIds);
           } catch (e) {
-            debugPrint('Materials table not yet created or empty: $e');
+            debugPrint('Materials fetch error: $e');
           }
         }
 
-        // 4. Fetch today's worker assignments by this lineman
-        final assignmentsRes = await supabase
+        // 4. Fetch all worker assignments for this lineman
+        final allAssignmentsRes = await supabase
             .from('worker_assignments')
             .select('''
               id,
@@ -96,74 +153,182 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               articles ( art_no, description )
             ''')
             .eq('lineman_id', user.id)
-            .eq('entry_date', today)
             .order('assigned_at', ascending: false);
 
-        // 5. Fetch past distinct worker names for quick auto-suggestions
-        final pastRes = await supabase
-            .from('worker_assignments')
-            .select('worker_name')
-            .eq('lineman_id', user.id)
-            .limit(100);
+        // Filter today's assignments for Live Floor
+        final todayAssignments = allAssignmentsRes.where((a) => a['entry_date'] == today).toList();
 
-        final Set<String> distinctNames = {};
-        for (var p in pastRes) {
-          final name = p['worker_name'] as String?;
-          if (name != null && name.trim().isNotEmpty) {
-            distinctNames.add(name.trim());
-          }
-        }
-
-        // Calculate totals
-        int assigned = 0;
-        int done = 0;
+        // Calculate Totals & Stats
+        int assignedToday = 0;
+        int doneToday = 0;
         final Map<String, int> assignedPerAllotment = {};
         final Map<String, int> donePerAllotment = {};
+        final Set<String> distinctNames = {};
 
-        for (var a in assignmentsRes) {
+        for (var a in allAssignmentsRes) {
           final qty = (a['assigned_qty'] as int?) ?? 0;
-          assigned += qty;
           final allotId = a['allotment_id'] as String? ?? '';
           assignedPerAllotment[allotId] = (assignedPerAllotment[allotId] ?? 0) + qty;
 
+          final name = a['worker_name'] as String?;
+          if (name != null && name.trim().isNotEmpty) {
+            distinctNames.add(name.trim());
+          }
+
           if (a['status'] == 'DONE') {
             final cQty = (a['completed_qty'] as int?) ?? qty;
-            done += cQty;
             donePerAllotment[allotId] = (donePerAllotment[allotId] ?? 0) + cQty;
           }
         }
 
-        // Enrich allotments with variants, materials & assignment stats
-        final enriched = allotmentsRes.map((a) {
-          final aId = a['id'] as String;
-          final alVariants = variantsRes.where((v) => v['allotment_id'] == aId).toList();
-          final alMaterials = materialsRes.where((m) => m['allotment_id'] == aId).toList();
+        for (var a in todayAssignments) {
+          final qty = (a['assigned_qty'] as int?) ?? 0;
+          assignedToday += qty;
+          if (a['status'] == 'DONE') {
+            final cQty = (a['completed_qty'] as int?) ?? qty;
+            doneToday += cQty;
+          }
+        }
 
-          return {
+        // Segregate Active vs Completed Allotments
+        final List<dynamic> enrichedActive = [];
+        final List<dynamic> enrichedCompleted = [];
+
+        for (var a in allotmentsRes) {
+          final aId = a['id'] as String;
+          final assigned = assignedPerAllotment[aId] ?? 0;
+          final done = donePerAllotment[aId] ?? 0;
+          final isCompletedInDb = a['status'] == 'COMPLETED';
+          final isArchivedLocally = archivedIds.contains(aId);
+
+          final lotAssignments = allAssignmentsRes.where((ass) => ass['allotment_id'] == aId).toList();
+          final lotVariants = variantsRes.where((v) => v['allotment_id'] == aId).toList();
+          final lotMaterials = materialsRes.where((m) => m['allotment_id'] == aId).toList();
+
+          final enriched = {
             ...a,
-            'total_assigned': assignedPerAllotment[aId] ?? 0,
-            'total_done': donePerAllotment[aId] ?? 0,
-            'variants': alVariants,
-            'materials': alMaterials,
+            'total_assigned': assigned,
+            'total_done': done,
+            'variants': lotVariants,
+            'materials': lotMaterials,
+            'assignments': lotAssignments,
           };
-        }).toList();
+
+          if (isCompletedInDb || isArchivedLocally) {
+            enrichedCompleted.add(enriched);
+          } else {
+            enrichedActive.add(enriched);
+          }
+        }
 
         setState(() {
-          _allotments = enriched;
-          _assignments = assignmentsRes;
+          _activeAllotments = enrichedActive;
+          _completedAllotments = enrichedCompleted;
+          _todayAssignments = todayAssignments;
           _recentWorkerNames = distinctNames.toList();
-          _totalAssigned = assigned;
-          _totalDone = done;
+          _totalAssignedToday = assignedToday;
+          _totalDoneToday = doneToday;
         });
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Error loading data: $e'), backgroundColor: AppTheme.red),
         );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ======= COMPLETE & ARCHIVE LOT TO HISTORY =======
+  Future<void> _completeAllotment(dynamic allotment) async {
+    final artNo = allotment['articles']?['art_no'] ?? 'Article';
+    final target = allotment['target_qty'] ?? 0;
+    final allotmentId = allotment['id'] as String;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.greenMist,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.green, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Finish & Archive Lot',
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.ink),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'All $target pieces for Art: $artNo are completed.\n\nWould you like to close this lot and archive it to Lot History?',
+          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Keep Active', style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.green,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Complete & Archive', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Save to persistent archived list
+        final prefs = await SharedPreferences.getInstance();
+        final List<String> archived = prefs.getStringList('lineman_archived_lots') ?? [];
+        if (!archived.contains(allotmentId)) {
+          archived.add(allotmentId);
+          await prefs.setStringList('lineman_archived_lots', archived);
+        }
+
+        // Also update Supabase database status
+        try {
+          await supabase
+              .from('allotments')
+              .update({'status': 'COMPLETED'})
+              .eq('id', allotmentId);
+        } catch (dbErr) {
+          debugPrint('Supabase update status warning: $dbErr');
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lot for Art: $artNo archived to Lot History'),
+              backgroundColor: AppTheme.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          _fetchDashboardData();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error archiving lot: $e'), backgroundColor: AppTheme.red),
+          );
+        }
+      }
     }
   }
 
@@ -177,7 +342,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -190,7 +355,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 width: 44,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppTheme.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -201,23 +366,27 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
-                    borderRadius: BorderRadius.circular(14),
+                    color: AppTheme.greenMist,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.inventory_2_rounded, color: Color(0xFF047857), size: 24),
+                  child: const Icon(Icons.inventory_2_rounded, color: AppTheme.green, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Material Handover Verification',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.ink,
+                        ),
                       ),
                       Text(
                         'Article: ${allotment['articles']?['art_no'] ?? ''}',
-                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
                       ),
                     ],
                   ),
@@ -225,47 +394,47 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Admin has issued the following materials for this allotment. Please verify physical count on the floor:',
-              style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
+              style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
             ),
             const SizedBox(height: 14),
 
             // Materials List
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: AppTheme.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
               ),
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: materials.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
                 itemBuilder: (_, idx) {
                   final mat = materials[idx];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                        const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             mat['item_name'] ?? 'Item',
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textDark),
+                            style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
+                            color: AppTheme.steelMist,
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             mat['required_qty'] ?? '',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.blue.shade800),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
                           ),
                         ),
                       ],
@@ -279,15 +448,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
             SizedBox(
               width: double.infinity,
+              height: 48,
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.pop(ctx, true),
-                icon: const Icon(Icons.verified_rounded, size: 20),
-                label: const Text('Confirm Material Received & Verified âœ…'),
+                icon: const Icon(Icons.verified_rounded, size: 18),
+                label: const Text('Confirm Material Received & Verified'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: AppTheme.green,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),
@@ -310,8 +479,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Raw materials verified & acknowledged! âœ…'),
-              backgroundColor: AppTheme.successGreen,
+              content: Text('Raw materials verified & acknowledged!'),
+              backgroundColor: AppTheme.green,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -320,14 +489,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.red),
           );
         }
       }
     }
   }
 
-  // ======= ASSIGN WORKER DIALOG (WITH SIZE & COLOR) =======
+  // ======= ASSIGN WORKER DIALOG =======
   void _showAssignWorkerDialog(dynamic allotment) {
     final workerNameController = TextEditingController();
     final qtyController = TextEditingController();
@@ -338,17 +507,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     final remaining = target - alreadyAssigned;
 
     final variants = (allotment['variants'] as List<dynamic>?) ?? [];
-    
-    // Extract unique colors and sizes from variants
     final Set<String> colorSet = {};
     final Set<String> sizeSet = {};
     for (var v in variants) {
-      if (v['color'] != null && (v['color'] as String).isNotEmpty) {
-        colorSet.add(v['color']);
-      }
-      if (v['size'] != null && (v['size'] as String).isNotEmpty) {
-        sizeSet.add(v['size']);
-      }
+      if (v['color'] != null && (v['color'] as String).isNotEmpty) colorSet.add(v['color']);
+      if (v['size'] != null && (v['size'] as String).isNotEmpty) sizeSet.add(v['size']);
     }
 
     final colorsList = colorSet.toList();
@@ -361,7 +524,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
           titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           title: Row(
@@ -369,16 +533,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.steelMist,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryBlue, size: 22),
+                child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.steel, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Assign Worker - ${allotment['articles']?['art_no'] ?? ''}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  'Assign Batch - ${allotment['articles']?['art_no'] ?? ''}',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.ink),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -395,213 +559,155 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.blue.shade100),
+                    color: AppTheme.steelMist,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: AppTheme.steelTint),
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Target: $target pcs',
-                              style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.w700, fontSize: 12),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Remaining: $remaining pcs',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: remaining > 0 ? const Color(0xFF047857) : Colors.red.shade700,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Expanded(
+                        child: Text(
+                          'Target: $target pcs',
+                          style: GoogleFonts.jetBrainsMono(color: AppTheme.steelDark, fontWeight: FontWeight.w700, fontSize: 11.5),
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            'Assigned so far: $alreadyAssigned pcs',
-                            style: TextStyle(color: Colors.blue.shade700, fontSize: 11),
+                      Expanded(
+                        child: Text(
+                          'Remaining: $remaining pcs',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.jetBrainsMono(
+                            color: remaining > 0 ? AppTheme.green : AppTheme.red,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.5,
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-                // Worker Name Input with suggestions
-                const Text('Worker / Tailor Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                // Worker Name Input
+                Text('WORKER / TAILOR NAME', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                 const SizedBox(height: 6),
                 Autocomplete<String>(
                   optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text.isEmpty) {
-                      return _recentWorkerNames;
-                    }
-                    return _recentWorkerNames.where((String option) {
-                      return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                    });
+                    if (textEditingValue.text.isEmpty) return _recentWorkerNames;
+                    return _recentWorkerNames.where((String option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
                   },
-                  onSelected: (String selection) {
-                    workerNameController.text = selection;
-                  },
-                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                    controller.addListener(() {
-                      workerNameController.text = controller.text;
-                    });
+                  onSelected: (String selection) => workerNameController.text = selection,
+                  fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
                     return TextField(
-                      controller: controller,
+                      controller: textEditingController,
                       focusNode: focusNode,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Ramesh, Suresh, Mukesh...',
-                        prefixIcon: const Icon(Icons.badge_rounded, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Bablu Tailor',
+                        prefixIcon: Icon(Icons.person_outline, size: 20, color: AppTheme.steel),
                       ),
+                      onChanged: (val) => workerNameController.text = val,
                     );
                   },
                 ),
-
                 const SizedBox(height: 14),
 
-                // Color & Size Selectors (if defined on allotment)
-                if (colorsList.isNotEmpty || sizesList.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      if (colorsList.isNotEmpty)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedColor,
-                                    isExpanded: true,
-                                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
-                                    onChanged: (v) {
-                                      if (v != null) setDialogState(() => selectedColor = v);
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (colorsList.isNotEmpty && sizesList.isNotEmpty) const SizedBox(width: 10),
-                      if (sizesList.isNotEmpty)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedSize,
-                                    isExpanded: true,
-                                    items: sizesList.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)))).toList(),
-                                    onChanged: (v) {
-                                      if (v != null) setDialogState(() => selectedSize = v);
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
                 // Quantity Input
-                const Text('Quantity to Assign (pcs)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                Text('PIECES TO ASSIGN (QTY)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: qtyController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     hintText: 'Max $remaining pcs',
-                    prefixIcon: const Icon(Icons.pin_rounded, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
                   ),
                 ),
-
                 const SizedBox(height: 14),
 
-                // Notes Input
-                const Text('Remarks / Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                // Color and Size Matrix Pickers
+                if (colorsList.isNotEmpty) ...[
+                  Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedColor,
+                    isExpanded: true,
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
+                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedColor = val);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                if (sizesList.isNotEmpty) ...[
+                  Text('SIZE RATIO', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedSize,
+                    isExpanded: true,
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
+                    items: sizesList.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedSize = val);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Notes
+                Text('NOTES / INSTRUCTIONS (OPTIONAL)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: notesController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Front stitching bundle',
-                    prefixIcon: const Icon(Icons.notes_rounded, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Collar stitch only',
+                    prefixIcon: Icon(Icons.notes_rounded, size: 20, color: AppTheme.steel),
                   ),
                 ),
               ],
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           actions: [
-          const ConnectivityIndicator(),
-          const SizedBox(width: 4),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.steel,
+                minimumSize: const Size(120, 42),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               onPressed: () async {
-                final workerName = workerNameController.text.trim();
-                final qty = int.tryParse(qtyController.text);
+                final name = workerNameController.text.trim();
+                final qtyStr = qtyController.text.trim();
+                final qty = int.tryParse(qtyStr) ?? 0;
 
-                if (workerName.isEmpty) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter worker name')));
+                if (name.isEmpty || qty <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid worker name and quantity (>0).'), backgroundColor: AppTheme.red),
+                  );
                   return;
                 }
-                if (qty == null || qty <= 0) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter valid quantity')));
-                  return;
-                }
+
                 if (qty > remaining) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Cannot assign more than $remaining pcs')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Quantity ($qty) exceeds remaining allotment target ($remaining pcs).'), backgroundColor: AppTheme.red),
+                  );
                   return;
                 }
 
                 Navigator.pop(ctx);
-                await _createAssignment(
-                  allotment, 
-                  workerName, 
-                  selectedColor, 
-                  selectedSize, 
-                  qty, 
-                  notesController.text
+                await _submitWorkerAssignment(
+                  allotmentId: allotment['id'],
+                  articleId: allotment['article_id'],
+                  workerName: name,
+                  qty: qty,
+                  color: selectedColor,
+                  size: selectedSize,
+                  notes: notesController.text.trim(),
                 );
               },
-              child: const Text('Assign Work'),
+              child: Text('Assign Batch', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -609,36 +715,40 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     );
   }
 
-  Future<void> _createAssignment(
-    dynamic allotment, 
-    String workerName, 
-    String color, 
-    String size, 
-    int qty, 
-    String notes
-  ) async {
+  Future<void> _submitWorkerAssignment({
+    required String allotmentId,
+    required String articleId,
+    required String workerName,
+    required int qty,
+    required String color,
+    required String size,
+    required String notes,
+  }) async {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final nowIso = DateTime.now().toUtc().toIso8601String();
 
       await supabase.from('worker_assignments').insert({
-        'allotment_id': allotment['id'],
+        'allotment_id': allotmentId,
         'lineman_id': user.id,
+        'article_id': articleId,
         'worker_name': workerName,
+        'assigned_qty': qty,
         'color': color,
         'size': size,
-        'article_id': allotment['article_id'],
-        'assigned_qty': qty,
         'status': 'PENDING',
-        'notes': notes.trim().isEmpty ? null : notes.trim(),
-        'entry_date': DateTime.now().toIso8601String().split('T')[0],
+        'notes': notes.isNotEmpty ? notes : null,
+        'assigned_at': nowIso,
+        'entry_date': today,
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Assigned $qty pcs ($color / $size) to $workerName!'),
-            backgroundColor: AppTheme.successGreen,
+            content: Text('Assigned $qty pcs to $workerName'),
+            backgroundColor: AppTheme.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -647,162 +757,122 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Error assigning worker: $e'), backgroundColor: AppTheme.red),
         );
       }
     }
   }
 
-  // ======= MARK AS DONE =======
-  Future<void> _markAsDone(dynamic assignment) async {
-    final workerName = assignment['worker_name'] ?? 'Worker';
-    final qty = assignment['assigned_qty'];
-    final color = assignment['color'] ?? '';
-    final size = assignment['size'] ?? '';
-    final tag = (color.isNotEmpty || size.isNotEmpty) ? ' ($color / $size)' : '';
+  // ======= MARK AS DONE (WITH UNDO SUPPORT) =======
+  Future<void> _markAsDone(dynamic a) async {
+    final assignmentId = a['id'];
+    final workerName = a['worker_name'] ?? 'Worker';
+    final qty = (a['assigned_qty'] as int?) ?? 0;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Mark as Done?'),
-        content: Text(
-          'Worker: $workerName\n'
-          'Batch: $qty pcs$tag\n\n'
-          'Kya $workerName ka kaam complete ho gaya hai?',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successGreen),
-            child: const Text('Done âœ…'),
-          ),
-        ],
-      ),
-    );
+    // Permanently dismiss swipe hint on first swipe action
+    if (_showSwipeHint) {
+      _dismissSwipeHint();
+    }
 
-    if (confirm == true) {
-      try {
-        await supabase.from('worker_assignments').update({
-          'status': 'DONE',
-          'completed_qty': qty,
-          'completed_at': DateTime.now().toUtc().toIso8601String(),
-        }).eq('id', assignment['id']);
+    try {
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+      await supabase.from('worker_assignments').update({
+        'status': 'DONE',
+        'completed_qty': qty,
+        'completed_at': nowIso,
+      }).eq('id', assignmentId);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$workerName ka kaam Done mark ho gaya! âœ…'),
-              backgroundColor: AppTheme.successGreen,
-              behavior: SnackBarBehavior.floating,
+      _fetchDashboardData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Marked $workerName's batch as done"),
+            duration: const Duration(seconds: 4),
+            backgroundColor: AppTheme.steelDark,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: AppTheme.amber,
+              onPressed: () async {
+                try {
+                  await supabase.from('worker_assignments').update({
+                    'status': 'PENDING',
+                    'completed_at': null,
+                  }).eq('id', assignmentId);
+                  _fetchDashboardData();
+                } catch (err) {
+                  debugPrint('Failed to undo: $err');
+                }
+              },
             ),
-          );
-          _fetchDashboardData();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
-          );
-        }
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating status: $e'), backgroundColor: AppTheme.red),
+        );
       }
     }
   }
 
   // ======= EDIT ASSIGNMENT =======
-  void _editAssignment(dynamic assignment) {
-    if (assignment['status'] == 'DONE') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Done entries cannot be edited'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    final nameController = TextEditingController(text: assignment['worker_name'] ?? '');
-    final qtyController = TextEditingController(text: assignment['assigned_qty'].toString());
-    final notesController = TextEditingController(text: assignment['notes'] ?? '');
+  void _editAssignment(dynamic a) {
+    final qtyController = TextEditingController(text: '${a['assigned_qty'] ?? 0}');
+    final notesController = TextEditingController(text: a['notes'] ?? '');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+        title: Text('Edit Assignment - ${a['worker_name']}', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.edit_rounded, color: AppTheme.primaryBlue, size: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Edit - ${assignment['worker_name'] ?? 'Worker'}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-              ),
+            Text('ASSIGNED PIECES', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel)),
+            ),
+            const SizedBox(height: 14),
+            Text('NOTES', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.notes_rounded, size: 20, color: AppTheme.steel)),
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Worker Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(hintText: 'Worker Name', prefixIcon: Icon(Icons.person, size: 20)),
-              ),
-              const SizedBox(height: 14),
-              const Text('Quantity (pcs)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: qtyController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(hintText: 'e.g. 100', prefixIcon: Icon(Icons.pin_rounded, size: 20)),
-              ),
-              const SizedBox(height: 14),
-              const Text('Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(hintText: 'Remarks', prefixIcon: Icon(Icons.notes_rounded, size: 20)),
-              ),
-            ],
-          ),
-        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600)),
+          ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.steel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {
-              final wName = nameController.text.trim();
-              final qty = int.tryParse(qtyController.text);
-              if (wName.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter worker name')));
-                return;
-              }
-              if (qty == null || qty <= 0) {
-                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter valid quantity')));
-                return;
-              }
+              final newQty = int.tryParse(qtyController.text.trim()) ?? 0;
+              if (newQty <= 0) return;
               Navigator.pop(ctx);
               try {
                 await supabase.from('worker_assignments').update({
-                  'worker_name': wName,
-                  'assigned_qty': qty,
-                  'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                }).eq('id', assignment['id']);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Assignment updated!'), backgroundColor: AppTheme.successGreen, behavior: SnackBarBehavior.floating),
-                  );
-                  _fetchDashboardData();
-                }
+                  'assigned_qty': newQty,
+                  'notes': notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
+                }).eq('id', a['id']);
+                _fetchDashboardData();
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.red));
                 }
               }
             },
-            child: const Text('Save'),
+            child: Text('Save Changes', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -810,80 +880,327 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
   }
 
   // ======= DELETE ASSIGNMENT =======
-  Future<void> _deleteAssignment(dynamic assignment) async {
-    if (assignment['status'] == 'DONE') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Done entries cannot be deleted'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    final workerName = assignment['worker_name'] ?? 'Worker';
-
-    final confirm = await showDialog<bool>(
+  void _deleteAssignment(dynamic a) {
+    showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Assignment?'),
-        content: Text('Remove ${assignment['assigned_qty']} pcs assigned to $workerName?'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+        title: Text('Delete Assignment?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.red)),
+        content: Text('Are you sure you want to remove the assignment for ${a['worker_name']} (${a['assigned_qty']} pcs)?', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.inkSoft))),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await supabase.from('worker_assignments').delete().eq('id', a['id']);
+                _fetchDashboardData();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.red));
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
+  }
 
-    if (confirm == true) {
-      try {
-        await supabase.from('worker_assignments').delete().eq('id', assignment['id']);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Assignment deleted!'), backgroundColor: Colors.orange),
-          );
-          _fetchDashboardData();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
-        }
+  // ======= SHOW LOT HISTORY BREAKDOWN MODAL =======
+  void _showLotHistoryDetailsSheet(dynamic lot) {
+    final art = lot['articles'];
+    final target = (lot['target_qty'] as int?) ?? 0;
+    final lotAssignments = (lot['assignments'] as List<dynamic>?) ?? [];
+    final allotmentDate = lot['allotment_date'] ?? '-';
+
+    // Group worker pieces
+    final Map<String, int> workerTotalPieces = {};
+    final Map<String, List<dynamic>> workerEntries = {};
+
+    for (var ass in lotAssignments) {
+      final name = ass['worker_name'] ?? 'Worker';
+      final qty = (ass['completed_qty'] as int?) ?? ((ass['assigned_qty'] as int?) ?? 0);
+      workerTotalPieces[name] = (workerTotalPieces[name] ?? 0) + qty;
+      workerEntries.putIfAbsent(name, () => []).add(ass);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.greenMist,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.inventory_rounded, color: AppTheme.green, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Art No: ${art?['art_no'] ?? '-'}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.ink,
+                          ),
+                        ),
+                        Text(
+                          art?['description'] ?? 'Garment Lot History',
+                          style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.greenMist,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Completed',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.green,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Summary Stats Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.bg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('TARGET PIECES', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
+                          const SizedBox(height: 2),
+                          Text('$target pcs', style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.steelDark)),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: AppTheme.border),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('COMPLETED DATE', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
+                          const SizedBox(height: 2),
+                          Text(allotmentDate, style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.ink)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Tailor Piece Contribution Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Tailor Piece Contribution',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                  ),
+                  Text(
+                    '${workerTotalPieces.length} tailors',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.inkFaint),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              if (workerTotalPieces.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text('No worker entries logged for this lot.', style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft)),
+                  ),
+                )
+              else
+                ...workerTotalPieces.entries.map((w) {
+                  final workerName = w.key;
+                  final totalPieces = w.value;
+                  final entries = workerEntries[workerName] ?? [];
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: AppTheme.steelMist,
+                              child: const Icon(Icons.person_rounded, color: AppTheme.steel, size: 16),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                workerName,
+                                style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppTheme.ink),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.greenMist,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$totalPieces pcs',
+                                style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 12, color: AppTheme.green),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (entries.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          const Divider(height: 1, color: AppTheme.border),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: entries.map((e) {
+                              final col = e['color'] ?? '';
+                              final sz = e['size'] ?? '';
+                              final q = e['completed_qty'] ?? e['assigned_qty'] ?? 0;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.bg,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '$col $sz: $q pcs',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkSoft),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ======= OVERDUE TIME CALCULATION =======
+  bool _isOverdue(String? assignedAt) {
+    if (assignedAt == null) return false;
+    try {
+      final dt = DateTime.parse(assignedAt).toLocal();
+      return DateTime.now().difference(dt).inMinutes >= overdueThresholdMinutes;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Widget _buildTimeSinceAssigned(String? assignedAt, String status) {
+    if (status == 'DONE') return const SizedBox.shrink();
+    if (assignedAt == null) {
+      return Text('-', style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkFaint));
+    }
+
+    try {
+      final dt = DateTime.parse(assignedAt).toLocal();
+      final diff = DateTime.now().difference(dt);
+      final minutes = diff.inMinutes;
+
+      if (minutes < 60) {
+        return Text(
+          '${minutes}m ago',
+          style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkFaint, fontWeight: FontWeight.w400),
+        );
+      } else if (minutes < overdueThresholdMinutes) {
+        final h = minutes ~/ 60;
+        final m = minutes % 60;
+        return Text(
+          '${h}h ${m}m ago',
+          style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.amber, fontWeight: FontWeight.w600),
+        );
+      } else {
+        final h = minutes ~/ 60;
+        final m = minutes % 60;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.schedule_rounded, size: 12, color: AppTheme.red),
+            const SizedBox(width: 3),
+            Text(
+              '${h}h ${m}m ago — overdue',
+              style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.red, fontWeight: FontWeight.w700),
+            ),
+          ],
+        );
       }
-    }
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'DONE':
-        return const Color(0xFF10B981);
-      case 'IN_PROGRESS':
-        return const Color(0xFFF59E0B);
-      default:
-        return const Color(0xFF94A3B8);
-    }
-  }
-
-  IconData _statusIcon(String status) {
-    switch (status) {
-      case 'DONE':
-        return Icons.check_circle_rounded;
-      case 'IN_PROGRESS':
-        return Icons.timelapse_rounded;
-      default:
-        return Icons.pending_rounded;
-    }
-  }
-
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'DONE':
-        return 'Done';
-      case 'IN_PROGRESS':
-        return 'In Progress';
-      default:
-        return 'Pending';
+    } catch (_) {
+      return Text('-', style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkFaint));
     }
   }
 
@@ -901,15 +1218,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
-    final userName = user?.email?.split('@')[0] ?? 'Lineman';
-
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        title: const Text('Lineman Area'),
+        title: Text(
+          'Lineman Area',
+          style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.ink),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: 'Refresh', onPressed: _fetchDashboardData),
+          const ConnectivityIndicator(),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
@@ -923,164 +1241,110 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildAnimatedSkeletonLoading()
           : RefreshIndicator(
+              color: AppTheme.steel,
               onRefresh: _fetchDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // GREETING HEADER
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8)),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Welcome, $userName!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 6),
-                                const Text('Line Supervisor • Cut-to-Sew Floor', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
-                            child: const Icon(Icons.supervisor_account_rounded, color: Colors.white, size: 32),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // SUMMARY STATS
-                    Row(
-                      children: [
-                        _buildStatCard('Total Assigned', '$_totalAssigned pcs', Icons.assignment_rounded, const Color(0xFF3B82F6)),
-                        const SizedBox(width: 12),
-                        _buildStatCard('Work Done', '$_totalDone pcs', Icons.check_circle_rounded, const Color(0xFF10B981)),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // ALLOTMENTS SECTION
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Today's Allotment", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle)),
-                              const SizedBox(width: 6),
-                              const Text('Live', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    if (_allotments.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Center(
-                          child: Text('No allotment assigned.\nContact Admin to assign style target.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
-                        ),
-                      )
-                    else
-                      ..._allotments.map((a) => _buildAllotmentCard(a)),
-
-                    const SizedBox(height: 24),
-
-                    // WORKER ASSIGNMENTS LIST
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Worker Assignments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                        Text('${_assignments.length} entries', style: const TextStyle(fontSize: 13, color: Colors.grey)),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    if (_assignments.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Center(
-                          child: Text('No workers assigned yet.\nTap "Assign Worker" on an allotment above.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
-                        ),
-                      )
-                    else
-                      ..._assignments.map((a) => _buildAssignmentCard(a)),
-
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
+              child: _selectedTabIndex == 0 ? _buildLiveFloorTab() : _buildLotHistoryTab(),
             ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              children: [
+                // Tab 0: Live Floor
+                Expanded(
+                  child: _buildBottomNavButton(
+                    index: 0,
+                    icon: Icons.precision_manufacturing_rounded,
+                    label: 'Live Floor',
+                    badgeCount: _activeAllotments.length,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Tab 1: Lot History
+                Expanded(
+                  child: _buildBottomNavButton(
+                    index: 1,
+                    icon: Icons.history_rounded,
+                    label: 'Lot History',
+                    badgeCount: _completedAllotments.length,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
+  Widget _buildBottomNavButton({
+    required int index,
+    required IconData icon,
+    required String label,
+    int? badgeCount,
+  }) {
+    final isSelected = _selectedTabIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedTabIndex = index),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          color: isSelected ? AppTheme.steelMist : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: color, size: 22),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isSelected ? AppTheme.steel : AppTheme.inkFaint,
+                ),
+                if (badgeCount != null && badgeCount > 0)
+                  Positioned(
+                    right: -8,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.steel : AppTheme.inkSoft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$badgeCount',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: color)),
-                  Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                ],
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: GoogleFonts.publicSans(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppTheme.steel : AppTheme.inkFaint,
               ),
             ),
           ],
@@ -1089,7 +1353,462 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     );
   }
 
-  Widget _buildAllotmentCard(dynamic a) {
+  // =========================================================================
+  // TAB 1: LIVE FLOOR (ACTIVE ALLOTMENTS & TODAY'S ASSIGNMENTS)
+  // =========================================================================
+  Widget _buildLiveFloorTab() {
+    final user = supabase.auth.currentUser;
+    final userName = user?.email?.split('@')[0] ?? 'Lineman';
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Welcome Banner
+          _AnimatedFadeSlide(
+            delayMs: 0,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppTheme.steel,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.steelDark.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, $userName!',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Line Supervisor • Active Floor Shift',
+                          style: GoogleFonts.publicSans(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.steelDark,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.supervisor_account_rounded, color: Colors.white, size: 26),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Summary Stats (Today's Shift)
+          _AnimatedFadeSlide(
+            delayMs: 60,
+            child: Row(
+              children: [
+                _buildStatCard('Assigned Today', '$_totalAssignedToday pcs', Icons.assignment_rounded, AppTheme.steel),
+                const SizedBox(width: 12),
+                _buildStatCard('Work Done Today', '$_totalDoneToday pcs', Icons.check_circle_rounded, AppTheme.green),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Active Allotments Section
+          _AnimatedFadeSlide(
+            delayMs: 120,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Active Allotments',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.greenMist,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.green, shape: BoxShape.circle)),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Live Floor (${_activeAllotments.length})',
+                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          if (_activeAllotments.isEmpty)
+            _AnimatedFadeSlide(delayMs: 150, child: _buildNoAllotmentEmptyState())
+          else
+            ..._activeAllotments.map((a) => _AnimatedFadeSlide(delayMs: 160, child: _buildActiveAllotmentCard(a))),
+
+          const SizedBox(height: 20),
+
+          // Worker Assignments Section
+          _AnimatedFadeSlide(
+            delayMs: 200,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Today's Batches",
+                  style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                ),
+                Text(
+                  '${_todayAssignments.length} batches',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.inkFaint),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // First-time swipe hint
+          if (_showSwipeHint && _todayAssignments.isNotEmpty) ...[
+            _AnimatedFadeSlide(
+              delayMs: 220,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.steelMist,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.steelTint),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.swipe_right_rounded, size: 16, color: AppTheme.steel),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tip: Swipe any worker card right to mark batch as done',
+                        style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.steelDark),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _dismissSwipeHint,
+                      child: const Icon(Icons.close_rounded, size: 16, color: AppTheme.inkFaint),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // Conditional Search Bar
+          if (_todayAssignments.length >= searchThreshold) ...[
+            _AnimatedFadeSlide(
+              delayMs: 240,
+              child: TextField(
+                controller: _liveSearchController,
+                onChanged: (val) => setState(() => _liveSearchQuery = val.trim().toLowerCase()),
+                decoration: InputDecoration(
+                  hintText: 'Search worker or article...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                  suffixIcon: _liveSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                          onPressed: () {
+                            _liveSearchController.clear();
+                            setState(() => _liveSearchQuery = '');
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Grouped Assignments
+          _buildGroupedAssignmentLists(),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // TAB 2: LOT HISTORY (PAST COMPLETED LOTS & WORKER BREAKDOWN)
+  // =========================================================================
+  Widget _buildLotHistoryTab() {
+    var historyList = _completedAllotments;
+    if (_historySearchQuery.isNotEmpty) {
+      historyList = historyList.where((lot) {
+        final artNo = (lot['articles']?['art_no'] as String? ?? '').toLowerCase();
+        final desc = (lot['articles']?['description'] as String? ?? '').toLowerCase();
+        return artNo.contains(_historySearchQuery) || desc.contains(_historySearchQuery);
+      }).toList();
+    }
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lot History',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Completed allotments & worker hisab',
+                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.steelMist,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.steelTint),
+                ),
+                child: Text(
+                  '${_completedAllotments.length} Completed',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Search Field
+          TextField(
+            controller: _historySearchController,
+            onChanged: (val) => setState(() => _historySearchQuery = val.trim().toLowerCase()),
+            decoration: InputDecoration(
+              hintText: 'Search by Art No or style...',
+              prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+              suffixIcon: _historySearchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                      onPressed: () {
+                        _historySearchController.clear();
+                        setState(() => _historySearchQuery = '');
+                      },
+                    )
+                  : null,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          if (historyList.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.history_toggle_off_rounded, size: 28, color: AppTheme.inkFaint),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No completed lots found',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Completed allotments will appear here with full tailor breakdowns.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...historyList.map((lot) => _buildCompletedLotHistoryCard(lot)),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedLotHistoryCard(dynamic lot) {
+    final art = lot['articles'];
+    final target = lot['target_qty'] ?? 0;
+    final date = lot['allotment_date'] ?? '-';
+    final assignments = (lot['assignments'] as List<dynamic>?) ?? [];
+
+    // Distinct worker names
+    final Set<String> workers = {};
+    for (var ass in assignments) {
+      final name = ass['worker_name'] as String?;
+      if (name != null && name.isNotEmpty) workers.add(name);
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Art No: ${art?['art_no'] ?? '-'}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        art?['description'] ?? 'Garment Style',
+                        style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.greenMist,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '100% Done',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: AppTheme.border),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 13, color: AppTheme.inkFaint),
+                const SizedBox(width: 4),
+                Text('Date: $date', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.inkFaint)),
+                const SizedBox(width: 14),
+                const Icon(Icons.layers_outlined, size: 13, color: AppTheme.inkFaint),
+                const SizedBox(width: 4),
+                Text('Target: $target pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.inkFaint)),
+              ],
+            ),
+            if (workers.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.people_outline_rounded, size: 14, color: AppTheme.steel),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Tailors: ${workers.join(', ')}',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: OutlinedButton.icon(
+                onPressed: () => _showLotHistoryDetailsSheet(lot),
+                icon: const Icon(Icons.visibility_outlined, size: 16, color: AppTheme.steel),
+                label: Text(
+                  'View Worker Piece Hisab',
+                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.steel),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.steel, width: 1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // ACTIVE ALLOTMENT CARD
+  // ==========================================
+  Widget _buildActiveAllotmentCard(dynamic a) {
     final art = a['articles'];
     final target = (a['target_qty'] as int?) ?? 1;
     final assigned = (a['total_assigned'] as int?) ?? 0;
@@ -1097,6 +1816,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     final remaining = target - assigned;
     final progress = target > 0 ? (done / target).clamp(0.0, 1.0) : 0.0;
     final percent = (progress * 100).toInt();
+
+    final isLotFullyFinished = done >= target && target > 0;
 
     final variants = (a['variants'] as List<dynamic>?) ?? [];
     final materials = (a['materials'] as List<dynamic>?) ?? [];
@@ -1111,62 +1832,73 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4))],
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Material Handover Alert Banner (If materials issued by admin but not verified)
+          // Material Handover Alert Banner
           if (hasMaterials)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: materialsConfirmed ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(bottom: BorderSide(color: materialsConfirmed ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A))),
+                color: materialsConfirmed ? AppTheme.greenMist : AppTheme.amberMist,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                border: Border(
+                  bottom: BorderSide(
+                    color: materialsConfirmed ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.amber.withValues(alpha: 0.3),
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   Icon(
                     materialsConfirmed ? Icons.verified_rounded : Icons.pending_actions_rounded,
-                    color: materialsConfirmed ? const Color(0xFF047857) : const Color(0xFFD97706),
-                    size: 20,
+                    color: materialsConfirmed ? AppTheme.green : AppTheme.amber,
+                    size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      materialsConfirmed 
-                        ? 'Raw Materials Verified & Received (${materials.length} items)'
-                        : 'Raw Materials Issued (${materials.length} items) • Verification Pending',
-                      style: TextStyle(
-                        fontSize: 12, 
-                        fontWeight: FontWeight.bold,
-                        color: materialsConfirmed ? const Color(0xFF047857) : const Color(0xFF92400E),
+                      materialsConfirmed
+                          ? 'Raw Materials Verified & Received (${materials.length} items)'
+                          : 'Raw Materials Issued (${materials.length} items) • Verification Pending',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: materialsConfirmed ? AppTheme.green : AppTheme.amber,
                       ),
                     ),
                   ),
                   if (!materialsConfirmed)
-                    TextButton(
-                      onPressed: () => _confirmMaterialReceipt(a),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        backgroundColor: const Color(0xFFD97706),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    _BouncyTap(
+                      onTap: () => _confirmMaterialReceipt(a),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.amber,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('Verify Count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
-                      child: const Text('Verify âœ…', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
                 ],
               ),
             ),
 
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1177,29 +1909,51 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Art No: ${art?['art_no'] ?? '-'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppTheme.primaryBlueDark)),
-                          const SizedBox(height: 4),
-                          Text(art?['description'] ?? 'Garment Style', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                          Text(
+                            'Art No: ${art?['art_no'] ?? '-'}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.steelDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            art?['description'] ?? 'Garment Style',
+                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                          ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: percent >= 100 ? const Color(0xFFECFDF5) : Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: percent >= 100 ? const Color(0xFFA7F3D0) : Colors.blue.shade200),
+                        color: percent >= 100 ? AppTheme.greenMist : AppTheme.steelMist,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: percent >= 100 ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.steelTint,
+                        ),
                       ),
-                      child: Text('$percent%', style: TextStyle(color: percent >= 100 ? const Color(0xFF047857) : AppTheme.primaryBlue, fontWeight: FontWeight.w900, fontSize: 14)),
+                      child: Text(
+                        '$percent%',
+                        style: GoogleFonts.jetBrainsMono(
+                          color: percent >= 100 ? AppTheme.green : AppTheme.steel,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Size & Color Matrix Chips
                 if (colorGroups.isNotEmpty) ...[
-                  const Text('Size & Color Ratios:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  Text(
+                    'SIZE & COLOR RATIOS',
+                    style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: AppTheme.inkSoft),
+                  ),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
@@ -1207,57 +1961,100 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                     children: colorGroups.entries.map((cg) {
                       final sizeStr = cg.value.map((v) => '${v['size']}:${v['quantity']}').join(', ');
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          color: AppTheme.bg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppTheme.border),
                         ),
                         child: Text(
                           '${cg.key} ($sizeStr)',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                 ],
 
-                // Progress Bar
+                // Smooth Animated Progress Bar
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 10,
-                    backgroundColor: const Color(0xFFF1F5F9),
-                    valueColor: AlwaysStoppedAnimation<Color>(percent >= 100 ? AppTheme.successGreen : AppTheme.primaryBlue),
+                  borderRadius: BorderRadius.circular(6),
+                  child: TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutCubic,
+                    tween: Tween<double>(begin: 0, end: progress),
+                    builder: (context, val, _) {
+                      return LinearProgressIndicator(
+                        value: val,
+                        minHeight: 8,
+                        backgroundColor: AppTheme.bg,
+                        valueColor: AlwaysStoppedAnimation<Color>(percent >= 100 ? AppTheme.green : AppTheme.steel),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    _miniLabel('Target', '$target pcs', Colors.grey.shade700),
+                    _miniLabel('Target', '$target pcs', AppTheme.inkSoft),
                     const SizedBox(width: 8),
-                    _miniLabel('Assigned', '$assigned pcs', const Color(0xFF3B82F6)),
+                    _miniLabel('Assigned', '$assigned pcs', AppTheme.steel),
                     const SizedBox(width: 8),
-                    _miniLabel('Done', '$done pcs', const Color(0xFF10B981)),
+                    _miniLabel('Done', '$done pcs', AppTheme.green),
                     const SizedBox(width: 8),
-                    _miniLabel('Left', '$remaining pcs', remaining > 0 ? Colors.orange : Colors.grey),
+                    _miniLabel('Left', '$remaining pcs', remaining > 0 ? AppTheme.amber : AppTheme.inkFaint),
                   ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
-                    label: Text(remaining > 0 ? 'Assign Worker ($remaining left)' : 'Fully Assigned ✅'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                const SizedBox(height: 14),
+
+                // Button: If 100% Finished -> Archive Button, else Assign next batch
+                if (isLotFullyFinished)
+                  _BouncyTap(
+                    onTap: () => _completeAllotment(a),
+                    child: Container(
+                      width: double.infinity,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppTheme.green,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Finish Lot & Move to History',
+                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  _BouncyTap(
+                    onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
+                    child: Container(
+                      width: double.infinity,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: remaining > 0 ? AppTheme.steel : AppTheme.border,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_add_alt_1_rounded, size: 18, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                          const SizedBox(width: 8),
+                          Text(
+                            remaining > 0 ? 'Assign next batch — $remaining left' : 'All Batches Assigned',
+                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1270,11 +2067,152 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color)),
+          Text(value, style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 11, color: color)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(label, style: GoogleFonts.publicSans(fontSize: 9.5, color: AppTheme.inkFaint)),
         ],
       ),
+    );
+  }
+
+  // ==========================================
+  // STATUS-GROUPED ASSIGNMENTS LIST (TAB 1)
+  // ==========================================
+  Widget _buildGroupedAssignmentLists() {
+    if (_todayAssignments.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Center(
+          child: Text(
+            'No workers assigned today. Tap "Assign next batch" above to add one.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, height: 1.4),
+          ),
+        ),
+      );
+    }
+
+    // Filter by search query if any
+    var list = _todayAssignments;
+    if (_liveSearchQuery.isNotEmpty) {
+      list = list.where((a) {
+        final w = (a['worker_name'] as String? ?? '').toLowerCase();
+        final art = (a['articles']?['art_no'] as String? ?? '').toLowerCase();
+        return w.contains(_liveSearchQuery) || art.contains(_liveSearchQuery);
+      }).toList();
+    }
+
+    final pending = list.where((a) => a['status'] == 'PENDING').toList();
+    final inProgress = list.where((a) => a['status'] == 'IN_PROGRESS').toList();
+    final done = list.where((a) => a['status'] == 'DONE').toList();
+
+    final bool hasOverdue = pending.any((a) => _isOverdue(a['assigned_at']));
+
+    int globalIndex = 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. PENDING GROUP
+        if (pending.isNotEmpty) ...[
+          _AnimatedFadeSlide(
+            delayMs: 250,
+            child: _buildGroupHeader(
+              'Pending (${pending.length})',
+              hasOverdue ? AppTheme.red : AppTheme.amber,
+              hasOverdue ? Icons.warning_amber_rounded : Icons.pending_rounded,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...pending.map((a) {
+            globalIndex++;
+            return _AnimatedFadeSlide(
+              delayMs: 250 + (globalIndex * 40),
+              child: _buildDismissibleAssignmentCard(a),
+            );
+          }),
+          const SizedBox(height: 16),
+        ],
+
+        // 2. IN PROGRESS GROUP
+        if (inProgress.isNotEmpty) ...[
+          _AnimatedFadeSlide(
+            delayMs: 280,
+            child: _buildGroupHeader(
+              'In Progress (${inProgress.length})',
+              AppTheme.steel,
+              Icons.timelapse_rounded,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...inProgress.map((a) {
+            globalIndex++;
+            return _AnimatedFadeSlide(
+              delayMs: 280 + (globalIndex * 40),
+              child: _buildDismissibleAssignmentCard(a),
+            );
+          }),
+          const SizedBox(height: 16),
+        ],
+
+        // 3. COMPLETED (DONE) GROUP - 70% OPACITY
+        if (done.isNotEmpty) ...[
+          _AnimatedFadeSlide(
+            delayMs: 320,
+            child: _buildGroupHeader(
+              'Completed Today (${done.length})',
+              AppTheme.green,
+              Icons.check_circle_rounded,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...done.map((a) {
+            globalIndex++;
+            return _AnimatedFadeSlide(
+              delayMs: 320 + (globalIndex * 40),
+              child: Opacity(
+                opacity: 0.7,
+                child: _buildAssignmentCard(a),
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGroupHeader(String title, Color color, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: GoogleFonts.publicSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // INTERACTIVE SWIPE-TO-COMPLETE CARD
+  // ==========================================
+  Widget _buildDismissibleAssignmentCard(dynamic a) {
+    return _InteractiveSwipeCard(
+      key: ValueKey('assignment_${a['id']}'),
+      assignment: a,
+      onComplete: (assignment) => _markAsDone(assignment),
+      child: _buildAssignmentCard(a),
     );
   }
 
@@ -1291,91 +2229,149 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
     final hasVariant = (color.isNotEmpty && color != 'Default') || (size.isNotEmpty && size != 'Standard');
     final variantTag = hasVariant ? '$color • Size $size' : '';
 
-    return Container(
+    Color statusColor;
+    switch (status) {
+      case 'DONE':
+        statusColor = AppTheme.green;
+        break;
+      case 'IN_PROGRESS':
+        statusColor = AppTheme.steel;
+        break;
+      default:
+        statusColor = AppTheme.amber;
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: status == 'DONE' ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
-          width: status == 'DONE' ? 1.5 : 1,
+          color: status == 'DONE' ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.border,
+          width: 1,
         ),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 22,
-                  backgroundColor: _statusColor(status).withValues(alpha: 0.15),
-                  child: Icon(_statusIcon(status), color: _statusColor(status), size: 24),
+                  radius: 18,
+                  backgroundColor: statusColor.withValues(alpha: 0.12),
+                  child: Icon(
+                    status == 'DONE' ? Icons.check_circle_rounded : Icons.person_rounded,
+                    color: statusColor,
+                    size: 20,
+                  ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(workerName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.textDark)),
-                      const SizedBox(height: 3),
                       Text(
-                        hasVariant ? 'Art: $artNo â€¢ $variantTag â€¢ $qty pcs' : 'Art: $artNo â€¢ $qty pcs',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                        workerName,
+                        style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.ink),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasVariant ? 'Art: $artNo • $variantTag • $qty pcs' : 'Art: $artNo • $qty pcs',
+                        style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor(status).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(_statusLabel(status), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: _statusColor(status))),
+                  child: Text(
+                    status == 'DONE' ? 'Done' : (status == 'IN_PROGRESS' ? 'In Progress' : 'Pending'),
+                    style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 11, color: statusColor),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
-            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppTheme.border),
+            const SizedBox(height: 8),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.access_time_rounded, size: 14, color: Colors.grey.shade500),
-                const SizedBox(width: 4),
-                Text('Given: $assignedTime', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                if (status == 'DONE') ...[
-                  const SizedBox(width: 10),
-                  const Icon(Icons.check_circle_outline, size: 14, color: Color(0xFF10B981)),
-                  const SizedBox(width: 4),
-                  Text('Done: $doneTime', style: const TextStyle(fontSize: 11, color: Color(0xFF10B981))),
-                ],
-                const Spacer(),
-                if (status != 'DONE') ...[
-                  InkWell(
-                    onTap: () => _markAsDone(a),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 3,
+                    children: [
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_rounded, size: 16, color: Color(0xFF10B981)),
-                          SizedBox(width: 4),
-                          Text('Done', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF10B981))),
+                          const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.inkFaint),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Given: $assignedTime',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkFaint),
+                          ),
+                        ],
+                      ),
+                      _buildTimeSinceAssigned(a['assigned_at'], status),
+                      if (status == 'DONE')
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_outline, size: 12, color: AppTheme.green),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Done: $doneTime',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.green),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+                if (status != 'DONE') ...[
+                  const SizedBox(width: 6),
+                  _BouncyTap(
+                    onTap: () => _markAsDone(a),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppTheme.greenMist,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_rounded, size: 14, color: AppTheme.green),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Done',
+                            style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 2),
                   PopupMenuButton<String>(
                     padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey),
+                    icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.inkFaint),
                     onSelected: (val) {
                       if (val == 'edit') {
                         _editAssignment(a);
@@ -1384,8 +2380,26 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
                       }
                     },
                     itemBuilder: (_) => [
-                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Edit')])),
-                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.edit_outlined, size: 16, color: AppTheme.steel),
+                            const SizedBox(width: 8),
+                            Text('Edit', style: GoogleFonts.publicSans(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.red),
+                            const SizedBox(width: 8),
+                            Text('Delete', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.red)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1393,6 +2407,407 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // SKELETON SHIMMER LOADING
+  // ==========================================
+  Widget _buildAnimatedSkeletonLoading() {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildShimmerBox(height: 76, radius: 12),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildShimmerBox(height: 64, radius: 12)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildShimmerBox(height: 64, radius: 12)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildShimmerBox(height: 180, radius: 12),
+              const SizedBox(height: 20),
+              ...List.generate(3, (idx) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _buildShimmerBox(height: 76, radius: 12),
+              )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShimmerBox({required double height, required double radius}) {
+    final shimmerPos = _shimmerController.value;
+    return Container(
+      height: height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        gradient: LinearGradient(
+          begin: Alignment(shimmerPos - 1.0, 0),
+          end: Alignment(shimmerPos, 0),
+          colors: const [
+            AppTheme.steelMist,
+            Color(0xFFF6F8FB),
+            AppTheme.steelMist,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoAllotmentEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.bg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.assignment_late_outlined, size: 28, color: AppTheme.inkFaint),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No active allotments',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Check back once your supervisor assigns a new cutting target.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(
+              fontSize: 12.5,
+              color: AppTheme.inkSoft,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: color,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.inkSoft,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// INTERACTIVE SWIPE-TO-COMPLETE WIDGET (DYNAMIC SPRING & COLOR PROGRESSION)
+// ==========================================
+class _InteractiveSwipeCard extends StatefulWidget {
+  final dynamic assignment;
+  final Widget child;
+  final Future<void> Function(dynamic) onComplete;
+
+  const _InteractiveSwipeCard({
+    required Key key,
+    required this.assignment,
+    required this.child,
+    required this.onComplete,
+  }) : super(key: key);
+
+  @override
+  State<_InteractiveSwipeCard> createState() => _InteractiveSwipeCardState();
+}
+
+class _InteractiveSwipeCardState extends State<_InteractiveSwipeCard> {
+  double _dragProgress = 0.0;
+  bool _thresholdReached = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: widget.key!,
+      direction: DismissDirection.startToEnd,
+      dismissThresholds: const {DismissDirection.startToEnd: 0.35},
+      onUpdate: (details) {
+        final reached = details.progress >= 0.35;
+        if (reached != _thresholdReached || (_dragProgress - details.progress).abs() > 0.04) {
+          setState(() {
+            _dragProgress = details.progress;
+            _thresholdReached = reached;
+          });
+        }
+      },
+      confirmDismiss: (direction) async {
+        await widget.onComplete(widget.assignment);
+        return true;
+      },
+      background: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: _thresholdReached
+              ? const LinearGradient(
+                  colors: [Color(0xFF16804F), Color(0xFF1F9D63)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          color: _thresholdReached ? null : AppTheme.greenMist,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _thresholdReached ? const Color(0xFF16804F) : AppTheme.green.withValues(alpha: 0.35),
+            width: 1.5,
+          ),
+          boxShadow: _thresholdReached
+              ? [
+                  BoxShadow(
+                    color: AppTheme.green.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            // Left Action Badge
+            AnimatedScale(
+              scale: _thresholdReached ? 1.15 : (0.9 + (_dragProgress * 0.5)).clamp(0.9, 1.15),
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.elasticOut,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _thresholdReached ? Colors.white : AppTheme.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _thresholdReached ? Colors.white : AppTheme.green.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: _thresholdReached ? 0.12 : 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    _thresholdReached ? Icons.task_alt_rounded : Icons.arrow_forward_rounded,
+                    color: AppTheme.green,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Text Label & Subtitle
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _thresholdReached ? 'STATUS UPDATE' : 'QUICK ACTION',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.3,
+                      color: _thresholdReached ? Colors.white.withValues(alpha: 0.85) : AppTheme.green,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _thresholdReached ? 'Release to Mark as Done' : 'Swipe right to complete',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _thresholdReached ? Colors.white : AppTheme.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_thresholdReached) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.done_all_rounded, size: 14, color: Colors.white),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      child: widget.child,
+    );
+  }
+}
+
+// ==========================================
+// SMOOTH STAGGERED FADE & SLIDE ANIMATION WIDGET
+// ==========================================
+class _AnimatedFadeSlide extends StatefulWidget {
+  final Widget child;
+  final int delayMs;
+  const _AnimatedFadeSlide({required this.child, required this.delayMs});
+
+  @override
+  State<_AnimatedFadeSlide> createState() => _AnimatedFadeSlideState();
+}
+
+class _AnimatedFadeSlideState extends State<_AnimatedFadeSlide>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnim;
+  late Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+
+    _opacityAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+
+    if (widget.delayMs == 0) {
+      _controller.forward();
+    } else {
+      Future.delayed(Duration(milliseconds: widget.delayMs), () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnim,
+      child: SlideTransition(
+        position: _slideAnim,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TACTILE BOUNCY TAP MICRO-INTERACTION
+// ==========================================
+class _BouncyTap extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const _BouncyTap({required this.child, this.onTap});
+
+  @override
+  State<_BouncyTap> createState() => _BouncyTapState();
+}
+
+class _BouncyTapState extends State<_BouncyTap> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onTap == null ? null : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.onTap == null ? null : (_) => setState(() => _isPressed = false),
+      onTapCancel: widget.onTap == null ? null : () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutQuad,
+        child: widget.child,
       ),
     );
   }

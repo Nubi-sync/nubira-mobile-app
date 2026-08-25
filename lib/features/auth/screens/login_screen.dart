@@ -128,7 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Expanded(
               child: Text(
                 'Password Recovery',
-                style: GoogleFonts.fraunces(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.ink,
@@ -251,7 +251,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     'Nubira Floor',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.fraunces(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.ink,
