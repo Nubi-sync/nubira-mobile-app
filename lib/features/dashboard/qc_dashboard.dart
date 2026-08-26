@@ -31,6 +31,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
   List<dynamic> _linemen = [];
   List<dynamic> _articles = [];
+  List<dynamic> _allotmentVariants = [];
   List<dynamic> _activeMendingList = [];
   List<dynamic> _recentQcLogs = [];
 
@@ -74,6 +75,16 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           .eq('role', 'LINEMAN')
           .eq('is_active', true)
           .order('username');
+
+      // Fetch allotment variants with article reference
+      List<dynamic> variantsRes = [];
+      try {
+        variantsRes = await supabase
+            .from('allotment_variants')
+            .select('id, allotment_id, color, size, quantity');
+      } catch (e) {
+        debugPrint('Allotment variants fetch error: $e');
+      }
 
       final articlesRes = await supabase
           .from('articles')
@@ -156,6 +167,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         setState(() {
           _linemen = linemenRes;
           _articles = articlesRes;
+          _allotmentVariants = variantsRes;
           _recentQcLogs = logsRes;
           _activeMendingList = activeMending;
           _totalReceivedToday = rec;
@@ -179,37 +191,91 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   // ==========================================
   // MODAL 1: DAILY RECEIVING (LINE HANDOVER)
   // ==========================================
-  void _showDailyReceivingModal() {
+
+  // ==========================================
+  // HELPER: CLEAN ARTICLE DESCRIPTION (STRIP INTERNAL METADATA)
+  // ==========================================
+  String _getCleanArticleDescription(String? desc) {
+    if (desc == null || desc.trim().isEmpty) return '';
+    return desc.replaceAll(RegExp(r'\s*\[.*\]'), '').trim();
+  }
+
+  // ==========================================
+  // HELPER: GET ALLOTMENT IDS FOR ARTICLE (SAFE FOR-LOOP)
+  // ==========================================
+  List<String> _getAllotmentIdsForArticle(String? articleId) {
+    if (articleId == null) return [];
+    for (var art in _articles) {
+      if (art['id']?.toString() == articleId.toString()) {
+        final desc = (art['description'] as String?) ?? '';
+        final match = RegExp(r'\[(.*?)\]').firstMatch(desc);
+        if (match != null && match.group(1) != null) {
+          return match.group(1)!.split(',').map((s) => s.trim()).toList();
+        }
+      }
+    }
+    return [];
+  }
+
+  // ==========================================
+  // HELPER: GET DYNAMIC COLORS FOR ARTICLE (FROM ADMIN ALLOTMENT)
+  // ==========================================
+  List<String> _getColorsForArticle(String? articleId) {
+    if (articleId == null) return [];
+    final allotmentIds = _getAllotmentIdsForArticle(articleId);
+
+    final Set<String> colors = {};
+    for (var v in _allotmentVariants) {
+      final vAllotId = v['allotment_id']?.toString();
+      final matchesAllot = vAllotId != null && allotmentIds.contains(vAllotId);
+      final aId = v['allotments'] != null ? v['allotments']['article_id']?.toString() : v['allotment']?['article_id']?.toString();
+      final matchesJoin = aId != null && aId == articleId.toString();
+
+      if (matchesAllot || matchesJoin) {
+        final c = v['color'] as String?;
+        if (c != null && c.trim().isNotEmpty) {
+          colors.add(c.trim());
+        }
+      }
+    }
+    return colors.toList();
+  }
+
+  // ==========================================
+  // HELPER: GET DYNAMIC SIZES FOR ARTICLE & COLOR
+  // ==========================================
+  List<String> _getSizesForArticle(String? articleId, String? selectedColor) {
+    if (articleId == null) return [];
+    final allotmentIds = _getAllotmentIdsForArticle(articleId);
+
+    final Set<String> sizes = {};
+    for (var v in _allotmentVariants) {
+      final vAllotId = v['allotment_id']?.toString();
+      final matchesAllot = vAllotId != null && allotmentIds.contains(vAllotId);
+      final aId = v['allotments'] != null ? v['allotments']['article_id']?.toString() : v['allotment']?['article_id']?.toString();
+      final matchesJoin = aId != null && aId == articleId.toString();
+
+      if (matchesAllot || matchesJoin) {
+        if (selectedColor == null ||
+            selectedColor.trim().isEmpty ||
+            (v['color'] != null && v['color'].toString().toLowerCase().trim() == selectedColor.toLowerCase().trim())) {
+          final s = v['size'] as String?;
+          if (s != null && s.trim().isNotEmpty) {
+            sizes.add(s.trim());
+          }
+        }
+      }
+    }
+    return sizes.toList();
+  }
+
+
+    void _showDailyReceivingModal() {
     String? selectedLinemanId = _linemen.isNotEmpty ? _linemen.first['id'] : null;
     String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
 
-    final List<String> defaultColors = [
-      'Navy Blue',
-      'Black',
-      'White',
-      'Olive Green',
-      'Maroon',
-      'Beige',
-      'Charcoal Grey',
-      'Light Blue',
-    ];
-
-    final List<String> defaultSizes = [
-      'S',
-      'M',
-      'L',
-      'XL',
-      'XXL',
-      '28',
-      '30',
-      '32',
-      '34',
-      '36',
-      'Free Size',
-    ];
-
-    String? selectedColor = defaultColors.first;
-    String? selectedSize = defaultSizes[2]; // Default to 'L'
+    String? selectedColor;
+    String? selectedSize;
 
     final qtyController = TextEditingController();
     final remarksController = TextEditingController();
@@ -227,8 +293,18 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          // Available canonical sizes
-          final availableSizes = defaultSizes;
+          // Dynamically fetch colors and sizes configured by Admin for this article
+          final availableColors = _getColorsForArticle(selectedArticleId);
+          final displayColors = availableColors.isNotEmpty ? availableColors : <String>['Standard'];
+          if (selectedColor == null || !displayColors.contains(selectedColor)) {
+            selectedColor = displayColors.first;
+          }
+
+          final availableSizes = _getSizesForArticle(selectedArticleId, selectedColor);
+          final displaySizes = availableSizes.isNotEmpty ? availableSizes : <String>['Standard'];
+          if (selectedSize == null || !displaySizes.contains(selectedSize)) {
+            selectedSize = displaySizes.first;
+          }
 
           return Padding(
             padding: EdgeInsets.only(
@@ -340,11 +416,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         hint: Text('Select article', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint)),
                         items: _articles.map((art) => DropdownMenuItem<String>(
                           value: art['id'],
-                          child: Text('${art['art_no']} (${art['description'] ?? ''})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppTheme.ink)),
+                          child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppTheme.ink)),
                         )).toList(),
                         onChanged: (v) {
                           setModalState(() {
                             selectedArticleId = v;
+                            selectedColor = null;
+                            selectedSize = null;
                             articleError = null;
                           });
                         },
@@ -355,7 +433,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
                   const SizedBox(height: 14),
 
-                  // 3. COLOR / SHADE & SIZE DROPDOWNS (ROW)
+                  // 3. COLOR & SIZE DROPDOWNS (DYNAMIC FROM ADMIN ALLOTMENTS)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -384,13 +462,14 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                                   value: selectedColor,
                                   isExpanded: true,
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.inkSoft, size: 18),
-                                  items: defaultColors.map((c) => DropdownMenuItem<String>(
+                                  items: displayColors.map((c) => DropdownMenuItem<String>(
                                     value: c,
                                     child: Text(c, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink)),
                                   )).toList(),
                                   onChanged: (v) {
                                     setModalState(() {
                                       selectedColor = v;
+                                      selectedSize = null;
                                       colorError = null;
                                     });
                                   },
@@ -427,7 +506,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                                   value: selectedSize,
                                   isExpanded: true,
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.inkSoft, size: 18),
-                                  items: availableSizes.map((s) => DropdownMenuItem<String>(
+                                  items: displaySizes.map((s) => DropdownMenuItem<String>(
                                     value: s,
                                     child: Text(s, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink)),
                                   )).toList(),
@@ -450,117 +529,81 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                   const SizedBox(height: 14),
 
                   // 4. QUANTITY RECEIVED FIELD
-                  _buildFieldLabel(icon: Icons.format_list_numbered_rounded, label: 'Quantity Received (Pieces)', isRequired: true),
+                  _buildFieldLabel(icon: Icons.tag_rounded, label: 'Quantity Received (Pieces)', isRequired: true),
                   const SizedBox(height: 6),
                   Container(
                     decoration: BoxDecoration(
                       color: qtyError != null ? AppTheme.redMist : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: qtyError != null ? AppTheme.red : AppTheme.border,
+                        width: qtyError != null ? 1.2 : 1.0,
+                      ),
                     ),
                     child: TextField(
                       controller: qtyController,
                       keyboardType: TextInputType.number,
-                      onChanged: (_) {
-                        if (qtyError != null) {
-                          setModalState(() => qtyError = null);
-                        }
-                      },
-                      style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.ink),
+                      style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.ink),
                       decoration: InputDecoration(
-                        hintText: 'e.g. 150',
-                        hintStyle: GoogleFonts.publicSans(color: AppTheme.inkFaint, fontSize: 13),
+                        hintText: 'e.g. 500',
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
+                        prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.steel, size: 18),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: qtyError != null
-                                ? AppTheme.red
-                                : (qtyController.text.trim().isNotEmpty ? AppTheme.green : AppTheme.border),
-                            width: qtyError != null ? 1.2 : 1.0,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: qtyError != null ? AppTheme.red : AppTheme.steel, width: 1.5),
-                        ),
+                        border: InputBorder.none,
                       ),
+                      onChanged: (_) {
+                        if (qtyError != null) setModalState(() => qtyError = null);
+                      },
                     ),
                   ),
                   if (qtyError != null) _buildInlineError(qtyError!),
 
                   const SizedBox(height: 14),
 
-                  // 5. REMARKS / BUNDLE NOTE FIELD (OPTIONAL)
-                  _buildFieldLabel(icon: Icons.notes_rounded, label: 'Remarks / Bundle Note', isRequired: false),
+                  // 5. REMARKS FIELD
+                  _buildFieldLabel(icon: Icons.notes_rounded, label: 'Bundle Batch Notes / Remarks', isRequired: false),
                   const SizedBox(height: 6),
-                  TextField(
-                    controller: remarksController,
-                    style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Front body bundle',
-                      hintStyle: GoogleFonts.publicSans(color: AppTheme.inkFaint, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppTheme.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppTheme.steel, width: 1.5),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: TextField(
+                      controller: remarksController,
+                      maxLines: 2,
+                      style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Lot 1, front placket ready',
+                        hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                        contentPadding: const EdgeInsets.all(12),
+                        border: InputBorder.none,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 20),
 
-                  // 6. SUBMIT BUTTON
+                  // SUBMIT BUTTON
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final qty = int.tryParse(qtyController.text.trim());
-                        bool hasError = false;
-
                         setModalState(() {
-                          if (selectedLinemanId == null) {
-                            linemanError = 'Select a lineman';
-                            hasError = true;
-                          } else {
-                            linemanError = null;
-                          }
-
-                          if (selectedArticleId == null) {
-                            articleError = 'Select an article';
-                            hasError = true;
-                          } else {
-                            articleError = null;
-                          }
-
-                          if (selectedColor == null || selectedColor!.isEmpty) {
-                            colorError = 'Select a color';
-                            hasError = true;
-                          } else {
-                            colorError = null;
-                          }
-
-                          if (selectedSize == null || selectedSize!.isEmpty) {
-                            sizeError = 'Select a size';
-                            hasError = true;
-                          } else {
-                            sizeError = null;
-                          }
-
-                          if (qty == null || qty <= 0) {
-                            qtyError = 'Enter valid quantity greater than 0';
-                            hasError = true;
-                          } else {
-                            qtyError = null;
-                          }
+                          linemanError = selectedLinemanId == null ? 'Select a lineman' : null;
+                          articleError = selectedArticleId == null ? 'Select an article' : null;
+                          colorError = (selectedColor == null || selectedColor!.isEmpty) ? 'Color required' : null;
+                          sizeError = (selectedSize == null || selectedSize!.isEmpty) ? 'Size required' : null;
+                          final parsed = int.tryParse(qtyController.text.trim());
+                          qtyError = (parsed == null || parsed <= 0) ? 'Enter valid qty (> 0)' : null;
                         });
 
-                        if (hasError) return;
+                        if (linemanError != null || articleError != null || colorError != null || sizeError != null || qtyError != null) {
+                          return;
+                        }
 
+                        final qty = int.parse(qtyController.text.trim());
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
                         Navigator.pop(ctx);
                         try {
@@ -606,7 +649,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     );
   }
 
-  // ==========================================
+
+    // ==========================================
   // HELPER: FIELD LABEL WITH 13px ICON & REQUIRED ASTERISK
   // ==========================================
   Widget _buildFieldLabel({
@@ -677,8 +721,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   void _showCheckingModal() {
     String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
     String? selectedLinemanId = _linemen.isNotEmpty ? _linemen.first['id'] : null;
-    final colorController = TextEditingController(text: 'Navy Blue');
-    final sizeController = TextEditingController(text: 'L');
+    String? selectedColor;
+    String? selectedSize;
+
     final passedController = TextEditingController();
     final rejectedController = TextEditingController(text: '0');
     final remarksController = TextEditingController();
@@ -690,185 +735,283 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(width: 44, height: 5, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(3))),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.fact_check_rounded, color: AppTheme.green, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Quality Inspection (Checking)', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                          Text('Inspect pieces, record pass & defect counts', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+        builder: (context, setModalState) {
+          final availableColors = _getColorsForArticle(selectedArticleId);
+          final displayColors = availableColors.isNotEmpty ? availableColors : <String>['Standard'];
+          if (selectedColor == null || !displayColors.contains(selectedColor)) {
+            selectedColor = displayColors.first;
+          }
 
-                Text('Article (Style #)', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedArticleId,
-                      isExpanded: true,
-                      items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${art['description'] ?? ''})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
-                      onChanged: (v) => setModalState(() => selectedArticleId = v),
-                    ),
-                  ),
-                ),
+          final availableSizes = _getSizesForArticle(selectedArticleId, selectedColor);
+          final displaySizes = availableSizes.isNotEmpty ? availableSizes : <String>['Standard'];
+          if (selectedSize == null || !displaySizes.contains(selectedSize)) {
+            selectedSize = displaySizes.first;
+          }
 
-                const SizedBox(height: 14),
-
-                Text('Sewing Line / Lineman Responsible', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedLinemanId,
-                      isExpanded: true,
-                      items: _linemen.map((lm) => DropdownMenuItem<String>(value: lm['id'], child: Text(lm['username'], style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
-                      onChanged: (v) => setModalState(() => selectedLinemanId = v),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Passed (OK Pieces)', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.green)),
-                          const SizedBox(height: 4),
-                          TextField(
-                            controller: passedController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(hintText: 'e.g. 95', prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.green, size: 18), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Defect / Rejected', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.red)),
-                          const SizedBox(height: 4),
-                          TextField(
-                            controller: rejectedController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(hintText: '0', prefixIcon: const Icon(Icons.cancel_outlined, color: AppTheme.red, size: 18), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                Text('Primary Defect Category', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedDefect,
-                      isExpanded: true,
-                      items: _defectTypes.map((dt) => DropdownMenuItem<String>(value: dt['key'], child: Text(dt['label']!, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
-                      onChanged: (v) => setModalState(() => selectedDefect = v ?? 'NONE'),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final pQty = int.tryParse(passedController.text) ?? 0;
-                      final rQty = int.tryParse(rejectedController.text) ?? 0;
-                      if (selectedArticleId == null || (pQty == 0 && rQty == 0)) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter valid Passed or Defect counts.')));
-                        return;
-                      }
-
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      Navigator.pop(ctx);
-                      try {
-                        await supabase.from('qc_logs').insert({
-                          'stage': 'CHECKING',
-                          'article_id': selectedArticleId,
-                          'from_lineman_id': selectedLinemanId,
-                          'color': colorController.text.trim(),
-                          'size': sizeController.text.trim(),
-                          'qty_passed': pQty,
-                          'qty_rejected': rQty,
-                          'defect_type': selectedDefect,
-                          'mending_status': rQty > 0 ? 'WITH_LINEMAN_FOR_REPAIR' : 'NONE',
-                          'remarks': remarksController.text.trim().isEmpty ? null : remarksController.text.trim(),
-                          'entry_date': DateTime.now().toIso8601String().split('T')[0],
-                        });
-
-                        scaffoldMessenger.showSnackBar(
-                          SnackBar(content: Text('Logged inspection: $pQty Passed, $rQty Defect'), backgroundColor: AppTheme.green),
-                        );
-                        _fetchQcData();
-                      } catch (e) {
-                        scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.red));
-                      }
-                    },
-                    icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('Save QC Inspection Entry'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.green,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
             ),
-          ),
-        ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 44, height: 5, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(3))),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.fact_check_rounded, color: AppTheme.green, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Quality Inspection (Checking)', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                            Text('Inspect pieces, record pass & defect counts', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  Text('Article (Style #)', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedArticleId,
+                        isExpanded: true,
+                        items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
+                        onChanged: (v) => setModalState(() {
+                          selectedArticleId = v;
+                          selectedColor = null;
+                          selectedSize = null;
+                        }),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  Text('Sewing Line / Lineman Responsible', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedLinemanId,
+                        isExpanded: true,
+                        items: _linemen.map((lm) => DropdownMenuItem<String>(value: lm['id'], child: Text(lm['username'], style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
+                        onChanged: (v) => setModalState(() => selectedLinemanId = v),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // DYNAMIC COLOR & SIZE DROPDOWNS
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildFieldLabel(icon: Icons.palette_outlined, label: 'Color / Shade', isRequired: false),
+                            const SizedBox(height: 6),
+                            Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: selectedColor,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.inkSoft, size: 18),
+                                  items: displayColors.map((c) => DropdownMenuItem<String>(
+                                    value: c,
+                                    child: Text(c, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink)),
+                                  )).toList(),
+                                  onChanged: (v) {
+                                    setModalState(() {
+                                      selectedColor = v;
+                                      selectedSize = null;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildFieldLabel(icon: Icons.straighten_rounded, label: 'Size', isRequired: false),
+                            const SizedBox(height: 6),
+                            Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: selectedSize,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.inkSoft, size: 18),
+                                  items: displaySizes.map((s) => DropdownMenuItem<String>(
+                                    value: s,
+                                    child: Text(s, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink)),
+                                  )).toList(),
+                                  onChanged: (v) {
+                                    setModalState(() {
+                                      selectedSize = v;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Passed (OK Pieces)', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.green)),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: passedController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(hintText: 'e.g. 95', prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.green, size: 18), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Defect / Rejected', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.red)),
+                            const SizedBox(height: 4),
+                            TextField(
+                              controller: rejectedController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(hintText: '0', prefixIcon: const Icon(Icons.cancel_outlined, color: AppTheme.red, size: 18), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  Text('Primary Defect Category', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.border)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedDefect,
+                        isExpanded: true,
+                        items: _defectTypes.map((dt) => DropdownMenuItem<String>(value: dt['key'], child: Text(dt['label']!, style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
+                        onChanged: (v) => setModalState(() => selectedDefect = v ?? 'NONE'),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final pQty = int.tryParse(passedController.text) ?? 0;
+                        final rQty = int.tryParse(rejectedController.text) ?? 0;
+                        if (selectedArticleId == null || (pQty == 0 && rQty == 0)) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter valid Passed or Defect counts.')));
+                          return;
+                        }
+
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        Navigator.pop(ctx);
+                        try {
+                          await supabase.from('qc_logs').insert({
+                            'stage': 'CHECKING',
+                            'article_id': selectedArticleId,
+                            'from_lineman_id': selectedLinemanId,
+                            'color': selectedColor,
+                            'size': selectedSize,
+                            'qty_passed': pQty,
+                            'qty_rejected': rQty,
+                            'defect_type': selectedDefect,
+                            'mending_status': rQty > 0 ? 'WITH_LINEMAN_FOR_REPAIR' : 'NONE',
+                            'remarks': remarksController.text.trim().isEmpty ? null : remarksController.text.trim(),
+                            'entry_date': DateTime.now().toIso8601String().split('T')[0],
+                          });
+
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(content: Text('Logged inspection: $pQty Passed, $rQty Defect'), backgroundColor: AppTheme.green),
+                          );
+                          _fetchQcData();
+                        } catch (e) {
+                          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.red));
+                        }
+                      },
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      label: const Text('Save QC Inspection Entry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // ==========================================
+
+    // ==========================================
   // MODAL 3: MENDING & REPAIR
   // ==========================================
   void _showMendingModal() {
@@ -1134,7 +1277,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       child: DropdownButton<String>(
                         value: selectedArticleId,
                         isExpanded: true,
-                        items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${art['description'] ?? ''})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
+                        items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5)))).toList(),
                         onChanged: (v) => setModalState(() => selectedArticleId = v),
                       ),
                     ),

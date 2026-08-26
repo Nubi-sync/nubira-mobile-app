@@ -40,6 +40,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   ];
 
   Map<String, int> _articleStockMap = {};
+  Map<String, int> _variantStockMap = {};
+  List<dynamic> _allotmentVariants = [];
+  List<dynamic> _activeAllotments = [];
+  List<dynamic> _allotmentMaterials = [];
 
   @override
   void initState() {
@@ -52,12 +56,98 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
 
-      // 1. Fetch Articles
+            // 1. Fetch Articles
       final articlesRes = await supabase
           .from('articles')
           .select('id, art_no, description')
           .eq('is_active', true)
           .order('art_no');
+
+      // 1.1 Fetch Allotment Variants
+      List<dynamic> variantsRes = [];
+      try {
+        variantsRes = await supabase
+            .from('allotment_variants')
+            .select('id, allotment_id, color, size, quantity');
+      } catch (e) {
+        debugPrint('Allotment variants fetch error: $e');
+      }
+
+      // 1.2 Fetch Active Allotments & Materials for Handshake (with guaranteed fallback)
+      List<dynamic> activeAllotsRes = [];
+      List<dynamic> allotMatsRes = [];
+      try {
+        allotMatsRes = await supabase
+            .from('allotment_materials')
+            .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, notes, created_at');
+
+        try {
+          final dbAllots = await supabase
+              .from('allotments')
+              .select('id, lineman_id, article_id, target_qty, allotment_date, status, profiles(username), articles(art_no, description)')
+              .eq('status', 'IN_PROGRESS')
+              .order('created_at', ascending: false);
+          if (dbAllots.isNotEmpty) {
+            activeAllotsRes = dbAllots;
+          }
+        } catch (_) {}
+
+        // Fallback: If direct allotments table is RLS-restricted, construct dynamically from materials & articles
+        if (activeAllotsRes.isEmpty && allotMatsRes.isNotEmpty) {
+          final Set<String> distinctIds = {};
+          for (var m in allotMatsRes) {
+            final aId = m['allotment_id']?.toString();
+            if (aId != null && aId.isNotEmpty) distinctIds.add(aId);
+          }
+
+          for (var allotId in distinctIds) {
+            // Match article containing allotment UUID or variant allotment_id
+            dynamic matchedArt;
+            for (var a in articlesRes) {
+              final desc = a['description']?.toString() ?? '';
+              if (desc.contains(allotId)) {
+                matchedArt = a;
+                break;
+              }
+            }
+
+            matchedArt ??= {'id': '', 'art_no': 'Garment Lot', 'description': ''};
+
+            int targetQty = 0;
+            for (var v in variantsRes) {
+              if (v['allotment_id']?.toString() == allotId) {
+                targetQty += ((v['quantity'] as int?) ?? 0);
+              }
+            }
+
+            // Extract lineman name from materials notes
+            String resolvedLineman = 'Lineman';
+            for (var m in allotMatsRes) {
+              if (m['allotment_id']?.toString() == allotId && m['notes'] != null) {
+                final nStr = m['notes'].toString();
+                final match = RegExp(r'"lineman_name":"(.*?)"').firstMatch(nStr);
+                if (match != null && match.group(1) != null && match.group(1)!.isNotEmpty) {
+                  resolvedLineman = match.group(1)!;
+                  break;
+                }
+              }
+            }
+
+            activeAllotsRes.add({
+              'id': allotId,
+              'article_id': matchedArt['id'],
+              'target_qty': targetQty > 0 ? targetQty : 500,
+              'articles': {
+                'art_no': matchedArt['art_no'] ?? 'Garment Lot',
+                'description': matchedArt['description'] ?? '',
+              },
+              'profiles': {'username': resolvedLineman},
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Active allotments fetch error: $e');
+      }
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
       final txRes = await supabase
@@ -103,19 +193,26 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       int tOutward = 0;
       final Map<String, int> stockMap = {};
 
+      final Map<String, int> varStockMap = {};
+
       for (var tx in txRes) {
         final qty = (tx['quantity'] as int?) ?? 0;
         final type = tx['type'] as String? ?? 'INWARD';
         final artId = tx['article']?['id'] as String? ?? 'UNKNOWN';
+        final color = (tx['color'] as String?)?.toLowerCase().trim() ?? '';
+        final size = (tx['size'] as String?)?.toLowerCase().trim() ?? '';
+        final varKey = '${artId}_${color}_$size';
         final entryDate = (tx['entry_date'] as String?) ?? (tx['created_at'] != null ? tx['created_at'].toString().split('T')[0] : '');
 
         if (type == 'INWARD') {
           totalIn += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) + qty;
+          varStockMap[varKey] = (varStockMap[varKey] ?? 0) + qty;
           if (entryDate == today) tInward += qty;
         } else if (type == 'OUTWARD') {
           totalOut += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) - qty;
+          varStockMap[varKey] = (varStockMap[varKey] ?? 0) - qty;
           if (entryDate == today) tOutward += qty;
         }
       }
@@ -178,6 +275,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _todayInward = tInward;
           _todayOutward = tOutward;
           _articleStockMap = stockMap;
+          _variantStockMap = varStockMap;
+          _allotmentVariants = variantsRes;
+          _activeAllotments = activeAllotsRes;
+          _allotmentMaterials = allotMatsRes;
           _storeLogs = combinedLogs;
         });
       }
@@ -193,199 +294,66 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   // ==========================================
+  // HELPER METHODS: DYNAMIC VARIANT MATRIX
+  // ==========================================
+  String _getCleanArticleDescription(String? desc) {
+    if (desc == null || desc.trim().isEmpty) return '';
+    return desc.replaceAll(RegExp(r'\s*\[.*\]'), '').trim();
+  }
+
+  List<String> _getAllotmentIdsForArticle(String? articleId) {
+    if (articleId == null) return [];
+    for (var art in _articles) {
+      if (art['id']?.toString() == articleId.toString()) {
+        final desc = (art['description'] as String?) ?? '';
+        final match = RegExp(r'\[(.*?)\]').firstMatch(desc);
+        if (match != null && match.group(1) != null) {
+          return match.group(1)!.split(',').map((s) => s.trim()).toList();
+        }
+      }
+    }
+    return [];
+  }
+
+  List<Map<String, dynamic>> _getVariantsForArticle(String? articleId) {
+    if (articleId == null) return [];
+    final allotmentIds = _getAllotmentIdsForArticle(articleId);
+
+    final List<Map<String, dynamic>> result = [];
+    for (var v in _allotmentVariants) {
+      final vAllotId = v['allotment_id']?.toString();
+      if (vAllotId != null && allotmentIds.contains(vAllotId)) {
+        result.add({
+          'id': v['id'],
+          'color': v['color']?.toString() ?? 'Default',
+          'size': v['size']?.toString() ?? 'Standard',
+          'allotment_qty': v['quantity'] ?? 0,
+        });
+      }
+    }
+    return result;
+  }
+
+  int _getVariantStock(String articleId, String color, String size) {
+    final key = "${articleId}_${color.toLowerCase().trim()}_${size.toLowerCase().trim()}";
+    return (_variantStockMap[key] ?? 0).clamp(0, 9999999);
+  }
+
+  // ==========================================
   // MODULE 1: INWARD (RECEIVE FINISHED GOODS)
   // ==========================================
   void _showInwardModal() {
     String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
-    final colorController = TextEditingController(text: 'Navy Blue');
-    final sizeController = TextEditingController(text: 'L');
-    final qtyController = TextEditingController();
     final fromController = TextEditingController(text: 'QC Finishing Floor');
     final notesController = TextEditingController();
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(14)),
-                      child: const Icon(Icons.download_rounded, color: Color(0xFF047857), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('INWARD: Receive Finished Goods', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          Text('Add passed garments from QC / Finishing into Godown', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+    // Fallback single controllers if article has no variants
+    final fallbackColorController = TextEditingController(text: 'Black');
+    final fallbackSizeController = TextEditingController(text: 'L');
+    final fallbackQtyController = TextEditingController();
 
-                // Article Dropdown
-                const Text('Article (Style #)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFCBD5E1))),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedArticleId,
-                      isExpanded: true,
-                      items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${art['description'] ?? ''})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList(),
-                      onChanged: (v) => setModalState(() => selectedArticleId = v),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Color & Size
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          const SizedBox(height: 4),
-                          TextField(controller: colorController, decoration: InputDecoration(hintText: 'e.g. Navy Blue', contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          const SizedBox(height: 4),
-                          TextField(controller: sizeController, decoration: InputDecoration(hintText: 'e.g. L, 32', contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Quantity
-                const Text('Quantity Received (Pieces)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(hintText: 'e.g. 150', prefixIcon: const Icon(Icons.pin_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                ),
-
-                const SizedBox(height: 14),
-
-                // From
-                const Text('Received From', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: fromController,
-                  decoration: InputDecoration(hintText: 'e.g. QC Finishing Table', prefixIcon: const Icon(Icons.factory_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Notes
-                const Text('Carton / Bundle Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: notesController,
-                  decoration: InputDecoration(hintText: 'e.g. Master Carton #3 (3x50 bundles)', prefixIcon: const Icon(Icons.notes_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final qty = int.tryParse(qtyController.text);
-                      if (selectedArticleId == null || qty == null || qty <= 0) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter a valid quantity.')));
-                        return;
-                      }
-
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      Navigator.pop(ctx);
-                      try {
-                        final todayStr = DateTime.now().toIso8601String().split('T')[0];
-                        await supabase.from('store_transactions').insert({
-                          'article_id': selectedArticleId,
-                          'type': 'INWARD',
-                          'quantity': qty,
-                          'color': colorController.text.trim(),
-                          'size': sizeController.text.trim(),
-                          'party_name': fromController.text.trim(),
-                          'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                          'entry_date': todayStr,
-                        });
-
-                        scaffoldMessenger.showSnackBar(
-                          SnackBar(content: Text('Inwarded $qty pcs to Store Godown'), backgroundColor: AppTheme.successGreen),
-                        );
-                        _fetchStoreData();
-                      } catch (e) {
-                        scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
-                      }
-                    },
-                    icon: const Icon(Icons.download_rounded, size: 20),
-                    label: const Text('Save Inward & Add to Stock'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // MODULE 2: OUTWARD (DISPATCH GOODS)
-  // ==========================================
-  void _showOutwardModal() {
-    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
-    final colorController = TextEditingController(text: 'Navy Blue');
-    final sizeController = TextEditingController(text: 'L');
-    final qtyController = TextEditingController();
-    final buyerController = TextEditingController();
-    final challanController = TextEditingController();
-    final notesController = TextEditingController();
+    // Controllers map for each variant: key is variant id or "${color}_${size}"
+    final Map<String, TextEditingController> variantControllers = {};
 
     showModalBottomSheet(
       context: context,
@@ -394,7 +362,419 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          final availStock = selectedArticleId != null ? (_articleStockMap[selectedArticleId] ?? 0) : 0;
+          final variants = _getVariantsForArticle(selectedArticleId);
+
+          // Ensure controllers exist for all variants
+          for (var v in variants) {
+            final key = v['id'] ?? "${v['color']}_${v['size']}";
+            variantControllers.putIfAbsent(key, () => TextEditingController());
+          }
+
+          // Calculate total pieces to be inwarded
+          int totalInwardPieces = 0;
+          if (variants.isNotEmpty) {
+            for (var v in variants) {
+              final key = v['id'] ?? "${v['color']}_${v['size']}";
+              final text = variantControllers[key]?.text.trim() ?? '';
+              totalInwardPieces += int.tryParse(text) ?? 0;
+            }
+          } else {
+            totalInwardPieces = int.tryParse(fallbackQtyController.text.trim()) ?? 0;
+          }
+
+          // Group variants by color
+          final Map<String, List<Map<String, dynamic>>> colorGroups = {};
+          for (var v in variants) {
+            final c = v['color'] ?? 'Default';
+            colorGroups.putIfAbsent(c, () => []).add(v);
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(14)),
+                        child: const Icon(Icons.download_rounded, color: Color(0xFF047857), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('INWARD: Multi-Variant Receiving', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            Text('Receive ready sizes & colors into Godown stock', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 1. Article Selection
+                  const Text('Article (Style #)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFCBD5E1))),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedArticleId,
+                        isExpanded: true,
+                        items: _articles.map((art) => DropdownMenuItem<String>(
+                          value: art['id'],
+                          child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        )).toList(),
+                        onChanged: (v) {
+                          setModalState(() {
+                            selectedArticleId = v;
+                            variantControllers.clear();
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 2. LIVE TOTAL INWARD PIECES BANNER
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: totalInwardPieces > 0 ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: totalInwardPieces > 0 ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.inventory_2_rounded, size: 18, color: totalInwardPieces > 0 ? const Color(0xFF047857) : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Receiving Quantity:',
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: totalInwardPieces > 0 ? const Color(0xFF065F46) : Colors.grey.shade700),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '$totalInwardPieces pcs',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: totalInwardPieces > 0 ? const Color(0xFF047857) : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 3. COLOR & SIZE QUANTITY MATRIX
+                  if (variants.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Size & Color Quantity Matrix', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                        TextButton.icon(
+                          onPressed: () {
+                            setModalState(() {
+                              for (var v in variants) {
+                                final key = v['id'] ?? "${v['color']}_${v['size']}";
+                                variantControllers[key]?.text = (v['allotment_qty'] ?? 0).toString();
+                              }
+                            });
+                          },
+                          icon: const Icon(Icons.flash_on_rounded, size: 14, color: Color(0xFF047857)),
+                          label: const Text('Fill Allotment Ratio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Color cards
+                    ...colorGroups.entries.map((cg) {
+                      final colorName = cg.key;
+                      final vList = cg.value;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(color: Color(0xFF0F172A), shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(colorName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Grid of sizes with quantity text field
+                            ...vList.map((item) {
+                              final key = item['id'] ?? "${item['color']}_${item['size']}";
+                              final currentGodownStock = selectedArticleId != null
+                                  ? _getVariantStock(selectedArticleId!, item['color'], item['size'])
+                                  : 0;
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(item['size'], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF0F172A))),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'In Godown: $currentGodownStock pcs',
+                                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 90,
+                                      height: 38,
+                                      child: TextField(
+                                        controller: variantControllers[key],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                        decoration: InputDecoration(
+                                          hintText: '0',
+                                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                                        ),
+                                        onChanged: (_) => setModalState(() {}),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    }),
+                  ] else ...[
+                    // Fallback single inputs if article has no registered variants
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackColorController,
+                            decoration: InputDecoration(labelText: 'Color', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackSizeController,
+                            decoration: InputDecoration(labelText: 'Size', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackQtyController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(labelText: 'Qty', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                            onChanged: (_) => setModalState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 14),
+
+                  // 4. From
+                  const Text('Received From', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: fromController,
+                    decoration: InputDecoration(hintText: 'e.g. QC Finishing Table', prefixIcon: const Icon(Icons.factory_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 5. Notes
+                  const Text('Carton / Bundle Batch Notes (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    decoration: InputDecoration(hintText: 'e.g. Master Carton #3 (Full Lot Ready)', prefixIcon: const Icon(Icons.notes_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // SUBMIT BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        if (selectedArticleId == null || totalInwardPieces <= 0) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter quantity for at least one size/color.')));
+                          return;
+                        }
+
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        Navigator.pop(ctx);
+                        try {
+                          final todayStr = DateTime.now().toIso8601String().split('T')[0];
+                          final List<Map<String, dynamic>> rowsToInsert = [];
+
+                          if (variants.isNotEmpty) {
+                            for (var v in variants) {
+                              final key = v['id'] ?? "${v['color']}_${v['size']}";
+                              final qty = int.tryParse(variantControllers[key]?.text.trim() ?? '') ?? 0;
+                              if (qty > 0) {
+                                rowsToInsert.add({
+                                  'article_id': selectedArticleId,
+                                  'type': 'INWARD',
+                                  'quantity': qty,
+                                  'color': v['color'],
+                                  'size': v['size'],
+                                  'party_name': fromController.text.trim().isEmpty ? 'QC Finishing Floor' : fromController.text.trim(),
+                                  'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                                  'entry_date': todayStr,
+                                });
+                              }
+                            }
+                          } else {
+                            final qty = int.parse(fallbackQtyController.text.trim());
+                            rowsToInsert.add({
+                              'article_id': selectedArticleId,
+                              'type': 'INWARD',
+                              'quantity': qty,
+                              'color': fallbackColorController.text.trim(),
+                              'size': fallbackSizeController.text.trim(),
+                              'party_name': fromController.text.trim().isEmpty ? 'QC Finishing Floor' : fromController.text.trim(),
+                              'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                              'entry_date': todayStr,
+                            });
+                          }
+
+                          if (rowsToInsert.isNotEmpty) {
+                            await supabase.from('store_transactions').insert(rowsToInsert);
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Inwarded $totalInwardPieces pcs across ${rowsToInsert.length} variants to Godown!'),
+                                backgroundColor: const Color(0xFF047857),
+                              ),
+                            );
+                            _fetchStoreData();
+                          }
+                        } catch (e) {
+                          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
+                        }
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 20),
+                      label: Text('Save Inward ($totalInwardPieces pcs) to Godown'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF047857),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ==========================================
+  // MODULE 2: OUTWARD (DISPATCH GOODS) - MULTI-VARIANT
+  // ==========================================
+  void _showOutwardModal() {
+    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
+    final buyerController = TextEditingController();
+    final challanController = TextEditingController();
+    final notesController = TextEditingController();
+
+    final fallbackColorController = TextEditingController(text: 'Black');
+    final fallbackSizeController = TextEditingController(text: 'L');
+    final fallbackQtyController = TextEditingController();
+
+    final Map<String, TextEditingController> variantControllers = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final variants = _getVariantsForArticle(selectedArticleId);
+          final totalAvailArticleStock = selectedArticleId != null ? (_articleStockMap[selectedArticleId] ?? 0) : 0;
+
+          for (var v in variants) {
+            final key = v['id'] ?? "${v['color']}_${v['size']}";
+            variantControllers.putIfAbsent(key, () => TextEditingController());
+          }
+
+          // Calculate total dispatch pieces
+          int totalDispatchPieces = 0;
+          if (variants.isNotEmpty) {
+            for (var v in variants) {
+              final key = v['id'] ?? "${v['color']}_${v['size']}";
+              final text = variantControllers[key]?.text.trim() ?? '';
+              totalDispatchPieces += int.tryParse(text) ?? 0;
+            }
+          } else {
+            totalDispatchPieces = int.tryParse(fallbackQtyController.text.trim()) ?? 0;
+          }
+
+          // Group variants by color
+          final Map<String, List<Map<String, dynamic>>> colorGroups = {};
+          for (var v in variants) {
+            final c = v['color'] ?? 'Default';
+            colorGroups.putIfAbsent(c, () => []).add(v);
+          }
 
           return Padding(
             padding: EdgeInsets.only(
@@ -424,8 +804,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('OUTWARD: Dispatch Finished Goods', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                            Text('Issue garments for customer delivery or retail branch', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            Text('OUTWARD: Multi-Variant Dispatch', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            Text('Issue garments from Godown for delivery', style: TextStyle(fontSize: 12, color: Colors.grey)),
                           ],
                         ),
                       ),
@@ -433,7 +813,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Article Dropdown
+                  // 1. Article Selection
                   const Text('Article (Style #)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                   const SizedBox(height: 6),
                   Container(
@@ -443,75 +823,202 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       child: DropdownButton<String>(
                         value: selectedArticleId,
                         isExpanded: true,
-                        items: _articles.map((art) => DropdownMenuItem<String>(value: art['id'], child: Text('${art['art_no']} (${art['description'] ?? ''})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList(),
-                        onChanged: (v) => setModalState(() => selectedArticleId = v),
+                        items: _articles.map((art) => DropdownMenuItem<String>(
+                          value: art['id'],
+                          child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        )).toList(),
+                        onChanged: (v) {
+                          setModalState(() {
+                            selectedArticleId = v;
+                            variantControllers.clear();
+                          });
+                        },
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
-                  // Available stock chip
+                  // Article Godown Stock Badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: availStock > 0 ? const Color(0xFFEFF6FF) : const Color(0xFFFFF1F2),
+                      color: totalAvailArticleStock > 0 ? const Color(0xFFEFF6FF) : const Color(0xFFFFF1F2),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: availStock > 0 ? const Color(0xFFBFDBFE) : const Color(0xFFFECDD3)),
+                      border: Border.all(color: totalAvailArticleStock > 0 ? const Color(0xFFBFDBFE) : const Color(0xFFFECDD3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(availStock > 0 ? Icons.check_circle_outline : Icons.warning_amber_rounded, size: 16, color: availStock > 0 ? const Color(0xFF2563EB) : const Color(0xFFE11D48)),
+                        Icon(totalAvailArticleStock > 0 ? Icons.check_circle_outline : Icons.warning_amber_rounded, size: 16, color: totalAvailArticleStock > 0 ? const Color(0xFF2563EB) : const Color(0xFFE11D48)),
                         const SizedBox(width: 6),
-                        Text('Available in Godown: $availStock pcs', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: availStock > 0 ? const Color(0xFF1E40AF) : const Color(0xFFBE123C))),
+                        Text('Total in Godown: $totalAvailArticleStock pcs', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: totalAvailArticleStock > 0 ? const Color(0xFF1E40AF) : const Color(0xFFBE123C))),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 14),
 
-                  // Color & Size
-                  Row(
-                    children: [
-                      Expanded(
+                  // 2. LIVE TOTAL DISPATCH PIECES BANNER
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: totalDispatchPieces > 0 ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: totalDispatchPieces > 0 ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.local_shipping_rounded, size: 18, color: totalDispatchPieces > 0 ? const Color(0xFF2563EB) : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Dispatch Quantity:',
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: totalDispatchPieces > 0 ? const Color(0xFF1E40AF) : Colors.grey.shade700),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '$totalDispatchPieces pcs',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: totalDispatchPieces > 0 ? const Color(0xFF2563EB) : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 3. COLOR & SIZE DISPATCH MATRIX
+                  if (variants.isNotEmpty) ...[
+                    const Text('Size & Color Dispatch Matrix', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                    const SizedBox(height: 8),
+
+                    ...colorGroups.entries.map((cg) {
+                      final colorName = cg.key;
+                      final vList = cg.value;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                            const SizedBox(height: 4),
-                            TextField(controller: colorController, decoration: InputDecoration(hintText: 'e.g. Navy Blue', contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(colorName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            ...vList.map((item) {
+                              final key = item['id'] ?? "${item['color']}_${item['size']}";
+                              final currentGodownStock = selectedArticleId != null
+                                  ? _getVariantStock(selectedArticleId!, item['color'], item['size'])
+                                  : 0;
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(item['size'], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF0F172A))),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Stock: $currentGodownStock pcs',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: currentGodownStock > 0 ? const Color(0xFF047857) : Colors.redAccent,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 90,
+                                      height: 38,
+                                      child: TextField(
+                                        controller: variantControllers[key],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                        decoration: InputDecoration(
+                                          hintText: '0',
+                                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                                        ),
+                                        onChanged: (_) => setModalState(() {}),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                            const SizedBox(height: 4),
-                            TextField(controller: sizeController, decoration: InputDecoration(hintText: 'e.g. L', contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-                          ],
+                      );
+                    }),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackColorController,
+                            decoration: InputDecoration(labelText: 'Color', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackSizeController,
+                            decoration: InputDecoration(labelText: 'Size', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: fallbackQtyController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(labelText: 'Qty', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                            onChanged: (_) => setModalState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 14),
 
-                  // Dispatch Quantity
-                  const Text('Dispatch Quantity (Pieces)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: qtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(hintText: 'e.g. 100', prefixIcon: const Icon(Icons.pin_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Buyer Name
+                  // 4. Buyer Name
                   const Text('Buyer Name / Customer / PO #', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                   const SizedBox(height: 6),
                   TextField(
@@ -521,7 +1028,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                   const SizedBox(height: 14),
 
-                  // Delivery Challan / Vehicle No
+                  // 5. Challan No / Vehicle No
                   const Text('Challan No / Vehicle No (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                   const SizedBox(height: 6),
                   TextField(
@@ -529,20 +1036,15 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     decoration: InputDecoration(hintText: 'e.g. Challan #DC-402 • Truck MH-04-1234', prefixIcon: const Icon(Icons.local_shipping_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
 
+                  // SUBMIT BUTTON
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final qty = int.tryParse(qtyController.text);
-                        if (selectedArticleId == null || qty == null || qty <= 0) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter a valid quantity.')));
-                          return;
-                        }
-
-                        if (qty > availStock && availStock > 0) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Cannot dispatch $qty pcs. Only $availStock pcs available!')));
+                        if (selectedArticleId == null || totalDispatchPieces <= 0) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter quantity for at least one size/color.')));
                           return;
                         }
 
@@ -550,28 +1052,57 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         Navigator.pop(ctx);
                         try {
                           final todayStr = DateTime.now().toIso8601String().split('T')[0];
-                          await supabase.from('store_transactions').insert({
-                            'article_id': selectedArticleId,
-                            'type': 'OUTWARD',
-                            'quantity': qty,
-                            'color': colorController.text.trim(),
-                            'size': sizeController.text.trim(),
-                            'party_name': buyerController.text.trim().isEmpty ? 'General Dispatch' : buyerController.text.trim(),
-                            'challan_no': challanController.text.trim().isEmpty ? null : challanController.text.trim(),
-                            'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                            'entry_date': todayStr,
-                          });
+                          final List<Map<String, dynamic>> rowsToInsert = [];
 
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(content: Text('Dispatched $qty pcs from Store Godown!'), backgroundColor: const Color(0xFF2563EB)),
-                          );
-                          _fetchStoreData();
+                          if (variants.isNotEmpty) {
+                            for (var v in variants) {
+                              final key = v['id'] ?? "${v['color']}_${v['size']}";
+                              final qty = int.tryParse(variantControllers[key]?.text.trim() ?? '') ?? 0;
+                              if (qty > 0) {
+                                rowsToInsert.add({
+                                  'article_id': selectedArticleId,
+                                  'type': 'OUTWARD',
+                                  'quantity': qty,
+                                  'color': v['color'],
+                                  'size': v['size'],
+                                  'party_name': buyerController.text.trim().isEmpty ? 'General Dispatch' : buyerController.text.trim(),
+                                  'challan_no': challanController.text.trim().isEmpty ? null : challanController.text.trim(),
+                                  'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                                  'entry_date': todayStr,
+                                });
+                              }
+                            }
+                          } else {
+                            final qty = int.parse(fallbackQtyController.text.trim());
+                            rowsToInsert.add({
+                              'article_id': selectedArticleId,
+                              'type': 'OUTWARD',
+                              'quantity': qty,
+                              'color': fallbackColorController.text.trim(),
+                              'size': fallbackSizeController.text.trim(),
+                              'party_name': buyerController.text.trim().isEmpty ? 'General Dispatch' : buyerController.text.trim(),
+                              'challan_no': challanController.text.trim().isEmpty ? null : challanController.text.trim(),
+                              'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                              'entry_date': todayStr,
+                            });
+                          }
+
+                          if (rowsToInsert.isNotEmpty) {
+                            await supabase.from('store_transactions').insert(rowsToInsert);
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Dispatched $totalDispatchPieces pcs across ${rowsToInsert.length} variants from Godown!'),
+                                backgroundColor: const Color(0xFF2563EB),
+                              ),
+                            );
+                            _fetchStoreData();
+                          }
                         } catch (e) {
                           scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
                         }
                       },
                       icon: const Icon(Icons.upload_rounded, size: 20),
-                      label: const Text('Dispatch Goods & Deduct Stock'),
+                      label: Text('Dispatch ($totalDispatchPieces pcs) & Deduct Stock'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
@@ -589,7 +1120,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  // ==========================================
+
+    // ==========================================
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
   void _showAccessoriesModal() {
@@ -861,6 +1393,454 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
+
+  // ==========================================
+  // MODULE 4: BOM MATERIAL INSPECTION & 3-WAY HANDSHAKE
+  // ==========================================
+  void _showMaterialHandoverModal() {
+    if (_activeAllotments.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No active allotments found in progress.')),
+      );
+      return;
+    }
+
+    String selectedAllotmentId = _activeAllotments.first['id'];
+    final challanController = TextEditingController();
+
+    // Map to hold inspection state per material item id
+    // { id: { 'receivedQtyCtrl': TextEditingController, 'status': 'VERIFIED' | 'SHORTAGE' | 'DEFECTIVE', 'shortageCtrl': TextEditingController, 'remarksCtrl': TextEditingController } }
+    final Map<String, Map<String, dynamic>> inspectionState = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final allotment = _activeAllotments.firstWhere(
+            (a) => a['id'] == selectedAllotmentId,
+            orElse: () => _activeAllotments.first,
+          );
+
+          final materials = _allotmentMaterials.where((m) => m['allotment_id'] == selectedAllotmentId).toList();
+          final linemanName = allotment['profiles']?['username'] ?? 'Lineman';
+          final artNo = allotment['articles']?['art_no'] ?? '-';
+          final artDesc = _getCleanArticleDescription(allotment['articles']?['description']);
+
+          // Initialize controllers for materials
+          for (var mat in materials) {
+            final mId = mat['id'].toString();
+            if (!inspectionState.containsKey(mId)) {
+              // Parse existing inspection notes if any
+              String existingReceived = mat['required_qty'] ?? '';
+              String existingStatus = 'VERIFIED';
+              String existingShortage = '';
+              String existingRemarks = '';
+
+              if (mat['notes'] != null) {
+                try {
+                  // Simple manual JSON parse
+                  final notesStr = mat['notes'].toString();
+                  if (notesStr.contains('status')) {
+                    if (notesStr.contains('"status":"SHORTAGE"')) existingStatus = 'SHORTAGE';
+                    if (notesStr.contains('"status":"DEFECTIVE"')) existingStatus = 'DEFECTIVE';
+                  }
+                  if (notesStr.contains('supplier_challan_no') && challanController.text.isEmpty) {
+                    final match = RegExp(r'"supplier_challan_no":"(.*?)"').firstMatch(notesStr);
+                    if (match != null && match.group(1) != null) {
+                      challanController.text = match.group(1)!;
+                    }
+                  }
+                } catch (_) {}
+              }
+
+              inspectionState[mId] = {
+                'receivedQtyCtrl': TextEditingController(text: existingReceived),
+                'status': existingStatus,
+                'shortageCtrl': TextEditingController(text: existingShortage),
+                'remarksCtrl': TextEditingController(text: existingRemarks),
+              };
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(14)),
+                        child: const Icon(Icons.fact_check_rounded, color: Color(0xFF4F46E5), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('BOM Material Inward Inspection', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            Text('Recheck raw materials against supplier challan & issue to line', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 1. Select Active Allotment Target
+                  const Text('Select Allotment Target', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFCBD5E1))),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedAllotmentId,
+                        isExpanded: true,
+                        items: _activeAllotments.map((al) {
+                          final lName = al['profiles']?['username'] ?? 'Lineman';
+                          final aNo = al['articles']?['art_no'] ?? '';
+                          final qty = al['target_qty'] ?? 0;
+                          return DropdownMenuItem<String>(
+                            value: al['id'],
+                            child: Text('$lName • $aNo ($qty pcs)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setModalState(() {
+                              selectedAllotmentId = v;
+                              inspectionState.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 2. Target Info Card
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Article: $artNo (${artDesc.isEmpty ? "Garment" : artDesc})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF0F172A))),
+                            const SizedBox(height: 2),
+                            Text('Assigned Lineman: $linemanName', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(6)),
+                          child: Text('${allotment['target_qty']} pcs', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF4F46E5))),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 3. Supplier Challan No / Invoice #
+                  const Text('Supplier Delivery Challan # / Invoice #', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: challanController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Vardhman Inv #9921 • Delivery CH-402',
+                      prefixIcon: const Icon(Icons.receipt_long_rounded, size: 20),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 4. Checklist of Items
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('BOM Physical Inspection Checklist', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                      Text('${materials.length} Items', style: const TextStyle(fontSize: 11.5, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (materials.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                      child: const Center(child: Text('No BOM items specified by Admin for this allotment.', style: TextStyle(fontSize: 12, color: Colors.grey))),
+                    )
+                  else
+                    ...materials.map((mat) {
+                      final mId = mat['id'].toString();
+                      final state = inspectionState[mId] ?? {};
+                      final status = state['status'] ?? 'VERIFIED';
+                      final receivedCtrl = state['receivedQtyCtrl'] as TextEditingController?;
+                      final shortageCtrl = state['shortageCtrl'] as TextEditingController?;
+                      final remarksCtrl = state['remarksCtrl'] as TextEditingController?;
+
+                      final isShortage = status == 'SHORTAGE';
+                      final isDefective = status == 'DEFECTIVE';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isShortage ? const Color(0xFFFFF7ED) : (isDefective ? const Color(0xFFFEF2F2) : Colors.white),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isShortage ? const Color(0xFFFED7AA) : (isDefective ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    mat['item_name'] ?? 'Material Item',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6)),
+                                  child: Text('Required: ${mat['required_qty']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Inspection Status Selector Chips
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'VERIFIED'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: status == 'VERIFIED' ? const Color(0xFF047857) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '✓ Full Verified',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: status == 'VERIFIED' ? Colors.white : const Color(0xFF475569)),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'SHORTAGE'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isShortage ? const Color(0xFFD97706) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '⚠️ Shortage',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isShortage ? Colors.white : const Color(0xFF475569)),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'DEFECTIVE'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isDefective ? const Color(0xFFDC2626) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '✕ Defective',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDefective ? Colors.white : const Color(0xFF475569)),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Physical Received Qty Input & Shortage details
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Physical Received Count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                                      const SizedBox(height: 4),
+                                      TextField(
+                                        controller: receivedCtrl,
+                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                        decoration: InputDecoration(
+                                          hintText: 'e.g. 12 Cones / 500 Meters',
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isShortage) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Shortage Diff', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                                        const SizedBox(height: 4),
+                                        TextField(
+                                          controller: shortageCtrl,
+                                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                                          decoration: InputDecoration(
+                                            hintText: 'e.g. -4 Cones',
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFED7AA))),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+
+                            // Remarks input for Shortage or Defective
+                            if (isShortage || isDefective) ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: remarksCtrl,
+                                style: const TextStyle(fontSize: 11.5),
+                                decoration: InputDecoration(
+                                  hintText: isShortage ? 'Reason for shortage / supplier follow-up note...' : 'Defect details (wrong shade, damaged packaging)...',
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+
+                  const SizedBox(height: 20),
+
+                  // 5. Submit Button: Verify & Issue to Lineman
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        Navigator.pop(ctx);
+
+                        try {
+                          final challanNo = challanController.text.trim();
+                          final nowIso = DateTime.now().toIso8601String();
+
+                          for (var mat in materials) {
+                            final mId = mat['id'].toString();
+                            final state = inspectionState[mId] ?? {};
+                            final status = state['status'] ?? 'VERIFIED';
+                            final receivedText = (state['receivedQtyCtrl'] as TextEditingController?)?.text.trim() ?? (mat['required_qty'] ?? '');
+                            final shortageText = (state['shortageCtrl'] as TextEditingController?)?.text.trim() ?? '';
+                            final remarksText = (state['remarksCtrl'] as TextEditingController?)?.text.trim() ?? '';
+
+                            final notesPayload = {
+                              'received_qty': receivedText.isEmpty ? mat['required_qty'] : receivedText,
+                              'status': status,
+                              'shortage_qty': shortageText.isEmpty ? null : shortageText,
+                              'supplier_challan_no': challanNo.isEmpty ? null : challanNo,
+                              'store_verified': true,
+                              'store_verified_at': nowIso,
+                              'store_remarks': remarksText.isEmpty ? null : remarksText,
+                            };
+
+                            // Encode into valid JSON string
+                            final notesJson = '{"lineman_name":"$linemanName","received_qty":"${notesPayload['received_qty']}","status":"$status","shortage_qty":"${notesPayload['shortage_qty'] ?? ''}","supplier_challan_no":"${notesPayload['supplier_challan_no'] ?? ''}","store_verified":true,"store_verified_at":"$nowIso","store_remarks":"${notesPayload['store_remarks'] ?? ''}"}';
+
+                            await supabase
+                                .from('allotment_materials')
+                                .update({
+                                  'admin_issued': true,
+                                  'notes': notesJson,
+                                })
+                                .eq('id', mat['id']);
+                          }
+
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Raw materials verified & issued to Lineman $linemanName!'),
+                              backgroundColor: const Color(0xFF4F46E5),
+                            ),
+                          );
+                          _fetchStoreData();
+                        } catch (e) {
+                          scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
+                        }
+                      },
+                      icon: const Icon(Icons.verified_rounded, size: 20),
+                      label: Text('Verify & Issue Materials to $linemanName'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -963,12 +1943,22 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     const SizedBox(height: 10),
 
                     _buildActionTile(
-                      title: 'ACCESSORIES',
+                      title: 'ACCESSORIES LEDGER',
                       subtitle: 'Thread, buttons, zips, labels raw materials',
                       icon: Icons.category_rounded,
                       color: Colors.orange.shade800,
                       bgColor: Colors.orange.shade50,
                       onTap: _showAccessoriesModal,
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildActionTile(
+                      title: 'BOM MATERIAL HANDOVER',
+                      subtitle: 'Inspect supplier challan & issue materials to Lineman',
+                      icon: Icons.fact_check_rounded,
+                      color: const Color(0xFF4F46E5),
+                      bgColor: const Color(0xFFEEF2FF),
+                      onTap: _showMaterialHandoverModal,
                     ),
 
                     const SizedBox(height: 24),

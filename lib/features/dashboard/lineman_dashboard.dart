@@ -368,10 +368,61 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     }
   }
 
+  
+  // Helper to parse inspection notes
+  Map<String, dynamic>? _parseInspectionNotes(dynamic notes) {
+    if (notes == null) return null;
+    try {
+      final str = notes.toString();
+      if (str.startsWith('{') && str.endsWith('}')) {
+        // Extract fields via Regex
+        String? receivedQty;
+        String? status;
+        String? shortageQty;
+        String? challanNo;
+        String? remarks;
+
+        final mRec = RegExp(r'"received_qty":"(.*?)"').firstMatch(str);
+        if (mRec != null) receivedQty = mRec.group(1);
+
+        final mStat = RegExp(r'"status":"(.*?)"').firstMatch(str);
+        if (mStat != null) status = mStat.group(1);
+
+        final mShort = RegExp(r'"shortage_qty":"(.*?)"').firstMatch(str);
+        if (mShort != null) shortageQty = mShort.group(1);
+
+        final mChal = RegExp(r'"supplier_challan_no":"(.*?)"').firstMatch(str);
+        if (mChal != null) challanNo = mChal.group(1);
+
+        final mRem = RegExp(r'"store_remarks":"(.*?)"').firstMatch(str);
+        if (mRem != null) remarks = mRem.group(1);
+
+        return {
+          'received_qty': receivedQty,
+          'status': status ?? 'VERIFIED',
+          'shortage_qty': shortageQty,
+          'supplier_challan_no': challanNo,
+          'store_remarks': remarks,
+        };
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // ======= MATERIAL HANDOVER VERIFICATION =======
   Future<void> _confirmMaterialReceipt(dynamic allotment) async {
     final materials = (allotment['materials'] as List<dynamic>?) ?? [];
     if (materials.isEmpty) return;
+
+    // Find supplier challan from notes if available
+    String? challanNo;
+    for (var m in materials) {
+      final ins = _parseInspectionNotes(m['notes']);
+      if (ins?['supplier_challan_no'] != null && (ins!['supplier_challan_no'] as String).isNotEmpty) {
+        challanNo = ins['supplier_challan_no'];
+        break;
+      }
+    }
 
     final confirm = await showModalBottomSheet<bool>(
       context: context,
@@ -382,121 +433,185 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppTheme.border,
-                  borderRadius: BorderRadius.circular(3),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.greenMist,
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.greenMist,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: AppTheme.green, size: 24),
                   ),
-                  child: const Icon(Icons.inventory_2_rounded, color: AppTheme.green, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Material Handover Verification',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.ink,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Floor Material Handover Verification',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.ink,
+                          ),
                         ),
-                      ),
+                        Text(
+                          'Article: ${allotment['articles']?['art_no'] ?? ''} • Target: ${allotment['target_qty']} pcs',
+                          style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              if (challanNo != null && challanNo.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.receipt_long_rounded, size: 16, color: AppTheme.steelDark),
+                      const SizedBox(width: 6),
                       Text(
-                        'Article: ${allotment['articles']?['art_no'] ?? ''}',
-                        style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                        'Supplier Challan / Bill #: $challanNo',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steelDark),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Admin has issued the following materials for this allotment. Please verify physical count on the floor:',
-              style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
-            ),
-            const SizedBox(height: 14),
 
-            // Materials List
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.bg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
+              Text(
+                'Store Godown has inspected and issued the following raw materials. Please verify physical count on sewing floor:',
+                style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
               ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: materials.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
-                itemBuilder: (_, idx) {
-                  final mat = materials[idx];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            mat['item_name'] ?? 'Item',
-                            style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.ink),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.steelMist,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            mat['required_qty'] ?? '',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+              const SizedBox(height: 14),
 
-            const SizedBox(height: 24),
+              // Materials List with Store Inspection details
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.bg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: materials.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
+                  itemBuilder: (_, idx) {
+                    final mat = materials[idx];
+                    final ins = _parseInspectionNotes(mat['notes']);
+                    final isShortage = ins?['status'] == 'SHORTAGE' || ins?['status'] == 'DEFECTIVE';
+                    final received = ins?['received_qty'] ?? mat['required_qty'];
 
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(ctx, true),
-                icon: const Icon(Icons.verified_rounded, size: 18),
-                label: const Text('Confirm Material Received & Verified'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isShortage ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                                color: isShortage ? AppTheme.amber : AppTheme.green,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  mat['item_name'] ?? 'Item',
+                                  style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isShortage ? const Color(0xFFFEF3C7) : AppTheme.steelMist,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Req: ${mat['required_qty']}',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isShortage ? const Color(0xFFB45309) : AppTheme.steelDark,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (isShortage) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFBEB),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'Store Count: $received ${ins?['shortage_qty'] != null ? "(${ins!['shortage_qty']})" : ""}',
+                                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  icon: const Icon(Icons.verified_rounded, size: 18),
+                  label: const Text('Confirm & Acknowledge Material Received'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1880,6 +1995,17 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     final materials = (a['materials'] as List<dynamic>?) ?? [];
     final hasMaterials = materials.isNotEmpty;
     final materialsConfirmed = hasMaterials && materials.every((m) => m['lineman_received'] == true);
+    
+    // Check if Store has verified / issued
+    final isStoreIssued = hasMaterials && materials.every((m) {
+      final ins = _parseInspectionNotes(m['notes']);
+      return m['admin_issued'] == true || ins?['store_verified'] == true;
+    });
+
+    final hasShortage = hasMaterials && materials.any((m) {
+      final ins = _parseInspectionNotes(m['notes']);
+      return ins?['status'] == 'SHORTAGE' || ins?['status'] == 'DEFECTIVE';
+    });
 
     // Group variants by color
     final Map<String, List<dynamic>> colorGroups = {};
@@ -1905,49 +2031,73 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Material Handover Alert Banner
+          // Material Handover Alert Banner (3-Way Handshake)
           if (hasMaterials)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: materialsConfirmed ? AppTheme.greenMist : AppTheme.amberMist,
+                color: materialsConfirmed
+                    ? AppTheme.greenMist
+                    : isStoreIssued
+                        ? (hasShortage ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF))
+                        : AppTheme.amberMist,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 border: Border(
                   bottom: BorderSide(
-                    color: materialsConfirmed ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.amber.withValues(alpha: 0.3),
+                    color: materialsConfirmed
+                        ? AppTheme.green.withValues(alpha: 0.3)
+                        : isStoreIssued
+                            ? (hasShortage ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE))
+                            : AppTheme.amber.withValues(alpha: 0.3),
                   ),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    materialsConfirmed ? Icons.verified_rounded : Icons.pending_actions_rounded,
-                    color: materialsConfirmed ? AppTheme.green : AppTheme.amber,
+                    materialsConfirmed
+                        ? Icons.verified_rounded
+                        : isStoreIssued
+                            ? (hasShortage ? Icons.warning_amber_rounded : Icons.local_shipping_rounded)
+                            : Icons.lock_clock_rounded,
+                    color: materialsConfirmed
+                        ? AppTheme.green
+                        : isStoreIssued
+                            ? (hasShortage ? const Color(0xFFD97706) : const Color(0xFF2563EB))
+                            : AppTheme.amber,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       materialsConfirmed
-                          ? 'Raw Materials Verified & Received (${materials.length} items)'
-                          : 'Raw Materials Issued (${materials.length} items) • Verification Pending',
+                          ? 'Raw Materials Verified & Received on Floor (${materials.length} items)'
+                          : isStoreIssued
+                              ? (hasShortage
+                                  ? 'Partial Materials Issued by Store (${materials.length} items) • Shortage Flagged'
+                                  : 'Raw Materials Ready from Store (${materials.length} items)')
+                              : 'Materials Awaiting Store Godown Inspection (${materials.length} items)',
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: materialsConfirmed ? AppTheme.green : AppTheme.amber,
+                        color: materialsConfirmed
+                            ? AppTheme.green
+                            : isStoreIssued
+                                ? (hasShortage ? const Color(0xFFB45309) : const Color(0xFF1E40AF))
+                                : AppTheme.amber,
                       ),
                     ),
                   ),
-                  if (!materialsConfirmed)
+                  if (!materialsConfirmed && isStoreIssued)
                     _BouncyTap(
                       onTap: () => _confirmMaterialReceipt(a),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: AppTheme.amber,
+                          color: hasShortage ? const Color(0xFFD97706) : const Color(0xFF2563EB),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text('Verify Count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: const Text('Receive Materials', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                 ],
