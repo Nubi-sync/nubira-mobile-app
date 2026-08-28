@@ -81,7 +81,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         variantsRes = await supabase
             .from('allotment_variants')
-            .select('id, allotment_id, color, size, quantity');
+            .select('id, allotment_id, color, size, quantity, allotments(article_id, lineman_id, status)');
       } catch (e) {
         debugPrint('Allotment variants fetch error: $e');
       }
@@ -188,32 +188,24 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     }
   }
 
-  // ==========================================
-  // MODAL 1: DAILY RECEIVING (LINE HANDOVER)
-  // ==========================================
-
-  // ==========================================
-  // HELPER: CLEAN ARTICLE DESCRIPTION (STRIP INTERNAL METADATA)
-  // ==========================================
+  
   String _getCleanArticleDescription(String? desc) {
     if (desc == null || desc.trim().isEmpty) return '';
     return desc.replaceAll(RegExp(r'\s*\[.*\]'), '').trim();
   }
 
-  // ==========================================
-  // HELPER: GET ALLOTMENT IDS FOR ARTICLE (SAFE FOR-LOOP)
-  // ==========================================
+
   List<String> _getAllotmentIdsForArticle(String? articleId) {
     if (articleId == null) return [];
-    for (var art in _articles) {
-      if (art['id']?.toString() == articleId.toString()) {
-        final desc = (art['description'] as String?) ?? '';
-        final match = RegExp(r'\[(.*?)\]').firstMatch(desc);
-        if (match != null && match.group(1) != null) {
-          return match.group(1)!.split(',').map((s) => s.trim()).toList();
-        }
+    try {
+      final art = _articles.firstWhere((a) => a['id'] == articleId, orElse: () => null);
+      if (art == null) return [];
+      final desc = (art['description'] as String?) ?? '';
+      final match = RegExp(r'\[(.*?)\]').firstMatch(desc);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!.split(',').map((s) => s.trim()).toList();
       }
-    }
+    } catch (_) {}
     return [];
   }
 
@@ -224,20 +216,34 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     if (articleId == null) return [];
     final allotmentIds = _getAllotmentIdsForArticle(articleId);
 
-    final Set<String> colors = {};
-    for (var v in _allotmentVariants) {
-      final vAllotId = v['allotment_id']?.toString();
-      final matchesAllot = vAllotId != null && allotmentIds.contains(vAllotId);
-      final aId = v['allotments'] != null ? v['allotments']['article_id']?.toString() : v['allotment']?['article_id']?.toString();
-      final matchesJoin = aId != null && aId == articleId.toString();
+    final matching = _allotmentVariants.where((v) {
+      // Check 1: direct allotment_id match
+      if (allotmentIds.contains(v['allotment_id'])) return true;
+      // Check 2: join match if present
+      final aId = v['allotments'] != null ? v['allotments']['article_id'] : (v['allotment'] != null ? v['allotment']['article_id'] : null);
+      return aId == articleId;
+    }).toList();
 
-      if (matchesAllot || matchesJoin) {
-        final c = v['color'] as String?;
-        if (c != null && c.trim().isNotEmpty) {
-          colors.add(c.trim());
+    final Set<String> colors = {};
+    for (var v in matching) {
+      final c = v['color'] as String?;
+      if (c != null && c.trim().isNotEmpty) {
+        colors.add(c.trim());
+      }
+    }
+
+    // Fallback to existing QC logs if variants were not logged
+    if (colors.isEmpty) {
+      for (var log in _recentQcLogs) {
+        if (log['article_id'] == articleId) {
+          final c = log['color'] as String?;
+          if (c != null && c.trim().isNotEmpty && c != 'Standard') {
+            colors.add(c.trim());
+          }
         }
       }
     }
+
     return colors.toList();
   }
 
@@ -248,24 +254,41 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     if (articleId == null) return [];
     final allotmentIds = _getAllotmentIdsForArticle(articleId);
 
-    final Set<String> sizes = {};
-    for (var v in _allotmentVariants) {
-      final vAllotId = v['allotment_id']?.toString();
-      final matchesAllot = vAllotId != null && allotmentIds.contains(vAllotId);
-      final aId = v['allotments'] != null ? v['allotments']['article_id']?.toString() : v['allotment']?['article_id']?.toString();
-      final matchesJoin = aId != null && aId == articleId.toString();
+    final matching = _allotmentVariants.where((v) {
+      final matchesArticle = allotmentIds.contains(v['allotment_id']) ||
+          (v['allotments'] != null ? v['allotments']['article_id'] == articleId : false) ||
+          (v['allotment'] != null ? v['allotment']['article_id'] == articleId : false);
+      if (!matchesArticle && allotmentIds.isNotEmpty) return false;
 
-      if (matchesAllot || matchesJoin) {
-        if (selectedColor == null ||
-            selectedColor.trim().isEmpty ||
-            (v['color'] != null && v['color'].toString().toLowerCase().trim() == selectedColor.toLowerCase().trim())) {
-          final s = v['size'] as String?;
-          if (s != null && s.trim().isNotEmpty) {
-            sizes.add(s.trim());
+      if (selectedColor != null && selectedColor.trim().isNotEmpty) {
+        final c = v['color'] as String?;
+        return c != null && c.toLowerCase().trim() == selectedColor.toLowerCase().trim();
+      }
+      return true;
+    }).toList();
+
+    final Set<String> sizes = {};
+    for (var v in matching) {
+      final s = v['size'] as String?;
+      if (s != null && s.trim().isNotEmpty) {
+        sizes.add(s.trim());
+      }
+    }
+
+    // Fallback to QC logs
+    if (sizes.isEmpty) {
+      for (var log in _recentQcLogs) {
+        if (log['article_id'] == articleId) {
+          if (selectedColor == null || log['color'] == selectedColor) {
+            final s = log['size'] as String?;
+            if (s != null && s.trim().isNotEmpty && s != 'Standard') {
+              sizes.add(s.trim());
+            }
           }
         }
       }
     }
+
     return sizes.toList();
   }
 
