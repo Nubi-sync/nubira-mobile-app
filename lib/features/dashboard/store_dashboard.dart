@@ -1653,7 +1653,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          '✓ Full Verified',
+                                          ' Full Verified',
                                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: status == 'VERIFIED' ? Colors.white : const Color(0xFF475569)),
                                         ),
                                       ),
@@ -1672,7 +1672,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          '⚠️ Shortage',
+                                          '️ Shortage',
                                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isShortage ? Colors.white : const Color(0xFF475569)),
                                         ),
                                       ),
@@ -1691,7 +1691,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          '✕ Defective',
+                                          ' Defective',
                                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDefective ? Colors.white : const Color(0xFF475569)),
                                         ),
                                       ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,7 +103,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               allotment_date,
               status,
               article_id,
-              articles ( id, art_no, description, stitching_rate )
+              articles ( id, art_no, description, stitching_rate, size_rates )
             ''')
             .eq('lineman_id', user.id)
             .order('allotment_date', ascending: false);
@@ -198,9 +199,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
         for (var a in allotmentsRes) {
           final aId = a['id'] as String;
+          final status = (a['status'] as String? ?? '').toUpperCase();
+          
+          // Cancelled allotments are terminated by Admin/Manager and must NOT appear on the live sewing floor
+          if (status == 'CANCELLED') {
+            continue;
+          }
+
           final assigned = assignedPerAllotment[aId] ?? 0;
           final done = donePerAllotment[aId] ?? 0;
-          final isCompletedInDb = a['status'] == 'COMPLETED';
+          final isCompletedInDb = status == 'COMPLETED';
           final isArchivedLocally = archivedIds.contains(aId);
 
           final lotAssignments = allAssignmentsRes.where((ass) => ass['allotment_id'] == aId).toList();
@@ -407,6 +415,52 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       }
     } catch (_) {}
     return null;
+  }
+
+
+  void showSampleImageZoom(BuildContext context, String imageUrl, String tag) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: imageUrl.startsWith('http')
+                    ? Image.network(imageUrl, fit: BoxFit.contain)
+                    : (imageUrl.startsWith('data:image')
+                        ? Image.memory(
+                            const Base64Decoder().convert(imageUrl.split(',').last),
+                            fit: BoxFit.contain,
+                          )
+                        : Image.network(imageUrl, fit: BoxFit.contain)),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+                child: Text(tag, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                onPressed: () => Navigator.pop(ctx),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ======= MATERIAL HANDOVER VERIFICATION =======
@@ -670,6 +724,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
     String selectedColor = colorsList.isNotEmpty ? colorsList.first : 'Default';
     String selectedSize = sizesList.isNotEmpty ? sizesList.first : 'Standard';
+    String selectedMachineStation = 'OVERLOCK';
+    bool isBorrowedWorker = false;
+    String borrowedFromLine = 'Line 2 (Suman)';
 
     showDialog(
       context: context,
@@ -758,6 +815,98 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     );
                   },
                 ),
+                const SizedBox(height: 8),
+
+                // Borrow Worker from Another Line Toggle
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isBorrowedWorker ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isBorrowedWorker ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.swap_horiz_rounded,
+                                  size: 16,
+                                  color: isBorrowedWorker ? const Color(0xFFD97706) : AppTheme.steel,
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Borrow Tailor from Other Line',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: isBorrowedWorker ? const Color(0xFF92400E) : AppTheme.inkSoft,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              value: isBorrowedWorker,
+                              activeColor: const Color(0xFFD97706),
+                              onChanged: (val) => setDialogState(() => isBorrowedWorker = val),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isBorrowedWorker) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Text(
+                              'Borrowed from: ',
+                              style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: borrowedFromLine,
+                                    isExpanded: true,
+                                    items: [
+                                      'Line 1 (Om)',
+                                      'Line 2 (Suman)',
+                                      'Line 3 (Sachin)',
+                                      'Line 4 (Sarthak)',
+                                      'Outside Contract'
+                                    ].map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)))).toList(),
+                                    onChanged: (v) {
+                                      if (v != null) setDialogState(() => borrowedFromLine = v);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 14),
 
                 // Quantity Input
@@ -804,6 +953,73 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   const SizedBox(height: 14),
                 ],
 
+                // Machine Operation / Station Selector
+                Text('MACHINE OPERATION / STITCHING STAGE', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    {
+                      'key': 'OVERLOCK',
+                      'label': 'Overlock (4-Th)',
+                      'icon': Icons.tune_rounded,
+                      'color': Color(0xFF2563EB),
+                    },
+                    {
+                      'key': 'FIVE_THREAD',
+                      'label': '5-Thread Safety',
+                      'icon': Icons.linear_scale_rounded,
+                      'color': Color(0xFF7C3AED),
+                    },
+                    {
+                      'key': 'FLATLOCK',
+                      'label': 'Flatlock / Rib',
+                      'icon': Icons.view_headline_rounded,
+                      'color': Color(0xFFD97706),
+                    },
+                    {
+                      'key': 'LOCKING',
+                      'label': 'Locking / Single',
+                      'icon': Icons.lock_outline_rounded,
+                      'color': Color(0xFF059669),
+                    },
+                  ].map((st) {
+                    final isSel = selectedMachineStation == st['key'];
+                    final actColor = st['color'] as Color;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedMachineStation = st['key'] as String),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSel ? actColor.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSel ? actColor : const Color(0xFFCBD5E1),
+                            width: isSel ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(st['icon'] as IconData, size: 13, color: isSel ? actColor : const Color(0xFF64748B)),
+                            const SizedBox(width: 5),
+                            Text(
+                              st['label'] as String,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                color: isSel ? actColor : const Color(0xFF334155),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+
                 // Notes
                 Text('NOTES / INSTRUCTIONS (OPTIONAL)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                 const SizedBox(height: 6),
@@ -848,6 +1064,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 }
 
                 Navigator.pop(ctx);
+                final noteText = notesController.text.trim();
+                String fullNotes = '[$selectedMachineStation]';
+                if (isBorrowedWorker) {
+                  fullNotes += ' [BORROWED: $borrowedFromLine]';
+                }
+                if (noteText.isNotEmpty) {
+                  fullNotes += ' $noteText';
+                }
+                fullNotes = fullNotes.trim();
                 await _submitWorkerAssignment(
                   allotmentId: allotment['id'],
                   articleId: allotment['article_id'],
@@ -855,7 +1080,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   qty: qty,
                   color: selectedColor,
                   size: selectedSize,
-                  notes: notesController.text.trim(),
+                  notes: fullNotes,
                 );
               },
               child: Text('Assign Batch', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
@@ -1977,6 +2202,315 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     );
   }
 
+
+
+  // Active Floor SOS Alerts by Allotment ID
+  final Map<String, Map<String, String>> _activeFloorAlerts = {};
+
+  String _selectedMachineStage = 'ALL';
+
+  Widget buildMachineStationChip(String stageKey, String label, IconData icon, Color activeColor) {
+    final isSelected = _selectedMachineStage == stageKey;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedMachineStage = stageKey;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withValues(alpha: 0.12) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSelected ? activeColor : const Color(0xFFCBD5E1), width: isSelected ? 1.5 : 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: isSelected ? activeColor : const Color(0xFF64748B)),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? activeColor : const Color(0xFF334155),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  // =========================================================================
+  // 1-TAP FLOOR SOS / REPORT ISSUE BOTTOM SHEET
+  // =========================================================================
+  void _showFloorSosBottomSheet(dynamic a) {
+    String selectedCategory = 'MACHINE_BREAKDOWN';
+    String selectedStation = 'FIVE_THREAD';
+    final noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Report Line Stoppage / SOS',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              'Instant Alert to Production Manager Desk',
+                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 1-Tap Category Chips
+                  Text(
+                    'SELECT PROBLEM CATEGORY',
+                    style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: const Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      {
+                        'key': 'MACHINE_BREAKDOWN',
+                        'label': 'Machine Breakdown',
+                        'icon': Icons.build_rounded,
+                      },
+                      {
+                        'key': 'MATERIAL_SHORTAGE',
+                        'label': 'Material Shortage',
+                        'icon': Icons.inventory_2_rounded,
+                      },
+                      {
+                        'key': 'CUTTING_DEFECT',
+                        'label': 'Cutting / Shade Defect',
+                        'icon': Icons.content_cut_rounded,
+                      },
+                      {
+                        'key': 'GENERAL_DELAY',
+                        'label': 'General Floor Delay',
+                        'icon': Icons.timer_off_rounded,
+                      },
+                    ].map((item) {
+                      final isSel = selectedCategory == item['key'];
+                      return GestureDetector(
+                        onTap: () => setModalState(() => selectedCategory = item['key'] as String),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSel ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSel ? const Color(0xFFEF4444) : const Color(0xFFE2E8F0),
+                              width: isSel ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(item['icon'] as IconData, size: 14, color: isSel ? const Color(0xFFDC2626) : const Color(0xFF64748B)),
+                              const SizedBox(width: 6),
+                              Text(
+                                item['label'] as String,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                  color: isSel ? const Color(0xFFDC2626) : const Color(0xFF334155),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // If Machine Breakdown, select Station
+                  if (selectedCategory == 'MACHINE_BREAKDOWN') ...[
+                    Text(
+                      'AFFECTED MACHINE STATION',
+                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: const Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        {'key': 'FIVE_THREAD', 'label': 'Five-Thread'},
+                        {'key': 'OVERLOCK', 'label': 'Overlock (O/L)'},
+                        {'key': 'FLATLOCK_RIB', 'label': 'Flatlock / Rib'},
+                        {'key': 'LOCKING', 'label': 'Lockstitch (Plain)'},
+                      ].map((st) {
+                        final isStSel = selectedStation == st['key'];
+                        return GestureDetector(
+                          onTap: () => setModalState(() => selectedStation = st['key'] as String),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isStSel ? const Color(0xFFEFF6FF) : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isStSel ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+                                width: isStSel ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              st['label'] as String,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: isStSel ? FontWeight.bold : FontWeight.w500,
+                                color: isStSel ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Optional 1-line note
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      hintText: 'Add details (e.g. Motor fuse burnt, needle jammed)...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Send SOS Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final alotId = a['id'].toString();
+                        setState(() {
+                          _activeFloorAlerts[alotId] = {
+                            'category': selectedCategory,
+                            'station': selectedStation,
+                            'note': noteController.text.trim(),
+                            'time': 'Just now',
+                          };
+                        });
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Text(' Alert Sent to Production Manager!'),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFFDC2626),
+                            duration: Duration(seconds: 4),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 16, color: Colors.white),
+                      label: Text(
+                        'SEND ALERT TO MANAGER',
+                        style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  double getArticlePieceRate(dynamic article, String size) {
+    if (article == null) return 0.0;
+    try {
+      if (article['size_rates'] != null && article['size_rates'] is Map) {
+        final sizeMap = article['size_rates'] as Map;
+        if (sizeMap.containsKey(size) && sizeMap[size] != null) {
+          return (sizeMap[size] as num).toDouble();
+        }
+      }
+    } catch (_) {}
+    return ((article['stitching_rate'] as num?)?.toDouble() ?? 0.0);
+  }
+
   // ==========================================
   // ACTIVE ALLOTMENT CARD
   // ==========================================
@@ -2116,6 +2650,104 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // PO # Badge & Priority
+                          () {
+                            String poNo = (a['production_order_no'] ?? '').toString();
+                            String priority = (a['priority'] ?? 'NORMAL').toString();
+                            String dueDate = (a['due_date'] ?? '').toString();
+                            String mgr = (a['manager_name'] ?? '').toString();
+
+                            // Fallback from material notes
+                            if (poNo.isEmpty) {
+                              final mats = (a['materials'] as List<dynamic>?) ?? [];
+                              for (var m in mats) {
+                                if (m['notes'] != null) {
+                                  try {
+                                    final parsed = jsonDecode(m['notes'].toString());
+                                    if (parsed['production_order_no'] != null && parsed['production_order_no'].toString().isNotEmpty) {
+                                      poNo = parsed['production_order_no'].toString();
+                                    }
+                                    if (parsed['priority'] != null) priority = parsed['priority'].toString();
+                                    if (parsed['due_date'] != null) dueDate = parsed['due_date'].toString();
+                                    if (parsed['manager_name'] != null) mgr = parsed['manager_name'].toString();
+                                    if (poNo.isNotEmpty) break;
+                                  } catch (_) {}
+                                }
+                              }
+                            }
+
+                            if (poNo.isEmpty) {
+                              poNo = 'PO-${a['id'].toString().substring(0, 6).toUpperCase()}';
+                            }
+
+                            return Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEEF2FF),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFC7D2FE)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.receipt_rounded, size: 11, color: Color(0xFF4F46E5)),
+                                      const SizedBox(width: 3),
+                                      Text(poNo, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                                    ],
+                                  ),
+                                ),
+                                if (priority == 'CRITICAL' || priority == 'RUSH')
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFFECACA)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.local_fire_department_rounded, size: 11, color: Color(0xFFDC2626)),
+                                        const SizedBox(width: 2),
+                                        Text(priority == 'CRITICAL' ? 'CRITICAL' : 'RUSH', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                                      ],
+                                    ),
+                                  ),
+                                if (dueDate.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0FDF4),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.timer_outlined, size: 11, color: Color(0xFF16A34A)),
+                                        const SizedBox(width: 2),
+                                        Text('Due: $dueDate', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                      ],
+                                    ),
+                                  ),
+                                if (mgr.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Text('Mgr: $mgr', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                                  ),
+                              ],
+                            );
+                          }(),
+                          const SizedBox(height: 4),
                           Text(
                             'Art No: ${art?['art_no'] ?? '-'}',
                             style: GoogleFonts.plusJakartaSans(
@@ -2215,53 +2847,113 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 ),
                 const SizedBox(height: 14),
 
-                // Button: If 100% Finished -> Archive Button, else Assign next batch
-                if (isLotFullyFinished)
-                  _BouncyTap(
-                    onTap: () => _completeAllotment(a),
-                    child: Container(
-                      width: double.infinity,
-                      height: 44,
+                // Active SOS Alert Banner (If pending)
+                () {
+                  final alotId = a['id'].toString();
+                  if (_activeFloorAlerts.containsKey(alotId)) {
+                    final alt = _activeFloorAlerts[alotId]!;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                       decoration: BoxDecoration(
-                        color: AppTheme.green,
-                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Finish Lot & Move to History',
-                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                          const Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFDC2626)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Alert Sent: ${alt['category']?.replaceAll('_', ' ')} (${alt['station']})',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setState(() => _activeFloorAlerts.remove(alotId)),
+                            child: const Icon(Icons.close_rounded, size: 15, color: Color(0xFF991B1B)),
                           ),
                         ],
                       ),
-                    ),
-                  )
-                else
-                  _BouncyTap(
-                    onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
-                    child: Container(
-                      width: double.infinity,
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }(),
+
+                // Button Row with SOS Trigger
+                Row(
+                  children: [
+                    // SOS 1-Tap Trigger Button
+                    Container(
                       height: 44,
-                      decoration: BoxDecoration(
-                        color: remaining > 0 ? AppTheme.steel : AppTheme.border,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.person_add_alt_1_rounded, size: 18, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
-                          const SizedBox(width: 8),
-                          Text(
-                            remaining > 0 ? 'Assign next batch — $remaining left' : 'All Batches Assigned',
-                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
-                          ),
-                        ],
+                      margin: const EdgeInsets.only(right: 8),
+                      child: OutlinedButton(
+                        onPressed: () => _showFloorSosBottomSheet(a),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                          backgroundColor: const Color(0xFFFFF1F2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.warning_amber_rounded, size: 17, color: Color(0xFFE11D48)),
+                            SizedBox(width: 4),
+                            Text('SOS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFE11D48))),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+
+                    Expanded(
+                      child: isLotFullyFinished
+                          ? _BouncyTap(
+                              onTap: () => _completeAllotment(a),
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.green,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Finish Lot & Move to History',
+                                      style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : _BouncyTap(
+                              onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
+                              child: Container(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: remaining > 0 ? AppTheme.steel : AppTheme.border,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.person_add_alt_1_rounded, size: 18, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      remaining > 0 ? 'Assign next batch — $remaining left' : 'All Batches Assigned',
+                                      style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
