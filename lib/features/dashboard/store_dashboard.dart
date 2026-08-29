@@ -79,82 +79,18 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 allotment_date,
                 status,
                 created_at,
-                profiles ( username ),
+                profiles ( username, role ),
                 articles ( id, art_no, description, stitching_rate, size_rates )
               ''')
               .eq('status', 'IN_PROGRESS')
               .order('created_at', ascending: false);
           if (dbAllots.isNotEmpty) {
-            activeAllotsRes = dbAllots;
+            activeAllotsRes = dbAllots.where((al) {
+              final role = al['profiles']?['role']?.toString();
+              return role == 'LINEMAN';
+            }).toList();
           }
         } catch (_) {}
-
-        // Guaranteed Fallback: Reconstruct active allotments dynamically from materials & articles
-        if (activeAllotsRes.isEmpty && allotMatsRes.isNotEmpty) {
-          final Set<String> distinctIds = {};
-          for (var m in allotMatsRes) {
-            final aId = m['allotment_id']?.toString();
-            if (aId != null && aId.isNotEmpty) {
-              // Check if material notes explicitly marks this lot as CANCELLED
-              bool isCancelled = false;
-              if (m['notes'] != null) {
-                try {
-                  final parsed = jsonDecode(m['notes'].toString());
-                  if (parsed['status'] == 'CANCELLED') isCancelled = true;
-                } catch (_) {}
-              }
-              if (!isCancelled) {
-                distinctIds.add(aId);
-              }
-            }
-          }
-
-          for (var allotId in distinctIds) {
-            int targetQty = 0;
-            for (var v in variantsRes) {
-              if (v['allotment_id']?.toString() == allotId) {
-                targetQty += ((v['quantity'] as int?) ?? 0);
-              }
-            }
-
-            String resolvedArtNo = '45674';
-            String resolvedArtDesc = 'winter tshirt';
-            String resolvedArtId = '';
-            String resolvedLineman = 'om';
-
-            for (var m in allotMatsRes) {
-              if (m['allotment_id']?.toString() == allotId && m['notes'] != null) {
-                try {
-                  final parsed = jsonDecode(m['notes'].toString());
-                  if (parsed['art_no'] != null && parsed['art_no'].toString().isNotEmpty) {
-                    resolvedArtNo = parsed['art_no'].toString();
-                  }
-                  if (parsed['article_description'] != null && parsed['article_description'].toString().isNotEmpty) {
-                    resolvedArtDesc = parsed['article_description'].toString();
-                  }
-                  if (parsed['article_id'] != null && parsed['article_id'].toString().isNotEmpty) {
-                    resolvedArtId = parsed['article_id'].toString();
-                  }
-                  if (parsed['lineman_name'] != null && parsed['lineman_name'].toString().isNotEmpty) {
-                    resolvedLineman = parsed['lineman_name'].toString();
-                  }
-                } catch (_) {}
-              }
-            }
-
-            activeAllotsRes.add({
-              'id': allotId,
-              'article_id': resolvedArtId,
-              'target_qty': targetQty > 0 ? targetQty : 1400,
-              'articles': {
-                'id': resolvedArtId,
-                'art_no': resolvedArtNo,
-                'description': resolvedArtDesc,
-              },
-              'profiles': {'username': resolvedLineman},
-            });
-          }
-        }
       } catch (e) {
         debugPrint('Active allotments fetch error in store: $e');
       }
