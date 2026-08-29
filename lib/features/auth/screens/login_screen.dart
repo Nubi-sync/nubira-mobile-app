@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,10 +53,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (_) {}
 
-    // Pre-fill remembered username
-    final authState = ref.read(authProvider);
-    if (authState.cachedUsername != null && authState.cachedUsername!.isNotEmpty) {
-      _usernameController.text = authState.cachedUsername!;
+    // Pre-fill remembered username directly from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final savedOperatorId = prefs.getString('remembered_operator_id');
+    if (savedOperatorId != null && savedOperatorId.trim().isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _usernameController.text = savedOperatorId.trim();
+          _rememberMe = true;
+        });
+      }
     }
 
     _checkLockoutTimer();

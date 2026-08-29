@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +32,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
   List<dynamic> _linemen = [];
   List<dynamic> _articles = [];
+  List<dynamic> _allotments = [];
+  List<dynamic> _allotmentMaterials = [];
   List<dynamic> _allotmentVariants = [];
+  List<dynamic> _workerAssignments = [];
   List<dynamic> _activeMendingList = [];
   List<dynamic> _recentQcLogs = [];
 
@@ -76,14 +80,44 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           .eq('is_active', true)
           .order('username');
 
-      // Fetch allotment variants with article reference
+      // Fetch active allotments
+      List<dynamic> allotmentsRes = [];
+      try {
+        allotmentsRes = await supabase
+            .from('allotments')
+            .select('id, article_id, lineman_id, status');
+      } catch (e) {
+        debugPrint('Allotments fetch error: $e');
+      }
+
+      // Fetch allotment variants
       List<dynamic> variantsRes = [];
       try {
         variantsRes = await supabase
             .from('allotment_variants')
-            .select('id, allotment_id, color, size, quantity, allotments(article_id, lineman_id, status)');
+            .select('id, allotment_id, color, size, quantity');
       } catch (e) {
         debugPrint('Allotment variants fetch error: $e');
+      }
+
+      // Fetch worker assignments
+      List<dynamic> workerAssRes = [];
+      try {
+        workerAssRes = await supabase
+            .from('worker_assignments')
+            .select('id, allotment_id, article_id, lineman_id, color, size');
+      } catch (e) {
+        debugPrint('Worker assignments fetch error: $e');
+      }
+
+      // Fetch allotment materials containing lineman and article metadata in notes
+      List<dynamic> materialsRes = [];
+      try {
+        materialsRes = await supabase
+            .from('allotment_materials')
+            .select('id, allotment_id, item_name, required_qty, notes');
+      } catch (e) {
+        debugPrint('Allotment materials fetch error: $e');
       }
 
       final articlesRes = await supabase
@@ -167,7 +201,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         setState(() {
           _linemen = linemenRes;
           _articles = articlesRes;
+          _allotments = allotmentsRes;
+          _allotmentMaterials = materialsRes;
           _allotmentVariants = variantsRes;
+          _workerAssignments = workerAssRes;
           _recentQcLogs = logsRes;
           _activeMendingList = activeMending;
           _totalReceivedToday = rec;
@@ -195,107 +232,260 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   }
 
 
-  List<String> _getAllotmentIdsForArticle(String? articleId) {
-    if (articleId == null) return [];
-    try {
-      final art = _articles.firstWhere((a) => a['id'] == articleId, orElse: () => null);
-      if (art == null) return [];
-      final desc = (art['description'] as String?) ?? '';
-      final match = RegExp(r'\[(.*?)\]').firstMatch(desc);
-      if (match != null && match.group(1) != null) {
-        return match.group(1)!.split(',').map((s) => s.trim()).toList();
-      }
-    } catch (_) {}
-    return [];
-  }
+
 
   // ==========================================
-  // HELPER: GET DYNAMIC COLORS FOR ARTICLE (FROM ADMIN ALLOTMENT)
+  // HELPER: GET MATCHING ALLOTMENT IDS FOR LINEMAN & ARTICLE
   // ==========================================
-  List<String> _getColorsForArticle(String? articleId) {
-    if (articleId == null) return [];
-    final allotmentIds = _getAllotmentIdsForArticle(articleId);
+  Set<String> _getMatchingAllotmentIds(String? articleId, String? linemanId) {
+    final Set<String> matching = {};
 
-    final matching = _allotmentVariants.where((v) {
-      // Check 1: direct allotment_id match
-      if (allotmentIds.contains(v['allotment_id'])) return true;
-      // Check 2: join match if present
-      final aId = v['allotments'] != null ? v['allotments']['article_id'] : (v['allotment'] != null ? v['allotment']['article_id'] : null);
-      return aId == articleId;
-    }).toList();
-
-    final Set<String> colors = {};
-    for (var v in matching) {
-      final c = v['color'] as String?;
-      if (c != null && c.trim().isNotEmpty) {
-        colors.add(c.trim());
+    // Find lineman username and article art_no for cross-metadata matching (100% type safe)
+    String? linemanUsername;
+    if (linemanId != null) {
+      for (var l in _linemen) {
+        if (l['id']?.toString() == linemanId) {
+          linemanUsername = l['username']?.toString().toLowerCase().trim();
+          break;
+        }
       }
     }
 
-    // Fallback to existing QC logs if variants were not logged
+    String? articleArtNo;
+    if (articleId != null) {
+      for (var a in _articles) {
+        if (a['id']?.toString() == articleId) {
+          articleArtNo = a['art_no']?.toString().trim();
+          break;
+        }
+      }
+    }
+
+    // 1. From allotment materials JSON notes (supports lineman_id and lineman_name)
+    for (var m in _allotmentMaterials) {
+      try {
+        final notes = m['notes']?.toString() ?? '';
+        if (notes.startsWith('{')) {
+          final map = jsonDecode(notes);
+          final lId = map['lineman_id']?.toString() ?? '';
+          final lName = map['lineman_name']?.toString().toLowerCase().trim() ?? '';
+          final artId = map['article_id']?.toString() ?? '';
+          final aNo = map['art_no']?.toString().trim() ?? '';
+
+          final lmMatches = linemanId == null ||
+              (lId.isNotEmpty && lId == linemanId) ||
+              (linemanUsername != null && lName.isNotEmpty && lName == linemanUsername);
+
+          final artMatches = articleId == null ||
+              (artId.isNotEmpty && artId == articleId) ||
+              (articleArtNo != null && aNo.isNotEmpty && aNo == articleArtNo) ||
+              (artId.isEmpty && aNo.isEmpty); // Include materials belonging to this lineman's lot
+
+          if (lmMatches && artMatches) {
+            final aId = m['allotment_id']?.toString() ?? '';
+            if (aId.isNotEmpty) matching.add(aId);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. From allotments table
+    for (var a in _allotments) {
+      final artId = a['article_id']?.toString() ?? '';
+      final lId = a['lineman_id']?.toString() ?? '';
+      if ((articleId == null || artId == articleId) && (linemanId == null || lId == linemanId)) {
+        final aId = a['id']?.toString() ?? '';
+        if (aId.isNotEmpty) matching.add(aId);
+      }
+    }
+
+    // 3. From worker assignments
+    for (var w in _workerAssignments) {
+      final artId = w['article_id']?.toString() ?? '';
+      final lId = w['lineman_id']?.toString() ?? '';
+      if ((articleId == null || artId == articleId || artId.isEmpty) && (linemanId == null || lId == linemanId)) {
+        final aId = w['allotment_id']?.toString() ?? '';
+        if (aId.isNotEmpty) matching.add(aId);
+      }
+    }
+
+    return matching;
+  }
+
+  // ==========================================
+  // HELPER: GET ARTICLES ASSIGNED TO LINEMAN
+  // ==========================================
+  List<dynamic> _getArticlesForLineman(String? linemanId) {
+    if (linemanId == null) return _articles;
+
+    final Set<String> assignedArticleIds = {};
+
+    // 1. Check from allotment materials metadata (notes json)
+    for (var m in _allotmentMaterials) {
+      try {
+        final notes = m['notes']?.toString() ?? '';
+        if (notes.startsWith('{')) {
+          final map = jsonDecode(notes);
+          if (map['lineman_id']?.toString() == linemanId) {
+            final artId = map['article_id']?.toString() ?? '';
+            if (artId.isNotEmpty) {
+              assignedArticleIds.add(artId);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Check from allotments table
+    for (var a in _allotments) {
+      if (a['lineman_id']?.toString() == linemanId) {
+        final artId = a['article_id']?.toString() ?? '';
+        if (artId.isNotEmpty) {
+          assignedArticleIds.add(artId);
+        }
+      }
+    }
+
+    // 3. Check from worker assignments
+    for (var w in _workerAssignments) {
+      if (w['lineman_id']?.toString() == linemanId) {
+        final artId = w['article_id']?.toString() ?? '';
+        if (artId.isNotEmpty) {
+          assignedArticleIds.add(artId);
+        }
+      }
+    }
+
+    // If lineman has assigned articles, return ONLY those assigned styles
+    if (assignedArticleIds.isNotEmpty) {
+      final filtered = _articles.where((art) => assignedArticleIds.contains(art['id']?.toString())).toList();
+      if (filtered.isNotEmpty) return filtered;
+    }
+
+    return _articles;
+  }
+
+  // ==========================================
+  // HELPER: GET DYNAMIC COLORS FOR ARTICLE & LINEMAN
+  // ==========================================
+  List<String> _getColorsForArticle(String? articleId, {String? linemanId}) {
+    if (articleId == null) return ['Navy Blue', 'Black', 'White', 'Melange Grey', 'Olive Green', 'Maroon'];
+
+    final Set<String> colors = {};
+    final matchingAllotmentIds = _getMatchingAllotmentIds(articleId, linemanId);
+
+    // 1. Strict match from allotment_variants
+    for (var v in _allotmentVariants) {
+      final aId = v['allotment_id']?.toString() ?? '';
+      if (matchingAllotmentIds.contains(aId)) {
+        final c = v['color']?.toString().trim();
+        if (c != null && c.isNotEmpty && c.toLowerCase() != 'standard' && c.toLowerCase() != 'default') {
+          colors.add(c);
+        }
+      }
+    }
+
+    // 2. Worker assignments
+    for (var w in _workerAssignments) {
+      final artId = w['article_id']?.toString() ?? '';
+      final lId = w['lineman_id']?.toString() ?? '';
+      if ((artId == articleId || artId.isEmpty) && (linemanId == null || lId == linemanId)) {
+        final c = w['color']?.toString().trim();
+        if (c != null && c.isNotEmpty && c.toLowerCase() != 'standard' && c.toLowerCase() != 'default') {
+          colors.add(c);
+        }
+      }
+    }
+
+    // 3. Fallback to all active variants for this article
     if (colors.isEmpty) {
-      for (var log in _recentQcLogs) {
-        if (log['article_id'] == articleId) {
-          final c = log['color'] as String?;
-          if (c != null && c.trim().isNotEmpty && c != 'Standard') {
-            colors.add(c.trim());
+      final allMatchingArt = _getMatchingAllotmentIds(articleId, null);
+      for (var v in _allotmentVariants) {
+        final aId = v['allotment_id']?.toString() ?? '';
+        if (allMatchingArt.contains(aId)) {
+          final c = v['color']?.toString().trim();
+          if (c != null && c.isNotEmpty && c.toLowerCase() != 'standard' && c.toLowerCase() != 'default') {
+            colors.add(c);
           }
         }
       }
+    }
+
+    // 4. Default palette
+    if (colors.isEmpty) {
+      return ['Navy Blue', 'Black', 'White', 'Melange Grey', 'Olive Green', 'Maroon'];
     }
 
     return colors.toList();
   }
 
   // ==========================================
-  // HELPER: GET DYNAMIC SIZES FOR ARTICLE & COLOR
+  // HELPER: GET DYNAMIC SIZES FOR ARTICLE, COLOR & LINEMAN
   // ==========================================
-  List<String> _getSizesForArticle(String? articleId, String? selectedColor) {
-    if (articleId == null) return [];
-    final allotmentIds = _getAllotmentIdsForArticle(articleId);
-
-    final matching = _allotmentVariants.where((v) {
-      final matchesArticle = allotmentIds.contains(v['allotment_id']) ||
-          (v['allotments'] != null ? v['allotments']['article_id'] == articleId : false) ||
-          (v['allotment'] != null ? v['allotment']['article_id'] == articleId : false);
-      if (!matchesArticle && allotmentIds.isNotEmpty) return false;
-
-      if (selectedColor != null && selectedColor.trim().isNotEmpty) {
-        final c = v['color'] as String?;
-        return c != null && c.toLowerCase().trim() == selectedColor.toLowerCase().trim();
-      }
-      return true;
-    }).toList();
+  List<String> _getSizesForArticle(String? articleId, String? selectedColor, {String? linemanId}) {
+    if (articleId == null) return ['S', 'M', 'L', 'XL', 'XXL'];
 
     final Set<String> sizes = {};
-    for (var v in matching) {
-      final s = v['size'] as String?;
-      if (s != null && s.trim().isNotEmpty) {
-        sizes.add(s.trim());
+    final matchingAllotmentIds = _getMatchingAllotmentIds(articleId, linemanId);
+
+    // 1. Strict match from allotment_variants
+    for (var v in _allotmentVariants) {
+      final aId = v['allotment_id']?.toString() ?? '';
+      if (matchingAllotmentIds.contains(aId)) {
+        final c = v['color']?.toString().trim();
+        if (selectedColor == null || selectedColor.isEmpty || (c != null && c.toLowerCase() == selectedColor.toLowerCase())) {
+          final s = v['size']?.toString().trim();
+          if (s != null && s.isNotEmpty && s.toLowerCase() != 'standard') {
+            sizes.add(s);
+          }
+        }
       }
     }
 
-    // Fallback to QC logs
+    // 2. Check worker assignments
+    for (var w in _workerAssignments) {
+      final artId = w['article_id']?.toString() ?? '';
+      final lId = w['lineman_id']?.toString() ?? '';
+      if ((artId == articleId || artId.isEmpty) && (linemanId == null || lId == linemanId)) {
+        final c = w['color']?.toString().trim();
+        if (selectedColor == null || selectedColor.isEmpty || (c != null && c.toLowerCase() == selectedColor.toLowerCase())) {
+          final s = w['size']?.toString().trim();
+          if (s != null && s.isNotEmpty && s.toLowerCase() != 'standard') {
+            sizes.add(s);
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to all variants for this article
     if (sizes.isEmpty) {
-      for (var log in _recentQcLogs) {
-        if (log['article_id'] == articleId) {
-          if (selectedColor == null || log['color'] == selectedColor) {
-            final s = log['size'] as String?;
-            if (s != null && s.trim().isNotEmpty && s != 'Standard') {
-              sizes.add(s.trim());
+      final allMatchingArt = _getMatchingAllotmentIds(articleId, null);
+      for (var v in _allotmentVariants) {
+        final aId = v['allotment_id']?.toString() ?? '';
+        if (allMatchingArt.contains(aId)) {
+          final c = v['color']?.toString().trim();
+          if (selectedColor == null || selectedColor.isEmpty || (c != null && c.toLowerCase() == selectedColor.toLowerCase())) {
+            final s = v['size']?.toString().trim();
+            if (s != null && s.isNotEmpty && s.toLowerCase() != 'standard') {
+              sizes.add(s);
             }
           }
         }
       }
     }
 
+    // 4. Fallback to standard sizes
+    if (sizes.isEmpty) {
+      return ['S', 'M', 'L', 'XL', 'XXL'];
+    }
+
     return sizes.toList();
   }
 
-
     void _showDailyReceivingModal() {
     String? selectedLinemanId = _linemen.isNotEmpty ? _linemen.first['id'] : null;
-    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
+    final initialArticles = _getArticlesForLineman(selectedLinemanId);
+    String? selectedArticleId = initialArticles.isNotEmpty ? initialArticles.first['id'] : (_articles.isNotEmpty ? _articles.first['id'] : null);
 
     String? selectedColor;
     String? selectedSize;
@@ -316,15 +506,22 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          // Dynamically fetch colors and sizes configured by Admin for this article
-          final availableColors = _getColorsForArticle(selectedArticleId);
-          final displayColors = availableColors.isNotEmpty ? availableColors : <String>['Standard'];
+          // 1. Cascading: Get articles assigned to this specific Lineman
+          final availableArticles = _getArticlesForLineman(selectedLinemanId);
+          if (selectedArticleId == null || !availableArticles.any((a) => a['id'] == selectedArticleId)) {
+            selectedArticleId = availableArticles.isNotEmpty ? availableArticles.first['id'] : null;
+          }
+
+          // 2. Cascading: Get colors assigned to this Lineman + Article
+          final availableColors = _getColorsForArticle(selectedArticleId, linemanId: selectedLinemanId);
+          final displayColors = availableColors.isNotEmpty ? availableColors : <String>['Navy Blue', 'Black', 'White', 'Melange Grey', 'Olive Green', 'Maroon'];
           if (selectedColor == null || !displayColors.contains(selectedColor)) {
             selectedColor = displayColors.first;
           }
 
-          final availableSizes = _getSizesForArticle(selectedArticleId, selectedColor);
-          final displaySizes = availableSizes.isNotEmpty ? availableSizes : <String>['Standard'];
+          // 3. Cascading: Get sizes assigned to this Lineman + Article + Color
+          final availableSizes = _getSizesForArticle(selectedArticleId, selectedColor, linemanId: selectedLinemanId);
+          final displaySizes = availableSizes.isNotEmpty ? availableSizes : <String>['S', 'M', 'L', 'XL', 'XXL'];
           if (selectedSize == null || !displaySizes.contains(selectedSize)) {
             selectedSize = displaySizes.first;
           }
@@ -405,6 +602,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         onChanged: (v) {
                           setModalState(() {
                             selectedLinemanId = v;
+                            final filteredArts = _getArticlesForLineman(v);
+                            selectedArticleId = filteredArts.isNotEmpty ? filteredArts.first['id'] : null;
+                            selectedColor = null;
+                            selectedSize = null;
                             linemanError = null;
                           });
                         },
@@ -437,7 +638,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         isExpanded: true,
                         icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.inkSoft, size: 20),
                         hint: Text('Select article', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint)),
-                        items: _articles.map((art) => DropdownMenuItem<String>(
+                        items: availableArticles.map((art) => DropdownMenuItem<String>(
                           value: art['id'],
                           child: Text('${art['art_no']} (${_getCleanArticleDescription(art['description'])})', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppTheme.ink)),
                         )).toList(),

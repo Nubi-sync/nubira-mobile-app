@@ -712,11 +712,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     final remaining = target - alreadyAssigned;
 
     final variants = (allotment['variants'] as List<dynamic>?) ?? [];
+    final assignments = (allotment['assignments'] as List<dynamic>?) ?? [];
+
     final Set<String> colorSet = {};
     final Set<String> sizeSet = {};
     for (var v in variants) {
-      if (v['color'] != null && (v['color'] as String).isNotEmpty) colorSet.add(v['color']);
-      if (v['size'] != null && (v['size'] as String).isNotEmpty) sizeSet.add(v['size']);
+      final c = v['color']?.toString() ?? '';
+      final s = v['size']?.toString() ?? '';
+      if (c.isNotEmpty) colorSet.add(c);
+      if (s.isNotEmpty) sizeSet.add(s);
     }
 
     final colorsList = colorSet.toList();
@@ -727,6 +731,26 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     String selectedMachineStation = 'OVERLOCK';
     bool isBorrowedWorker = false;
     String borrowedFromLine = 'Line 2 (Suman)';
+
+    int getVariantTarget(String color, String size) {
+      return variants
+          .where((v) => (v['color']?.toString().toLowerCase().trim() == color.toLowerCase().trim()) &&
+                        (v['size']?.toString().toLowerCase().trim() == size.toLowerCase().trim()))
+          .fold<int>(0, (sum, v) => sum + ((v['quantity'] as int?) ?? 0));
+    }
+
+    int getVariantAssigned(String color, String size) {
+      return assignments
+          .where((a) => (a['color']?.toString().toLowerCase().trim() == color.toLowerCase().trim()) &&
+                        (a['size']?.toString().toLowerCase().trim() == size.toLowerCase().trim()))
+          .fold<int>(0, (sum, a) => sum + ((a['assigned_qty'] as int?) ?? 0));
+    }
+
+    int getVariantRemaining(String color, String size) {
+      final t = getVariantTarget(color, size);
+      final a = getVariantAssigned(color, size);
+      return (t - a).clamp(0, t > 0 ? t : 99999);
+    }
 
     showDialog(
       context: context,
@@ -909,20 +933,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
                 const SizedBox(height: 14),
 
-                // Quantity Input
-                Text('PIECES TO ASSIGN (QTY)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Max $remaining pcs',
-                    prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Color and Size Matrix Pickers
+                // Color Variant Picker
                 if (colorsList.isNotEmpty) ...[
                   Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                   const SizedBox(height: 6),
@@ -930,7 +941,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     value: selectedColor,
                     isExpanded: true,
                     decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
-                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                     onChanged: (val) {
                       if (val != null) setDialogState(() => selectedColor = val);
                     },
@@ -938,20 +949,115 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   const SizedBox(height: 14),
                 ],
 
+                // Size Ratio Picker with Admin Target & Remaining breakdown
                 if (sizesList.isNotEmpty) ...[
-                  Text('SIZE RATIO', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                  Text('SIZE RATIO & TARGET', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedSize,
                     isExpanded: true,
                     decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
-                    items: sizesList.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    items: sizesList.map((s) {
+                      final sTarget = getVariantTarget(selectedColor, s);
+                      final sLeft = getVariantRemaining(selectedColor, s);
+                      final label = sTarget > 0 ? '$s • $sLeft left (of $sTarget pcs)' : s;
+                      return DropdownMenuItem(
+                        value: s,
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: sLeft == 0 && sTarget > 0 ? const Color(0xFF94A3B8) : AppTheme.ink,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
                     onChanged: (val) {
                       if (val != null) setDialogState(() => selectedSize = val);
                     },
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
+
+                  // Dedicated Size Target Highlight Card (Zero Overflow Responsive)
+                  () {
+                    final curTarget = getVariantTarget(selectedColor, selectedSize);
+                    final curAssigned = getVariantAssigned(selectedColor, selectedSize);
+                    final curLeft = getVariantRemaining(selectedColor, selectedSize);
+
+                    if (curTarget <= 0) return const SizedBox.shrink();
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: curLeft > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: curLeft > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Admin Target: $selectedColor ($selectedSize)',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: curLeft > 0 ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  'Target: $curTarget pcs • Assigned: $curAssigned pcs',
+                                  style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF475569)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: curLeft > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              '$curLeft left',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }(),
                 ],
+
+                // Quantity Input
+                Text('PIECES TO ASSIGN (QTY)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                const SizedBox(height: 6),
+                () {
+                  final curTarget = getVariantTarget(selectedColor, selectedSize);
+                  final curLeft = getVariantRemaining(selectedColor, selectedSize);
+                  final maxLimit = curTarget > 0 ? curLeft : remaining;
+
+                  return TextField(
+                    controller: qtyController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: curTarget > 0 ? 'Max $maxLimit pcs (Size $selectedSize remaining)' : 'Max $remaining pcs',
+                      prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
+                    ),
+                  );
+                }(),
+                const SizedBox(height: 14),
 
                 // Machine Operation / Station Selector
                 Text('MACHINE OPERATION / STITCHING STAGE', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
@@ -2831,21 +2937,20 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.photo_library_rounded, size: 14, color: AppTheme.steel),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'BUYER GOLDEN SAMPLE PHOTOS',
-                                  style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: AppTheme.inkSoft),
-                                ),
-                              ],
+                            const Icon(Icons.photo_library_rounded, size: 13, color: AppTheme.steel),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                'BUYER GOLDEN SAMPLE PHOTOS',
+                                style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: AppTheme.inkSoft),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 6),
                             Text(
-                              '${photos.length} photos • Tap to zoom',
-                              style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.inkFaint),
+                              '${photos.length} photos (Tap to zoom)',
+                              style: GoogleFonts.publicSans(fontSize: 9.5, color: AppTheme.inkFaint),
                             ),
                           ],
                         ),
@@ -3299,6 +3404,90 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         hasVariant ? 'Art: $artNo • $variantTag • $qty pcs' : 'Art: $artNo • $qty pcs',
                         style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
                       ),
+                      () {
+                        final notesStr = (a['notes'] ?? '').toString();
+                        String? machineLabel;
+                        Color? machineColor;
+                        IconData? machineIcon;
+
+                        if (notesStr.contains('[OVERLOCK]')) {
+                          machineLabel = 'Overlock (4-Th)';
+                          machineColor = const Color(0xFF2563EB);
+                          machineIcon = Icons.tune_rounded;
+                        } else if (notesStr.contains('[FIVE_THREAD]')) {
+                          machineLabel = '5-Thread Safety';
+                          machineColor = const Color(0xFF7C3AED);
+                          machineIcon = Icons.linear_scale_rounded;
+                        } else if (notesStr.contains('[FLATLOCK]')) {
+                          machineLabel = 'Flatlock / Rib';
+                          machineColor = const Color(0xFFD97706);
+                          machineIcon = Icons.view_headline_rounded;
+                        } else if (notesStr.contains('[LOCKING]')) {
+                          machineLabel = 'Locking / Single';
+                          machineColor = const Color(0xFF059669);
+                          machineIcon = Icons.lock_outline_rounded;
+                        } else {
+                          // Default machine tag if unspecified
+                          machineLabel = 'Overlock (4-Th)';
+                          machineColor = const Color(0xFF2563EB);
+                          machineIcon = Icons.tune_rounded;
+                        }
+
+                        String? borrowedLabel;
+                        final borrowMatch = RegExp(r'\[BORROWED:\s*(.*?)\]').firstMatch(notesStr);
+                        if (borrowMatch != null && borrowMatch.group(1) != null) {
+                          borrowedLabel = borrowMatch.group(1);
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Wrap(
+                            spacing: 5,
+                            runSpacing: 4,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: machineColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(color: machineColor.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(machineIcon, size: 10.5, color: machineColor),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      machineLabel,
+                                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: machineColor),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (borrowedLabel != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFFBEB),
+                                    borderRadius: BorderRadius.circular(5),
+                                    border: Border.all(color: const Color(0xFFFDE68A)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.swap_horiz_rounded, size: 10.5, color: Color(0xFFD97706)),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Borrowed: $borrowedLabel',
+                                        style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }(),
                     ],
                   ),
                 ),

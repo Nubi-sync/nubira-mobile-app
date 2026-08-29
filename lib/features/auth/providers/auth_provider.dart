@@ -73,7 +73,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _maxAttempts = 5;
   static const _lockoutMinutes = 15;
 
-  AuthNotifier() : super(AuthState()) {
+  AuthNotifier() : super(AuthState(isAuthenticated: false)) {
     _initAuth();
   }
 
@@ -100,53 +100,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       failedAttempts: attempts,
       lockoutUntil: lockoutDate,
       cachedUsername: savedUsername,
+      isAuthenticated: false, // NO AUTO LOGIN: Operator must tap Login to Dashboard
     );
-
-    // Listen to Supabase auth state changes
-    supabase.auth.onAuthStateChange.listen((data) async {
-      final session = data.session;
-      if (session != null) {
-        try {
-          final res = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-
-          final role = res['role'] as String?;
-
-          // Cache session & role for offline resilience
-          await _cacheSessionForOffline(session, role);
-
-          state = state.copyWith(
-            isAuthenticated: true,
-            userRole: role,
-            isLoading: false,
-            failedAttempts: 0,
-          );
-        } catch (e) {
-          // Fallback to cached role if network fails during profile fetch
-          final cachedRole = await _storage.read(key: 'cached_user_role');
-          state = state.copyWith(
-            isAuthenticated: true,
-            userRole: cachedRole ?? 'LINEMAN',
-            isLoading: false,
-            isOfflineSession: true,
-          );
-        }
-      }
-    });
-  }
-
-  Future<void> _cacheSessionForOffline(Session session, String? role) async {
-    try {
-      await _storage.write(key: 'cached_access_token', value: session.accessToken);
-      await _storage.write(key: 'cached_refresh_token', value: session.refreshToken);
-      await _storage.write(key: 'cached_user_id', value: session.user.id);
-      if (role != null) {
-        await _storage.write(key: 'cached_user_role', value: role);
-      }
-    } catch (_) {}
   }
 
   Future<void> login(String username, String password, {bool rememberMe = true}) async {
@@ -162,11 +117,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final prefs = await SharedPreferences.getInstance();
 
-    // Persist Remember Me
+    // Persist or clear Remember ID
     if (rememberMe) {
       await prefs.setString('remembered_operator_id', username.trim());
+      state = state.copyWith(cachedUsername: username.trim());
     } else {
       await prefs.remove('remembered_operator_id');
+      state = state.copyWith(cachedUsername: null);
     }
 
     // Check Connectivity
@@ -174,7 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final isOffline = connectivity.isEmpty || connectivity.every((r) => r == ConnectivityResult.none);
 
     if (isOffline) {
-      // Attempt Offline Login via Cached Session & Credentials
+      // Offline Login via Cached Credentials
       final cachedUserId = await _storage.read(key: 'cached_user_id');
       final cachedRole = await _storage.read(key: 'cached_user_role');
 
@@ -199,19 +156,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final email = username.contains('@') ? username : '${username.trim()}@nubira.local';
 
-      await supabase.auth.signInWithPassword(
+      final authRes = await supabase.auth.signInWithPassword(
         email: email.toLowerCase(),
         password: password,
       );
 
-      // Reset attempts on successful sign-in
-      await prefs.setInt('login_failed_attempts', 0);
-      await prefs.remove('login_lockout_until');
+      final session = authRes.session;
+      final user = authRes.user;
 
-      state = state.copyWith(
-        failedAttempts: 0,
-        lockoutUntil: null,
-      );
+      if (user != null) {
+        String role = 'LINEMAN';
+        try {
+          final res = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+          if (res['role'] != null) {
+            role = res['role'] as String;
+          }
+        } catch (_) {}
+
+        if (session != null) {
+          await _cacheSessionForOffline(session, role);
+        }
+
+        // Reset attempts on successful sign-in
+        await prefs.setInt('login_failed_attempts', 0);
+        await prefs.remove('login_lockout_until');
+
+        state = state.copyWith(
+          isAuthenticated: true,
+          userRole: role,
+          isLoading: false,
+          failedAttempts: 0,
+          lockoutUntil: null,
+        );
+      }
     } on AuthException catch (e) {
       final newAttempts = state.failedAttempts + 1;
       await prefs.setInt('login_failed_attempts', newAttempts);
@@ -232,7 +213,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
             : e.message,
       );
     } catch (e) {
-      // Check if network socket error
       final isNetwork = e.toString().contains('SocketException') || e.toString().contains('ClientException');
       state = state.copyWith(
         isLoading: false,
@@ -242,6 +222,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
             : 'An unexpected authentication error occurred.',
       );
     }
+  }
+
+  Future<void> _cacheSessionForOffline(Session session, String? role) async {
+    try {
+      await _storage.write(key: 'cached_access_token', value: session.accessToken);
+      await _storage.write(key: 'cached_refresh_token', value: session.refreshToken);
+      await _storage.write(key: 'cached_user_id', value: session.user.id);
+      if (role != null) {
+        await _storage.write(key: 'cached_user_role', value: role);
+      }
+    } catch (_) {}
   }
 
   Future<void> logout() async {
