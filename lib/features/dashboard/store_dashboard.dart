@@ -59,40 +59,59 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         debugPrint('Allotment variants fetch error: $e');
       }
 
-      // 1.2 Fetch Active Allotments & Materials for Handshake (with guaranteed fallback & CANCELLED filter)
+      // 1.2 Fetch Active Allotments & Materials for Handshake
       List<dynamic> activeAllotsRes = [];
       List<dynamic> allotMatsRes = [];
       try {
+        final allotQuery = await supabase
+            .from('allotments')
+            .select('id, lineman_id, article_id, target_qty, allotment_date, status, created_at')
+            .eq('status', 'IN_PROGRESS')
+            .order('created_at', ascending: false);
+
+        final profilesQuery = await supabase
+            .from('profiles')
+            .select('id, username, role');
+
+        final articlesQuery = await supabase
+            .from('articles')
+            .select('id, art_no, description, stitching_rate, size_rates');
+
         allotMatsRes = await supabase
             .from('allotment_materials')
             .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, notes, created_at')
             .order('created_at', ascending: false);
 
-        try {
-          final dbAllots = await supabase
-              .from('allotments')
-              .select('''
-                id,
-                lineman_id,
-                article_id,
-                target_qty,
-                allotment_date,
-                status,
-                created_at,
-                profiles ( username, role ),
-                articles ( id, art_no, description, stitching_rate, size_rates )
-              ''')
-              .eq('status', 'IN_PROGRESS')
-              .order('created_at', ascending: false);
-          if (dbAllots.isNotEmpty) {
-            activeAllotsRes = dbAllots.where((al) {
-              final role = al['profiles']?['role']?.toString();
-              return role == 'LINEMAN';
-            }).toList();
-          }
-        } catch (_) {}
+        final Map<String, dynamic> profMap = {};
+        for (var p in profilesQuery) {
+          profMap[p['id'].toString()] = p;
+        }
+
+        final Map<String, dynamic> artMap = {};
+        for (var a in articlesQuery) {
+          artMap[a['id'].toString()] = a;
+        }
+
+        for (var al in allotQuery) {
+          final lId = al['lineman_id']?.toString() ?? '';
+          final aId = al['article_id']?.toString() ?? '';
+          final prof = profMap[lId] ?? {'username': 'Lineman', 'role': 'LINEMAN'};
+          final art = artMap[aId] ?? {'art_no': 'Garment', 'description': ''};
+
+          activeAllotsRes.add({
+            'id': al['id'],
+            'lineman_id': lId,
+            'article_id': aId,
+            'target_qty': al['target_qty'] ?? 0,
+            'allotment_date': al['allotment_date'],
+            'status': al['status'],
+            'created_at': al['created_at'],
+            'profiles': prof,
+            'articles': art,
+          });
+        }
       } catch (e) {
-        debugPrint('Active allotments fetch error in store: $e');
+        debugPrint('Active allotments fetch error in store: ');
       }
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
