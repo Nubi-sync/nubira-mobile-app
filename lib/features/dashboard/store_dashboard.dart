@@ -19,26 +19,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
   // Aggregate Stats
   int _totalFinishedStock = 0;
-  int _totalAccessoriesTracked = 0;
   int _todayInward = 0;
   int _todayOutward = 0;
 
   List<dynamic> _articles = [];
   List<dynamic> _storeLogs = [];
-  final List<String> _commonAccessories = [
-    'Sewing Thread (Navy Blue)',
-    'Sewing Thread (Black)',
-    'Sewing Thread (White)',
-    'Buttons (18L 4-Hole)',
-    'Buttons (24L 4-Hole)',
-    'Nylon Zipper 7 inch',
-    'Main Brand Label',
-    'Care & Size Label',
-    'Polybag (10x14)',
-    'Elastic (1 inch roll)',
-    'Fusing / Interlining (Meters)',
-    'Hang Tag & Tag Pin'
-  ];
 
   Map<String, int> _articleStockMap = {};
   Map<String, int> _variantStockMap = {};
@@ -296,7 +281,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         setState(() {
           _articles = articlesRes;
           _totalFinishedStock = currentStock;
-          _totalAccessoriesTracked = distinctAcc.length;
           _todayInward = tInward;
           _todayOutward = tOutward;
           _articleStockMap = stockMap;
@@ -1149,279 +1133,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     // ==========================================
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
-  void _showAccessoriesModal() {
-    String selectedAction = 'IN';
-    final itemController = TextEditingController(text: 'Sewing Thread (Navy Blue)');
-    final qtyController = TextEditingController();
-    String selectedUnit = 'cones';
-    final partyController = TextEditingController(text: 'Supplier: Vardhman Threads');
-    final notesController = TextEditingController();
-
-    final List<String> units = ['cones', 'pcs', 'gross', 'meters', 'packets', 'rolls', 'boxes'];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3))),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(14)),
-                      child: const Icon(Icons.category_rounded, color: Colors.orange, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ACCESSORIES: Raw Materials Ledger', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          Text('Track Thread, Buttons, Zippers, Labels, Polybags', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Action Toggle (IN vs OUT)
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            setModalState(() {
-                              selectedAction = 'IN';
-                              partyController.text = 'Supplier: Vardhman Threads';
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: selectedAction == 'IN' ? const Color(0xFF047857) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.arrow_downward_rounded, size: 14, color: selectedAction == 'IN' ? Colors.white : const Color(0xFF64748B)),
-                                  const SizedBox(width: 4),
-                                  Text('IN (Stock Received)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'IN' ? Colors.white : const Color(0xFF64748B))),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            setModalState(() {
-                              selectedAction = 'OUT';
-                              partyController.text = 'Issued to: Line 1 (Lineman Raju)';
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: selectedAction == 'OUT' ? const Color(0xFFD97706) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.arrow_upward_rounded, size: 14, color: selectedAction == 'OUT' ? Colors.white : const Color(0xFF64748B)),
-                                  const SizedBox(width: 4),
-                                  Text('OUT (Issued to Line)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: selectedAction == 'OUT' ? Colors.white : const Color(0xFF64748B))),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Item Name Autocomplete/Dropdown
-                const Text('Item Name / Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: itemController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Sewing Thread, Button 18L',
-                    prefixIcon: const Icon(Icons.label_rounded, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Quick item chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _commonAccessories.take(5).map((item) => Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ActionChip(
-                        label: Text(item, style: const TextStyle(fontSize: 11)),
-                        onPressed: () => setModalState(() => itemController.text = item),
-                      ),
-                    )).toList(),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Quantity & Unit
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Quantity', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          const SizedBox(height: 4),
-                          TextField(
-                            controller: qtyController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(hintText: 'e.g. 24', prefixIcon: const Icon(Icons.pin_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFCBD5E1))),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: selectedUnit,
-                                isExpanded: true,
-                                items: units.map((u) => DropdownMenuItem<String>(value: u, child: Text(u, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(),
-                                onChanged: (v) => setModalState(() => selectedUnit = v ?? 'cones'),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Supplier / Line Reference
-                Text(selectedAction == 'IN' ? 'Received From (Supplier Name)' : 'Issued To (Line # / Lineman)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: partyController,
-                  decoration: InputDecoration(hintText: 'e.g. Vardhman Threads / Line 1 Raju', prefixIcon: const Icon(Icons.person_pin_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Notes
-                const Text('Notes / Bill Reference (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: notesController,
-                  decoration: InputDecoration(hintText: 'e.g. Invoice #INV-9912', prefixIcon: const Icon(Icons.notes_rounded, size: 20), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final qty = int.tryParse(qtyController.text);
-                      if (itemController.text.trim().isEmpty || qty == null || qty <= 0) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Please enter item name and valid quantity.')));
-                        return;
-                      }
-
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      Navigator.pop(ctx);
-                      try {
-                        final todayStr = DateTime.now().toIso8601String().split('T')[0];
-                        await supabase.from('accessories').insert({
-                          'item_name': itemController.text.trim(),
-                          'action': selectedAction,
-                          'quantity': qty,
-                          'unit': selectedUnit,
-                          'party_name': partyController.text.trim().isEmpty ? null : partyController.text.trim(),
-                          'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                          'entry_date': todayStr,
-                        });
-
-                        scaffoldMessenger.showSnackBar(
-                          SnackBar(
-                            content: Text('${selectedAction == "IN" ? "Added" : "Issued"} $qty $selectedUnit of ${itemController.text.trim()}'),
-                            backgroundColor: selectedAction == 'IN' ? const Color(0xFF047857) : Colors.orange,
-                          ),
-                        );
-                        _fetchStoreData();
-                      } catch (e) {
-                        scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
-                      }
-                    },
-                    icon: const Icon(Icons.category_rounded, size: 20),
-                    label: Text('Save ${selectedAction == "IN" ? "Inward Stock" : "Issue to Line"}'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedAction == 'IN' ? const Color(0xFF047857) : Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  // ==========================================
-  // MODULE 4: BOM MATERIAL INSPECTION & 3-WAY HANDSHAKE
-  // ==========================================
   void _showMaterialHandoverModal() {
     if (_activeAllotments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1932,7 +1643,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                           Row(
                             children: [
                               _buildSummaryStat('Finished Stock', '$_totalFinishedStock pcs', Icons.inventory_2_rounded, const Color(0xFF38BDF8)),
-                              _buildSummaryStat('Accessories', '$_totalAccessoriesTracked items', Icons.category_rounded, Colors.orangeAccent),
+                              _buildSummaryStat('Active Lots', '${_activeAllotments.length} lots', Icons.fact_check_rounded, const Color(0xFF818CF8)),
                               _buildSummaryStat('Today Inward', '+$_todayInward', Icons.download_rounded, const Color(0xFF34D399)),
                               _buildSummaryStat('Today Outward', '-$_todayOutward', Icons.upload_rounded, const Color(0xFFF43F5E)),
                             ],
@@ -1946,6 +1657,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     // ====== STORE QUICK ACTIONS ======
                     const Text('Store Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                     const SizedBox(height: 12),
+
+                    _buildActionTile(
+                      title: 'BOM MATERIAL HANDOVER',
+                      subtitle: 'Inspect supplier challan & issue materials to Lineman',
+                      icon: Icons.fact_check_rounded,
+                      color: const Color(0xFF4F46E5),
+                      bgColor: const Color(0xFFEEF2FF),
+                      onTap: _showMaterialHandoverModal,
+                    ),
+                    const SizedBox(height: 10),
 
                     _buildActionTile(
                       title: 'INWARD',
@@ -1964,26 +1685,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       color: const Color(0xFF2563EB),
                       bgColor: const Color(0xFFEFF6FF),
                       onTap: _showOutwardModal,
-                    ),
-                    const SizedBox(height: 10),
-
-                    _buildActionTile(
-                      title: 'ACCESSORIES LEDGER',
-                      subtitle: 'Thread, buttons, zips, labels raw materials',
-                      icon: Icons.category_rounded,
-                      color: Colors.orange.shade800,
-                      bgColor: Colors.orange.shade50,
-                      onTap: _showAccessoriesModal,
-                    ),
-                    const SizedBox(height: 10),
-
-                    _buildActionTile(
-                      title: 'BOM MATERIAL HANDOVER',
-                      subtitle: 'Inspect supplier challan & issue materials to Lineman',
-                      icon: Icons.fact_check_rounded,
-                      color: const Color(0xFF4F46E5),
-                      bgColor: const Color(0xFFEEF2FF),
-                      onTap: _showMaterialHandoverModal,
                     ),
 
                     const SizedBox(height: 24),
