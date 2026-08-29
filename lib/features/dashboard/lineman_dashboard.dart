@@ -129,7 +129,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           try {
             materialsRes = await supabase
                 .from('allotment_materials')
-                .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, lineman_received_at')
+                .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, lineman_received_at, notes')
                 .inFilter('allotment_id', allAllotmentIds);
           } catch (e) {
             debugPrint('Materials fetch error: $e');
@@ -2736,13 +2736,23 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   ),
                                 if (mgr.isNotEmpty)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      border: Border.all(color: const Color(0xFF99F6E4)),
                                     ),
-                                    child: Text('Mgr: $mgr', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.person_pin_rounded, size: 12, color: Color(0xFF0D9488)),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'PM: $mgr',
+                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                               ],
                             );
@@ -2786,6 +2796,107 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 ),
 
                 const SizedBox(height: 14),
+
+                // Buyer Golden Sample Photos Gallery
+                () {
+                  List<String> photos = [];
+                  if (a['sample_photos'] is List) {
+                    photos = (a['sample_photos'] as List).map((p) => p.toString()).where((p) => p.isNotEmpty).toList();
+                  }
+                  if (photos.isEmpty && materials.isNotEmpty) {
+                    for (var m in materials) {
+                      if (m['notes'] != null) {
+                        try {
+                          final parsed = jsonDecode(m['notes'].toString());
+                          if (parsed['sample_photos'] is List) {
+                            photos = (parsed['sample_photos'] as List).map((p) => p.toString()).where((p) => p.isNotEmpty).toList();
+                            if (photos.isNotEmpty) break;
+                          }
+                        } catch (_) {}
+                      }
+                    }
+                  }
+
+                  if (photos.isEmpty) return const SizedBox.shrink();
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.photo_library_rounded, size: 14, color: AppTheme.steel),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'BUYER GOLDEN SAMPLE PHOTOS',
+                                  style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: AppTheme.inkSoft),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              '${photos.length} photos • Tap to zoom',
+                              style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.inkFaint),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 75,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: photos.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 8),
+                            itemBuilder: (ctx, pIdx) {
+                              final pUrl = photos[pIdx];
+                              final tag = pIdx == 0 ? 'Front' : pIdx == 1 ? 'Back' : pIdx == 2 ? 'Label' : 'Detail';
+                              return GestureDetector(
+                                onTap: () => showSampleImageZoom(context, pUrl, '$tag View'),
+                                child: Container(
+                                  width: 75,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppTheme.border),
+                                    color: Colors.white,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      pUrl.startsWith('http')
+                                          ? Image.network(pUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 24, color: AppTheme.inkFaint))
+                                          : (pUrl.startsWith('data:image')
+                                              ? Image.memory(const Base64Decoder().convert(pUrl.split(',').last), fit: BoxFit.cover)
+                                              : const Icon(Icons.image, size: 24, color: AppTheme.inkFaint)),
+                                      Positioned(
+                                        bottom: 2,
+                                        left: 2,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)),
+                                          child: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }(),
 
                 // Size & Color Matrix Chips
                 if (colorGroups.isNotEmpty) ...[
