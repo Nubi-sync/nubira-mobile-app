@@ -85,7 +85,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         allotmentsRes = await supabase
             .from('allotments')
-            .select('id, article_id, lineman_id, status');
+            .select('id, challan_id, article_id, lineman_id, status');
       } catch (e) {
         debugPrint('Allotments fetch error: $e');
       }

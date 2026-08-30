@@ -99,11 +99,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             .from('allotments')
             .select('''
               id,
+              challan_id,
               target_qty,
               allotment_date,
               status,
               article_id,
-              articles ( id, art_no, description, stitching_rate, size_rates )
+              articles ( id, art_no, description, stitching_rate, size_rates ),
+              challans ( id, challan_no, brand, fabric_type )
             ''')
             .eq('lineman_id', user.id)
             .order('allotment_date', ascending: false);

@@ -1,7 +1,6 @@
-import 'dart:convert';
-import '../../core/widgets/connectivity_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/widgets/connectivity_indicator.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
@@ -65,7 +64,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       try {
         final allotQuery = await supabase
             .from('allotments')
-            .select('id, lineman_id, article_id, target_qty, allotment_date, status, created_at')
+            .select('id, challan_id, lineman_id, article_id, target_qty, allotment_date, status, created_at')
             .eq('status', 'IN_PROGRESS')
             .order('created_at', ascending: false);
 
@@ -76,6 +75,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         final articlesQuery = await supabase
             .from('articles')
             .select('id, art_no, description, stitching_rate, size_rates');
+
+        List<dynamic> challansQuery = [];
+        try {
+          challansQuery = await supabase
+              .from('challans')
+              .select('id, challan_no, brand, fabric_type');
+        } catch (_) {}
 
         allotMatsRes = await supabase
             .from('allotment_materials')
@@ -92,14 +98,24 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           artMap[a['id'].toString()] = a;
         }
 
+        final Map<String, dynamic> chMap = {};
+        for (var c in challansQuery) {
+          chMap[c['id'].toString()] = c;
+        }
+
         for (var al in allotQuery) {
           final lId = al['lineman_id']?.toString() ?? '';
           final aId = al['article_id']?.toString() ?? '';
+          final cId = al['challan_id']?.toString() ?? '';
           final prof = profMap[lId] ?? {'username': 'Lineman', 'role': 'LINEMAN'};
           final art = artMap[aId] ?? {'art_no': 'Garment', 'description': ''};
+          final ch = chMap[cId] ?? {'challan_no': 'DIRECT', 'brand': 'INTERNAL'};
 
           activeAllotsRes.add({
             'id': al['id'],
+            'challan_id': cId,
+            'challan_no': ch['challan_no'] ?? 'DIRECT',
+            'challans': ch,
             'lineman_id': lId,
             'article_id': aId,
             'target_qty': al['target_qty'] ?? 0,
@@ -111,7 +127,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           });
         }
       } catch (e) {
-        debugPrint('Active allotments fetch error in store: ');
+        debugPrint('Active allotments fetch error in store: $e');
       }
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
