@@ -1,11 +1,45 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/connectivity_indicator.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../../main.dart'; // supabase client
+
+class _AccessoryChallanItem {
+  TextEditingController nameController;
+  TextEditingController sizeController;
+  TextEditingController qtyController;
+  TextEditingController shortageController;
+  TextEditingController remarksController;
+  String unit;
+  String status; // 'RECEIVED', 'SHORTAGE', 'DUE', 'DEFECTIVE'
+
+  _AccessoryChallanItem({
+    required String name,
+    String size = '',
+    String qty = '',
+    this.unit = 'pcs',
+    this.status = 'RECEIVED',
+    String shortage = '',
+    String remarks = '',
+  })  : nameController = TextEditingController(text: name),
+        sizeController = TextEditingController(text: size),
+        qtyController = TextEditingController(text: qty),
+        shortageController = TextEditingController(text: shortage),
+        remarksController = TextEditingController(text: remarks);
+
+  void dispose() {
+    nameController.dispose();
+    sizeController.dispose();
+    qtyController.dispose();
+    shortageController.dispose();
+    remarksController.dispose();
+  }
+}
 
 class StoreDashboard extends ConsumerStatefulWidget {
   const StoreDashboard({super.key});
@@ -19,11 +53,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
   // Aggregate Stats
   int _totalFinishedStock = 0;
-  int _todayInward = 0;
   int _todayOutward = 0;
+  int _todayTruckCount = 0;
 
   List<dynamic> _articles = [];
   List<dynamic> _storeLogs = [];
+  List<dynamic> _truckInwards = [];
 
   Map<String, int> _articleStockMap = {};
   Map<String, int> _variantStockMap = {};
@@ -268,7 +303,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       // 4. Calculate Finished Goods Stock
       int totalIn = 0;
       int totalOut = 0;
-      int tInward = 0;
       int tOutward = 0;
       final Map<String, int> stockMap = {};
 
@@ -287,7 +321,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           totalIn += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) + qty;
           varStockMap[varKey] = (varStockMap[varKey] ?? 0) + qty;
-          if (entryDate == today) tInward += qty;
         } else if (type == 'OUTWARD') {
           totalOut += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) - qty;
@@ -340,6 +373,24 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         });
       }
 
+      // 3.1 Fetch Truck Inwards (GRN)
+      List<dynamic> truckInwardsRes = [];
+      try {
+        truckInwardsRes = await supabase
+            .from('truck_inwards')
+            .select('*')
+            .order('created_at', ascending: false)
+            .limit(50);
+      } catch (e) {
+        debugPrint('Truck inwards fetch warning: $e');
+      }
+
+      int tTruckCount = 0;
+      for (var ti in truckInwardsRes) {
+        final iDate = ti['inward_date']?.toString() ?? '';
+        if (iDate == today) tTruckCount++;
+      }
+
       combinedLogs.sort((a, b) {
         final tA = a['created_at']?.toString() ?? '';
         final tB = b['created_at']?.toString() ?? '';
@@ -350,14 +401,15 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         setState(() {
           _articles = articlesRes;
           _totalFinishedStock = currentStock;
-          _todayInward = tInward;
           _todayOutward = tOutward;
+          _todayTruckCount = tTruckCount;
           _articleStockMap = stockMap;
           _variantStockMap = varStockMap;
           _allotmentVariants = variantsRes;
           _activeAllotments = activeAllotsRes;
           _allotmentMaterials = allotMatsRes;
           _storeLogs = combinedLogs;
+          _truckInwards = truckInwardsRes;
         });
       }
     } catch (e) {
@@ -1199,7 +1251,842 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
 
-    // ==========================================
+  // ==========================================
+  // MODULE: ACCESSORY & TRUCK CHALLAN INWARD (GRN)
+  // ==========================================
+  void _showPhotoViewerModal(String photoUrl, String title) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                child: InteractiveViewer(
+                  maxScale: 4.0,
+                  child: photoUrl.startsWith('data:image')
+                      ? Image.memory(
+                          base64Decode(photoUrl.split(',').last),
+                          fit: BoxFit.contain,
+                        )
+                      : Image.network(
+                          photoUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Center(
+                              child: Text('Failed to load challan image', style: TextStyle(color: Colors.white70)),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccessoryChallanInwardModal() {
+    final partyController = TextEditingController();
+    final articleController = TextEditingController(text: _articles.isNotEmpty ? _articles.first['art_no']?.toString() : '');
+    final challanNoController = TextEditingController();
+    final truckNoController = TextEditingController();
+    final notesController = TextEditingController();
+    DateTime inwardDate = DateTime.now();
+    File? selectedImage;
+    bool isSubmitting = false;
+
+    // Initial item list with real default trim templates
+    final List<_AccessoryChallanItem> items = [
+      _AccessoryChallanItem(name: 'Satin Label', size: 'L/XXL', qty: '659', unit: 'pcs', status: 'RECEIVED'),
+      _AccessoryChallanItem(name: 'Marvel Neck Label', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
+      _AccessoryChallanItem(name: 'Cotton 5% Elastane Wash Care', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
+      _AccessoryChallanItem(name: 'Logo', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
+      _AccessoryChallanItem(name: 'Patch', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
+      _AccessoryChallanItem(name: 'Marvel Neck Tape', qty: '800', unit: 'mt', status: 'RECEIVED'),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final picker = ImagePicker();
+
+          Future<void> pickChallanImage(ImageSource source) async {
+            try {
+              final picked = await picker.pickImage(source: source, imageQuality: 80, maxWidth: 1600);
+              if (picked != null) {
+                setModalState(() {
+                  selectedImage = File(picked.path);
+                });
+              }
+            } catch (e) {
+              debugPrint('Image pick error: $e');
+            }
+          }
+
+          int receivedCount = items.where((i) => i.status == 'RECEIVED').length;
+          int shortageCount = items.where((i) => i.status == 'SHORTAGE').length;
+          int dueCount = items.where((i) => i.status == 'DUE').length;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4.5,
+                      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(3)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Accessory Challan Inward', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                          Text('Record supplier delivery slip, trims & due items', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(10)),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.receipt_long_rounded, color: Color(0xFF0284C7), size: 16),
+                            SizedBox(width: 4),
+                            Text('GRN Entry', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // SECTION 1: CHALLAN & PARTY DETAILS
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Supplier / Brand Name *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: partyController,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Ollypop Industries Pvt. Ltd. / Reena',
+                            prefixIcon: const Icon(Icons.business_rounded, size: 18, color: Color(0xFF64748B)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Quick party chips
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              'Ollypop Industries',
+                              'Reena (Comfort)',
+                              'White Snore',
+                              'Nonu',
+                              'First Smile',
+                            ].map((p) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ActionChip(
+                                  label: Text(p, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                                  onPressed: () {
+                                    setModalState(() {
+                                      partyController.text = p;
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Article No', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: articleController,
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. 9433',
+                                      prefixIcon: const Icon(Icons.style_rounded, size: 18, color: Color(0xFF64748B)),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 1,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Challan / Slip #', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: challanNoController,
+                                    decoration: InputDecoration(
+                                      hintText: 'e.g. 102 / Slip #',
+                                      prefixIcon: const Icon(Icons.numbers_rounded, size: 18, color: Color(0xFF64748B)),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Receipt Date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                                  const SizedBox(height: 6),
+                                  InkWell(
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: inwardDate,
+                                        firstDate: DateTime(2024),
+                                        lastDate: DateTime(2030),
+                                      );
+                                      if (picked != null) {
+                                        setModalState(() => inwardDate = picked);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF64748B)),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${inwardDate.year}-${inwardDate.month.toString().padLeft(2, '0')}-${inwardDate.day.toString().padLeft(2, '0')}',
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Truck / Vehicle #', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: truckNoController,
+                                    decoration: InputDecoration(
+                                      hintText: 'Optional',
+                                      prefixIcon: const Icon(Icons.local_shipping_rounded, size: 18, color: Color(0xFF64748B)),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // SECTION 2: QUICK PRESET CHIPS
+                  const Text('Quick Add Trims & Fabrics', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      {'name': 'Satin Label', 'unit': 'pcs', 'size': 'L/XXL'},
+                      {'name': 'Main Neck Label', 'unit': 'pcs', 'size': ''},
+                      {'name': 'Wash Care Label', 'unit': 'pcs', 'size': ''},
+                      {'name': 'Brand Logo', 'unit': 'pcs', 'size': ''},
+                      {'name': 'Chest Patch', 'unit': 'pcs', 'size': ''},
+                      {'name': 'Neck Tape', 'unit': 'mt', 'size': ''},
+                      {'name': 'Sewing Thread', 'unit': 'cones', 'size': ''},
+                      {'name': 'Fabric Sinker Roll', 'unit': 'kg', 'size': ''},
+                      {'name': 'Master Polybag', 'unit': 'pcs', 'size': ''},
+                      {'name': 'Elastic / Rib', 'unit': 'pcs', 'size': ''},
+                    ].map((trim) {
+                      return ActionChip(
+                        avatar: const Icon(Icons.add_rounded, size: 14, color: Color(0xFF0284C7)),
+                        label: Text(trim['name']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0369A1))),
+                        backgroundColor: const Color(0xFFF0F9FF),
+                        side: const BorderSide(color: Color(0xFFBAE6FD)),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        onPressed: () {
+                          setModalState(() {
+                            items.add(_AccessoryChallanItem(
+                              name: trim['name']!,
+                              unit: trim['unit']!,
+                              size: trim['size']!,
+                              status: 'RECEIVED',
+                            ));
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // SECTION 3: LINE ITEMS LIST
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Challan Items (${items.length})', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                      TextButton.icon(
+                        onPressed: () {
+                          setModalState(() {
+                            items.add(_AccessoryChallanItem(name: 'New Trim Item', status: 'RECEIVED'));
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle_outline_rounded, size: 16, color: Color(0xFF0284C7)),
+                        label: const Text('Add Custom Item', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  if (items.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                      child: const Center(
+                        child: Text('No items added. Tap quick presets above or Add Custom Item.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ),
+                    )
+                  else
+                    ...items.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final item = entry.value;
+                      final isReceived = item.status == 'RECEIVED';
+                      final isShortage = item.status == 'SHORTAGE';
+                      final isDue = item.status == 'DUE';
+
+                      Color cardBg = Colors.white;
+                      Color cardBorder = const Color(0xFFE2E8F0);
+                      if (isShortage) {
+                        cardBg = const Color(0xFFFFFBEB);
+                        cardBorder = const Color(0xFFFDE68A);
+                      } else if (isDue) {
+                        cardBg = const Color(0xFFFAF5FF);
+                        cardBorder = const Color(0xFFE9D5FF);
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: cardBorder),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Item name and Delete
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: item.nameController,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      hintText: 'Item Description',
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    setModalState(() {
+                                      items.removeAt(idx);
+                                    });
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4.0),
+                                    child: Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 14, color: Color(0xFFF1F5F9)),
+
+                            // Size / Quantity / Unit Row
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: item.sizeController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Size / Ratio',
+                                      hintText: 'e.g. L/XXL, 22x26',
+                                      labelStyle: const TextStyle(fontSize: 11),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: TextField(
+                                    controller: item.qtyController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      labelText: 'Quantity',
+                                      hintText: 'e.g. 659',
+                                      labelStyle: const TextStyle(fontSize: 11),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade400),
+                                    color: Colors.white,
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: item.unit,
+                                      isDense: true,
+                                      items: ['pcs', 'mt', 'cones', 'kg', 'rolls', 'sets']
+                                          .map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 12))))
+                                          .toList(),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setModalState(() => item.unit = val);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Status chips
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => item.status = 'RECEIVED'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isReceived ? const Color(0xFF047857) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, size: 14, color: isReceived ? Colors.white : const Color(0xFF475569)),
+                                          const SizedBox(width: 4),
+                                          Text('Received', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isReceived ? Colors.white : const Color(0xFF475569))),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => item.status = 'SHORTAGE'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isShortage ? const Color(0xFFD97706) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.warning_amber_rounded, size: 14, color: isShortage ? Colors.white : const Color(0xFF475569)),
+                                          const SizedBox(width: 4),
+                                          Text('Shortage', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isShortage ? Colors.white : const Color(0xFF475569))),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => item.status = 'DUE'),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isDue ? const Color(0xFF7C3AED) : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.pending_actions_rounded, size: 14, color: isDue ? Colors.white : const Color(0xFF475569)),
+                                          const SizedBox(width: 4),
+                                          Text('Due / Pending', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDue ? Colors.white : const Color(0xFF475569))),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // If Shortage or Due, show shortage details
+                            if (isShortage) ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: item.shortageController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Shortage Missing Qty',
+                                  hintText: 'e.g. 50 pcs missing',
+                                  labelStyle: const TextStyle(fontSize: 11, color: Color(0xFFD97706)),
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 16),
+
+                  // SECTION 4: PHOTO ATTACHMENT
+                  const Text('Challan Paper Slip Photo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: selectedImage != null
+                        ? Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(selectedImage!, width: 64, height: 64, fit: BoxFit.cover),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Paper Challan Attached', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                                    Text('Ready for cloud verification', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                                onPressed: () => setModalState(() => selectedImage = null),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => pickChallanImage(ImageSource.camera),
+                                  icon: const Icon(Icons.photo_camera_rounded, size: 18, color: Color(0xFF0284C7)),
+                                  label: const Text('Camera', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    side: const BorderSide(color: Color(0xFFBAE6FD)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => pickChallanImage(ImageSource.gallery),
+                                  icon: const Icon(Icons.photo_library_rounded, size: 18, color: Color(0xFF475569)),
+                                  label: const Text('Gallery', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Notes / Remarks
+                  TextField(
+                    controller: notesController,
+                    decoration: InputDecoration(
+                      hintText: 'General Remarks (e.g. Driver Mohan • 10 bags)',
+                      prefixIcon: const Icon(Icons.notes_rounded, size: 18, color: Color(0xFF64748B)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // SUBMIT BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final supplierName = partyController.text.trim();
+                              if (supplierName.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter Supplier / Brand Name.'), backgroundColor: Colors.redAccent),
+                                );
+                                return;
+                              }
+                              if (items.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please add at least 1 item from the challan.'), backgroundColor: Colors.redAccent),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSubmitting = true);
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final nav = Navigator.of(ctx);
+
+                              try {
+                                final selectedDateStr = '${inwardDate.year}-${inwardDate.month.toString().padLeft(2, '0')}-${inwardDate.day.toString().padLeft(2, '0')}';
+                                final grnNo = 'GRN-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+
+                                String? photoUrl;
+                                if (selectedImage != null) {
+                                  try {
+                                    final bytes = await selectedImage!.readAsBytes();
+                                    final fileName = 'challan_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                                    try {
+                                      await supabase.storage.from('challans').uploadBinary(fileName, bytes);
+                                      photoUrl = supabase.storage.from('challans').getPublicUrl(fileName);
+                                    } catch (_) {
+                                      photoUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Photo upload error: $e');
+                                  }
+                                }
+
+                                final String overallStatus = (dueCount > 0)
+                                    ? 'DUE_PENDING'
+                                    : (shortageCount > 0 ? 'SHORTAGE' : 'VERIFIED');
+
+                                // 1. Insert into truck_inwards
+                                Map<String, dynamic> inwardRecord = {
+                                  'grn_no': grnNo,
+                                  'party_name': supplierName,
+                                  'article_no': articleController.text.trim().isNotEmpty ? articleController.text.trim() : null,
+                                  'challan_no': challanNoController.text.trim().isNotEmpty ? challanNoController.text.trim() : null,
+                                  'inward_date': selectedDateStr,
+                                  'truck_no': truckNoController.text.trim().isNotEmpty ? truckNoController.text.trim() : null,
+                                  'challan_photo_url': photoUrl,
+                                  'received_by': supabase.auth.currentUser?.id,
+                                  'receiver_name': 'Store Incharge',
+                                  'status': overallStatus,
+                                  'total_items': items.length,
+                                  'due_items_count': dueCount,
+                                  'shortage_items_count': shortageCount,
+                                  'notes': notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
+                                };
+
+                                try {
+                                  final inserted = await supabase.from('truck_inwards').insert(inwardRecord).select().single();
+                                  final inwardId = inserted['id'];
+
+                                  List<Map<String, dynamic>> itemRows = [];
+                                  for (var it in items) {
+                                    itemRows.add({
+                                      'truck_inward_id': inwardId,
+                                      'item_name': it.nameController.text.trim(),
+                                      'size_label': it.sizeController.text.trim().isNotEmpty ? it.sizeController.text.trim() : null,
+                                      'quantity': double.tryParse(it.qtyController.text.trim()) ?? 0,
+                                      'unit': it.unit,
+                                      'status': it.status,
+                                      'shortage_qty': double.tryParse(it.shortageController.text.trim()) ?? 0,
+                                      'remarks': it.remarksController.text.trim().isNotEmpty ? it.remarksController.text.trim() : null,
+                                    });
+                                  }
+                                  if (itemRows.isNotEmpty) {
+                                    await supabase.from('truck_inward_items').insert(itemRows);
+                                  }
+                                } catch (dbErr) {
+                                  debugPrint('truck_inwards table insert warning: $dbErr');
+                                }
+
+                                // 2. Also log to accessories table so Godown inventory is instantly updated
+                                for (var it in items) {
+                                  if (it.status == 'DUE') continue;
+                                  final qty = int.tryParse(it.qtyController.text.trim()) ?? 0;
+                                  if (qty <= 0) continue;
+                                  try {
+                                    final sizeSuffix = it.sizeController.text.trim().isNotEmpty ? ' (${it.sizeController.text.trim()})' : '';
+                                    await supabase.from('accessories').insert({
+                                      'item_name': it.nameController.text.trim() + sizeSuffix,
+                                      'action': 'IN',
+                                      'quantity': qty,
+                                      'unit': it.unit,
+                                      'party_name': supplierName,
+                                      'entry_date': selectedDateStr,
+                                      'notes': 'Challan #${challanNoController.text.trim()} • Art ${articleController.text.trim()} • $grnNo',
+                                    });
+                                  } catch (_) {}
+                                }
+
+                                nav.pop();
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Inward recorded! $grnNo generated for $supplierName (${items.length} items).'),
+                                    backgroundColor: const Color(0xFF0284C7),
+                                  ),
+                                );
+                                _fetchStoreData();
+                              } catch (e) {
+                                setModalState(() => isSubmitting = false);
+                                scaffoldMessenger.showSnackBar(
+                                  SnackBar(content: Text('Error saving inward: $e'), backgroundColor: Colors.redAccent),
+                                );
+                              }
+                            },
+                      icon: isSubmitting
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.check_circle_rounded, size: 20),
+                      label: Text(
+                        isSubmitting
+                            ? 'Saving Inward...'
+                            : 'Confirm Inward ($receivedCount Received${dueCount > 0 ? ", $dueCount Due" : ""})',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ==========================================
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
   void _showMaterialHandoverModal() {
@@ -1842,7 +2729,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 children: [
                                   _buildSummaryStat('Finished Stock', '$_totalFinishedStock pcs', Icons.inventory_2_rounded, const Color(0xFF38BDF8)),
                                   _buildSummaryStat('Pending Lots', '$pendingHandoverCount lots', Icons.fact_check_rounded, const Color(0xFF818CF8)),
-                                  _buildSummaryStat('Today Inward', '+$_todayInward', Icons.download_rounded, const Color(0xFF34D399)),
+                                  _buildSummaryStat('Challans Inward', '+$_todayTruckCount slips', Icons.receipt_long_rounded, const Color(0xFF34D399)),
                                   _buildSummaryStat('Today Outward', '-$_todayOutward', Icons.upload_rounded, const Color(0xFFF43F5E)),
                                 ],
                               );
@@ -1857,6 +2744,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     // ====== STORE QUICK ACTIONS ======
                     const Text('Store Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                     const SizedBox(height: 12),
+
+                    _buildActionTile(
+                      title: 'ACCESSORY CHALLAN INWARD (GRN)',
+                      subtitle: 'Record supplier delivery slip, trims, fabrics & due items',
+                      icon: Icons.receipt_long_rounded,
+                      color: const Color(0xFF0284C7),
+                      bgColor: const Color(0xFFE0F2FE),
+                      onTap: _showAccessoryChallanInwardModal,
+                    ),
+                    const SizedBox(height: 10),
 
                     _buildActionTile(
                       title: 'BOM MATERIAL HANDOVER',
@@ -1889,6 +2786,20 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                     const SizedBox(height: 24),
 
+                    // ====== RECENT ACCESSORY CHALLANS (GRN) FEED ======
+                    if (_truckInwards.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Recent Supplier Challans (GRN)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                          Text('${_truckInwards.length} slips', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ..._truckInwards.map((inward) => _buildTruckInwardCard(inward)),
+                      const SizedBox(height: 20),
+                    ],
+
                     // ====== STORE LEDGER ACTIVITY FEED ======
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1904,7 +2815,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
                         child: const Center(
-                          child: Text('No store transactions logged yet.\nTap INWARD, OUTWARD, or ACCESSORIES above to record movements.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
+                          child: Text('No store transactions logged yet.\nTap INWARD, OUTWARD, or ACCESSORY CHALLAN above to record movements.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
                         ),
                       )
                     else
@@ -2087,5 +2998,111 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         ),
       );
     }
+  }
+
+  Widget _buildTruckInwardCard(Map<String, dynamic> inward) {
+    final grnNo = inward['grn_no'] ?? 'GRN';
+    final partyName = inward['party_name'] ?? 'Supplier';
+    final articleNo = inward['article_no'] ?? '';
+    final challanNo = inward['challan_no'] ?? '';
+    final inwardDate = inward['inward_date'] ?? '';
+    final totalItems = inward['total_items'] ?? 0;
+    final dueCount = inward['due_items_count'] ?? 0;
+    final shortageCount = inward['shortage_items_count'] ?? 0;
+    final photoUrl = inward['challan_photo_url'] as String?;
+
+    Color badgeColor = const Color(0xFF047857);
+    Color badgeBg = const Color(0xFFECFDF5);
+    String statusText = 'Verified ($totalItems items)';
+    IconData statusIcon = Icons.check_circle_rounded;
+
+    if (dueCount > 0) {
+      badgeColor = const Color(0xFF7C3AED);
+      badgeBg = const Color(0xFFFAF5FF);
+      statusText = '$dueCount Due Items';
+      statusIcon = Icons.pending_actions_rounded;
+    } else if (shortageCount > 0) {
+      badgeColor = const Color(0xFFD97706);
+      badgeBg = const Color(0xFFFFFBEB);
+      statusText = '$shortageCount Shortage';
+      statusIcon = Icons.warning_amber_rounded;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(8)),
+                child: Text(grnNo, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    Icon(statusIcon, size: 12, color: badgeColor),
+                    const SizedBox(width: 4),
+                    Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badgeColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            partyName + (articleNo.isNotEmpty ? ' • Art $articleNo' : ''),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'Challan: ${challanNo.isNotEmpty ? challanNo : "Direct"} • $inwardDate',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              if (photoUrl != null && photoUrl.isNotEmpty)
+                InkWell(
+                  onTap: () => _showPhotoViewerModal(photoUrl, '$partyName (Challan #$challanNo)'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.photo_rounded, size: 12, color: Color(0xFF334155)),
+                        SizedBox(width: 4),
+                        Text('View Slip', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (inward['notes'] != null && inward['notes'].toString().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('Remarks: ${inward['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+          ],
+        ],
+      ),
+    );
   }
 }
