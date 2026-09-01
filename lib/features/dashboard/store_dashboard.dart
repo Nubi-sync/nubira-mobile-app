@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/connectivity_indicator.dart';
 import '../auth/providers/auth_provider.dart';
@@ -61,73 +62,170 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       // 1.2 Fetch Active Allotments & Materials for Handshake
       List<dynamic> activeAllotsRes = [];
       List<dynamic> allotMatsRes = [];
+      List<dynamic> allotQuery = [];
+      List<dynamic> profilesQuery = [];
+      List<dynamic> articlesQuery = [];
+      List<dynamic> challansQuery = [];
+
       try {
-        final allotQuery = await supabase
+        allotQuery = await supabase
             .from('allotments')
-            .select('id, challan_id, lineman_id, article_id, target_qty, allotment_date, status, created_at')
+            .select('*')
             .eq('status', 'IN_PROGRESS')
             .order('created_at', ascending: false);
+      } catch (e) {
+        debugPrint('Allotments fetch error in store: $e');
+      }
 
-        final profilesQuery = await supabase
+      try {
+        profilesQuery = await supabase
             .from('profiles')
             .select('id, username, role');
+      } catch (e) {
+        debugPrint('Profiles fetch error: $e');
+      }
 
-        final articlesQuery = await supabase
+      try {
+        articlesQuery = await supabase
             .from('articles')
             .select('id, art_no, description, stitching_rate, size_rates');
+      } catch (e) {
+        debugPrint('Articles fetch error: $e');
+      }
 
-        List<dynamic> challansQuery = [];
-        try {
-          challansQuery = await supabase
-              .from('challans')
-              .select('id, challan_no, brand, fabric_type');
-        } catch (_) {}
+      try {
+        challansQuery = await supabase
+            .from('challans')
+            .select('id, challan_no, brand, fabric_type');
+      } catch (_) {}
 
+      try {
         allotMatsRes = await supabase
             .from('allotment_materials')
             .select('id, allotment_id, item_name, required_qty, admin_issued, lineman_received, notes, created_at')
             .order('created_at', ascending: false);
-
-        final Map<String, dynamic> profMap = {};
-        for (var p in profilesQuery) {
-          profMap[p['id'].toString()] = p;
-        }
-
-        final Map<String, dynamic> artMap = {};
-        for (var a in articlesQuery) {
-          artMap[a['id'].toString()] = a;
-        }
-
-        final Map<String, dynamic> chMap = {};
-        for (var c in challansQuery) {
-          chMap[c['id'].toString()] = c;
-        }
-
-        for (var al in allotQuery) {
-          final lId = al['lineman_id']?.toString() ?? '';
-          final aId = al['article_id']?.toString() ?? '';
-          final cId = al['challan_id']?.toString() ?? '';
-          final prof = profMap[lId] ?? {'username': 'Lineman', 'role': 'LINEMAN'};
-          final art = artMap[aId] ?? {'art_no': 'Garment', 'description': ''};
-          final ch = chMap[cId] ?? {'challan_no': 'DIRECT', 'brand': 'INTERNAL'};
-
-          activeAllotsRes.add({
-            'id': al['id'],
-            'challan_id': cId,
-            'challan_no': ch['challan_no'] ?? 'DIRECT',
-            'challans': ch,
-            'lineman_id': lId,
-            'article_id': aId,
-            'target_qty': al['target_qty'] ?? 0,
-            'allotment_date': al['allotment_date'],
-            'status': al['status'],
-            'created_at': al['created_at'],
-            'profiles': prof,
-            'articles': art,
-          });
-        }
       } catch (e) {
-        debugPrint('Active allotments fetch error in store: $e');
+        debugPrint('Allotment materials fetch error: $e');
+      }
+
+      final Map<String, dynamic> profMap = {};
+      for (var p in profilesQuery) {
+        profMap[p['id'].toString()] = p;
+      }
+
+      final Map<String, dynamic> artMap = {};
+      for (var a in articlesQuery) {
+        artMap[a['id'].toString()] = a;
+      }
+
+      final Map<String, dynamic> chMap = {};
+      for (var c in challansQuery) {
+        chMap[c['id'].toString()] = c;
+      }
+
+      for (var al in allotQuery) {
+        final lId = al['lineman_id']?.toString() ?? '';
+        final aId = al['article_id']?.toString() ?? '';
+        final cId = al['challan_id']?.toString() ?? '';
+        final prof = profMap[lId] ?? {'username': 'Lineman', 'role': 'LINEMAN'};
+        final art = artMap[aId] ?? {'art_no': 'Garment', 'description': ''};
+        final ch = chMap[cId] ?? {'challan_no': 'DIRECT', 'brand': 'INTERNAL'};
+
+        final allotVars = variantsRes.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
+        final Set<String> distinctColors = {};
+        for (var v in allotVars) {
+          if (v['color'] != null && v['color'].toString().trim().isNotEmpty) {
+            distinctColors.add(v['color'].toString().trim().toUpperCase());
+          }
+        }
+
+        String assignedColorLabel = '';
+        if (distinctColors.length == 1) {
+          assignedColorLabel = '${distinctColors.first} LINE';
+        } else if (distinctColors.length > 1) {
+          assignedColorLabel = distinctColors.join(', ');
+        } else if (al['production_order_no'] != null && al['production_order_no'].toString().trim().isNotEmpty) {
+          assignedColorLabel = al['production_order_no'].toString();
+        }
+
+        activeAllotsRes.add({
+          'id': al['id'],
+          'challan_id': cId,
+          'challan_no': ch['challan_no'] ?? 'DIRECT',
+          'challans': ch,
+          'lineman_id': lId,
+          'article_id': aId,
+          'target_qty': (al['target_qty'] as num?)?.toInt() ?? 0,
+          'allotment_date': al['allotment_date'],
+          'status': al['status'],
+          'created_at': al['created_at'],
+          'profiles': prof,
+          'articles': art,
+          'assigned_color_label': assignedColorLabel,
+        });
+      }
+
+      // If allotments query returned empty (due to RLS policy on allotments),
+      // reconstruct active allotment entries from allotment_materials notes
+      final Set<String> seenAllotIds = activeAllotsRes.map((a) => a['id'].toString()).toSet();
+      for (var mat in allotMatsRes) {
+        final aId = mat['allotment_id']?.toString() ?? '';
+        if (aId.isEmpty || seenAllotIds.contains(aId)) continue;
+        seenAllotIds.add(aId);
+
+        Map<String, dynamic> meta = {};
+        if (mat['notes'] != null) {
+          try {
+            meta = jsonDecode(mat['notes']);
+          } catch (_) {}
+        }
+
+        final articleId = meta['article_id']?.toString() ?? '';
+        final linemanId = meta['lineman_id']?.toString() ?? '';
+        final linemanName = meta['lineman_name'] ?? (profMap[linemanId]?['username'] ?? 'Lineman');
+        final artNo = meta['art_no'] ?? (artMap[articleId]?['art_no'] ?? 'Garment');
+        final artDesc = meta['article_description'] ?? (artMap[articleId]?['description'] ?? '');
+        final challanNo = meta['client_challan_no'] ?? 'DIRECT';
+
+        // Calculate total target pcs from variants or meta
+        int targetPcs = 0;
+        final allotVars = variantsRes.where((v) => v['allotment_id']?.toString() == aId).toList();
+        final Set<String> distinctColors = {};
+        for (var v in allotVars) {
+          targetPcs += (v['quantity'] as num?)?.toInt() ?? 0;
+          if (v['color'] != null && v['color'].toString().trim().isNotEmpty) {
+            distinctColors.add(v['color'].toString().trim().toUpperCase());
+          }
+        }
+        if (targetPcs == 0) {
+          targetPcs = int.tryParse(meta['total_pcs']?.toString() ?? '') ?? 
+                      int.tryParse(meta['target_qty']?.toString() ?? '') ?? 0;
+        }
+
+        String assignedColorLabel = '';
+        if (distinctColors.length == 1) {
+          assignedColorLabel = '${distinctColors.first} LINE';
+        } else if (distinctColors.length > 1) {
+          assignedColorLabel = distinctColors.join(', ');
+        } else if (meta['color'] != null && meta['color'].toString().trim().isNotEmpty) {
+          assignedColorLabel = '${meta['color'].toString().trim().toUpperCase()} LINE';
+        }
+
+        activeAllotsRes.add({
+          'id': aId,
+          'challan_id': '',
+          'challan_no': challanNo,
+          'challans': {'challan_no': challanNo, 'brand': meta['brand'] ?? 'INTERNAL'},
+          'lineman_id': linemanId,
+          'article_id': articleId,
+          'target_qty': targetPcs,
+          'allotment_date': mat['created_at']?.toString().split('T')[0] ?? '',
+          'status': meta['status'] ?? 'IN_PROGRESS',
+          'created_at': mat['created_at'],
+          'profiles': {'username': linemanName, 'role': 'LINEMAN'},
+          'articles': {'art_no': artNo, 'description': artDesc},
+          'assigned_color_label': assignedColorLabel,
+        });
       }
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
@@ -1105,6 +1203,25 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
   void _showMaterialHandoverModal() {
+    // Filter for allotments that actually have pending material inspections
+    final pendingAllotments = _activeAllotments.where((al) {
+      final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+      if (mats.isEmpty) return true;
+      return mats.any((m) {
+        bool isIssued = m['admin_issued'] == true;
+        bool isStoreVerified = false;
+        if (m['notes'] != null) {
+          try {
+            final parsed = jsonDecode(m['notes'].toString());
+            if (parsed is Map && parsed['store_verified'] == true) {
+              isStoreVerified = true;
+            }
+          } catch (_) {}
+        }
+        return !isIssued && !isStoreVerified;
+      });
+    }).toList();
+
     if (_activeAllotments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No active allotments found in progress.')),
@@ -1112,7 +1229,57 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       return;
     }
 
-    String selectedAllotmentId = _activeAllotments.first['id'];
+    if (pendingAllotments.isEmpty) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 48),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'All Materials Issued to Floor',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Raw materials & accessories for all active allotments have already been verified and handed over to Linemen.\n\nNo pending inward inspections waiting for store issue.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('OK, All Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    String selectedAllotmentId = pendingAllotments.first['id'];
     final challanController = TextEditingController();
 
     // Map to hold inspection state per material item id
@@ -1126,9 +1293,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          final allotment = _activeAllotments.firstWhere(
+          final allotment = pendingAllotments.firstWhere(
             (a) => a['id'] == selectedAllotmentId,
-            orElse: () => _activeAllotments.first,
+            orElse: () => pendingAllotments.first,
           );
 
           final materials = _allotmentMaterials.where((m) => m['allotment_id'] == selectedAllotmentId).toList();
@@ -1219,13 +1386,17 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       child: DropdownButton<String>(
                         value: selectedAllotmentId,
                         isExpanded: true,
-                        items: _activeAllotments.map((al) {
+                        items: pendingAllotments.map((al) {
                           final lName = al['profiles']?['username'] ?? 'Lineman';
                           final aNo = al['articles']?['art_no'] ?? '';
+                          final cLabel = (al['assigned_color_label']?.toString() ?? '').trim();
                           final qty = al['target_qty'] ?? 0;
+                          final targetTitle = cLabel.isNotEmpty 
+                              ? '$lName • $aNo ($cLabel - $qty pcs)'
+                              : '$lName • $aNo ($qty pcs)';
                           return DropdownMenuItem<String>(
                             value: al['id'],
-                            child: Text('$lName • $aNo ($qty pcs)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                            child: Text(targetTitle, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                           );
                         }).toList(),
                         onChanged: (v) {
@@ -1259,10 +1430,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Article: $artNo (${artDesc.isEmpty ? "Garment" : artDesc})',
+                                'Article: $artNo • ${((allotment['assigned_color_label']?.toString() ?? '').trim().isNotEmpty) ? allotment['assigned_color_label'] : (artDesc.isEmpty ? "Garment Style" : artDesc)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
+                                  fontSize: 13,
                                   color: Color(0xFF0F172A),
                                 ),
                                 maxLines: 2,
@@ -1526,18 +1697,23 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             final shortageText = (state['shortageCtrl'] as TextEditingController?)?.text.trim() ?? '';
                             final remarksText = (state['remarksCtrl'] as TextEditingController?)?.text.trim() ?? '';
 
-                            final notesPayload = {
-                              'received_qty': receivedText.isEmpty ? mat['required_qty'] : receivedText,
-                              'status': status,
-                              'shortage_qty': shortageText.isEmpty ? null : shortageText,
-                              'supplier_challan_no': challanNo.isEmpty ? null : challanNo,
-                              'store_verified': true,
-                              'store_verified_at': nowIso,
-                              'store_remarks': remarksText.isEmpty ? null : remarksText,
-                            };
+                            Map<String, dynamic> existingNotes = {};
+                            if (mat['notes'] != null) {
+                              try {
+                                existingNotes = jsonDecode(mat['notes']);
+                              } catch (_) {}
+                            }
 
-                            // Encode into valid JSON string
-                            final notesJson = '{"lineman_name":"$linemanName","received_qty":"${notesPayload['received_qty']}","status":"$status","shortage_qty":"${notesPayload['shortage_qty'] ?? ''}","supplier_challan_no":"${notesPayload['supplier_challan_no'] ?? ''}","store_verified":true,"store_verified_at":"$nowIso","store_remarks":"${notesPayload['store_remarks'] ?? ''}"}';
+                            existingNotes['lineman_name'] = linemanName;
+                            existingNotes['received_qty'] = receivedText.isEmpty ? mat['required_qty'] : receivedText;
+                            existingNotes['status'] = status;
+                            existingNotes['shortage_qty'] = shortageText.isEmpty ? null : shortageText;
+                            existingNotes['supplier_challan_no'] = challanNo.isEmpty ? null : challanNo;
+                            existingNotes['store_verified'] = true;
+                            existingNotes['store_verified_at'] = nowIso;
+                            existingNotes['store_remarks'] = remarksText.isEmpty ? null : remarksText;
+
+                            final notesJson = jsonEncode(existingNotes);
 
                             await supabase
                                 .from('allotment_materials')
@@ -1642,13 +1818,35 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             ],
                           ),
                           const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              _buildSummaryStat('Finished Stock', '$_totalFinishedStock pcs', Icons.inventory_2_rounded, const Color(0xFF38BDF8)),
-                              _buildSummaryStat('Active Lots', '${_activeAllotments.length} lots', Icons.fact_check_rounded, const Color(0xFF818CF8)),
-                              _buildSummaryStat('Today Inward', '+$_todayInward', Icons.download_rounded, const Color(0xFF34D399)),
-                              _buildSummaryStat('Today Outward', '-$_todayOutward', Icons.upload_rounded, const Color(0xFFF43F5E)),
-                            ],
+                          Builder(
+                            builder: (context) {
+                              final int pendingHandoverCount = _activeAllotments.where((al) {
+                                final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+                                if (mats.isEmpty) return true;
+                                return mats.any((m) {
+                                  bool isIssued = m['admin_issued'] == true;
+                                  bool isStoreVerified = false;
+                                  if (m['notes'] != null) {
+                                    try {
+                                      final parsed = jsonDecode(m['notes'].toString());
+                                      if (parsed is Map && parsed['store_verified'] == true) {
+                                        isStoreVerified = true;
+                                      }
+                                    } catch (_) {}
+                                  }
+                                  return !isIssued && !isStoreVerified;
+                                });
+                              }).length;
+
+                              return Row(
+                                children: [
+                                  _buildSummaryStat('Finished Stock', '$_totalFinishedStock pcs', Icons.inventory_2_rounded, const Color(0xFF38BDF8)),
+                                  _buildSummaryStat('Pending Lots', '$pendingHandoverCount lots', Icons.fact_check_rounded, const Color(0xFF818CF8)),
+                                  _buildSummaryStat('Today Inward', '+$_todayInward', Icons.download_rounded, const Color(0xFF34D399)),
+                                  _buildSummaryStat('Today Outward', '-$_todayOutward', Icons.upload_rounded, const Color(0xFFF43F5E)),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
