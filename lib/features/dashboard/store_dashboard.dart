@@ -1325,15 +1325,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     File? selectedImage;
     bool isSubmitting = false;
 
-    // Initial item list with real default trim templates
-    final List<_AccessoryChallanItem> items = [
-      _AccessoryChallanItem(name: 'Satin Label', size: 'L/XXL', qty: '659', unit: 'pcs', status: 'RECEIVED'),
-      _AccessoryChallanItem(name: 'Marvel Neck Label', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
-      _AccessoryChallanItem(name: 'Cotton 5% Elastane Wash Care', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
-      _AccessoryChallanItem(name: 'Logo', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
-      _AccessoryChallanItem(name: 'Patch', qty: '3912', unit: 'pcs', status: 'RECEIVED'),
-      _AccessoryChallanItem(name: 'Marvel Neck Tape', qty: '800', unit: 'mt', status: 'RECEIVED'),
-    ];
+    // Start with empty items list (Store Manager adds items via presets or Custom button)
+    final List<_AccessoryChallanItem> items = [];
 
     showModalBottomSheet(
       context: context,
@@ -1387,13 +1380,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Accessory Challan Inward', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          Text('Record supplier delivery slip, trims & due items', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Accessory Challan Inward', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                            Text('Record supplier delivery slip, trims & due items', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(10)),
@@ -1431,36 +1427,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
                             filled: true,
                             fillColor: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Quick party chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              'Ollypop Industries',
-                              'Reena (Comfort)',
-                              'White Snore',
-                              'Nonu',
-                              'First Smile',
-                            ].map((p) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: ActionChip(
-                                  label: Text(p, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                                  backgroundColor: Colors.white,
-                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                                  onPressed: () {
-                                    setModalState(() {
-                                      partyController.text = p;
-                                    });
-                                  },
-                                ),
-                              );
-                            }).toList(),
                           ),
                         ),
                         const SizedBox(height: 12),
