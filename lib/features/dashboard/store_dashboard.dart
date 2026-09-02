@@ -569,7 +569,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.download_rounded, color: AppTheme.steel, size: 20),
+                              child: const Icon(Icons.file_download_outlined, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1129,7 +1129,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.upload_rounded, color: AppTheme.steel, size: 20),
+                              child: const Icon(Icons.file_upload_outlined, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1770,7 +1770,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.receipt_long_rounded, color: AppTheme.steel, size: 20),
+                              child: const Icon(Icons.receipt_long_outlined, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -2878,7 +2878,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.fact_check_rounded, color: AppTheme.steel, size: 20),
+                              child: const Icon(Icons.fact_check_outlined, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -3389,7 +3389,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                         .update({
                                           'admin_issued': true,
                                           'notes': notesJson,
-                                          'is_verified': true,
                                         })
                                         .eq('id', mat['id']);
                                   }
@@ -3659,7 +3658,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     _buildActionTile(
                       title: 'Accessory Challan Inward (GRN)',
                       subtitle: 'Record supplier delivery slip, trims, fabrics & due items',
-                      icon: Icons.receipt_long_rounded,
+                      icon: Icons.receipt_long_outlined,
                       color: AppTheme.steel,
                       bgColor: AppTheme.steelMist,
                       onTap: _showAccessoryChallanInwardModal,
@@ -3669,9 +3668,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     _buildActionTile(
                       title: 'BOM Material Handover',
                       subtitle: 'Inspect supplier challan & issue materials to Lineman',
-                      icon: Icons.fact_check_rounded,
-                      color: AppTheme.amber,
-                      bgColor: AppTheme.amberMist,
+                      icon: Icons.fact_check_outlined,
+                      color: AppTheme.steel,
+                      bgColor: AppTheme.steelMist,
                       onTap: _showMaterialHandoverModal,
                     ),
                     const SizedBox(height: 10),
@@ -3679,9 +3678,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     _buildActionTile(
                       title: 'Production Inward',
                       subtitle: 'Receive finished goods from QC / Production',
-                      icon: Icons.download_rounded,
-                      color: AppTheme.green,
-                      bgColor: AppTheme.greenMist,
+                      icon: Icons.file_download_outlined,
+                      color: AppTheme.steel,
+                      bgColor: AppTheme.steelMist,
                       onTap: _showInwardModal,
                     ),
                     const SizedBox(height: 10),
@@ -3689,7 +3688,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     _buildActionTile(
                       title: 'Finished Goods Outward',
                       subtitle: 'Issue goods for dispatch & delivery',
-                      icon: Icons.upload_rounded,
+                      icon: Icons.file_upload_outlined,
                       color: AppTheme.steel,
                       bgColor: AppTheme.steelMist,
                       onTap: _showOutwardModal,
