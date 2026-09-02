@@ -566,10 +566,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppTheme.greenMist,
+                                color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.download_rounded, color: AppTheme.green, size: 20),
+                              child: const Icon(Icons.download_rounded, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -709,10 +709,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                       }
                                     });
                                   },
-                                  icon: const Icon(Icons.flash_on_rounded, size: 14, color: AppTheme.green),
+                                  icon: const Icon(Icons.flash_on_rounded, size: 14, color: AppTheme.steel),
                                   label: Text(
                                     'Fill Allotment Ratio',
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.green),
+                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steel),
                                   ),
                                 ),
                               ],
@@ -796,7 +796,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                   fillColor: AppTheme.bg,
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
-                                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.green, width: 1.5)),
+                                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.steel, width: 1.5)),
                                                 ),
                                                 onChanged: (_) => setModalState(() {}),
                                               ),
@@ -976,7 +976,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           scaffoldMessenger.showSnackBar(
                                             SnackBar(
                                               content: Text('Inwarded $totalInwardPieces pcs across ${rowsToInsert.length} variants to Godown!'),
-                                              backgroundColor: AppTheme.green,
+                                              backgroundColor: AppTheme.steel,
                                             ),
                                           );
                                           _fetchStoreData();
@@ -986,7 +986,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.green,
+                                backgroundColor: AppTheme.steel,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -995,20 +995,34 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.download_rounded, size: 18),
+                                  const Icon(Icons.check_circle_outline_rounded, size: 18),
                                   const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      totalInwardPieces > 0 ? 'Save Inward ($totalInwardPieces pcs)' : 'Enter Quantity',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    totalInwardPieces > 0 ? 'Save Inward' : 'Enter Quantity',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
+                                  if (totalInwardPieces > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.22),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$totalInwardPieces pcs',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -1570,20 +1584,34 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.upload_rounded, size: 18),
+                                  const Icon(Icons.check_circle_outline_rounded, size: 18),
                                   const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      totalDispatchPieces > 0 ? 'Dispatch ($totalDispatchPieces pcs)' : 'Enter Quantity',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    totalDispatchPieces > 0 ? 'Dispatch Goods' : 'Enter Quantity',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
+                                  if (totalDispatchPieces > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.22),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$totalDispatchPieces pcs',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -2847,10 +2875,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppTheme.amberMist,
+                                color: AppTheme.steelMist,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.fact_check_rounded, color: AppTheme.amber, size: 20),
+                              child: const Icon(Icons.fact_check_rounded, color: AppTheme.steel, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -3072,10 +3100,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 margin: const EdgeInsets.only(bottom: 10),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: isShortage ? AppTheme.amberMist : (isDefective ? AppTheme.redMist : Colors.white),
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: isShortage ? AppTheme.amber : (isDefective ? AppTheme.red : AppTheme.border),
+                                    color: isShortage
+                                        ? AppTheme.amber.withValues(alpha: 0.6)
+                                        : (isDefective ? AppTheme.red.withValues(alpha: 0.6) : AppTheme.border),
+                                    width: isShortage || isDefective ? 1.5 : 1,
                                   ),
                                 ),
                                 child: Column(
@@ -3092,28 +3123,28 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(6)),
+                                          decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
                                           child: Text(
                                             'Req: ${mat['required_qty']}',
-                                            style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 11, color: AppTheme.inkSoft),
+                                            style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 11, color: AppTheme.steel),
                                           ),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 10),
 
-                                    // Inspection Status Selector Chips
+                                    // Inspection Status Selector Chips (Harmonized with GRN theme)
                                     Row(
                                       children: [
                                         Expanded(
                                           child: InkWell(
                                             onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'VERIFIED'),
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6),
+                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
                                               decoration: BoxDecoration(
-                                                color: status == 'VERIFIED' ? AppTheme.green : AppTheme.bg,
+                                                color: status == 'VERIFIED' ? AppTheme.steel : AppTheme.bg,
                                                 borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: status == 'VERIFIED' ? AppTheme.green : AppTheme.border),
+                                                border: Border.all(color: status == 'VERIFIED' ? AppTheme.steel : AppTheme.border),
                                               ),
                                               child: Row(
                                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3121,7 +3152,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                   Icon(
                                                     Icons.check_circle_rounded,
                                                     size: 13,
-                                                    color: status == 'VERIFIED' ? Colors.white : AppTheme.green,
+                                                    color: status == 'VERIFIED' ? Colors.white : AppTheme.steel,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
@@ -3142,9 +3173,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           child: InkWell(
                                             onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'SHORTAGE'),
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6),
+                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
                                               decoration: BoxDecoration(
-                                                color: isShortage ? AppTheme.amber : AppTheme.bg,
+                                                color: isShortage ? AppTheme.amberMist : AppTheme.bg,
                                                 borderRadius: BorderRadius.circular(8),
                                                 border: Border.all(color: isShortage ? AppTheme.amber : AppTheme.border),
                                               ),
@@ -3154,7 +3185,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                   Icon(
                                                     Icons.warning_amber_rounded,
                                                     size: 13,
-                                                    color: isShortage ? Colors.white : AppTheme.amber,
+                                                    color: isShortage ? AppTheme.amber : AppTheme.inkSoft,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
@@ -3162,7 +3193,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                     style: GoogleFonts.publicSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w700,
-                                                      color: isShortage ? Colors.white : AppTheme.inkSoft,
+                                                      color: isShortage ? AppTheme.amber : AppTheme.inkSoft,
                                                     ),
                                                   ),
                                                 ],
@@ -3175,9 +3206,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           child: InkWell(
                                             onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'DEFECTIVE'),
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6),
+                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
                                               decoration: BoxDecoration(
-                                                color: isDefective ? AppTheme.red : AppTheme.bg,
+                                                color: isDefective ? AppTheme.redMist : AppTheme.bg,
                                                 borderRadius: BorderRadius.circular(8),
                                                 border: Border.all(color: isDefective ? AppTheme.red : AppTheme.border),
                                               ),
@@ -3187,7 +3218,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                   Icon(
                                                     Icons.cancel_outlined,
                                                     size: 13,
-                                                    color: isDefective ? Colors.white : AppTheme.red,
+                                                    color: isDefective ? AppTheme.red : AppTheme.inkSoft,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
@@ -3195,7 +3226,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                     style: GoogleFonts.publicSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w700,
-                                                      color: isDefective ? Colors.white : AppTheme.inkSoft,
+                                                      color: isDefective ? AppTheme.red : AppTheme.inkSoft,
                                                     ),
                                                   ),
                                                 ],
@@ -3221,12 +3252,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                 controller: receivedCtrl,
                                                 style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
                                                 decoration: InputDecoration(
-                                                  hintText: 'e.g. 12 Cones',
+                                                  hintText: 'Enter physical count',
+                                                  hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkFaint),
                                                   filled: true,
                                                   fillColor: AppTheme.bg,
                                                   contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.steel, width: 1.5)),
                                                 ),
                                               ),
                                             ],
@@ -3364,7 +3397,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                   scaffoldMessenger.showSnackBar(
                                     SnackBar(
                                       content: Text('Raw materials verified & issued to Lineman $linemanName!'),
-                                      backgroundColor: AppTheme.amber,
+                                      backgroundColor: AppTheme.steel,
                                     ),
                                   );
                                   _fetchStoreData();
@@ -3373,7 +3406,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.amber,
+                                backgroundColor: AppTheme.steel,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -3382,7 +3415,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.verified_rounded, size: 18),
+                                  const Icon(Icons.check_circle_outline_rounded, size: 18),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
