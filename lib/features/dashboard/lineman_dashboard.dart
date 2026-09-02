@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/connectivity_indicator.dart';
 import '../../../main.dart';
 
 class LinemanDashboard extends ConsumerStatefulWidget {
@@ -914,12 +913,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             ),
                           ),
 
-                          // Worker Name Input
-                          Text(
-                            'WORKER / TAILOR NAME',
-                            style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft),
-                          ),
-                          const SizedBox(height: 6),
+                          // Worker Name Input (Simplified without redundant tag)
                           Autocomplete<String>(
                             optionsBuilder: (TextEditingValue textEditingValue) {
                               if (textEditingValue.text.isEmpty) return _recentWorkerNames;
@@ -931,14 +925,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 controller: textEditingController,
                                 focusNode: focusNode,
                                 decoration: const InputDecoration(
-                                  hintText: 'e.g. Bablu Tailor',
+                                  hintText: 'Enter the name',
                                   prefixIcon: Icon(Icons.person_outline, size: 20, color: AppTheme.steel),
                                 ),
                                 onChanged: (val) => workerNameController.text = val,
                               );
                             },
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
 
                           // Borrow Worker from Another Line Toggle
                           Container(
@@ -1842,8 +1836,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     return Scaffold(
       backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        toolbarHeight: 64,
-        titleSpacing: 16,
+        toolbarHeight: 68,
+        titleSpacing: 18,
         backgroundColor: AppTheme.bg,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -1858,7 +1852,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   child: Text(
                     'Welcome, $userName',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18.5,
+                      fontSize: 19,
                       fontWeight: FontWeight.w800,
                       color: AppTheme.ink,
                       letterSpacing: -0.4,
@@ -1866,15 +1860,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 const _WavingHandIcon(size: 20),
               ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               'Line Supervisor • Active Floor Shift',
               style: GoogleFonts.publicSans(
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: AppTheme.inkSoft,
               ),
@@ -1882,19 +1876,61 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           ],
         ),
         actions: [
-          const ConnectivityIndicator(),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppTheme.ink),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-              }
-            },
+          // Interactive Resync / Refresh button
+          Tooltip(
+            message: 'Resync Floor Data',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: _fetchDashboardData,
+              child: Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sync_rounded, size: 16, color: AppTheme.steel),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Sync',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.steel,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
+          // Clean Logout Button
+          Container(
+            height: 38,
+            width: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: AppTheme.inkSoft, size: 18),
+              tooltip: 'Logout',
+              padding: EdgeInsets.zero,
+              onPressed: () async {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
         ],
       ),
       body: _isLoading
@@ -2016,7 +2052,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   Widget _buildLiveFloorTab() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2027,46 +2063,48 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               children: [
                 _buildStatCard(
                   'Floor Target',
-                  '$_totalTargetToday pcs',
+                  '$_totalTargetToday',
                   Icons.assignment_rounded,
                   AppTheme.steel,
+                  unit: 'pcs',
                   subtitle: '$_totalAssignedToday pcs with workers',
                 ),
                 const SizedBox(width: 12),
                 _buildStatCard(
                   'Work Done Today',
-                  '$_totalDoneToday pcs',
+                  '$_totalDoneToday',
                   Icons.check_circle_rounded,
                   AppTheme.green,
+                  unit: 'pcs',
                   subtitle: '${_totalTargetToday > 0 ? ((_totalDoneToday / _totalTargetToday) * 100).toStringAsFixed(0) : 0}% completed',
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Mending & Repairs from QC (If Any)
           if (_activeMendingTasks.isNotEmpty) ...[
             _AnimatedFadeSlide(
-              delayMs: 90,
+              delayMs: 70,
               child: _buildMendingTasksSection(),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
           ],
 
           // Active Allotments Section
           _AnimatedFadeSlide(
-            delayMs: 120,
+            delayMs: 100,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Active Allotments',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink, letterSpacing: -0.3),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppTheme.greenMist,
                     borderRadius: BorderRadius.circular(12),
@@ -2075,7 +2113,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   child: Row(
                     children: [
                       Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.green, shape: BoxShape.circle)),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Text(
                         'Live Floor (${_activeAllotments.length})',
                         style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
@@ -2087,7 +2125,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           if (_activeAllotments.isEmpty)
             _AnimatedFadeSlide(delayMs: 150, child: _buildNoAllotmentEmptyState())
@@ -2484,13 +2522,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                top: 20,
+                top: 14,
                 left: 20,
                 right: 20,
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2502,7 +2540,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFCBD5E1),
+                        color: AppTheme.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -2515,10 +2553,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEE2E2),
-                          borderRadius: BorderRadius.circular(10),
+                          color: AppTheme.redMist,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFECDD3)),
                         ),
-                        child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+                        child: const Icon(Icons.warning_amber_rounded, color: AppTheme.red, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -2528,28 +2567,29 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             Text(
                               'Report Line Stoppage / SOS',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0F172A),
+                                fontSize: 17.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.ink,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
                               'Instant Alert to Production Manager Desk',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
                   // 1-Tap Category Chips
                   Text(
                     'SELECT PROBLEM CATEGORY',
-                    style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: const Color(0xFF64748B)),
+                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: AppTheme.inkSoft),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -2579,26 +2619,30 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       return GestureDetector(
                         onTap: () => setModalState(() => selectedCategory = item['key'] as String),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                           decoration: BoxDecoration(
-                            color: isSel ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
+                            color: isSel ? AppTheme.redMist : AppTheme.bg,
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isSel ? const Color(0xFFEF4444) : const Color(0xFFE2E8F0),
+                              color: isSel ? AppTheme.red : AppTheme.border,
                               width: isSel ? 1.5 : 1,
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(item['icon'] as IconData, size: 14, color: isSel ? const Color(0xFFDC2626) : const Color(0xFF64748B)),
+                              Icon(
+                                item['icon'] as IconData,
+                                size: 15,
+                                color: isSel ? AppTheme.red : AppTheme.inkSoft,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 item['label'] as String,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                  color: isSel ? const Color(0xFFDC2626) : const Color(0xFF334155),
+                                  color: isSel ? AppTheme.red : AppTheme.ink,
                                 ),
                               ),
                             ],
@@ -2613,9 +2657,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   if (selectedCategory == 'MACHINE_BREAKDOWN') ...[
                     Text(
                       'AFFECTED MACHINE STATION',
-                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: AppTheme.inkSoft),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -2629,21 +2673,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         return GestureDetector(
                           onTap: () => setModalState(() => selectedStation = st['key'] as String),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isStSel ? const Color(0xFFEFF6FF) : Colors.white,
-                              borderRadius: BorderRadius.circular(6),
+                              color: isStSel ? AppTheme.steelMist : AppTheme.bg,
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: isStSel ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+                                color: isStSel ? AppTheme.steel : AppTheme.border,
                                 width: isStSel ? 1.5 : 1,
                               ),
                             ),
                             child: Text(
                               st['label'] as String,
                               style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: isStSel ? FontWeight.bold : FontWeight.w500,
-                                color: isStSel ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                                fontSize: 12,
+                                fontWeight: isStSel ? FontWeight.bold : FontWeight.w600,
+                                color: isStSel ? AppTheme.steel : AppTheme.ink,
                               ),
                             ),
                           ),
@@ -2657,12 +2701,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   TextField(
                     controller: noteController,
                     decoration: InputDecoration(
-                      hintText: 'Add details (e.g. Motor fuse burnt, needle jammed)...',
-                      hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                      hintText: 'Add details (e.g. Needle jammed, motor fuse)...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      fillColor: AppTheme.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.steel, width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                     style: const TextStyle(fontSize: 13),
                   ),
@@ -2671,7 +2717,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   // Send SOS Button
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () {
                         final alotId = a['id'].toString();
@@ -2690,22 +2736,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               children: [
                                 Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                                 SizedBox(width: 8),
-                                Text(' Alert Sent to Production Manager!'),
+                                Text('Alert Sent to Production Manager!'),
                               ],
                             ),
-                            backgroundColor: Color(0xFFDC2626),
+                            backgroundColor: AppTheme.red,
                             duration: Duration(seconds: 4),
                           ),
                         );
                       },
-                      icon: const Icon(Icons.send_rounded, size: 16, color: Colors.white),
+                      icon: const Icon(Icons.send_rounded, size: 17, color: Colors.white),
                       label: Text(
                         'SEND ALERT TO MANAGER',
-                        style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
+                        style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: AppTheme.red,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                     ),
@@ -2771,15 +2817,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
+            blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
@@ -2790,14 +2836,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           // Material Handover Alert Banner (3-Way Handshake)
           if (hasMaterials)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: materialsConfirmed
                     ? AppTheme.greenMist
                     : isStoreIssued
                         ? (hasShortage ? AppTheme.amberMist : AppTheme.steelMist)
                         : AppTheme.bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 border: Border(
                   bottom: BorderSide(
                     color: materialsConfirmed
@@ -2815,15 +2861,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         ? Icons.verified_rounded
                         : isStoreIssued
                             ? (hasShortage ? Icons.warning_amber_rounded : Icons.local_shipping_rounded)
-                            : Icons.lock_clock_rounded,
+                            : Icons.lock_clock_outlined,
                     color: materialsConfirmed
                         ? AppTheme.green
                         : isStoreIssued
                             ? (hasShortage ? AppTheme.amber : AppTheme.steel)
                             : AppTheme.amber,
-                    size: 18,
+                    size: 19,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       materialsConfirmed
@@ -2834,7 +2880,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   : 'Raw Materials Ready from Store (${materials.length} items)')
                               : 'Materials Awaiting Store Godown Inspection (${materials.length} items)',
                       style: GoogleFonts.publicSans(
-                        fontSize: 11.5,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: materialsConfirmed
                             ? AppTheme.green
@@ -2848,12 +2894,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     _BouncyTap(
                       onTap: () => _confirmMaterialReceipt(a),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
                           color: hasShortage ? AppTheme.amber : AppTheme.steel,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('Receive Materials', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: const Text('Receive Materials', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                 ],
@@ -2861,12 +2907,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             ),
 
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Column(
@@ -2903,25 +2950,25 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             }
 
                             return Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
+                              spacing: 8,
+                              runSpacing: 6,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: AppTheme.bg,
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: AppTheme.border),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.receipt_rounded, size: 11, color: AppTheme.steel),
-                                      const SizedBox(width: 3),
+                                      const Icon(Icons.receipt_rounded, size: 13, color: AppTheme.steel),
+                                      const SizedBox(width: 4),
                                       Text(
                                         poNo,
                                         style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 10,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w700,
                                           color: AppTheme.ink,
                                         ),
@@ -2931,21 +2978,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 ),
                                 if (priority == 'CRITICAL' || priority == 'RUSH')
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: AppTheme.redMist,
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: const Color(0xFFFECDD3)),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.local_fire_department_rounded, size: 11, color: AppTheme.red),
-                                        const SizedBox(width: 2),
+                                        const Icon(Icons.local_fire_department_rounded, size: 13, color: AppTheme.red),
+                                        const SizedBox(width: 3),
                                         Text(
                                           priority == 'CRITICAL' ? 'CRITICAL' : 'RUSH',
                                           style: GoogleFonts.publicSans(
-                                            fontSize: 9.5,
+                                            fontSize: 11.5,
                                             fontWeight: FontWeight.bold,
                                             color: AppTheme.red,
                                           ),
@@ -2955,21 +3002,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   ),
                                 if (dueDate.isNotEmpty)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: AppTheme.bg,
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: AppTheme.border),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.timer_outlined, size: 11, color: AppTheme.inkFaint),
-                                        const SizedBox(width: 2),
+                                        const Icon(Icons.timer_outlined, size: 13, color: AppTheme.inkSoft),
+                                        const SizedBox(width: 4),
                                         Text(
                                           'Due: $dueDate',
                                           style: GoogleFonts.publicSans(
-                                            fontSize: 9.5,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             color: AppTheme.inkSoft,
                                           ),
@@ -2979,21 +3026,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   ),
                                 if (mgr.isNotEmpty)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: AppTheme.bg,
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: AppTheme.border),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.person_pin_rounded, size: 12, color: AppTheme.inkFaint),
-                                        const SizedBox(width: 3),
+                                        const Icon(Icons.person_pin_rounded, size: 14, color: AppTheme.inkSoft),
+                                        const SizedBox(width: 4),
                                         Text(
                                           'PM: $mgr',
                                           style: GoogleFonts.publicSans(
-                                            fontSize: 10,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             color: AppTheme.inkSoft,
                                           ),
@@ -3004,28 +3051,29 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               ],
                             );
                           }(),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             'Art No: ${art?['art_no'] ?? '-'}',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w800,
                               color: AppTheme.steelDark,
+                              letterSpacing: -0.4,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             art?['description'] ?? 'Garment Style',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                            style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w500, color: AppTheme.inkSoft),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: percent >= 100 ? AppTheme.greenMist : AppTheme.bg,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: percent >= 100 ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.border,
                         ),
@@ -3034,8 +3082,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         '$percent%',
                         style: GoogleFonts.jetBrainsMono(
                           color: percent >= 100 ? AppTheme.green : AppTheme.ink,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -3144,33 +3192,60 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   );
                 }(),
 
-                // Size & Color Matrix Chips
+                // Size & Color Matrix Chips (Visual Variant Design)
                 if (colorGroups.isNotEmpty) ...[
                   Text(
                     'SIZE & COLOR RATIOS',
-                    style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: AppTheme.inkSoft),
+                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.9, color: AppTheme.inkSoft),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: colorGroups.entries.map((cg) {
-                      final sizeStr = cg.value.map((v) => '${v['size']}:${v['quantity']}').join(', ');
+                      final sizeBreakdown = cg.value.map((v) => '${v['size']}: ${v['quantity']}').join(' · ');
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
                           color: AppTheme.bg,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppTheme.border),
                         ),
-                        child: Text(
-                          '${cg.key} ($sizeStr)',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.steel,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Text(
+                              cg.key,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.ink,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '($sizeBreakdown)',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.inkSoft,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                 ],
 
                 // Smooth Animated Progress Bar
@@ -3190,19 +3265,29 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     },
                   ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _miniLabel('Target', '$target pcs', AppTheme.ink),
-                    const SizedBox(width: 6),
-                    _miniLabel('Assigned', '$assigned pcs', AppTheme.steel),
-                    const SizedBox(width: 6),
-                    _miniLabel('Done', '$done pcs', AppTheme.green),
-                    const SizedBox(width: 6),
-                    _miniLabel('Left', '$remaining pcs', remaining > 0 ? AppTheme.amber : AppTheme.inkFaint),
-                  ],
+                const SizedBox(height: 12),
+
+                // Unified Telemetry Bar (Target / Assigned / Done / Left)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Row(
+                    children: [
+                      _telemetryCell('Target', '$target', 'pcs', AppTheme.ink),
+                      _cellDivider(),
+                      _telemetryCell('Assigned', '$assigned', 'pcs', AppTheme.steel),
+                      _cellDivider(),
+                      _telemetryCell('Done', '$done', 'pcs', done > 0 ? AppTheme.green : AppTheme.inkSoft),
+                      _cellDivider(),
+                      _telemetryCell('Left', '$remaining', 'pcs', remaining > 0 ? AppTheme.amber : AppTheme.green),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
 
                 // Active SOS Alert Banner (If pending)
                 () {
@@ -3243,22 +3328,29 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   children: [
                     // SOS 1-Tap Trigger Button
                     Container(
-                      height: 44,
-                      margin: const EdgeInsets.only(right: 8),
+                      height: 48,
+                      margin: const EdgeInsets.only(right: 10),
                       child: OutlinedButton(
                         onPressed: () => _showFloorSosBottomSheet(a),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                          side: const BorderSide(color: Color(0xFFFECDD3), width: 1.2),
                           backgroundColor: const Color(0xFFFFF1F2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.warning_amber_rounded, size: 17, color: Color(0xFFE11D48)),
-                            SizedBox(width: 4),
-                            Text('SOS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFE11D48))),
+                            const Icon(Icons.warning_amber_rounded, size: 19, color: Color(0xFFE11D48)),
+                            const SizedBox(width: 5),
+                            Text(
+                              'SOS',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFE11D48),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -3269,19 +3361,24 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                           ? _BouncyTap(
                               onTap: () => _completeAllotment(a),
                               child: Container(
-                                height: 44,
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: AppTheme.green,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.white),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Finish Lot & Move to History',
-                                      style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                                    const Icon(Icons.check_circle_outline_rounded, size: 19, color: Colors.white),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Finish Lot & Move to History',
+                                        style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -3290,19 +3387,24 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                           : _BouncyTap(
                               onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
                               child: Container(
-                                height: 44,
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: remaining > 0 ? AppTheme.steel : AppTheme.border,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.person_add_alt_1_rounded, size: 18, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      remaining > 0 ? 'Assign next batch — $remaining left' : 'All Batches Assigned',
-                                      style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                    Icon(Icons.person_add_alt_1_rounded, size: 19, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        remaining > 0 ? 'Assign Batch ($remaining left)' : 'All Batches Assigned',
+                                        style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -3319,43 +3421,52 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     );
   }
 
-  Widget _miniLabel(String label, String value, Color color) {
+  Widget _telemetryCell(String label, String value, String unit, Color color) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: AppTheme.bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.jetBrainsMono(
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-                color: color,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: color,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label.toUpperCase(),
-              style: GoogleFonts.publicSans(
-                fontSize: 8.5,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-                color: AppTheme.inkSoft,
+              const SizedBox(width: 2),
+              Text(
+                unit,
+                style: GoogleFonts.publicSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.inkSoft,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.publicSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: AppTheme.inkSoft,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _cellDivider() {
+    return Container(width: 1, height: 32, color: AppTheme.border);
   }
 
   // ==========================================
@@ -4032,18 +4143,18 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? subtitle}) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? unit, String? subtitle}) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: AppTheme.card,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.border),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
@@ -4051,46 +4162,65 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    value,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: AppTheme.ink,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        value,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                          color: AppTheme.ink,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (unit != null) ...[
+                        const SizedBox(width: 3),
+                        Text(
+                          unit,
+                          style: GoogleFonts.publicSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.inkSoft,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     label,
                     style: GoogleFonts.publicSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
                       color: AppTheme.inkSoft,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: GoogleFonts.publicSans(
-                        fontSize: 9.5,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: color,
+                        color: color == AppTheme.green ? AppTheme.green : AppTheme.inkSoft,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -4413,9 +4543,10 @@ class _WavingHandIconState extends State<_WavingHandIcon>
           child: child,
         );
       },
-      child: Text(
-        '👋',
-        style: TextStyle(fontSize: widget.size),
+      child: Icon(
+        Icons.waving_hand_outlined,
+        color: AppTheme.steel,
+        size: widget.size,
       ),
     );
   }
