@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/widgets/connectivity_indicator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
@@ -2610,24 +2610,109 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final user = supabase.auth.currentUser;
+    final userName = user?.userMetadata?['full_name'] ??
+        user?.email?.split('@')[0] ??
+        'Store Keeper';
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        title: const Text('Store Ledger'),
+        toolbarHeight: 68,
+        titleSpacing: 18,
+        backgroundColor: AppTheme.bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Welcome, $userName',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.4,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const _WavingHandIcon(size: 20),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Store & Godown Shift',
+              style: GoogleFonts.publicSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.inkSoft,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          const ConnectivityIndicator(),
-          const SizedBox(width: 4),
-          IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: 'Refresh', onPressed: _fetchStoreData),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-              }
-            },
+          // Live Sync / Refresh button
+          Tooltip(
+            message: 'Resync Store Data',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: _fetchStoreData,
+              child: Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sync_rounded, size: 16, color: AppTheme.steel),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Sync',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.steel,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
+          // Clean Logout button
+          Container(
+            height: 38,
+            width: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: AppTheme.inkSoft, size: 18),
+              tooltip: 'Logout',
+              padding: EdgeInsets.zero,
+              onPressed: () async {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
         ],
       ),
       body: _isLoading
@@ -2635,153 +2720,229 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           : RefreshIndicator(
               onRefresh: _fetchStoreData,
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20.0),
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ====== STORE INVENTORY SUMMARY CARD ======
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 8)),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Store & Godown Ledger', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                  Text('Finished Goods & Raw Materials Inventory', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    // ====== STORE INVENTORY SUMMARY STATS ======
+                    Builder(
+                      builder: (context) {
+                        final int pendingHandoverCount = _activeAllotments.where((al) {
+                          final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+                          if (mats.isEmpty) return true;
+                          return mats.any((m) {
+                            bool isIssued = m['admin_issued'] == true;
+                            bool isStoreVerified = false;
+                            if (m['notes'] != null) {
+                              try {
+                                final parsed = jsonDecode(m['notes'].toString());
+                                if (parsed is Map && parsed['store_verified'] == true) {
+                                  isStoreVerified = true;
+                                }
+                              } catch (_) {}
+                            }
+                            return !isIssued && !isStoreVerified;
+                          });
+                        }).length;
+
+                        return Column(
+                          children: [
+                            // Two Hero Stat Cards (Vertical layout prevents any text truncation)
+                            Row(
+                              children: [
+                                _buildStatCard(
+                                  'Finished Stock',
+                                  '$_totalFinishedStock',
+                                  Icons.inventory_2_rounded,
+                                  AppTheme.steel,
+                                  unit: 'pcs',
+                                  subtitle: 'Ready in Store',
+                                ),
+                                const SizedBox(width: 12),
+                                _buildStatCard(
+                                  'Floor Handover',
+                                  '$pendingHandoverCount',
+                                  Icons.fact_check_rounded,
+                                  pendingHandoverCount > 0 ? AppTheme.amber : AppTheme.green,
+                                  unit: 'lots',
+                                  subtitle: pendingHandoverCount > 0 ? 'Pending Issue' : 'All lots cleared',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Unified 4-Column Telemetry Strip with Short Punchy Labels
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.card,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppTheme.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.02),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
                                 ],
                               ),
-                              Icon(Icons.warehouse_rounded, color: Colors.white70, size: 28),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Builder(
-                            builder: (context) {
-                              final int pendingHandoverCount = _activeAllotments.where((al) {
-                                final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-                                if (mats.isEmpty) return true;
-                                return mats.any((m) {
-                                  bool isIssued = m['admin_issued'] == true;
-                                  bool isStoreVerified = false;
-                                  if (m['notes'] != null) {
-                                    try {
-                                      final parsed = jsonDecode(m['notes'].toString());
-                                      if (parsed is Map && parsed['store_verified'] == true) {
-                                        isStoreVerified = true;
-                                      }
-                                    } catch (_) {}
-                                  }
-                                  return !isIssued && !isStoreVerified;
-                                });
-                              }).length;
-
-                              return Row(
+                              child: Row(
                                 children: [
-                                  _buildSummaryStat('Finished Stock', '$_totalFinishedStock pcs', Icons.inventory_2_rounded, const Color(0xFF38BDF8)),
-                                  _buildSummaryStat('Pending Lots', '$pendingHandoverCount lots', Icons.fact_check_rounded, const Color(0xFF818CF8)),
-                                  _buildSummaryStat('Challans Inward', '+$_todayTruckCount slips', Icons.receipt_long_rounded, const Color(0xFF34D399)),
-                                  _buildSummaryStat('Today Outward', '-$_todayOutward', Icons.upload_rounded, const Color(0xFFF43F5E)),
+                                  _telemetryCell('STOCK', '$_totalFinishedStock', 'pcs', AppTheme.ink),
+                                  _cellDivider(),
+                                  _telemetryCell('PENDING', '$pendingHandoverCount', 'lots', pendingHandoverCount > 0 ? AppTheme.amber : AppTheme.green),
+                                  _cellDivider(),
+                                  _telemetryCell('INWARD', '+$_todayTruckCount', 'slips', AppTheme.steel),
+                                  _cellDivider(),
+                                  _telemetryCell('OUTWARD', '-$_todayOutward', 'pcs', _todayOutward > 0 ? AppTheme.red : AppTheme.inkSoft),
                                 ],
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 24),
 
                     // ====== STORE QUICK ACTIONS ======
-                    const Text('Store Quick Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                    Text(
+                      'Store Quick Actions',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.ink,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
                     const SizedBox(height: 12),
 
                     _buildActionTile(
-                      title: 'ACCESSORY CHALLAN INWARD (GRN)',
+                      title: 'Accessory Challan Inward (GRN)',
                       subtitle: 'Record supplier delivery slip, trims, fabrics & due items',
                       icon: Icons.receipt_long_rounded,
-                      color: const Color(0xFF0284C7),
-                      bgColor: const Color(0xFFE0F2FE),
+                      color: AppTheme.steel,
+                      bgColor: AppTheme.steelMist,
                       onTap: _showAccessoryChallanInwardModal,
                     ),
                     const SizedBox(height: 10),
 
                     _buildActionTile(
-                      title: 'BOM MATERIAL HANDOVER',
+                      title: 'BOM Material Handover',
                       subtitle: 'Inspect supplier challan & issue materials to Lineman',
                       icon: Icons.fact_check_rounded,
-                      color: const Color(0xFF4F46E5),
-                      bgColor: const Color(0xFFEEF2FF),
+                      color: AppTheme.amber,
+                      bgColor: AppTheme.amberMist,
                       onTap: _showMaterialHandoverModal,
                     ),
                     const SizedBox(height: 10),
 
                     _buildActionTile(
-                      title: 'INWARD',
+                      title: 'Production Inward',
                       subtitle: 'Receive finished goods from QC / Production',
                       icon: Icons.download_rounded,
-                      color: const Color(0xFF047857),
-                      bgColor: const Color(0xFFECFDF5),
+                      color: AppTheme.green,
+                      bgColor: AppTheme.greenMist,
                       onTap: _showInwardModal,
                     ),
                     const SizedBox(height: 10),
 
                     _buildActionTile(
-                      title: 'OUTWARD',
+                      title: 'Finished Goods Outward',
                       subtitle: 'Issue goods for dispatch & delivery',
                       icon: Icons.upload_rounded,
-                      color: const Color(0xFF2563EB),
-                      bgColor: const Color(0xFFEFF6FF),
+                      color: AppTheme.steel,
+                      bgColor: AppTheme.steelMist,
                       onTap: _showOutwardModal,
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 26),
 
                     // ====== RECENT ACCESSORY CHALLANS (GRN) FEED ======
                     if (_truckInwards.isNotEmpty) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Recent Supplier Challans (GRN)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                          Text('${_truckInwards.length} slips', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            'Recent Supplier Challans (GRN)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.ink,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.steelMist,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.steelTint),
+                            ),
+                            child: Text(
+                              '${_truckInwards.length} slips',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.steel,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       ..._truckInwards.map((inward) => _buildTruckInwardCard(inward)),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                     ],
 
                     // ====== STORE LEDGER ACTIVITY FEED ======
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Recent Store Ledger Feed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                        Text('${_storeLogs.length} entries', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          'Recent Store Ledger Feed',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.steelMist,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.steelTint),
+                          ),
+                          child: Text(
+                            '${_storeLogs.length} entries',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.steel,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
 
                     if (_storeLogs.isEmpty)
                       Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
-                        child: const Center(
-                          child: Text('No store transactions logged yet.\nTap INWARD, OUTWARD, or ACCESSORY CHALLAN above to record movements.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5)),
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'No store transactions logged yet.\nTap Inward, Outward, or Accessory Challan above to record movements.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontSize: 13, height: 1.5),
+                          ),
                         ),
                       )
                     else
@@ -2795,18 +2956,145 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  Widget _buildSummaryStat(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? unit, String? subtitle}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                if (unit != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Text(
+                      unit,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.inkSoft,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: GoogleFonts.jetBrainsMono(
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+                color: AppTheme.ink,
+                letterSpacing: -0.5,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.ink,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: GoogleFonts.publicSans(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: color == AppTheme.green ? AppTheme.green : AppTheme.inkSoft,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _telemetryCell(String label, String value, String unit, Color color) {
     return Expanded(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10), textAlign: TextAlign.center),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Text(
+                unit,
+                style: GoogleFonts.publicSans(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.inkSoft,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.publicSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: AppTheme.inkSoft,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
+  }
+
+  Widget _cellDivider() {
+    return Container(width: 1, height: 30, color: AppTheme.border);
   }
 
   Widget _buildActionTile({
@@ -2819,20 +3107,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 3))],
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
@@ -2840,13 +3138,28 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.inkSoft,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, size: 22, color: AppTheme.inkFaint),
           ],
         ),
       ),
@@ -2859,8 +3172,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
     if (isAcc) {
       final isIN = log['action'] == 'IN';
-      final badgeColor = isIN ? const Color(0xFF047857) : Colors.orange.shade800;
-      final badgeBg = isIN ? const Color(0xFFECFDF5) : Colors.orange.shade50;
+      final badgeColor = isIN ? AppTheme.green : AppTheme.amber;
+      final badgeBg = isIN ? AppTheme.greenMist : AppTheme.amberMist;
       final badgeText = isIN ? 'Trims IN' : 'Trims OUT';
       final itemName = log['item_name'] ?? 'Item';
       final qty = log['quantity'] ?? 0;
@@ -2868,12 +3181,15 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final party = log['party_name'] ?? '';
 
       return Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+          ],
         ),
         child: Row(
           children: [
@@ -2884,34 +3200,47 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(8)),
-                        child: Text(badgeText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badgeColor)),
+                        child: Text(badgeText, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor)),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text(itemName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textDark), overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          itemName,
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.ink),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "• $party" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                  Text(
+                    '${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "• $party" : ""}',
+                    style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                  ),
                   if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text('Note: ${log['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Note: ${log['notes']}',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
+                    ),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            Text(timeStr, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+            Text(
+              timeStr,
+              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.inkFaint, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       );
     } else {
       final isIN = log['type'] == 'INWARD';
-      final badgeColor = isIN ? const Color(0xFF047857) : const Color(0xFF2563EB);
-      final badgeBg = isIN ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF);
+      final badgeColor = isIN ? AppTheme.green : AppTheme.steel;
+      final badgeBg = isIN ? AppTheme.greenMist : AppTheme.steelMist;
       final badgeText = isIN ? 'Inward' : 'Outward';
       final artNo = log['art_no'] ?? '-';
       final color = log['color'] ?? '';
@@ -2923,12 +3252,15 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final challan = log['challan_no'] ?? '';
 
       return Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppTheme.border),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+          ],
         ),
         child: Row(
           children: [
@@ -2939,27 +3271,40 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(8)),
-                        child: Text(badgeText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badgeColor)),
+                        child: Text(badgeText, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor)),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text('$artNo$variantStr', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textDark), overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          '$artNo$variantStr',
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.ink),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "• $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}', style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+                  Text(
+                    '${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "• $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}',
+                    style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                  ),
                   if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text('Note: ${log['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Note: ${log['notes']}',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
+                    ),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            Text(timeStr, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+            Text(
+              timeStr,
+              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.inkFaint, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       );
@@ -2977,30 +3322,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final shortageCount = inward['shortage_items_count'] ?? 0;
     final photoUrl = inward['challan_photo_url'] as String?;
 
-    Color badgeColor = const Color(0xFF047857);
-    Color badgeBg = const Color(0xFFECFDF5);
+    Color badgeColor = AppTheme.green;
+    Color badgeBg = AppTheme.greenMist;
     String statusText = 'Verified ($totalItems items)';
     IconData statusIcon = Icons.check_circle_rounded;
 
     if (dueCount > 0) {
-      badgeColor = const Color(0xFF7C3AED);
-      badgeBg = const Color(0xFFFAF5FF);
+      badgeColor = AppTheme.steel;
+      badgeBg = AppTheme.steelMist;
       statusText = '$dueCount Due Items';
       statusIcon = Icons.pending_actions_rounded;
     } else if (shortageCount > 0) {
-      badgeColor = const Color(0xFFD97706);
-      badgeBg = const Color(0xFFFFFBEB);
+      badgeColor = AppTheme.amber;
+      badgeBg = AppTheme.amberMist;
       statusText = '$shortageCount Shortage';
       statusIcon = Icons.warning_amber_rounded;
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
         ],
@@ -3012,18 +3357,18 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(8)),
-                child: Text(grnNo, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(8)),
+                child: Text(grnNo, style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.steel)),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(8)),
                 child: Row(
                   children: [
-                    Icon(statusIcon, size: 12, color: badgeColor),
+                    Icon(statusIcon, size: 13, color: badgeColor),
                     const SizedBox(width: 4),
-                    Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badgeColor)),
+                    Text(statusText, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: badgeColor)),
                   ],
                 ),
               ),
@@ -3032,31 +3377,34 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           const SizedBox(height: 8),
           Text(
             partyName + (articleNo.isNotEmpty ? ' • Art $articleNo' : ''),
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14.5, color: AppTheme.ink),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
               Text(
                 'Challan: ${challanNo.isNotEmpty ? challanNo : "Direct"} • $inwardDate',
-                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
               ),
               const Spacer(),
               if (photoUrl != null && photoUrl.isNotEmpty)
                 InkWell(
                   onTap: () => _showPhotoViewerModal(photoUrl, '$partyName (Challan #$challanNo)'),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.border),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.photo_rounded, size: 12, color: Color(0xFF334155)),
-                        SizedBox(width: 4),
-                        Text('View Slip', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                        const Icon(Icons.photo_rounded, size: 13, color: AppTheme.steel),
+                        const SizedBox(width: 4),
+                        Text(
+                          'View Slip',
+                          style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                        ),
                       ],
                     ),
                   ),
@@ -3065,9 +3413,68 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           ),
           if (inward['notes'] != null && inward['notes'].toString().isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Remarks: ${inward['notes']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+            Text(
+              'Remarks: ${inward['notes']}',
+              style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
+            ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _WavingHandIcon extends StatefulWidget {
+  final double size;
+  const _WavingHandIcon({this.size = 20});
+
+  @override
+  State<_WavingHandIcon> createState() => _WavingHandIconState();
+}
+
+class _WavingHandIconState extends State<_WavingHandIcon> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _waveAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+
+    _waveAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -0.26).chain(CurveTween(curve: Curves.easeOut)), weight: 12),
+      TweenSequenceItem(tween: Tween(begin: -0.26, end: 0.22).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
+      TweenSequenceItem(tween: Tween(begin: 0.22, end: -0.22).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
+      TweenSequenceItem(tween: Tween(begin: -0.22, end: 0.16).chain(CurveTween(curve: Curves.easeInOut)), weight: 14),
+      TweenSequenceItem(tween: Tween(begin: 0.16, end: 0.0).chain(CurveTween(curve: Curves.easeIn)), weight: 12),
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 30),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _waveAnim,
+      builder: (context, child) {
+        return Transform.rotate(
+          angle: _waveAnim.value,
+          alignment: const Alignment(0.4, 0.9),
+          child: child,
+        );
+      },
+      child: Icon(
+        Icons.waving_hand_outlined,
+        color: AppTheme.steel,
+        size: widget.size,
       ),
     );
   }
