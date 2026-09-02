@@ -29,7 +29,7 @@ class NubiraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nubira Mobile',
+      title: 'Zigza',
       theme: AppTheme.lightTheme,
       home: const LoginScreen(), // We will update this to check auth state next
       debugShowCheckedModeBanner: false,

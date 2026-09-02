@@ -270,11 +270,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Brand Name (Fraunces 700 26px)
                   Text(
-                    'Nubira Floor',
+                    'Zigza',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
                       color: AppTheme.ink,
                       letterSpacing: -0.5,
                     ),
@@ -677,7 +677,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // 6. VERSION FOOTER
                   // ==========================================
                   Text(
-                    'NUBIRA FLOOR · $_appVersion',
+                    'ZIGZA · $_appVersion',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 10,
