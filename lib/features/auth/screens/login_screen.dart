@@ -213,46 +213,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.bg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  
-                  // ==========================================
-                  // 1. BRAND HEADER
-                  // ==========================================
-                  Center(
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: AppTheme.steel,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.steelDark.withValues(alpha: 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Factory Line Art Sketch with warm brand overlay
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.12,
+              child: Image.asset(
+                'assets/images/factory_bg_sketch.jpg',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      
+                      // ==========================================
+                      // 1. BRAND HEADER
+                      // ==========================================
+                      Center(
+                        child: Container(
+                          width: 68,
+                          height: 68,
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: AppTheme.border, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.steel.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      // TODO: replace with actual Nubira logo asset
-                      child: const Center(
-                        child: Icon(
-                          Icons.precision_manufacturing_rounded,
-                          size: 34,
-                          color: Colors.white,
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/icon.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                   // Brand Name (Fraunces 700 26px)
                   Text(
@@ -321,7 +335,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       color: AppTheme.card,
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppTheme.border, width: 1),
                       boxShadow: [
                         BoxShadow(
@@ -364,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.steel, size: 20),
                             fillColor: _usernameError != null ? AppTheme.redMist : AppTheme.card,
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                 color: _usernameError != null ? AppTheme.red : AppTheme.border,
                                 width: 1,
@@ -433,7 +447,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             fillColor: _passwordError != null ? AppTheme.redMist : AppTheme.card,
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                 color: _passwordError != null ? AppTheme.red : AppTheme.border,
                                 width: 1,
@@ -531,7 +545,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               backgroundColor: AppTheme.steel,
                               disabledBackgroundColor: AppTheme.steel.withValues(alpha: 0.55),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
                             child: authState.isLoading
@@ -679,7 +693,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 }
 
