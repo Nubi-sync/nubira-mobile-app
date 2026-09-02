@@ -754,447 +754,581 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       return (t - a).clamp(0, t > 0 ? t : 99999);
     }
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.steelMist,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.steel, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Assign Batch - ${allotment['articles']?['art_no'] ?? ''}',
-                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.ink),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Info Banner
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.steelMist,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppTheme.steelTint),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Target: $target pcs',
-                          style: GoogleFonts.jetBrainsMono(color: AppTheme.steelDark, fontWeight: FontWeight.w700, fontSize: 11.5),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Remaining: $remaining pcs',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.jetBrainsMono(
-                            color: remaining > 0 ? AppTheme.green : AppTheme.red,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Worker Name Input
-                Text('WORKER / TAILOR NAME', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                const SizedBox(height: 6),
-                Autocomplete<String>(
-                  optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text.isEmpty) return _recentWorkerNames;
-                    return _recentWorkerNames.where((String option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                  },
-                  onSelected: (String selection) => workerNameController.text = selection,
-                  fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                    return TextField(
-                      controller: textEditingController,
-                      focusNode: focusNode,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Bablu Tailor',
-                        prefixIcon: Icon(Icons.person_outline, size: 20, color: AppTheme.steel),
-                      ),
-                      onChanged: (val) => workerNameController.text = val,
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-
-                // Borrow Worker from Another Line Toggle
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isBorrowedWorker ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isBorrowedWorker ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.swap_horiz_rounded,
-                                  size: 16,
-                                  color: isBorrowedWorker ? const Color(0xFFD97706) : AppTheme.steel,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    'Borrow Tailor from Other Line',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: isBorrowedWorker ? const Color(0xFF92400E) : AppTheme.inkSoft,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+        builder: (context, setDialogState) {
+          final mediaQuery = MediaQuery.of(context);
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: mediaQuery.size.height * 0.88,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: mediaQuery.viewInsets.bottom,
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top Drag Handle & Title Bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 38,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppTheme.border,
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          Transform.scale(
-                            scale: 0.8,
-                            child: Switch(
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              value: isBorrowedWorker,
-                              activeColor: const Color(0xFFD97706),
-                              onChanged: (val) => setDialogState(() => isBorrowedWorker = val),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (isBorrowedWorker) ...[
-                        const SizedBox(height: 6),
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
-                            Text(
-                              'Borrowed from: ',
-                              style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFCBD5E1)),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: borrowedFromLine,
-                                    isExpanded: true,
-                                    items: [
-                                      'Line 1 (Om)',
-                                      'Line 2 (Suman)',
-                                      'Line 3 (Sachin)',
-                                      'Line 4 (Sarthak)',
-                                      'Outside Contract'
-                                    ].map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)))).toList(),
-                                    onChanged: (v) {
-                                      if (v != null) setDialogState(() => borrowedFromLine = v);
-                                    },
-                                  ),
-                                ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.steelMist,
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.steel, size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Assign Batch',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16.5,
+                                      color: AppTheme.ink,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Art No: ${allotment['articles']?['art_no'] ?? ''}',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      color: AppTheme.inkSoft,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft),
+                              tooltip: 'Close',
                             ),
                           ],
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 14),
+                  const Divider(height: 1, color: AppTheme.border),
 
-                // Color Variant Picker
-                if (colorsList.isNotEmpty) ...[
-                  Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedColor,
-                    isExpanded: true,
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
-                    items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedColor = val);
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
-                // Size Ratio Picker with Admin Target & Remaining breakdown
-                if (sizesList.isNotEmpty) ...[
-                  Text('SIZE RATIO & TARGET', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedSize,
-                    isExpanded: true,
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
-                    items: sizesList.map((s) {
-                      final sTarget = getVariantTarget(selectedColor, s);
-                      final sLeft = getVariantRemaining(selectedColor, s);
-                      final label = sTarget > 0 ? '$s • $sLeft left (of $sTarget pcs)' : s;
-                      return DropdownMenuItem(
-                        value: s,
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: sLeft == 0 && sTarget > 0 ? const Color(0xFF94A3B8) : AppTheme.ink,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedSize = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Dedicated Size Target Highlight Card (Zero Overflow Responsive)
-                  () {
-                    final curTarget = getVariantTarget(selectedColor, selectedSize);
-                    final curAssigned = getVariantAssigned(selectedColor, selectedSize);
-                    final curLeft = getVariantRemaining(selectedColor, selectedSize);
-
-                    if (curTarget <= 0) return const SizedBox.shrink();
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: curLeft > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: curLeft > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA),
-                        ),
-                      ),
-                      child: Row(
+                  // Scrollable Form Fields
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          // Target & Remaining Info Card (Harmonious Brand Neutral)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Row(
                               children: [
-                                Text(
-                                  'Admin Target: $selectedColor ($selectedSize)',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: curLeft > 0 ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'TOTAL TARGET',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8,
+                                          color: AppTheme.inkFaint,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$target pcs',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: AppTheme.ink,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14.5,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  'Target: $curTarget pcs • Assigned: $curAssigned pcs',
-                                  style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF475569)),
-                                  overflow: TextOverflow.ellipsis,
+                                Container(width: 1, height: 28, color: AppTheme.border),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'REMAINING',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8,
+                                          color: AppTheme.inkFaint,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$remaining pcs',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          color: remaining > 0 ? AppTheme.steel : AppTheme.green,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
+
+                          // Worker Name Input
+                          Text(
+                            'WORKER / TAILOR NAME',
+                            style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft),
+                          ),
+                          const SizedBox(height: 6),
+                          Autocomplete<String>(
+                            optionsBuilder: (TextEditingValue textEditingValue) {
+                              if (textEditingValue.text.isEmpty) return _recentWorkerNames;
+                              return _recentWorkerNames.where((String option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                            },
+                            onSelected: (String selection) => workerNameController.text = selection,
+                            fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                              return TextField(
+                                controller: textEditingController,
+                                focusNode: focusNode,
+                                decoration: const InputDecoration(
+                                  hintText: 'e.g. Bablu Tailor',
+                                  prefixIcon: Icon(Icons.person_outline, size: 20, color: AppTheme.steel),
+                                ),
+                                onChanged: (val) => workerNameController.text = val,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Borrow Worker from Another Line Toggle
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: curLeft > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                              borderRadius: BorderRadius.circular(5),
+                              color: isBorrowedWorker ? AppTheme.steelMist : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isBorrowedWorker ? AppTheme.steelTint : AppTheme.border,
+                              ),
                             ),
-                            child: Text(
-                              '$curLeft left',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.swap_horiz_rounded,
+                                            size: 17,
+                                            color: isBorrowedWorker ? AppTheme.steel : AppTheme.inkSoft,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              'Borrow Tailor from Other Line',
+                                              style: GoogleFonts.publicSans(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: isBorrowedWorker ? AppTheme.steel : AppTheme.inkSoft,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Transform.scale(
+                                      scale: 0.8,
+                                      child: Switch(
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        value: isBorrowedWorker,
+                                        activeColor: AppTheme.steel,
+                                        onChanged: (val) => setDialogState(() => isBorrowedWorker = val),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (isBorrowedWorker) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Borrowed from: ',
+                                        style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.steelDark),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: AppTheme.border),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: borrowedFromLine,
+                                              isExpanded: true,
+                                              items: [
+                                                'Line 1 (Om)',
+                                                'Line 2 (Suman)',
+                                                'Line 3 (Sachin)',
+                                                'Line 4 (Sarthak)',
+                                                'Outside Contract'
+                                              ].map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)))).toList(),
+                                              onChanged: (v) {
+                                                if (v != null) setDialogState(() => borrowedFromLine = v);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Color Variant Picker
+                          if (colorsList.isNotEmpty) ...[
+                            Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              value: selectedColor,
+                              isExpanded: true,
+                              decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
+                              items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => selectedColor = val);
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                          ],
+
+                          // Size Ratio Picker with Admin Target & Remaining breakdown
+                          if (sizesList.isNotEmpty) ...[
+                            Text('SIZE RATIO & TARGET', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              value: selectedSize,
+                              isExpanded: true,
+                              decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
+                              items: sizesList.map((s) {
+                                final sTarget = getVariantTarget(selectedColor, s);
+                                final sLeft = getVariantRemaining(selectedColor, s);
+                                final label = sTarget > 0 ? '$s • $sLeft left (of $sTarget pcs)' : s;
+                                return DropdownMenuItem(
+                                  value: s,
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: sLeft == 0 && sTarget > 0 ? AppTheme.inkFaint : AppTheme.ink,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) setDialogState(() => selectedSize = val);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Dedicated Size Target Highlight Card (Calm Neutral Design)
+                            () {
+                              final curTarget = getVariantTarget(selectedColor, selectedSize);
+                              final curAssigned = getVariantAssigned(selectedColor, selectedSize);
+                              final curLeft = getVariantRemaining(selectedColor, selectedSize);
+
+                              if (curTarget <= 0) return const SizedBox.shrink();
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.bg,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppTheme.border),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Admin Target: $selectedColor ($selectedSize)',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.ink,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Target: $curTarget pcs • Assigned: $curAssigned pcs',
+                                            style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.inkSoft),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: curLeft > 0 ? AppTheme.steelMist : AppTheme.greenMist,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: curLeft > 0 ? AppTheme.steelTint : AppTheme.green.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '$curLeft left',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: curLeft > 0 ? AppTheme.steel : AppTheme.green,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }(),
+                          ],
+
+                          // Quantity Input
+                          Text('PIECES TO ASSIGN (QTY)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                          const SizedBox(height: 6),
+                          () {
+                            final curTarget = getVariantTarget(selectedColor, selectedSize);
+                            final curLeft = getVariantRemaining(selectedColor, selectedSize);
+                            final maxLimit = curTarget > 0 ? curLeft : remaining;
+
+                            return TextField(
+                              controller: qtyController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                hintText: curTarget > 0 ? 'Max $maxLimit pcs (Size $selectedSize remaining)' : 'Max $remaining pcs',
+                                prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
+                              ),
+                            );
+                          }(),
+                          const SizedBox(height: 14),
+
+                          // Machine Operation / Station Selector (Harmonious Brand Design - No Rainbow!)
+                          Text('MACHINE OPERATION / STITCHING STAGE', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              {
+                                'key': 'OVERLOCK',
+                                'label': 'Overlock (4-Th)',
+                                'icon': Icons.tune_rounded,
+                              },
+                              {
+                                'key': 'FIVE_THREAD',
+                                'label': '5-Thread Safety',
+                                'icon': Icons.linear_scale_rounded,
+                              },
+                              {
+                                'key': 'FLATLOCK',
+                                'label': 'Flatlock / Rib',
+                                'icon': Icons.view_headline_rounded,
+                              },
+                              {
+                                'key': 'LOCKING',
+                                'label': 'Locking / Single',
+                                'icon': Icons.lock_outline_rounded,
+                              },
+                            ].map((st) {
+                              final isSel = selectedMachineStation == st['key'];
+                              return GestureDetector(
+                                onTap: () => setDialogState(() => selectedMachineStation = st['key'] as String),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? AppTheme.steelMist : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isSel ? AppTheme.steel : AppTheme.border,
+                                      width: isSel ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        st['icon'] as IconData,
+                                        size: 14,
+                                        color: isSel ? AppTheme.steel : AppTheme.inkFaint,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        st['label'] as String,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                          color: isSel ? AppTheme.steel : AppTheme.ink,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Notes
+                          Text('NOTES / INSTRUCTIONS (OPTIONAL)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: notesController,
+                            decoration: const InputDecoration(
+                              hintText: 'e.g. Collar stitch only',
+                              prefixIcon: Icon(Icons.notes_rounded, size: 20, color: AppTheme.steel),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }(),
-                ],
-
-                // Quantity Input
-                Text('PIECES TO ASSIGN (QTY)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                const SizedBox(height: 6),
-                () {
-                  final curTarget = getVariantTarget(selectedColor, selectedSize);
-                  final curLeft = getVariantRemaining(selectedColor, selectedSize);
-                  final maxLimit = curTarget > 0 ? curLeft : remaining;
-
-                  return TextField(
-                    controller: qtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: curTarget > 0 ? 'Max $maxLimit pcs (Size $selectedSize remaining)' : 'Max $remaining pcs',
-                      prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
                     ),
-                  );
-                }(),
-                const SizedBox(height: 14),
+                  ),
 
-                // Machine Operation / Station Selector
-                Text('MACHINE OPERATION / STITCHING STAGE', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    {
-                      'key': 'OVERLOCK',
-                      'label': 'Overlock (4-Th)',
-                      'icon': Icons.tune_rounded,
-                      'color': Color(0xFF2563EB),
-                    },
-                    {
-                      'key': 'FIVE_THREAD',
-                      'label': '5-Thread Safety',
-                      'icon': Icons.linear_scale_rounded,
-                      'color': Color(0xFF7C3AED),
-                    },
-                    {
-                      'key': 'FLATLOCK',
-                      'label': 'Flatlock / Rib',
-                      'icon': Icons.view_headline_rounded,
-                      'color': Color(0xFFD97706),
-                    },
-                    {
-                      'key': 'LOCKING',
-                      'label': 'Locking / Single',
-                      'icon': Icons.lock_outline_rounded,
-                      'color': Color(0xFF059669),
-                    },
-                  ].map((st) {
-                    final isSel = selectedMachineStation == st['key'];
-                    final actColor = st['color'] as Color;
-                    return GestureDetector(
-                      onTap: () => setDialogState(() => selectedMachineStation = st['key'] as String),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isSel ? actColor.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSel ? actColor : const Color(0xFFCBD5E1),
-                            width: isSel ? 1.5 : 1,
+                  // Pinned Bottom Action Bar (Never cut off or hidden)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: AppTheme.border)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: const BorderSide(color: AppTheme.border),
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(st['icon'] as IconData, size: 13, color: isSel ? actColor : const Color(0xFF64748B)),
-                            const SizedBox(width: 5),
-                            Text(
-                              st['label'] as String,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                color: isSel ? actColor : const Color(0xFF334155),
-                              ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.steel,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
                             ),
-                          ],
+                            onPressed: () async {
+                              final name = workerNameController.text.trim();
+                              final qtyStr = qtyController.text.trim();
+                              final qty = int.tryParse(qtyStr) ?? 0;
+
+                              if (name.isEmpty || qty <= 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a valid worker name and quantity (>0).'), backgroundColor: AppTheme.red),
+                                );
+                                return;
+                              }
+
+                              if (qty > remaining) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Quantity ($qty) exceeds remaining allotment target ($remaining pcs).'), backgroundColor: AppTheme.red),
+                                );
+                                return;
+                              }
+
+                              Navigator.pop(ctx);
+                              final noteText = notesController.text.trim();
+                              String fullNotes = '[$selectedMachineStation]';
+                              if (isBorrowedWorker) {
+                                fullNotes += ' [BORROWED: $borrowedFromLine]';
+                              }
+                              if (noteText.isNotEmpty) {
+                                fullNotes += ' $noteText';
+                              }
+                              fullNotes = fullNotes.trim();
+                              await _submitWorkerAssignment(
+                                allotmentId: allotment['id'],
+                                articleId: allotment['article_id'],
+                                workerName: name,
+                                qty: qty,
+                                color: selectedColor,
+                                size: selectedSize,
+                                notes: fullNotes,
+                              );
+                            },
+                            child: Text('Assign Batch', style: GoogleFonts.publicSans(fontWeight: FontWeight.bold)),
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-
-                // Notes
-                Text('NOTES / INSTRUCTIONS (OPTIONAL)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: notesController,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. Collar stitch only',
-                    prefixIcon: Icon(Icons.notes_rounded, size: 20, color: AppTheme.steel),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.steel,
-                minimumSize: const Size(120, 42),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ],
               ),
-              onPressed: () async {
-                final name = workerNameController.text.trim();
-                final qtyStr = qtyController.text.trim();
-                final qty = int.tryParse(qtyStr) ?? 0;
-
-                if (name.isEmpty || qty <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid worker name and quantity (>0).'), backgroundColor: AppTheme.red),
-                  );
-                  return;
-                }
-
-                if (qty > remaining) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Quantity ($qty) exceeds remaining allotment target ($remaining pcs).'), backgroundColor: AppTheme.red),
-                  );
-                  return;
-                }
-
-                Navigator.pop(ctx);
-                final noteText = notesController.text.trim();
-                String fullNotes = '[$selectedMachineStation]';
-                if (isBorrowedWorker) {
-                  fullNotes += ' [BORROWED: $borrowedFromLine]';
-                }
-                if (noteText.isNotEmpty) {
-                  fullNotes += ' $noteText';
-                }
-                fullNotes = fullNotes.trim();
-                await _submitWorkerAssignment(
-                  allotmentId: allotment['id'],
-                  articleId: allotment['article_id'],
-                  workerName: name,
-                  qty: qty,
-                  color: selectedColor,
-                  size: selectedSize,
-                  notes: fullNotes,
-                );
-              },
-              child: Text('Assign Batch', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -1702,18 +1836,56 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
   @override
   Widget build(BuildContext context) {
+    final user = supabase.auth.currentUser;
+    final userName = user?.email?.split('@')[0] ?? 'Lineman';
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        title: Text(
-          'Lineman Area',
-          style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.ink),
+        toolbarHeight: 64,
+        titleSpacing: 16,
+        backgroundColor: AppTheme.bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Welcome, $userName',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.4,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const _WavingHandIcon(size: 20),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Line Supervisor • Active Floor Shift',
+              style: GoogleFonts.publicSans(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.inkSoft,
+              ),
+            ),
+          ],
         ),
         actions: [
           const ConnectivityIndicator(),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Icons.logout_rounded, color: AppTheme.ink),
             tooltip: 'Logout',
             onPressed: () async {
               await ref.read(authProvider.notifier).logout();
@@ -1722,6 +1894,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               }
             },
           ),
+          const SizedBox(width: 6),
         ],
       ),
       body: _isLoading
@@ -1841,74 +2014,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   // TAB 1: LIVE FLOOR (ACTIVE ALLOTMENTS & TODAY'S ASSIGNMENTS)
   // =========================================================================
   Widget _buildLiveFloorTab() {
-    final user = supabase.auth.currentUser;
-    final userName = user?.email?.split('@')[0] ?? 'Lineman';
-
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Welcome Banner
-          _AnimatedFadeSlide(
-            delayMs: 0,
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppTheme.steel,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.steelDark.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome, $userName!',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Line Supervisor • Active Floor Shift',
-                          style: GoogleFonts.publicSans(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.steelDark,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.supervisor_account_rounded, color: Colors.white, size: 26),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
           // Summary Stats (Today's Shift)
           _AnimatedFadeSlide(
-            delayMs: 60,
+            delayMs: 30,
             child: Row(
               children: [
                 _buildStatCard(
@@ -2681,16 +2795,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 color: materialsConfirmed
                     ? AppTheme.greenMist
                     : isStoreIssued
-                        ? (hasShortage ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF))
-                        : AppTheme.amberMist,
+                        ? (hasShortage ? AppTheme.amberMist : AppTheme.steelMist)
+                        : AppTheme.bg,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 border: Border(
                   bottom: BorderSide(
                     color: materialsConfirmed
                         ? AppTheme.green.withValues(alpha: 0.3)
                         : isStoreIssued
-                            ? (hasShortage ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE))
-                            : AppTheme.amber.withValues(alpha: 0.3),
+                            ? (hasShortage ? AppTheme.amber.withValues(alpha: 0.3) : AppTheme.steelTint)
+                            : AppTheme.border,
                   ),
                 ),
               ),
@@ -2705,7 +2819,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     color: materialsConfirmed
                         ? AppTheme.green
                         : isStoreIssued
-                            ? (hasShortage ? const Color(0xFFD97706) : const Color(0xFF2563EB))
+                            ? (hasShortage ? AppTheme.amber : AppTheme.steel)
                             : AppTheme.amber,
                     size: 18,
                   ),
@@ -2721,12 +2835,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               : 'Materials Awaiting Store Godown Inspection (${materials.length} items)',
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: materialsConfirmed
                             ? AppTheme.green
                             : isStoreIssued
-                                ? (hasShortage ? const Color(0xFFB45309) : const Color(0xFF1E40AF))
-                                : AppTheme.amber,
+                                ? (hasShortage ? AppTheme.amber : AppTheme.steel)
+                                : const Color(0xFF92400E),
                       ),
                     ),
                   ),
@@ -2736,7 +2850,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: hasShortage ? const Color(0xFFD97706) : const Color(0xFF2563EB),
+                          color: hasShortage ? AppTheme.amber : AppTheme.steel,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text('Receive Materials', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -2793,52 +2907,73 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               runSpacing: 4,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
+                                    color: AppTheme.bg,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFC7D2FE)),
+                                    border: Border.all(color: AppTheme.border),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.receipt_rounded, size: 11, color: Color(0xFF4F46E5)),
+                                      const Icon(Icons.receipt_rounded, size: 11, color: AppTheme.steel),
                                       const SizedBox(width: 3),
-                                      Text(poNo, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                                      Text(
+                                        poNo,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.ink,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 if (priority == 'CRITICAL' || priority == 'RUSH')
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFEE2E2),
+                                      color: AppTheme.redMist,
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFFECACA)),
+                                      border: Border.all(color: const Color(0xFFFECDD3)),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.local_fire_department_rounded, size: 11, color: Color(0xFFDC2626)),
+                                        const Icon(Icons.local_fire_department_rounded, size: 11, color: AppTheme.red),
                                         const SizedBox(width: 2),
-                                        Text(priority == 'CRITICAL' ? 'CRITICAL' : 'RUSH', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                                        Text(
+                                          priority == 'CRITICAL' ? 'CRITICAL' : 'RUSH',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.red,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 if (dueDate.isNotEmpty)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF0FDF4),
+                                      color: AppTheme.bg,
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                                      border: Border.all(color: AppTheme.border),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.timer_outlined, size: 11, color: Color(0xFF16A34A)),
+                                        const Icon(Icons.timer_outlined, size: 11, color: AppTheme.inkFaint),
                                         const SizedBox(width: 2),
-                                        Text('Due: $dueDate', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                        Text(
+                                          'Due: $dueDate',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.inkSoft,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -2846,18 +2981,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF0FDFA),
+                                      color: AppTheme.bg,
                                       borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFF99F6E4)),
+                                      border: Border.all(color: AppTheme.border),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.person_pin_rounded, size: 12, color: Color(0xFF0D9488)),
+                                        const Icon(Icons.person_pin_rounded, size: 12, color: AppTheme.inkFaint),
                                         const SizedBox(width: 3),
                                         Text(
                                           'PM: $mgr',
-                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0D9488)),
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.inkSoft,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -2883,20 +3022,20 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                       decoration: BoxDecoration(
-                        color: percent >= 100 ? AppTheme.greenMist : AppTheme.steelMist,
-                        borderRadius: BorderRadius.circular(10),
+                        color: percent >= 100 ? AppTheme.greenMist : AppTheme.bg,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: percent >= 100 ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.steelTint,
+                          color: percent >= 100 ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.border,
                         ),
                       ),
                       child: Text(
                         '$percent%',
                         style: GoogleFonts.jetBrainsMono(
-                          color: percent >= 100 ? AppTheme.green : AppTheme.steel,
+                          color: percent >= 100 ? AppTheme.green : AppTheme.ink,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                          fontSize: 12.5,
                         ),
                       ),
                     ),
@@ -3054,12 +3193,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    _miniLabel('Target', '$target pcs', AppTheme.inkSoft),
-                    const SizedBox(width: 8),
+                    _miniLabel('Target', '$target pcs', AppTheme.ink),
+                    const SizedBox(width: 6),
                     _miniLabel('Assigned', '$assigned pcs', AppTheme.steel),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _miniLabel('Done', '$done pcs', AppTheme.green),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _miniLabel('Left', '$remaining pcs', remaining > 0 ? AppTheme.amber : AppTheme.inkFaint),
                   ],
                 ),
@@ -3182,12 +3321,39 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
   Widget _miniLabel(String label, String value, Color color) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 11, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: GoogleFonts.publicSans(fontSize: 9.5, color: AppTheme.inkFaint)),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: AppTheme.bg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.jetBrainsMono(
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label.toUpperCase(),
+              style: GoogleFonts.publicSans(
+                fontSize: 8.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: AppTheme.inkSoft,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -4186,5 +4352,71 @@ class _BouncyTapState extends State<_BouncyTap> {
       ),
     );
   }
+}
 
+// ==========================================
+// LIVELY WAVING HAND ANIMATION WIDGET
+// ==========================================
+class _WavingHandIcon extends StatefulWidget {
+  final double size;
+  const _WavingHandIcon({this.size = 20});
+
+  @override
+  State<_WavingHandIcon> createState() => _WavingHandIconState();
+}
+
+class _WavingHandIconState extends State<_WavingHandIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _waveAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+
+    _waveAnim = TweenSequence<double>([
+      // Wave right
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.28).chain(CurveTween(curve: Curves.easeInOut)), weight: 12),
+      // Wave left
+      TweenSequenceItem(tween: Tween<double>(begin: 0.28, end: -0.22).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
+      // Wave right
+      TweenSequenceItem(tween: Tween<double>(begin: -0.22, end: 0.24).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
+      // Wave left
+      TweenSequenceItem(tween: Tween<double>(begin: 0.24, end: -0.15).chain(CurveTween(curve: Curves.easeInOut)), weight: 14),
+      // Settle back to center
+      TweenSequenceItem(tween: Tween<double>(begin: -0.15, end: 0.0).chain(CurveTween(curve: Curves.easeOut)), weight: 12),
+      // Pause
+      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 30),
+    ]).animate(_controller);
+
+    _controller.repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _waveAnim,
+      builder: (context, child) {
+        return Transform.rotate(
+          angle: _waveAnim.value,
+          alignment: const Alignment(0.4, 0.9), // Wrist pivot
+          child: child,
+        );
+      },
+      child: Text(
+        '👋',
+        style: TextStyle(fontSize: widget.size),
+      ),
+    );
+  }
 }
