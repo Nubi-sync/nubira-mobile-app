@@ -9,6 +9,8 @@ import '../../dashboard/lineman_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
+import '../../dashboard/production_manager_dashboard.dart';
+import '../../dashboard/mending_dashboard.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connectivity_indicator.dart';
 
@@ -22,9 +24,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _scrollController = ScrollController();
-  final _usernameFocusNode = FocusNode();
-  final _passwordFocusNode = FocusNode();
 
   bool _obscurePassword = true;
   bool _rememberMe = true;
@@ -93,9 +92,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameFocusNode.dispose();
-    _passwordFocusNode.dispose();
-    _scrollController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     _lockoutTimer?.cancel();
@@ -192,8 +188,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           case 'STORE':
             destination = const StoreDashboard();
             break;
+          case 'PRODUCTION_MANAGER':
           case 'PRODUCTION':
+            destination = const ProductionManagerDashboard();
+            break;
+          case 'QC':
             destination = const QcDashboard();
+            break;
+          case 'MENDING':
+            destination = const MendingDashboard();
             break;
           case 'LINEMAN':
           default:
@@ -219,7 +222,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.bg,
-      resizeToAvoidBottomInset: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -237,8 +239,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                controller: _scrollController,
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 400),
@@ -246,87 +246,132 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      
                       // ==========================================
                       // 1. BRAND HEADER
                       // ==========================================
                       Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.asset(
-                            'assets/images/icon.png',
-                            width: 54,
-                            height: 54,
-                            fit: BoxFit.contain,
+                        child: Container(
+                          width: 68,
+                          height: 68,
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: AppTheme.border, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.steel.withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Text(
-                        'Zigza',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.ink,
-                          letterSpacing: -0.6,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      Text(
-                        'Secure sign-in for shop floor staff',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.publicSans(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.inkFaint,
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/icon.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Connectivity Banner
-                      const ConnectivityIndicator(showLabel: true),
-                      const SizedBox(height: 14),
+                  // Brand Name (Fraunces 700 26px)
+                  Text(
+                    'Zigza',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
 
-                      // ==========================================
-                      // 2. MAIN FORM CARD
-                      // ==========================================
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppTheme.card,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppTheme.border, width: 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                      
-                      // Operator ID Field
-                      Text(
-                        'OPERATOR ID',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                          color: AppTheme.inkSoft,
+                  // Stitch Dashed Rule (90px wide, var(--stitch) #C8802B)
+                  Center(
+                    child: SizedBox(
+                      width: 90,
+                      height: 2,
+                      child: CustomPaint(
+                        painter: _DashedLinePainter(
+                          color: AppTheme.stitch,
+                          dashWidth: 5,
+                          dashSpace: 4,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _usernameController,
-                        focusNode: _usernameFocusNode,
-                        textInputAction: TextInputAction.next,
-                        scrollPadding: const EdgeInsets.only(bottom: 180),
-                        enabled: !authState.isLoading && !isLocked,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tracked Caps Label
+                  Text(
+                    'FACTORY OPERATOR LOGIN',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.5,
+                      color: AppTheme.inkSoft,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Subtitle
+                  Text(
+                    'Secure sign-in for shop floor staff',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: AppTheme.inkFaint,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ==========================================
+                  // 2. CONNECTIVITY BANNER (OFFLINE STATE)
+                  // ==========================================
+                  const ConnectivityIndicator(showLabel: true),
+                  const SizedBox(height: 16),
+
+                  // ==========================================
+                  // 3. MAIN FORM CARD
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.border, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        
+                        // Operator ID Field
+                        Text(
+                          'OPERATOR ID',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: AppTheme.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _usernameController,
+                          enabled: !authState.isLoading && !isLocked,
                           style: GoogleFonts.publicSans(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
@@ -382,10 +427,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 6),
                         TextField(
                           controller: _passwordController,
-                          focusNode: _passwordFocusNode,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _handleSubmit(),
-                          scrollPadding: const EdgeInsets.only(bottom: 110),
                           obscureText: _obscurePassword,
                           enabled: !authState.isLoading && !isLocked,
                           style: GoogleFonts.publicSans(
@@ -639,7 +680,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
 
                   // ==========================================
                   // 6. VERSION FOOTER
@@ -664,6 +705,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ],
   ),
 );
-}
+  }
 }
 
+// Custom Painter for dashed stitch rule
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  final double dashWidth;
+  final double dashSpace;
+
+  _DashedLinePainter({
+    required this.color,
+    this.dashWidth = 5,
+    this.dashSpace = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double startX = 0;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = size.height;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, 0),
+        Offset(startX + dashWidth, 0),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
