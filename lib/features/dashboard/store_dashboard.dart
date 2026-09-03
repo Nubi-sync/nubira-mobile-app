@@ -2591,12 +2591,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                             final savedTruckInwardId = insertRes.first['id'];
                                             for (var it in items) {
                                               try {
+                                                final itemQty = int.tryParse(it.qtyController.text.trim()) ?? 0;
+                                                final itemSize = it.sizeController.text.trim();
                                                 await supabase.from('truck_inward_items').insert({
                                                   'truck_inward_id': savedTruckInwardId,
                                                   'item_name': it.nameController.text.trim(),
-                                                  'challan_qty': int.tryParse(it.qtyController.text.trim()) ?? 0,
+                                                  'quantity': itemQty,
+                                                  'challan_qty': itemQty,
                                                   'unit': it.unit,
-                                                  'size_color': it.sizeController.text.trim(),
+                                                  'size_label': itemSize,
+                                                  'size_color': itemSize,
                                                   'status': it.status,
                                                   'shortage_qty': int.tryParse(it.shortageController.text.trim()) ?? 0,
                                                 });
