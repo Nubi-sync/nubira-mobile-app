@@ -555,6 +555,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => DeliveryChallanModal(
         prefilledLot: lot,

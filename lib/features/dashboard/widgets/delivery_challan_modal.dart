@@ -20,6 +20,7 @@ class DeliveryChallanModal extends StatefulWidget {
 class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   bool _isLoading = false;
   bool _isEditingPartyDetails = false;
+  int _activePartyTab = 0; // 0: Billed To, 1: Shipping To
 
   // Controllers for Header & Logistics
   late final TextEditingController _challanNoController;
@@ -344,27 +345,40 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
+          final orderQ = int.tryParse(orderQtyController.text.trim()) ?? 0;
+          final delivQ = int.tryParse(deliveryQtyController.text.trim()) ?? 0;
+          final previewBal = orderQ - delivQ;
+
           return Padding(
             padding: EdgeInsets.only(
               left: 20,
               right: 20,
-              top: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Add Line Item to Challan',
+                        'Add Garment Line Item',
                         style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
                       ),
                       IconButton(
@@ -373,16 +387,20 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                       ),
                     ],
                   ),
-                  const Divider(height: 1),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   const SizedBox(height: 14),
 
                   // Article Selector
-                  Text('Article No *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 4),
+                  Text('ARTICLE NUMBER *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                  const SizedBox(height: 6),
                   if (_availableArticles.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           isExpanded: true,
@@ -391,8 +409,8 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                             return DropdownMenuItem<String>(
                               value: a['art_no'].toString(),
                               child: Text(
-                                '${a['art_no']} — ${a['description'] ?? ''}',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                '${a['art_no']}  •  ${a['description'] ?? ''}',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
                               ),
                             );
                           }).toList(),
@@ -410,38 +428,48 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     )
                   else
                     TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Enter Article No (e.g. 501)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
+                      decoration: _cleanInputDecoration(hint: 'Enter Art No (e.g. 501)'),
                       onChanged: (val) => selectedArtNo = val.trim(),
                     ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
-                  // Color
-                  Text('Color / Shade *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 4),
+                  // Color with quick suggested chips
+                  Text('COLOR / SHADE *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                  const SizedBox(height: 6),
                   TextField(
                     controller: colorController,
                     style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Black, White, Navy',
-                      isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
+                    decoration: _cleanInputDecoration(hint: 'e.g. White, Navy, Black'),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: ['White', 'Black', 'Navy', 'Red', 'Wine', 'Olive', 'Cream'].map((c) {
+                      return InkWell(
+                        onTap: () => setModalState(() => colorController.text = c),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(c, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.inkSoft)),
+                        ),
+                      );
+                    }).toList(),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
                   // Size Selector Chips
-                  Text('Size *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
+                  Text('SIZE BREAKDOWN *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
-                    children: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'FREE'].map((sz) {
+                    children: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'FREE'].map((sz) {
                       final isSelected = selectedSize == sz;
                       return ChoiceChip(
                         label: Text(sz),
@@ -450,14 +478,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         labelStyle: GoogleFonts.jetBrainsMono(
                           color: isSelected ? Colors.white : AppTheme.ink,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 12.5,
                         ),
                         onSelected: (_) => setModalState(() => selectedSize = sz),
                       );
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
                   // Order Qty & Delivery Qty
                   Row(
@@ -466,18 +494,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Order Qty *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                            const SizedBox(height: 4),
+                            Text('ORDER QTY (PCS) *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                            const SizedBox(height: 6),
                             TextField(
                               controller: orderQtyController,
                               keyboardType: TextInputType.number,
+                              onChanged: (_) => setModalState(() {}),
                               style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold),
-                              decoration: InputDecoration(
-                                hintText: '0',
-                                isDense: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
+                              decoration: _cleanInputDecoration(hint: '0'),
                             ),
                           ],
                         ),
@@ -487,21 +511,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Delivery Qty *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel)),
-                            const SizedBox(height: 4),
+                            Text('DELIVERY QTY (PCS) *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
+                            const SizedBox(height: 6),
                             TextField(
                               controller: deliveryQtyController,
                               keyboardType: TextInputType.number,
+                              onChanged: (_) => setModalState(() {}),
                               style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.steel),
-                              decoration: InputDecoration(
-                                hintText: '0',
-                                isDense: true,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: AppTheme.steel, width: 1.5),
-                                ),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
+                              decoration: _cleanInputDecoration(hint: '0', isPrimary: true),
                             ),
                           ],
                         ),
@@ -509,15 +526,40 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     ],
                   ),
 
+                  if (orderQ > 0 || delivQ > 0) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: previewBal == 0 ? AppTheme.bg : (previewBal < 0 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Calculated Balance: ', style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft)),
+                          Text(
+                            previewBal == 0 ? '0 pcs (Complete)' : (previewBal < 0 ? '+$previewBal extra' : '$previewBal pending'),
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: previewBal < 0 ? AppTheme.green : (previewBal > 0 ? AppTheme.red : AppTheme.ink),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 18),
 
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        final orderQ = int.tryParse(orderQtyController.text.trim()) ?? 0;
-                        final delivQ = int.tryParse(deliveryQtyController.text.trim()) ?? orderQ;
+                        final orderVal = int.tryParse(orderQtyController.text.trim()) ?? 0;
+                        final delivVal = int.tryParse(deliveryQtyController.text.trim()) ?? orderVal;
                         if (selectedArtNo.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select or enter Article No.')));
                           return;
@@ -531,9 +573,9 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                             'category': categoryController.text.trim().toUpperCase(),
                             'product': productController.text.trim().toUpperCase(),
                             'size': selectedSize,
-                            'order_qty': orderQ,
-                            'delivery_qty': delivQ,
-                            'balance_qty': orderQ - delivQ,
+                            'order_qty': orderVal,
+                            'delivery_qty': delivVal,
+                            'balance_qty': orderVal - delivVal,
                           });
                           _challanItems.sort((x, y) => _naturalSizeCompare(x['size'].toString(), y['size'].toString()));
                         });
@@ -542,13 +584,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                       },
                       icon: const Icon(Icons.check_rounded, size: 18),
                       label: Text(
-                        'Add to Delivery Sheet',
+                        'Add to Delivery Breakdown',
                         style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.steel,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
                       ),
                     ),
                   ),
@@ -564,13 +607,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   void _showLoadLotModal() {
     if (_availableLots.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active lots found in factory database.')),
+        const SnackBar(content: Text('No active production lots found in factory database.')),
       );
       return;
     }
 
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
@@ -579,6 +623,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -592,12 +644,12 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                 ),
               ],
             ),
-            const Divider(height: 1),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
             const SizedBox(height: 10),
             Expanded(
               child: ListView.separated(
                 itemCount: _availableLots.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
                 itemBuilder: (ctx, idx) {
                   final lot = _availableLots[idx];
                   final artNo = lot['articles']?['art_no'] ?? 'Lot';
@@ -605,11 +657,11 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                   final variants = lot['allotment_variants'] as List<dynamic>? ?? [];
 
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                     leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(8)),
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(10)),
                       child: const Icon(Icons.inventory_2_outlined, color: AppTheme.steel, size: 20),
                     ),
                     title: Text(
@@ -656,20 +708,74 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
     );
   }
 
+  // Single source of truth for ultra-clean, non-nested input decoration
+  static InputDecoration _cleanInputDecoration({
+    required String hint,
+    Widget? prefixIcon,
+    Widget? suffix,
+    String? suffixText,
+    bool isPrimary = false,
+    EdgeInsetsGeometry? contentPadding,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: prefixIcon,
+      suffix: suffix,
+      suffixText: suffixText,
+      suffixStyle: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.inkSoft),
+      hintStyle: GoogleFonts.publicSans(
+        fontSize: 12,
+        color: AppTheme.inkFaint,
+        fontWeight: FontWeight.normal,
+      ),
+      filled: true,
+      fillColor: isPrimary ? Colors.white : const Color(0xFFF8FAFC),
+      isDense: true,
+      contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: isPrimary ? AppTheme.steel : const Color(0xFFE2E8F0), width: isPrimary ? 1.5 : 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: isPrimary ? AppTheme.steel : const Color(0xFFCBD5E1), width: isPrimary ? 1.5 : 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppTheme.steel, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        top: false,
+        top: true,
+        bottom: false,
         child: Column(
           children: [
-            // Modal Top Handle & Title
+            // Drag handle
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Modal Header (Clean, underneath status bar)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               child: Row(
                 children: [
                   Container(
@@ -679,7 +785,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                       color: AppTheme.steelMist,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.receipt_long_outlined, color: AppTheme.steel, size: 22),
+                    child: const Icon(Icons.receipt_long_rounded, color: AppTheme.steel, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -689,28 +795,28 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         Text(
                           'Delivery Challan (Dispatch Ready)',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
+                            fontSize: 15.5,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.ink,
                           ),
                         ),
                         Text(
                           'Nubira Creation • 8-Column Ollypop Format',
-                          style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                          style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft, size: 20),
+                    icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft, size: 22),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppTheme.border),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
-            // Scrollable Challan Sheet
+            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -718,118 +824,133 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ============================================
-                    // 1. FACTORY HEADER & METADATA
+                    // 1. FACTORY GATE PASS & LOGISTICS CARD
                     // ============================================
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.bg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'NUBIRA CREATION',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.ink,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Manufacturer & Exporter of Quality Garments • Maheshtalla, Kolkata',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1, color: AppTheme.border),
-                          const SizedBox(height: 12),
-
-                          // Metadata Fields
+                          // Header Badge
                           Row(
                             children: [
-                              // Challan No
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.steelMist,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('CHALLAN NO *', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                                    const SizedBox(height: 4),
                                     Container(
-                                      height: 38,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
-                                      alignment: Alignment.centerLeft,
-                                      child: TextField(
-                                        controller: _challanNoController,
-                                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                                        decoration: const InputDecoration(
-                                          hintText: 'e.g. DC-101',
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.green,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'NUBIRA CREATION • GATE PASS',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.steel,
+                                        letterSpacing: 0.4,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              // Date
+                              const Spacer(),
+                              Text(
+                                'Dispatch Outward',
+                                style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Challan No & Date
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Expanded(
+                                flex: 6,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('DATE *', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      height: 38,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
-                                      alignment: Alignment.centerLeft,
-                                      child: TextField(
-                                        controller: _dateController,
-                                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                                        decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                                    Text('CHALLAN NO *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                                    const SizedBox(height: 6),
+                                    TextField(
+                                      controller: _challanNoController,
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                      decoration: _cleanInputDecoration(
+                                        hint: 'DC-2026-001',
+                                        prefixIcon: const Icon(Icons.tag_rounded, size: 18, color: AppTheme.steel),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              // Vehicle No
+                              const SizedBox(width: 12),
                               Expanded(
-                                flex: 1,
+                                flex: 5,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('VEHICLE NO *', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.steel)),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      height: 38,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppTheme.steel, width: 1.2),
-                                      ),
-                                      alignment: Alignment.centerLeft,
-                                      child: TextField(
-                                        controller: _vehicleNoController,
-                                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.steel),
-                                        decoration: const InputDecoration(
-                                          hintText: 'e.g. WB 19 A 1234',
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
+                                    Text('DATE *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                                    const SizedBox(height: 6),
+                                    TextField(
+                                      controller: _dateController,
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                      decoration: _cleanInputDecoration(
+                                        hint: 'DD-MM-YYYY',
+                                        prefixIcon: const Icon(Icons.calendar_today_rounded, size: 16, color: AppTheme.inkSoft),
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Vehicle No (Full Width & Clean Single Border)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('VEHICLE / TRUCK NUMBER *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
+                                  Text('Required for Gate Security', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _vehicleNoController,
+                                textCapitalization: TextCapitalization.characters,
+                                style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTheme.steel, letterSpacing: 0.5),
+                                decoration: _cleanInputDecoration(
+                                  hint: 'Enter Vehicle No (e.g. WB 19 A 1234)',
+                                  prefixIcon: const Icon(Icons.local_shipping_outlined, size: 20, color: AppTheme.steel),
+                                  isPrimary: true,
                                 ),
                               ),
                             ],
@@ -841,153 +962,182 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     const SizedBox(height: 14),
 
                     // ============================================
-                    // 2. BILLED TO & SHIPPING TO CARDS
+                    // 2. SEGMENTED PARTY DETAILS CARD
                     // ============================================
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Party / Consignee Details',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => setState(() => _isEditingPartyDetails = !_isEditingPartyDetails),
-                          icon: Icon(_isEditingPartyDetails ? Icons.check_rounded : Icons.edit_outlined, size: 14, color: AppTheme.steel),
-                          label: Text(
-                            _isEditingPartyDetails ? 'Done Editing' : 'Edit / Change Address',
-                            style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                          style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Segmented Tabs: Billed To vs Shipping To
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.all(3),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setState(() => _activePartyTab = 0),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 7),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: _activePartyTab == 0 ? Colors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        boxShadow: _activePartyTab == 0
+                                            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))]
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        'BILLED TO (BUYER)',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: _activePartyTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setState(() => _activePartyTab = 1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 7),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: _activePartyTab == 1 ? Colors.white : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        boxShadow: _activePartyTab == 1
+                                            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))]
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        'SHIPPING TO (GODOWN)',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: _activePartyTab == 1 ? AppTheme.steel : AppTheme.inkSoft,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // BILLED TO
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(4)),
-                                  child: Text('BILLED TO:', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
-                                ),
-                                const SizedBox(height: 6),
-                                if (_isEditingPartyDetails) ...[
-                                  TextField(
-                                    controller: _billedToNameController,
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'Buyer Name'),
+                          // Active Party Content
+                          if (_activePartyTab == 0) ...[
+                            if (_isEditingPartyDetails) ...[
+                              TextField(controller: _billedToNameController, style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold), decoration: _cleanInputDecoration(hint: 'Buyer Company Name')),
+                              const SizedBox(height: 8),
+                              TextField(controller: _billedToAddressController, style: GoogleFonts.publicSans(fontSize: 11), decoration: _cleanInputDecoration(hint: 'Registered Office Address')),
+                              const SizedBox(height: 8),
+                              TextField(controller: _billedToGstinController, style: GoogleFonts.jetBrainsMono(fontSize: 11), decoration: _cleanInputDecoration(hint: 'GSTIN Number')),
+                            ] else ...[
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(8)),
+                                    child: const Icon(Icons.business_rounded, color: AppTheme.steel, size: 18),
                                   ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _billedToAddressController,
-                                    maxLines: 2,
-                                    style: GoogleFonts.publicSans(fontSize: 11),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'Registered Office'),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _billedToGstinController,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 11),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'GSTIN'),
-                                  ),
-                                ] else ...[
-                                  Text(
-                                    _billedToNameController.text,
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _billedToAddressController.text,
-                                    style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'GSTIN: ${_billedToGstinController.text}',
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(_billedToNameController.text, style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                                        const SizedBox(height: 2),
+                                        Text(_billedToAddressController.text, style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(4)),
+                                          child: Text('GSTIN: ${_billedToGstinController.text}', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTheme.ink)),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // SHIPPING TO
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(4)),
-                                  child: Text('SHIPPING TO:', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
-                                ),
-                                const SizedBox(height: 6),
-                                if (_isEditingPartyDetails) ...[
-                                  TextField(
-                                    controller: _shippingToNameController,
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'Consignee Name'),
+                              ),
+                            ],
+                          ] else ...[
+                            if (_isEditingPartyDetails) ...[
+                              TextField(controller: _shippingToNameController, style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold), decoration: _cleanInputDecoration(hint: 'Consignee Name')),
+                              const SizedBox(height: 8),
+                              TextField(controller: _shippingToAddressController, style: GoogleFonts.publicSans(fontSize: 11), decoration: _cleanInputDecoration(hint: 'Godown / Delivery Address')),
+                              const SizedBox(height: 8),
+                              TextField(controller: _shippingToEmailController, style: GoogleFonts.publicSans(fontSize: 11), decoration: _cleanInputDecoration(hint: 'Dispatch Notification Email')),
+                            ] else ...[
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(8)),
+                                    child: const Icon(Icons.warehouse_rounded, color: AppTheme.steel, size: 18),
                                   ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _shippingToAddressController,
-                                    maxLines: 2,
-                                    style: GoogleFonts.publicSans(fontSize: 11),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'Delivery Godown'),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  TextField(
-                                    controller: _shippingToEmailController,
-                                    style: GoogleFonts.publicSans(fontSize: 11),
-                                    decoration: const InputDecoration(isDense: true, labelText: 'Email'),
-                                  ),
-                                ] else ...[
-                                  Text(
-                                    _shippingToNameController.text,
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _shippingToAddressController.text,
-                                    style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Email: ${_shippingToEmailController.text}',
-                                    style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(_shippingToNameController.text, style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                                        const SizedBox(height: 2),
+                                        Text(_shippingToAddressController.text, style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
+                                        const SizedBox(height: 4),
+                                        Text('Email: ${_shippingToEmailController.text}', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft)),
+                                      ],
+                                    ),
                                   ),
                                 ],
-                              ],
+                              ),
+                            ],
+                          ],
+
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: () => setState(() => _isEditingPartyDetails = !_isEditingPartyDetails),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Text(
+                                  _isEditingPartyDetails ? '✓ Done Editing' : '✎ Edit Party Details',
+                                  style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 16),
 
                     // ============================================
-                    // 3. AUTHENTIC 8-COLUMN DELIVERY TABLE
+                    // 3. 8-COLUMN DELIVERY BREAKDOWN TABLE
                     // ============================================
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -996,7 +1146,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                           children: [
                             Text(
                               '8-Column Delivery Breakdown',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.ink),
                             ),
                             if (_challanItems.isNotEmpty) ...[
                               const SizedBox(width: 8),
@@ -1004,8 +1154,8 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
                                 child: Text(
-                                  '${_challanItems.length} rows',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                  '${_challanItems.length} sizes',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel),
                                 ),
                               ),
                             ],
@@ -1017,7 +1167,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               TextButton.icon(
                                 onPressed: _showLoadLotModal,
                                 icon: const Icon(Icons.sync_alt_rounded, size: 14, color: AppTheme.steel),
-                                label: Text('Load Lot', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                                label: Text('Load Lot', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel)),
                                 style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6), visualDensity: VisualDensity.compact),
                               ),
                               const SizedBox(width: 4),
@@ -1025,7 +1175,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                             ElevatedButton.icon(
                               onPressed: _showAddItemDialog,
                               icon: const Icon(Icons.add_rounded, size: 14),
-                              label: Text('Add Item', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                              label: Text('Add Item', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.steel,
                                 foregroundColor: Colors.white,
@@ -1039,28 +1189,35 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
 
                     if (_challanItems.isEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
                             Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(10)),
-                              child: const Icon(Icons.inventory_2_outlined, color: AppTheme.steel, size: 22),
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.inventory_2_outlined, color: AppTheme.steel, size: 24),
                             ),
                             const SizedBox(height: 12),
                             Text(
                               'No Line Items in Delivery Challan',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTheme.ink),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -1068,7 +1225,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -1078,7 +1235,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                                   label: const Text('Add Line Item'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppTheme.steel,
-                                    side: const BorderSide(color: AppTheme.steel),
+                                    side: const BorderSide(color: AppTheme.steel, width: 1.2),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   ),
@@ -1107,11 +1264,11 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             physics: const BouncingScrollPhysics(),
@@ -1123,7 +1280,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               children: [
                                 // HEADER ROW
                                 TableRow(
-                                  decoration: const BoxDecoration(color: AppTheme.bg),
+                                  decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
                                   children: [
                                     _buildDeliveryCell('ART NO', isHeader: true),
                                     _buildDeliveryCell('COLOUR', isHeader: true),
@@ -1199,65 +1356,72 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     const SizedBox(height: 14),
 
                     // ============================================
-                    // 4. BAGS & SPOT / NOTES BOX
+                    // 4. BAGS & SPOT / NOTES BOX (Crisp native fields)
                     // ============================================
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 120,
-                          child: Column(
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Total Bags Field
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('TOTAL BAGS *', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                              const SizedBox(height: 4),
-                              Container(
-                                height: 42,
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
-                                child: TextField(
-                                  controller: _totalBagsController,
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (_) => setState(() {}),
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
-                                  decoration: const InputDecoration(
-                                    hintText: 'e.g. 10',
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.only(top: 10),
+                              Text('TOTAL BAGS PACKED *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _totalBagsController,
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setState(() {}),
+                                style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                                decoration: _cleanInputDecoration(
+                                  hint: 'e.g. 10',
+                                  prefixIcon: const Icon(Icons.shopping_bag_outlined, size: 19, color: AppTheme.steel),
+                                  suffixText: 'bags',
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Spot Remarks Field
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('SPOT / FLOOR REMARKS (OPTIONAL)', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _spotNotesController,
+                                maxLines: 2,
+                                style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.ink),
+                                decoration: _cleanInputDecoration(
+                                  hint: 'e.g. Balance pcs sent later, floor remarks, special packing...',
+                                  prefixIcon: const Padding(
+                                    padding: EdgeInsets.only(bottom: 22),
+                                    child: Icon(Icons.sticky_note_2_outlined, size: 19, color: AppTheme.inkSoft),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('SPOT / NOTES BOX (FLOOR REMARKS)', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkSoft)),
-                              const SizedBox(height: 4),
-                              Container(
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border)),
-                                child: TextField(
-                                  controller: _spotNotesController,
-                                  maxLines: 2,
-                                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.ink),
-                                  decoration: InputDecoration(
-                                    hintText: 'e.g. Note on balance pieces or floor remarks (optional)',
-                                    hintStyle: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkFaint),
-                                    contentPadding: const EdgeInsets.all(8),
-                                    border: InputBorder.none,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
                     // ============================================
                     // 5. ADMIN APPROVAL NOTICE
@@ -1265,13 +1429,20 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFF59E0B)),
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 20),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.verified_user_outlined, color: Color(0xFFD97706), size: 18),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -1279,11 +1450,11 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               children: [
                                 Text(
                                   'Admin Approval Gate Active',
-                                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF92400E)),
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF92400E)),
                                 ),
                                 Text(
-                                  'Upon submitting, this challan enters PENDING_ADMIN_APPROVAL status. Once Admin approves on Web, PDF printing for the truck driver is unlocked.',
-                                  style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF92400E)),
+                                  'Challan will be submitted for Admin approval. Upon signoff on Web Admin, security gate printing is released.',
+                                  style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF92400E)),
                                 ),
                               ],
                             ),
@@ -1292,52 +1463,66 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-
-                    // ============================================
-                    // 6. ACTION BUTTONS
-                    // ============================================
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: SizedBox(
-                            height: 48,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading ? null : _submitToAdmin,
-                              icon: _isLoading
-                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Icon(Icons.send_rounded, size: 18),
-                              label: Text(
-                                _isLoading ? 'Submitting to Admin...' : 'Submit Challan to Admin',
-                                style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.w800),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.steel,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          height: 48,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.inkSoft,
-                              side: const BorderSide(color: AppTheme.border),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
+              ),
+            ),
+
+            // ============================================
+            // 6. FIXED BOTTOM ACTION BAR (Above System Nav Bar)
+            // ============================================
+            Container(
+              padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).padding.bottom + 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _submitToAdmin,
+                        icon: _isLoading
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.send_rounded, size: 18),
+                        label: Text(
+                          _isLoading ? 'Submitting...' : 'Submit Challan to Admin',
+                          style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.steel,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.inkSoft,
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: GoogleFonts.publicSans(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
