@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import 'widgets/daily_receiving_audit_modal.dart';
+import 'widgets/delivery_challan_modal.dart';
 import '../../../main.dart';
 
 class QcDashboard extends ConsumerStatefulWidget {
@@ -481,7 +483,31 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     return sizes.toList();
   }
 
-    void _showDailyReceivingModal() {
+  void _showDailyReceivingModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DailyReceivingAuditModal(
+        onRefreshNeeded: _fetchQcData,
+        onOpenManualFallback: _showManualDailyReceivingModal,
+      ),
+    );
+  }
+
+  void _showDeliveryChallanModal({Map<String, dynamic>? lot}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DeliveryChallanModal(
+        prefilledLot: lot,
+        onSubmitted: _fetchQcData,
+      ),
+    );
+  }
+
+  void _showManualDailyReceivingModal() {
     String? selectedLinemanId = _linemen.isNotEmpty ? _linemen.first['id'] : null;
     final initialArticles = _getArticlesForLineman(selectedLinemanId);
     String? selectedArticleId = initialArticles.isNotEmpty ? initialArticles.first['id'] : (_articles.isNotEmpty ? _articles.first['id'] : null);
@@ -2113,7 +2139,78 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
+
+                    // ====================================================
+                    // DELIVERY CHALLAN & DISPATCH APPROVAL GATE BANNER
+                    // ====================================================
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.steel, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.steel.withValues(alpha: 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.steel,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Delivery Challan (Dispatch Gate)',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.ink,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Generate 8-column Ollypop delivery sheet with truck number & submit for Admin approval.',
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton.icon(
+                            onPressed: () => _showDeliveryChallanModal(),
+                            icon: const Icon(Icons.arrow_forward_rounded, size: 15),
+                            label: Text(
+                              'Create Challan',
+                              style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.steel,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
 
                     // ====================================================
                     // 3. RECENT QC ACTIVITY FEED (REAL CONDITIONAL RENDER)

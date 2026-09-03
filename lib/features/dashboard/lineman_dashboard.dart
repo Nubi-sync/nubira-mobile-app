@@ -976,7 +976,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                       child: Switch(
                                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         value: isBorrowedWorker,
-                                        activeThumbColor: AppTheme.steel,
+                                        activeColor: AppTheme.steel,
                                         onChanged: (val) => setDialogState(() => isBorrowedWorker = val),
                                       ),
                                     ),
@@ -1031,7 +1031,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
-                              initialValue: selectedColor,
+                              value: selectedColor,
                               isExpanded: true,
                               decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
                               items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
@@ -1047,7 +1047,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             Text('SIZE RATIO & TARGET', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
-                              initialValue: selectedSize,
+                              value: selectedSize,
                               isExpanded: true,
                               decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
                               items: sizesList.map((s) {

@@ -189,9 +189,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             destination = const StoreDashboard();
             break;
           case 'PRODUCTION_MANAGER':
-          case 'PRODUCTION':
             destination = const ProductionManagerDashboard();
             break;
+          case 'PRODUCTION':
           case 'QC':
             destination = const QcDashboard();
             break;
