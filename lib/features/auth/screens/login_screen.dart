@@ -228,7 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // Background Factory Line Art Sketch with warm brand overlay
           Positioned.fill(
             child: Opacity(
-              opacity: 0.12,
+              opacity: 0.30,
               child: Image.asset(
                 'assets/images/factory_bg_sketch.jpg',
                 fit: BoxFit.cover,
