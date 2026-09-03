@@ -2569,6 +2569,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                 : 'VERIFIED';
 
                                         final lineItemsJson = items.map((i) => i.toMap()).toList();
+                                        final authState = ref.read(authProvider);
+                                        final currentUserName = authState.cachedUsername ?? 'Store Manager';
+                                        final currentUserId = supabase.auth.currentUser?.id;
 
                                         try {
                                           final insertRes = await supabase.from('truck_inwards').insert({
@@ -2585,6 +2588,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                             'challan_photo_url': photoUrl,
                                             'line_items': lineItemsJson,
                                             'notes': notesController.text.trim(),
+                                            'receiver_name': currentUserName,
+                                            'received_by': currentUserId,
                                           }).select();
 
                                           if (insertRes.isNotEmpty) {
