@@ -277,7 +277,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                  // Brand Name (Fraunces 700 26px)
+                  // 1. Single Brand Header Line
                   Text(
                     'Zigza',
                     textAlign: TextAlign.center,
@@ -288,71 +288,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 6),
-
-                  // Stitch Dashed Rule (90px wide, var(--stitch) #C8802B)
-                  Center(
-                    child: SizedBox(
-                      width: 90,
-                      height: 2,
-                      child: CustomPaint(
-                        painter: _DashedLinePainter(
-                          color: AppTheme.stitch,
-                          dashWidth: 5,
-                          dashSpace: 4,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Tracked Caps Label
-                  Text(
-                    'FACTORY OPERATOR LOGIN',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.publicSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.5,
-                      color: AppTheme.inkSoft,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Subtitle
-                  Text(
-                    'Secure sign-in for shop floor staff',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                      color: AppTheme.inkFaint,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ==========================================
-                  // 2. CONNECTIVITY BANNER (OFFLINE STATE)
-                  // ==========================================
-                  const ConnectivityIndicator(showLabel: true),
                   const SizedBox(height: 16),
 
+                  // Connectivity Banner
+                  const ConnectivityIndicator(showLabel: true),
+                  const SizedBox(height: 14),
+
                   // ==========================================
-                  // 3. MAIN FORM CARD
+                  // 2. MAIN FORM CONTAINER (NO WHITE BG, ROUNDED)
                   // ==========================================
                   Container(
-                    padding: const EdgeInsets.all(22),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppTheme.card,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.border, width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -362,7 +311,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Text(
                           'OPERATOR ID',
                           style: GoogleFonts.publicSans(
-                            fontSize: 10.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
                             color: AppTheme.inkSoft,
@@ -372,8 +321,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextField(
                           controller: _usernameController,
                           enabled: !authState.isLoading && !isLocked,
+                          scrollPadding: const EdgeInsets.only(bottom: 220),
+                          textInputAction: TextInputAction.next,
                           style: GoogleFonts.publicSans(
-                            fontSize: 13.5,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.ink,
                           ),
@@ -384,13 +335,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: 'Enter your Operator ID',
+                            filled: true,
+                            fillColor: _usernameError != null ? AppTheme.redMist : Colors.white,
                             prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.steel, size: 20),
-                            fillColor: _usernameError != null ? AppTheme.redMist : AppTheme.card,
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide(
                                 color: _usernameError != null ? AppTheme.red : AppTheme.border,
-                                width: 1,
+                                width: 1.2,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: AppTheme.steel,
+                                width: 1.8,
                               ),
                             ),
                           ),
@@ -404,7 +363,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Text(
                                 _usernameError!,
                                 style: GoogleFonts.publicSans(
-                                  fontSize: 10.5,
+                                  fontSize: 11,
                                   color: AppTheme.red,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -412,13 +371,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
                         // Password Field
                         Text(
                           'PASSWORD',
                           style: GoogleFonts.publicSans(
-                            fontSize: 10.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
                             color: AppTheme.inkSoft,
@@ -429,8 +388,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           enabled: !authState.isLoading && !isLocked,
+                          scrollPadding: const EdgeInsets.only(bottom: 180),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _handleSubmit(),
                           style: GoogleFonts.publicSans(
-                            fontSize: 13.5,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.ink,
                           ),
@@ -441,7 +403,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: '••••••••',
+                            filled: true,
+                            fillColor: _passwordError != null ? AppTheme.redMist : Colors.white,
                             prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.steel, size: 20),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: _passwordError != null ? AppTheme.red : AppTheme.border,
+                                width: 1.2,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: AppTheme.steel,
+                                width: 1.8,
+                              ),
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -453,14 +431,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   _obscurePassword = !_obscurePassword;
                                 });
                               },
-                            ),
-                            fillColor: _passwordError != null ? AppTheme.redMist : AppTheme.card,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: _passwordError != null ? AppTheme.red : AppTheme.border,
-                                width: 1,
-                              ),
                             ),
                           ),
                         ),
@@ -708,35 +678,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// Custom Painter for dashed stitch rule
-class _DashedLinePainter extends CustomPainter {
-  final Color color;
-  final double dashWidth;
-  final double dashSpace;
-
-  _DashedLinePainter({
-    required this.color,
-    this.dashWidth = 5,
-    this.dashSpace = 4,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    double startX = 0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = size.height;
-
-    while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
-        paint,
-      );
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

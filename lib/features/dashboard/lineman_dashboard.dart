@@ -976,7 +976,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                       child: Switch(
                                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         value: isBorrowedWorker,
-                                        activeColor: AppTheme.steel,
+                                        activeThumbColor: AppTheme.steel,
                                         onChanged: (val) => setDialogState(() => isBorrowedWorker = val),
                                       ),
                                     ),
@@ -1031,7 +1031,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             Text('COLOR VARIANT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
-                              value: selectedColor,
+                              initialValue: selectedColor,
                               isExpanded: true,
                               decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
                               items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
@@ -1047,7 +1047,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             Text('SIZE RATIO & TARGET', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
-                              value: selectedSize,
+                              initialValue: selectedSize,
                               isExpanded: true,
                               decoration: const InputDecoration(prefixIcon: Icon(Icons.straighten_rounded, size: 20, color: AppTheme.steel)),
                               items: sizesList.map((s) {
@@ -4106,19 +4106,21 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppTheme.bg,
-              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.steelMist,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.steelTint),
             ),
-            child: const Icon(Icons.assignment_late_outlined, size: 28, color: AppTheme.inkFaint),
+            child: const Icon(Icons.assignment_outlined, size: 24, color: AppTheme.ink),
           ),
           const SizedBox(height: 12),
           Text(
@@ -4134,7 +4136,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             "Check back once your supervisor assigns a new cutting target.",
             textAlign: TextAlign.center,
             style: GoogleFonts.publicSans(
-              fontSize: 12.5,
+              fontSize: 13,
               color: AppTheme.inkSoft,
             ),
           ),
@@ -4146,7 +4148,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? unit, String? subtitle}) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppTheme.card,
           borderRadius: BorderRadius.circular(16),
@@ -4159,76 +4161,75 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        value,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20,
-                          color: AppTheme.ink,
-                          letterSpacing: -0.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (unit != null) ...[
-                        const SizedBox(width: 3),
-                        Text(
-                          unit,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.inkSoft,
-                          ),
-                        ),
-                      ],
-                    ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppTheme.steelMist,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.steelTint),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.inkSoft,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 4),
+                  child: Icon(icon, color: AppTheme.ink, size: 20),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
                     Text(
-                      subtitle,
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: color == AppTheme.green ? AppTheme.green : AppTheme.inkSoft,
+                      value,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                        color: AppTheme.ink,
+                        letterSpacing: -0.5,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (unit != null) ...[
+                      const SizedBox(width: 3),
+                      Text(
+                        unit,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.inkSoft,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.ink,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: GoogleFonts.publicSans(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: color == AppTheme.green ? AppTheme.green : AppTheme.inkSoft,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+              ),
+            ],
           ],
         ),
       ),
