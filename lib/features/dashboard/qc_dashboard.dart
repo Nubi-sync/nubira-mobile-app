@@ -327,8 +327,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         };
 
         // Determine Stage:
-        // 1. Ready for Challan: If QC checking is completed or passed pieces >= target_qty and zero pending alterations
-        if (qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || (passedQty > 0 && passedQty >= mendingTotal)) {
+        // 1. Ready for Challan: If QC checking is completed, pending admin approval, approved for store, or passed pieces >= target_qty
+        if (qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= mendingTotal)) {
           readyForChallan.add(lotData);
         }
         // 2. Incoming from Mending Floor
@@ -2199,25 +2199,108 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
                 const Divider(height: 1, color: AppTheme.border),
 
-                // CREATE DELIVERY CHALLAN BUTTON
+                // HANDOVER TO GODOWN (STORE INWARD) & CREATE DELIVERY CHALLAN BUTTONS
                 Padding(
                   padding: const EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.local_shipping_rounded, size: 18, color: Colors.white),
-                      label: Text(
-                        'Create Delivery Challan (Dispatch)',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
+                  child: Column(
+                    children: [
+                      if ((lot['qc_status'] ?? '').toString() == 'PENDING_ADMIN_APPROVAL') ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.amberMist,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.amber.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.hourglass_top_rounded, color: AppTheme.amber, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Submitted for Admin Approval. Store Manager will collect after Admin authorizes.',
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 42,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.pending_actions_rounded, size: 18, color: AppTheme.amber),
+                            label: Text(
+                              'Submitted (Awaiting Admin Approval)',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.amber),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppTheme.amber, width: 1.2),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: null,
+                          ),
+                        ),
+                      ] else if ((lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_STORE') ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.greenMist,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.green.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Admin Approved! Store Manager has been notified to collect.',
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.green),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.warehouse_rounded, size: 18, color: Colors.white),
+                            label: Text(
+                              'Handover to Godown (Store Inward Ready)',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.green,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            onPressed: _isSubmitting ? null : () => _handoverToStore(lot),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 38,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.local_shipping_rounded, size: 16, color: AppTheme.steel),
+                          label: Text(
+                            'Direct Delivery Challan (Dispatch)',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.steel),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppTheme.steel, width: 1.1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.steel,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                      onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -2247,6 +2330,42 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         ),
       ],
     );
+  }
+
+  // Handover finished lot to Godown Store Manager (Pending Admin Approval)
+  Future<void> _handoverToStore(Map<String, dynamic> lot) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final authState = ref.read(authProvider);
+    final qcUserName = authState.cachedUsername?.trim().isNotEmpty == true 
+        ? authState.cachedUsername! 
+        : (supabase.auth.currentUser?.email?.split('@').first ?? 'QC Supervisor');
+
+    final aId = lot['id']?.toString();
+    if (aId == null || aId.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await supabase.from('allotments').update({
+        'qc_status': 'PENDING_ADMIN_APPROVAL',
+        'store_inward_status': 'PENDING',
+        'qc_supervisor_name': qcUserName,
+        'qc_passed_at': DateTime.now().toIso8601String(),
+      }).eq('id', aId);
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Handover submitted for Admin Approval! Once approved by Admin, Store Manager will be notified to collect ${lot['qc_total_passed'] ?? lot['target_qty']} pcs.'),
+          backgroundColor: AppTheme.green,
+        ),
+      );
+      await _fetchQcData();
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   // ====================================================

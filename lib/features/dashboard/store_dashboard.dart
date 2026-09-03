@@ -75,6 +75,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   List<dynamic> _allotmentVariants = [];
   List<dynamic> _activeAllotments = [];
   List<dynamic> _allotmentMaterials = [];
+  List<dynamic> _readyQcAllotments = [];
 
   @override
   void initState() {
@@ -94,7 +95,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           .eq('is_active', true)
           .order('art_no');
 
-      // 1.1 Fetch Allotment Variants
+      // 1.1 Fetch All Allotment Variants
       List<dynamic> variantsRes = [];
       try {
         variantsRes = await supabase
@@ -163,19 +164,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         artMap[a['id'].toString()] = a;
       }
 
-      final Map<String, dynamic> chMap = {};
-      for (var c in challansQuery) {
-        chMap[c['id'].toString()] = c;
-      }
-
       for (var al in allotQuery) {
-        final lId = al['lineman_id']?.toString() ?? '';
         final aId = al['article_id']?.toString() ?? '';
-        final cId = al['challan_id']?.toString() ?? '';
-        final prof = profMap[lId] ?? {'username': 'Lineman', 'role': 'LINEMAN'};
-        final art = artMap[aId] ?? {'art_no': 'Garment', 'description': ''};
-        final ch = chMap[cId] ?? {'challan_no': 'DIRECT', 'brand': 'INTERNAL'};
+        final lId = al['lineman_id']?.toString() ?? '';
+        final chId = al['challan_id']?.toString() ?? '';
 
+        final art = artMap[aId] ?? {};
+        final prof = profMap[lId] ?? {};
+        final ch = challansQuery.firstWhere((c) => c['id']?.toString() == chId, orElse: () => <String, dynamic>{});
+
+        // Determine specific assigned colors for this allotment
         final allotVars = variantsRes.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
         final Set<String> distinctColors = {};
         for (var v in allotVars) {
@@ -189,14 +187,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           assignedColorLabel = '${distinctColors.first} LINE';
         } else if (distinctColors.length > 1) {
           assignedColorLabel = distinctColors.join(', ');
-        } else if (al['production_order_no'] != null && al['production_order_no'].toString().trim().isNotEmpty) {
-          assignedColorLabel = al['production_order_no'].toString();
         }
 
         activeAllotsRes.add({
           'id': al['id'],
-          'challan_id': cId,
-          'challan_no': ch['challan_no'] ?? 'DIRECT',
+          'challan_id': chId,
+          'challan_no': ch['challan_no'] ?? al['challan_no'] ?? '-',
           'challans': ch,
           'lineman_id': lId,
           'article_id': aId,
@@ -210,67 +206,55 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         });
       }
 
-      // If allotments query returned empty (due to RLS policy on allotments),
-      // reconstruct active allotment entries from allotment_materials notes
-      final Set<String> seenAllotIds = activeAllotsRes.map((a) => a['id'].toString()).toSet();
-      for (var mat in allotMatsRes) {
-        final aId = mat['allotment_id']?.toString() ?? '';
-        if (aId.isEmpty || seenAllotIds.contains(aId)) continue;
-        seenAllotIds.add(aId);
+      // 1.3 Fetch QC Ready Allotments for Godown Inward Handshake (Only Admin Approved lots)
+      List<dynamic> readyQcRes = [];
+      try {
+        final qcAllots = await supabase
+            .from('allotments')
+            .select('*')
+            .or('qc_status.eq.APPROVED_FOR_STORE,qc_status.eq.READY_FOR_STORE')
+            .neq('store_inward_status', 'INWARDED')
+            .order('created_at', ascending: false);
 
-        Map<String, dynamic> meta = {};
-        if (mat['notes'] != null) {
-          try {
-            meta = jsonDecode(mat['notes']);
-          } catch (_) {}
-        }
+        for (var al in qcAllots) {
+          final aId = al['article_id']?.toString() ?? '';
+          final lId = al['lineman_id']?.toString() ?? '';
+          final chId = al['challan_id']?.toString() ?? '';
 
-        final articleId = meta['article_id']?.toString() ?? '';
-        final linemanId = meta['lineman_id']?.toString() ?? '';
-        final linemanName = meta['lineman_name'] ?? (profMap[linemanId]?['username'] ?? 'Lineman');
-        final artNo = meta['art_no'] ?? (artMap[articleId]?['art_no'] ?? 'Garment');
-        final artDesc = meta['article_description'] ?? (artMap[articleId]?['description'] ?? '');
-        final challanNo = meta['client_challan_no'] ?? 'DIRECT';
+          final art = artMap[aId] ?? {};
+          final prof = profMap[lId] ?? {};
+          final ch = challansQuery.firstWhere((c) => c['id']?.toString() == chId, orElse: () => <String, dynamic>{});
+          final vars = variantsRes.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
 
-        // Calculate total target pcs from variants or meta
-        int targetPcs = 0;
-        final allotVars = variantsRes.where((v) => v['allotment_id']?.toString() == aId).toList();
-        final Set<String> distinctColors = {};
-        for (var v in allotVars) {
-          targetPcs += (v['quantity'] as num?)?.toInt() ?? 0;
-          if (v['color'] != null && v['color'].toString().trim().isNotEmpty) {
-            distinctColors.add(v['color'].toString().trim().toUpperCase());
+          final Set<String> colors = {};
+          for (var v in vars) {
+            if (v['color'] != null && v['color'].toString().trim().isNotEmpty) {
+              colors.add(v['color'].toString().trim().toUpperCase());
+            }
           }
-        }
-        if (targetPcs == 0) {
-          targetPcs = int.tryParse(meta['total_pcs']?.toString() ?? '') ?? 
-                      int.tryParse(meta['target_qty']?.toString() ?? '') ?? 0;
-        }
 
-        String assignedColorLabel = '';
-        if (distinctColors.length == 1) {
-          assignedColorLabel = '${distinctColors.first} LINE';
-        } else if (distinctColors.length > 1) {
-          assignedColorLabel = distinctColors.join(', ');
-        } else if (meta['color'] != null && meta['color'].toString().trim().isNotEmpty) {
-          assignedColorLabel = '${meta['color'].toString().trim().toUpperCase()} LINE';
-        }
+          final passedQty = (al['qc_total_passed'] as int?) ?? (al['target_qty'] as int?) ?? 0;
 
-        activeAllotsRes.add({
-          'id': aId,
-          'challan_id': '',
-          'challan_no': challanNo,
-          'challans': {'challan_no': challanNo, 'brand': meta['brand'] ?? 'INTERNAL'},
-          'lineman_id': linemanId,
-          'article_id': articleId,
-          'target_qty': targetPcs,
-          'allotment_date': mat['created_at']?.toString().split('T')[0] ?? '',
-          'status': meta['status'] ?? 'IN_PROGRESS',
-          'created_at': mat['created_at'],
-          'profiles': {'username': linemanName, 'role': 'LINEMAN'},
-          'articles': {'art_no': artNo, 'description': artDesc},
-          'assigned_color_label': assignedColorLabel,
-        });
+          readyQcRes.add({
+            ...Map<String, dynamic>.from(al),
+            'articles': art,
+            'profiles': prof,
+            'challans': ch,
+            'variants': vars,
+            'color_name': colors.isNotEmpty ? colors.join(', ') : (al['assigned_color_label'] ?? 'STANDARD'),
+            'lineman_name': prof['username'] ?? 'Lineman',
+            'mending_name': al['mending_supervisor_name'] ?? 'Mending Floor',
+            'qc_name': al['qc_supervisor_name'] ?? 'QC Supervisor',
+            'admin_approved_by': al['admin_approved_by'] ?? 'Admin',
+            'admin_approved_at': al['admin_approved_at'],
+            'qc_passed_qty': passedQty,
+            'art_no': art['art_no'] ?? 'Garment',
+            'description': art['description'] ?? '',
+            'challan_no': ch['challan_no'] ?? al['challan_no'] ?? '-',
+          });
+        }
+      } catch (e) {
+        debugPrint('QC Ready allotments fetch warning: $e');
       }
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
@@ -418,6 +402,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _allotmentVariants = variantsRes;
           _activeAllotments = activeAllotsRes;
           _allotmentMaterials = allotMatsRes;
+          _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
           _truckInwards = truckInwardsRes;
         });
@@ -482,18 +467,38 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   // ==========================================
   // MODULE 1: INWARD (RECEIVE FINISHED GOODS)
   // ==========================================
-  void _showInwardModal() {
-    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
-    final fromController = TextEditingController(text: 'QC Finishing Floor');
-    final notesController = TextEditingController();
+  void _showInwardModal({Map<String, dynamic>? prefilledLot}) {
+    String? selectedArticleId = prefilledLot?['article_id']?.toString() ?? (_articles.isNotEmpty ? _articles.first['id']?.toString() : null);
+    String? selectedAllotmentId = prefilledLot?['id']?.toString();
+    String selectedLinemanName = prefilledLot?['lineman_name'] ?? '';
+    String selectedMendingName = prefilledLot?['mending_name'] ?? 'Mending Floor';
+    String selectedQcName = prefilledLot?['qc_name'] ?? 'QC Supervisor';
+    String selectedChallanNo = prefilledLot?['challan_no'] ?? '';
+    String selectedColorLabel = prefilledLot?['color_name'] ?? '';
+
+    final authState = ref.read(authProvider);
+    final currentStoreUserName = authState.cachedUsername?.trim().isNotEmpty == true 
+        ? authState.cachedUsername! 
+        : (supabase.auth.currentUser?.email?.split('@').first ?? 'Store Manager');
+
+    final fromController = TextEditingController(text: selectedQcName.isNotEmpty ? 'QC Passed ($selectedQcName)' : 'QC Finishing Floor');
+    final notesController = TextEditingController(text: selectedLinemanName.isNotEmpty ? 'Stitched by $selectedLinemanName • Lot $selectedColorLabel' : '');
 
     // Fallback single controllers if article has no variants
-    final fallbackColorController = TextEditingController(text: 'Black');
+    final fallbackColorController = TextEditingController(text: selectedColorLabel.isNotEmpty ? selectedColorLabel : 'Black');
     final fallbackSizeController = TextEditingController(text: 'L');
     final fallbackQtyController = TextEditingController();
 
     // Controllers map for each variant: key is variant id or "${color}_${size}"
     final Map<String, TextEditingController> variantControllers = {};
+
+    // If prefilled, pre-populate variant controllers
+    if (prefilledLot != null && prefilledLot['variants'] is List) {
+      for (var v in prefilledLot['variants']) {
+        final key = v['id'] ?? "${v['color']}_${v['size']}";
+        variantControllers[key] = TextEditingController(text: (v['quantity'] ?? 0).toString());
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -503,6 +508,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         builder: (context, setModalState) {
           final mediaQuery = MediaQuery.of(context);
           final variants = _getVariantsForArticle(selectedArticleId);
+
+          // Matching Ready Lots from QC Table for this Article
+          final matchingReadyLots = _readyQcAllotments.where((lot) => 
+            lot['article_id']?.toString() == selectedArticleId?.toString()
+          ).toList();
 
           // Ensure controllers exist for all variants
           for (var v in variants) {
@@ -633,7 +643,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 value: selectedArticleId,
                                 isExpanded: true,
                                 items: _articles.map((art) => DropdownMenuItem<String>(
-                                  value: art['id'],
+                                  value: art['id']?.toString(),
                                   child: Text(
                                     '${art['art_no']} (${_getCleanArticleDescription(art['description'])})',
                                     style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppTheme.ink),
@@ -642,10 +652,127 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 onChanged: (v) {
                                   setModalState(() {
                                     selectedArticleId = v;
+                                    selectedAllotmentId = null;
+                                    selectedLinemanName = '';
+                                    selectedMendingName = 'Mending Floor';
+                                    selectedQcName = 'QC Supervisor';
+                                    selectedChallanNo = '';
+                                    selectedColorLabel = '';
                                     variantControllers.clear();
                                   });
                                 },
                               ),
+                            ),
+                          ),
+
+                          // 1.1 Color / Ready Lot Selector Chips (Multi-Lineman Support)
+                          if (matchingReadyLots.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Ready Lots from QC Table (Select Lot):',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: matchingReadyLots.map((lot) {
+                                final isSelected = selectedAllotmentId == lot['id']?.toString();
+                                final clr = lot['color_name'] ?? 'STANDARD';
+                                final lName = lot['lineman_name'] ?? 'Lineman';
+                                final qPcs = lot['qc_passed_qty'] ?? 0;
+
+                                return InkWell(
+                                  onTap: () {
+                                    setModalState(() {
+                                      selectedAllotmentId = lot['id']?.toString();
+                                      selectedLinemanName = lot['lineman_name'] ?? '';
+                                      selectedMendingName = lot['mending_name'] ?? 'Mending Floor';
+                                      selectedQcName = lot['qc_name'] ?? 'QC Supervisor';
+                                      selectedChallanNo = lot['challan_no'] ?? '';
+                                      selectedColorLabel = clr;
+                                      fromController.text = 'QC Passed ($selectedQcName)';
+                                      notesController.text = 'Stitched by $selectedLinemanName • Lot $clr';
+
+                                      // Auto-fill variant controllers for this allotment!
+                                      final lotVars = lot['variants'] as List<dynamic>? ?? [];
+                                      for (var v in lotVars) {
+                                        final key = v['id'] ?? "${v['color']}_${v['size']}";
+                                        variantControllers[key]?.text = (v['quantity'] ?? 0).toString();
+                                      }
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? AppTheme.greenMist : Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isSelected ? AppTheme.green : AppTheme.border,
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                          size: 14,
+                                          color: isSelected ? AppTheme.green : AppTheme.inkSoft,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '$clr ($qPcs pcs) · 🧵 $lName',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11.5,
+                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                            color: isSelected ? AppTheme.green : AppTheme.ink,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+
+                          const SizedBox(height: 14),
+
+                          // 1.2 PRODUCTION CHAIN OF CUSTODY SUMMARY BOX
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.steelMist,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.steelTint),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.handshake_rounded, size: 16, color: AppTheme.steel),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Production Chain of Custody',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    _buildCustodyChip('🧵 Lineman: ${selectedLinemanName.isNotEmpty ? selectedLinemanName : "Floor"}', AppTheme.steel),
+                                    _buildCustodyChip('✂️ Mending: ${selectedMendingName.isNotEmpty ? selectedMendingName : "Floor"}', AppTheme.steel),
+                                    _buildCustodyChip('🔍 QC: ${selectedQcName.isNotEmpty ? selectedQcName : "Checked"}', AppTheme.green),
+                                    _buildCustodyChip('👤 Store: $currentStoreUserName', AppTheme.steel),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
 
@@ -765,35 +892,34 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                         ),
                                         child: Row(
                                           children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                                              child: Text(
-                                                item['size'],
-                                                style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w800, fontSize: 12.5, color: AppTheme.steel),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
                                             Expanded(
-                                              child: Text(
-                                                'In Godown: $currentGodownStock pcs',
-                                                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Size ${item['size']}',
+                                                    style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
+                                                  ),
+                                                  Text(
+                                                    'Godown Stock: $currentGodownStock pcs · Allotted: ${item['allotment_qty'] ?? 0} pcs',
+                                                    style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                             SizedBox(
                                               width: 90,
-                                              height: 38,
+                                              height: 40,
                                               child: TextField(
                                                 controller: variantControllers[key],
                                                 keyboardType: TextInputType.number,
                                                 textAlign: TextAlign.center,
-                                                style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                                                style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
                                                 decoration: InputDecoration(
                                                   hintText: '0',
-                                                  hintStyle: GoogleFonts.jetBrainsMono(color: AppTheme.inkFaint),
-                                                  contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                                                   filled: true,
                                                   fillColor: AppTheme.bg,
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.steel, width: 1.5)),
@@ -952,6 +1078,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                                 'color': v['color'],
                                                 'size': v['size'],
                                                 'party_name': fromController.text.trim().isEmpty ? 'QC Finishing Floor' : fromController.text.trim(),
+                                                'lineman_name': selectedLinemanName.isNotEmpty ? selectedLinemanName : null,
+                                                'mending_name': selectedMendingName.isNotEmpty ? selectedMendingName : null,
+                                                'qc_supervisor_name': selectedQcName.isNotEmpty ? selectedQcName : null,
+                                                'receiver_name': currentStoreUserName,
+                                                'challan_no': selectedChallanNo.isNotEmpty ? selectedChallanNo : null,
+                                                'allotment_id': selectedAllotmentId,
                                                 'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
                                                 'entry_date': todayStr,
                                               });
@@ -966,6 +1098,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                             'color': fallbackColorController.text.trim(),
                                             'size': fallbackSizeController.text.trim(),
                                             'party_name': fromController.text.trim().isEmpty ? 'QC Finishing Floor' : fromController.text.trim(),
+                                            'lineman_name': selectedLinemanName.isNotEmpty ? selectedLinemanName : null,
+                                            'mending_name': selectedMendingName.isNotEmpty ? selectedMendingName : null,
+                                            'qc_supervisor_name': selectedQcName.isNotEmpty ? selectedQcName : null,
+                                            'receiver_name': currentStoreUserName,
+                                            'challan_no': selectedChallanNo.isNotEmpty ? selectedChallanNo : null,
+                                            'allotment_id': selectedAllotmentId,
                                             'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
                                             'entry_date': todayStr,
                                           });
@@ -973,9 +1111,21 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                                         if (rowsToInsert.isNotEmpty) {
                                           await supabase.from('store_transactions').insert(rowsToInsert);
+
+                                          // Mark allotment store inward complete
+                                          if (selectedAllotmentId != null && selectedAllotmentId!.isNotEmpty) {
+                                            try {
+                                              await supabase.from('allotments').update({
+                                                'store_inward_status': 'INWARDED',
+                                                'store_inward_at': DateTime.now().toIso8601String(),
+                                                'store_receiver_name': currentStoreUserName,
+                                              }).eq('id', selectedAllotmentId!);
+                                            } catch (_) {}
+                                          }
+
                                           scaffoldMessenger.showSnackBar(
                                             SnackBar(
-                                              content: Text('Inwarded $totalInwardPieces pcs across ${rowsToInsert.length} variants to Godown!'),
+                                              content: Text('Inwarded $totalInwardPieces pcs to Godown! Chain of Custody logged.'),
                                               backgroundColor: AppTheme.steel,
                                             ),
                                           );
@@ -1040,11 +1190,26 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
+  Widget _buildCustodyChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+
   // ==========================================
   // MODULE 2: OUTWARD (DISPATCH GOODS) - MULTI-VARIANT
   // ==========================================
   void _showOutwardModal() {
-    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id'] : null;
+    String? selectedArticleId = _articles.isNotEmpty ? _articles.first['id']?.toString() : null;
     final buyerController = TextEditingController();
     final challanController = TextEditingController();
     final notesController = TextEditingController();
@@ -3671,6 +3836,44 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                     const SizedBox(height: 24),
 
+                    // ====== READY FROM QC TABLE (QC HANDOVER QUEUE) ======
+                    if (_readyQcAllotments.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.warehouse_rounded, size: 18, color: AppTheme.green),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Ready from QC Table',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.greenMist,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              '${_readyQcAllotments.length} lots waiting',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.green),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ..._readyQcAllotments.map((lot) => _buildQcReadyQueueCard(lot)),
+                      const SizedBox(height: 24),
+                    ],
+
                     // ====== STORE QUICK ACTIONS ======
                     Text(
                       'Store Quick Actions',
@@ -4283,6 +4486,84 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQcReadyQueueCard(Map<String, dynamic> lot) {
+    final artNo = lot['art_no'] ?? 'Article';
+    final desc = lot['description'] ?? '';
+    final color = lot['color_name'] ?? 'STANDARD';
+    final challanNo = lot['challan_no'] ?? '-';
+    final int passedQty = lot['qc_passed_qty'] as int? ?? 0;
+    final lineman = lot['lineman_name'] ?? 'Lineman';
+    final qcName = lot['qc_name'] ?? 'QC Supervisor';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.green.withValues(alpha: 0.4), width: 1.3),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.green.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
+                child: Text('CH-$challanNo', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
+                child: Text('QC Passed: $passedQty pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.green)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('Art #$artNo · $color', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.ink)),
+          if (desc.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Text('🧵 Lineman: $lineman', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.inkSoft)),
+              Text('🔍 QC: $qcName', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.green)),
+              Text('🛡️ Admin: ${lot['admin_approved_by'] ?? 'Approved'}', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steel)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.download_done_rounded, size: 16, color: Colors.white),
+              label: Text('Collect & Inward ➔', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              onPressed: () => _showInwardModal(prefilledLot: lot),
+            ),
+          ),
         ],
       ),
     );
