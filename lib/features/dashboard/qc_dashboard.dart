@@ -70,25 +70,41 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   }
 
   Future<void> _fetchQcData() async {
+    debugPrint('=== QC_DASHBOARD: _fetchQcData starting ===');
     setState(() => _isLoading = true);
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
 
-      final linemenRes = await supabase
-          .from('profiles')
-          .select('id, username')
-          .eq('role', 'LINEMAN')
-          .eq('is_active', true)
-          .order('username');
+      List<dynamic> linemenRes = [];
+      try {
+        linemenRes = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('role', 'LINEMAN')
+            .eq('is_active', true)
+            .order('username')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Linemen query timed out');
+              return [];
+            });
+        debugPrint('QC_DASHBOARD: Fetched ${linemenRes.length} linemen');
+      } catch (e) {
+        debugPrint('QC_DASHBOARD: Linemen fetch error: $e');
+      }
 
       // Fetch active allotments
       List<dynamic> allotmentsRes = [];
       try {
         allotmentsRes = await supabase
             .from('allotments')
-            .select('id, challan_id, article_id, lineman_id, status');
+            .select('id, challan_id, article_id, lineman_id, status')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Allotments query timed out');
+              return [];
+            });
+        debugPrint('QC_DASHBOARD: Fetched ${allotmentsRes.length} allotments');
       } catch (e) {
-        debugPrint('Allotments fetch error: $e');
+        debugPrint('QC_DASHBOARD: Allotments fetch error: $e');
       }
 
       // Fetch allotment variants
@@ -96,9 +112,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         variantsRes = await supabase
             .from('allotment_variants')
-            .select('id, allotment_id, color, size, quantity');
+            .select('id, allotment_id, color, size, quantity')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Variants query timed out');
+              return [];
+            });
       } catch (e) {
-        debugPrint('Allotment variants fetch error: $e');
+        debugPrint('QC_DASHBOARD: Allotment variants fetch error: $e');
       }
 
       // Fetch worker assignments
@@ -106,9 +126,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         workerAssRes = await supabase
             .from('worker_assignments')
-            .select('id, allotment_id, article_id, lineman_id, color, size');
+            .select('id, allotment_id, article_id, lineman_id, color, size')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Worker assignments query timed out');
+              return [];
+            });
       } catch (e) {
-        debugPrint('Worker assignments fetch error: $e');
+        debugPrint('QC_DASHBOARD: Worker assignments fetch error: $e');
       }
 
       // Fetch allotment materials containing lineman and article metadata in notes
@@ -116,44 +140,76 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         materialsRes = await supabase
             .from('allotment_materials')
-            .select('id, allotment_id, item_name, required_qty, notes');
+            .select('id, allotment_id, item_name, required_qty, notes')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Materials query timed out');
+              return [];
+            });
       } catch (e) {
-        debugPrint('Allotment materials fetch error: $e');
+        debugPrint('QC_DASHBOARD: Allotment materials fetch error: $e');
       }
 
-      final articlesRes = await supabase
-          .from('articles')
-          .select('id, art_no, description')
-          .eq('is_active', true)
-          .order('art_no');
+      List<dynamic> articlesRes = [];
+      try {
+        articlesRes = await supabase
+            .from('articles')
+            .select('id, art_no, description')
+            .eq('is_active', true)
+            .order('art_no')
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: Articles query timed out');
+              return [];
+            });
+        debugPrint('QC_DASHBOARD: Fetched ${articlesRes.length} articles');
+      } catch (e) {
+        debugPrint('QC_DASHBOARD: Articles fetch error: $e');
+      }
 
-      final logsRes = await supabase
-          .from('qc_logs')
-          .select('''
-            id,
-            article_id,
-            stage,
-            from_lineman_id,
-            qty_received,
-            qty_passed,
-            qty_rejected,
-            defect_type,
-            remarks,
-            color,
-            size,
-            mending_returned_qty,
-            mending_scrap_qty,
-            mending_status,
-            bundle_size,
-            total_bundles,
-            sent_to_store,
-            entry_date,
-            created_at,
-            lineman:profiles!qc_logs_from_lineman_id_fkey ( username ),
-            article:articles ( art_no, description )
-          ''')
-          .eq('entry_date', today)
-          .order('created_at', ascending: false);
+      List<dynamic> logsRes = [];
+      try {
+        logsRes = await supabase
+            .from('qc_logs')
+            .select('''
+              id,
+              article_id,
+              stage,
+              from_lineman_id,
+              qty_received,
+              qty_passed,
+              qty_rejected,
+              defect_type,
+              remarks,
+              color,
+              size,
+              mending_returned_qty,
+              mending_scrap_qty,
+              mending_status,
+              bundle_size,
+              total_bundles,
+              sent_to_store,
+              entry_date,
+              created_at,
+              lineman:profiles!qc_logs_from_lineman_id_fkey ( username ),
+              article:articles ( art_no, description )
+            ''')
+            .eq('entry_date', today)
+            .order('created_at', ascending: false)
+            .timeout(const Duration(seconds: 4), onTimeout: () {
+              debugPrint('QC_DASHBOARD: qc_logs query timed out');
+              return [];
+            });
+        debugPrint('QC_DASHBOARD: Fetched ${logsRes.length} qc_logs');
+      } catch (e) {
+        debugPrint('QC_DASHBOARD: qc_logs join query failed: $e, trying simple select');
+        try {
+          logsRes = await supabase
+              .from('qc_logs')
+              .select('*')
+              .eq('entry_date', today)
+              .order('created_at', ascending: false)
+              .timeout(const Duration(seconds: 3), onTimeout: () => []);
+        } catch (_) {}
+      }
 
       int rec = 0;
       int checked = 0;
@@ -1996,7 +2052,51 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.steel))
+          ? Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(color: AppTheme.steel, strokeWidth: 3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading QC Shift Data...',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Connecting to factory records',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        color: AppTheme.inkSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
           : RefreshIndicator(
               color: AppTheme.steel,
               onRefresh: _fetchQcData,
@@ -2144,69 +2244,83 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                     // ====================================================
                     // DELIVERY CHALLAN & DISPATCH APPROVAL GATE BANNER
                     // ====================================================
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                    Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: () => _showDeliveryChallanModal(),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.steel, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.steel.withValues(alpha: 0.08),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.steel, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.steel.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppTheme.steel,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 22),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Delivery Challan (Dispatch Gate)',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.ink,
-                                  ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.steel,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Generate 8-column Ollypop delivery sheet with truck number & submit for Admin approval.',
-                                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 22),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Delivery Challan (Dispatch Gate)',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.ink,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Generate 8-column Ollypop delivery sheet with truck number & submit for Admin approval.',
+                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.steel,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Create',
+                                      style: GoogleFonts.publicSans(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          ElevatedButton.icon(
-                            onPressed: () => _showDeliveryChallanModal(),
-                            icon: const Icon(Icons.arrow_forward_rounded, size: 15),
-                            label: Text(
-                              'Create Challan',
-                              style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.steel,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              elevation: 0,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
 
@@ -2582,7 +2696,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 }
 
 // ==========================================
-// DASHED BORDER CARD CONTAINER (EMPTY STATE)
+// CARD CONTAINER (EMPTY STATE)
 // ==========================================
 class _DashedBorderCard extends StatelessWidget {
   final Widget child;
@@ -2590,71 +2704,17 @@ class _DashedBorderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(
-        color: AppTheme.border,
-        strokeWidth: 1.2,
-        dashWidth: 5,
-        dashSpace: 4,
-        radius: 12,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border, width: 1.2),
       ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: child,
-      ),
+      child: child,
     );
   }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double dashWidth;
-  final double dashSpace;
-  final double radius;
-
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1.0,
-    this.dashWidth = 5.0,
-    this.dashSpace = 3.0,
-    this.radius = 12.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Radius.circular(radius),
-    );
-
-    final path = Path()..addRRect(rrect);
-    final dashedPath = Path();
-
-    for (final metric in path.computeMetrics()) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        final length = (distance + dashWidth < metric.length) ? dashWidth : metric.length - distance;
-        dashedPath.addPath(metric.extractPath(distance, distance + length), Offset.zero);
-        distance += dashWidth + dashSpace;
-      }
-    }
-
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ==========================================
