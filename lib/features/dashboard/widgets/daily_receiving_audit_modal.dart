@@ -269,9 +269,7 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
+      height: MediaQuery.of(context).size.height * 0.88,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -339,31 +337,37 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
 
             // Footer action for fallback manual entry
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).padding.bottom + 10),
               decoration: const BoxDecoration(
                 color: AppTheme.bg,
                 border: Border(top: BorderSide(color: AppTheme.border)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Need to receive without mending ticket?',
-                    style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                  Expanded(
+                    child: Text(
+                      'Need to receive without mending ticket?',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
                       widget.onOpenManualFallback();
                     },
-                    icon: const Icon(Icons.add_rounded, size: 16, color: AppTheme.steel),
+                    icon: const Icon(Icons.add_rounded, size: 15, color: AppTheme.steel),
                     label: Text(
-                      'Manual Fallback Inward',
+                      'Manual Inward',
                       style: GoogleFonts.publicSans(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.steel,
                       ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      visualDensity: VisualDensity.compact,
                     ),
                   ),
                 ],
@@ -377,8 +381,8 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -476,7 +480,10 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -493,7 +500,6 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
                           Text(
                             'Art: $artNo',
                             style: GoogleFonts.plusJakartaSans(
@@ -720,9 +726,12 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                 icon: isProcessing
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.verified_outlined, size: 18),
-                label: Text(
-                  isProcessing ? 'Inwarding Lot...' : 'Accept & Inward $totalReceived Pcs to QC Floor',
-                  style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w800),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    isProcessing ? 'Inwarding Lot...' : 'Accept & Inward $totalReceived Pcs to QC Floor',
+                    style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w800),
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.steel,

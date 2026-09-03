@@ -3,6 +3,39 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../../main.dart';
 
+class _ArticleVariantRow {
+  bool isSelected = true;
+  String artNo;
+  String? articleId;
+  String color;
+  String category;
+  String product;
+  String size;
+  int orderQty;
+  int deliveryQty;
+  int qcCheckedQty;
+  final TextEditingController orderController;
+  final TextEditingController deliveryController;
+
+  _ArticleVariantRow({
+    required this.artNo,
+    this.articleId,
+    required this.color,
+    required this.category,
+    required this.product,
+    required this.size,
+    required this.orderQty,
+    required this.deliveryQty,
+    required this.qcCheckedQty,
+  })  : orderController = TextEditingController(text: orderQty.toString()),
+        deliveryController = TextEditingController(text: deliveryQty.toString());
+
+  void dispose() {
+    orderController.dispose();
+    deliveryController.dispose();
+  }
+}
+
 class DeliveryChallanModal extends StatefulWidget {
   final Map<String, dynamic>? prefilledLot;
   final VoidCallback onSubmitted;
@@ -267,56 +300,20 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
         Navigator.pop(context);
         widget.onSubmitted();
 
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 24),
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Submitted to Admin',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                Expanded(
+                  child: Text('Delivery Challan #$challanNo submitted to Admin for Dispatch Approval!'),
                 ),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Delivery Challan #$challanNo has been submitted to Admin for Dispatch Approval.',
-                  style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(8)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('• Status: PENDING_ADMIN_APPROVAL', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD97706))),
-                      Text('• Vehicle: $vehicleNo', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.ink)),
-                      Text('• Total Pieces: $_totalDeliveryQty pcs', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.ink)),
-                      Text('• Total Bags: $totalBags bags', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.ink)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Once approved on Web Admin, security gate dispatch printout will be released.',
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('OK', style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: AppTheme.steel)),
-              ),
-            ],
           ),
         );
       }
@@ -331,274 +328,29 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
     }
   }
 
-  void _showAddItemDialog() {
-    String selectedArtNo = _availableArticles.isNotEmpty ? _availableArticles.first['art_no'].toString() : '';
-    String? selectedArticleId = _availableArticles.isNotEmpty ? _availableArticles.first['id'].toString() : null;
-
-    final colorController = TextEditingController(text: 'White');
-    final categoryController = TextEditingController(text: 'SUIT');
-    final productController = TextEditingController(text: 'TOP');
-    final orderQtyController = TextEditingController();
-    final deliveryQtyController = TextEditingController();
-    String selectedSize = 'M';
-
+  void _showArticleSelectorAndAutoFetchModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) {
-          final orderQ = int.tryParse(orderQtyController.text.trim()) ?? 0;
-          final delivQ = int.tryParse(deliveryQtyController.text.trim()) ?? 0;
-          final previewBal = orderQ - delivQ;
-
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 16,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Add Garment Line Item',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.inkSoft),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 14),
-
-                  // Article Selector
-                  Text('ARTICLE NUMBER *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 6),
-                  if (_availableArticles.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: selectedArtNo.isNotEmpty ? selectedArtNo : null,
-                          items: _availableArticles.map((a) {
-                            return DropdownMenuItem<String>(
-                              value: a['art_no'].toString(),
-                              child: Text(
-                                '${a['art_no']}  •  ${a['description'] ?? ''}',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setModalState(() {
-                                selectedArtNo = val;
-                                final match = _availableArticles.firstWhere((a) => a['art_no'].toString() == val, orElse: () => {});
-                                selectedArticleId = match['id']?.toString();
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    )
-                  else
-                    TextField(
-                      decoration: _cleanInputDecoration(hint: 'Enter Art No (e.g. 501)'),
-                      onChanged: (val) => selectedArtNo = val.trim(),
-                    ),
-
-                  const SizedBox(height: 14),
-
-                  // Color with quick suggested chips
-                  Text('COLOR / SHADE *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: colorController,
-                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
-                    decoration: _cleanInputDecoration(hint: 'e.g. White, Navy, Black'),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: ['White', 'Black', 'Navy', 'Red', 'Wine', 'Olive', 'Cream'].map((c) {
-                      return InkWell(
-                        onTap: () => setModalState(() => colorController.text = c),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(c, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.inkSoft)),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Size Selector Chips
-                  Text('SIZE BREAKDOWN *', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'FREE'].map((sz) {
-                      final isSelected = selectedSize == sz;
-                      return ChoiceChip(
-                        label: Text(sz),
-                        selected: isSelected,
-                        selectedColor: AppTheme.steel,
-                        labelStyle: GoogleFonts.jetBrainsMono(
-                          color: isSelected ? Colors.white : AppTheme.ink,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12.5,
-                        ),
-                        onSelected: (_) => setModalState(() => selectedSize = sz),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Order Qty & Delivery Qty
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('ORDER QTY (PCS) *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: orderQtyController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => setModalState(() {}),
-                              style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold),
-                              decoration: _cleanInputDecoration(hint: '0'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('DELIVERY QTY (PCS) *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: deliveryQtyController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => setModalState(() {}),
-                              style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.steel),
-                              decoration: _cleanInputDecoration(hint: '0', isPrimary: true),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  if (orderQ > 0 || delivQ > 0) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: previewBal == 0 ? AppTheme.bg : (previewBal < 0 ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Calculated Balance: ', style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft)),
-                          Text(
-                            previewBal == 0 ? '0 pcs (Complete)' : (previewBal < 0 ? '+$previewBal extra' : '$previewBal pending'),
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: previewBal < 0 ? AppTheme.green : (previewBal > 0 ? AppTheme.red : AppTheme.ink),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 18),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final orderVal = int.tryParse(orderQtyController.text.trim()) ?? 0;
-                        final delivVal = int.tryParse(deliveryQtyController.text.trim()) ?? orderVal;
-                        if (selectedArtNo.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select or enter Article No.')));
-                          return;
-                        }
-
-                        setState(() {
-                          _challanItems.add({
-                            'art_no': selectedArtNo,
-                            'article_id': selectedArticleId,
-                            'color': colorController.text.trim().toUpperCase(),
-                            'category': categoryController.text.trim().toUpperCase(),
-                            'product': productController.text.trim().toUpperCase(),
-                            'size': selectedSize,
-                            'order_qty': orderVal,
-                            'delivery_qty': delivVal,
-                            'balance_qty': orderVal - delivVal,
-                          });
-                          _challanItems.sort((x, y) => _naturalSizeCompare(x['size'].toString(), y['size'].toString()));
-                        });
-
-                        Navigator.pop(ctx);
-                      },
-                      icon: const Icon(Icons.check_rounded, size: 18),
-                      label: Text(
-                        'Add to Delivery Breakdown',
-                        style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.steel,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _ArticleAutoFetchSheet(
+        availableArticles: _availableArticles,
+        onAddItems: (newItems) {
+          setState(() {
+            _challanItems.addAll(newItems);
+            _challanItems.sort((a, b) {
+              final artComp = a['art_no'].toString().compareTo(b['art_no'].toString());
+              if (artComp != 0) return artComp;
+              final colComp = a['color'].toString().compareTo(b['color'].toString());
+              if (colComp != 0) return colComp;
+              final prodComp = a['product'].toString().compareTo(b['product'].toString());
+              if (prodComp != 0) return prodComp;
+              return _naturalSizeCompare(a['size'].toString(), b['size'].toString());
+            });
+          });
         },
       ),
     );
@@ -614,10 +366,11 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
     showModalBottomSheet(
       context: context,
-      useSafeArea: true,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.70,
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -749,18 +502,18 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
+      height: screenHeight * 0.90,
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.92),
       decoration: const BoxDecoration(
         color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          children: [
-            // Drag handle
-            const SizedBox(height: 10),
+      child: Column(
+        children: [
+          // Drag handle
+          const SizedBox(height: 10),
             Center(
               child: Container(
                 width: 40,
@@ -1139,8 +892,8 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     // ============================================
                     // 3. 8-COLUMN DELIVERY BREAKDOWN TABLE
                     // ============================================
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
@@ -1161,28 +914,38 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                             ],
                           ],
                         ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             if (_availableLots.isNotEmpty) ...[
-                              TextButton.icon(
-                                onPressed: _showLoadLotModal,
-                                icon: const Icon(Icons.sync_alt_rounded, size: 14, color: AppTheme.steel),
-                                label: Text('Load Lot', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel)),
-                                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6), visualDensity: VisualDensity.compact),
+                              Expanded(
+                                flex: 1,
+                                child: OutlinedButton.icon(
+                                  onPressed: _showLoadLotModal,
+                                  icon: const Icon(Icons.sync_alt_rounded, size: 14, color: AppTheme.steel),
+                                  label: Text('Load Lot', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 8),
                             ],
-                            ElevatedButton.icon(
-                              onPressed: _showAddItemDialog,
-                              icon: const Icon(Icons.add_rounded, size: 14),
-                              label: Text('Add Item', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.steel,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                minimumSize: Size.zero,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                elevation: 0,
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton.icon(
+                                onPressed: _showArticleSelectorAndAutoFetchModal,
+                                icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                                label: Text('Add Article (Auto-Fetch QC)', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.steel,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
                               ),
                             ),
                           ],
@@ -1193,7 +956,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
                     if (_challanItems.isEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14),
@@ -1226,35 +989,34 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
-                                OutlinedButton.icon(
-                                  onPressed: _showAddItemDialog,
-                                  icon: const Icon(Icons.add_rounded, size: 16),
-                                  label: const Text('Add Line Item'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppTheme.steel,
-                                    side: const BorderSide(color: AppTheme.steel, width: 1.2),
+                                ElevatedButton.icon(
+                                  onPressed: _showArticleSelectorAndAutoFetchModal,
+                                  icon: const Icon(Icons.auto_awesome_rounded, size: 15),
+                                  label: const Text('Add Article (Auto-Fetch QC)'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.steel,
+                                    foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   ),
                                 ),
-                                if (_availableLots.isNotEmpty) ...[
-                                  const SizedBox(width: 10),
-                                  ElevatedButton.icon(
+                                if (_availableLots.isNotEmpty)
+                                  OutlinedButton.icon(
                                     onPressed: _showLoadLotModal,
-                                    icon: const Icon(Icons.download_rounded, size: 16),
+                                    icon: const Icon(Icons.download_rounded, size: 15, color: AppTheme.steel),
                                     label: const Text('Load From Lot'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.steel,
-                                      foregroundColor: Colors.white,
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                      foregroundColor: AppTheme.steel,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                      elevation: 0,
                                     ),
                                   ),
-                                ],
                               ],
                             ),
                           ],
@@ -1496,9 +1258,12 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                         icon: _isLoading
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.send_rounded, size: 18),
-                        label: Text(
-                          _isLoading ? 'Submitting...' : 'Submit Challan to Admin',
-                          style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w800),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _isLoading ? 'Submitting...' : 'Submit Challan to Admin',
+                            style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w800),
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.steel,
@@ -1527,9 +1292,8 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildDeliveryCell(
     String text, {
@@ -1564,17 +1328,866 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
       );
     }
 
-    Alignment alignment = Alignment.centerLeft;
-    if (alignRight) alignment = Alignment.centerRight;
-    if (alignCenter) alignment = Alignment.center;
-
-    return Container(
+    return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: 14,
         vertical: isHeader ? 10 : (isTotal ? 10 : 8),
       ),
-      alignment: alignment,
-      child: Text(text, style: style, maxLines: 1),
+      child: Text(
+        text,
+        style: style,
+        textAlign: alignRight ? TextAlign.right : (alignCenter ? TextAlign.center : TextAlign.left),
+        maxLines: 1,
+      ),
     );
   }
 }
+
+// ============================================================================
+// DEDICATED ARTICLE AUTO-FETCH SHEET (ROBUST STATEFUL LIFECYCLE)
+// ============================================================================
+class _ArticleAutoFetchSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> availableArticles;
+  final Function(List<Map<String, dynamic>> items) onAddItems;
+
+  const _ArticleAutoFetchSheet({
+    required this.availableArticles,
+    required this.onAddItems,
+  });
+
+  @override
+  State<_ArticleAutoFetchSheet> createState() => _ArticleAutoFetchSheetState();
+}
+
+class _ArticleAutoFetchSheetState extends State<_ArticleAutoFetchSheet> {
+  late String _selectedArtNo;
+  String? _selectedArticleId;
+  String _selectedCategory = 'SUIT';
+  String _selectedProductMode = 'TOP'; // 'TOP', 'PANT', or 'BOTH (TOP + PANT)'
+  late final TextEditingController _customColorController;
+
+  List<_ArticleVariantRow> _previewRows = [];
+  bool _isFetching = false;
+  String? _fetchStatusMessage;
+
+  static int _compareSizes(String a, String b) {
+    const alphaOrder = [
+      'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', '5XL', 'FREE', 'FS'
+    ];
+    final aUpper = a.trim().toUpperCase();
+    final bUpper = b.trim().toUpperCase();
+    final aIdx = alphaOrder.indexOf(aUpper);
+    final bIdx = alphaOrder.indexOf(bUpper);
+    if (aIdx != -1 && bIdx != -1) return aIdx.compareTo(bIdx);
+    if (aIdx != -1) return -1;
+    if (bIdx != -1) return 1;
+    return aUpper.compareTo(bUpper);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedArtNo = widget.availableArticles.isNotEmpty
+        ? widget.availableArticles.first['art_no'].toString()
+        : '';
+    _selectedArticleId = widget.availableArticles.isNotEmpty
+        ? widget.availableArticles.first['id']?.toString()
+        : null;
+    _customColorController = TextEditingController(text: 'WHITE CHOCOLATE');
+
+    if (_selectedArticleId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _fetchVariantsForArticle(_selectedArticleId!, _selectedArtNo);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _customColorController.dispose();
+    for (var r in _previewRows) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _fetchVariantsForArticle(String artId, String artNo) async {
+    if (!mounted) return;
+    setState(() {
+      _isFetching = true;
+      _fetchStatusMessage = 'Auto-fetching QC checked quantities...';
+    });
+
+    try {
+      final qcLogs = await supabase
+          .from('qc_logs')
+          .select('stage, color, size, qty_received, qty_passed, qty_rejected')
+          .eq('article_id', artId)
+          .timeout(const Duration(seconds: 5), onTimeout: () => []);
+
+      final lotRes = await supabase
+          .from('allotments')
+          .select('id, challan_id, allotment_variants(color, size, quantity)')
+          .eq('article_id', artId)
+          .limit(10)
+          .timeout(const Duration(seconds: 5), onTimeout: () => []);
+
+      if (!mounted) return;
+
+      final Map<String, Map<String, int>> variantMap = {};
+
+      for (var lot in lotRes) {
+        final vars = lot['allotment_variants'] as List<dynamic>? ?? [];
+        for (var v in vars) {
+          final c = (v['color']?.toString() ?? 'WHITE CHOCOLATE').trim().toUpperCase();
+          final s = (v['size']?.toString() ?? 'M').trim().toUpperCase();
+          final q = (v['quantity'] as int?) ?? 0;
+          final key = '$c|||$s';
+          variantMap.putIfAbsent(key, () => {'passed': 0, 'received': 0, 'order': 0});
+          variantMap[key]!['order'] = (variantMap[key]!['order'] ?? 0) + q;
+        }
+      }
+
+      for (var log in qcLogs) {
+        final c = (log['color']?.toString() ?? 'WHITE CHOCOLATE').trim().toUpperCase();
+        final s = (log['size']?.toString() ?? 'M').trim().toUpperCase();
+        final p = (log['qty_passed'] as int?) ?? 0;
+        final r = (log['qty_received'] as int?) ?? 0;
+        final key = '$c|||$s';
+        variantMap.putIfAbsent(key, () => {'passed': 0, 'received': 0, 'order': 0});
+        variantMap[key]!['passed'] = (variantMap[key]!['passed'] ?? 0) + p;
+        variantMap[key]!['received'] = (variantMap[key]!['received'] ?? 0) + r;
+      }
+
+      for (var r in _previewRows) {
+        r.dispose();
+      }
+
+      final List<_ArticleVariantRow> rows = [];
+
+      if (variantMap.isNotEmpty) {
+        final sortedKeys = variantMap.keys.toList()
+          ..sort((a, b) {
+            final sA = a.split('|||')[1];
+            final sB = b.split('|||')[1];
+            return _compareSizes(sA, sB);
+          });
+
+        for (var key in sortedKeys) {
+          final parts = key.split('|||');
+          final color = parts[0];
+          final size = parts[1];
+          final stats = variantMap[key]!;
+          final passed = stats['passed'] ?? 0;
+          final received = stats['received'] ?? 0;
+          final order = stats['order'] ?? 0;
+          final checkedQty = passed > 0 ? passed : received;
+          final delivQty = checkedQty > 0 ? checkedQty : (order > 0 ? order : 0);
+          final orderQty = order > 0 ? order : delivQty;
+
+          if (_selectedProductMode == 'BOTH (TOP + PANT)') {
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: color,
+              category: _selectedCategory,
+              product: 'TOP',
+              size: size,
+              orderQty: orderQty,
+              deliveryQty: delivQty,
+              qcCheckedQty: checkedQty,
+            ));
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: color,
+              category: _selectedCategory,
+              product: 'PANT',
+              size: size,
+              orderQty: orderQty,
+              deliveryQty: delivQty,
+              qcCheckedQty: checkedQty,
+            ));
+          } else {
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: color,
+              category: _selectedCategory,
+              product: _selectedProductMode,
+              size: size,
+              orderQty: orderQty,
+              deliveryQty: delivQty,
+              qcCheckedQty: checkedQty,
+            ));
+          }
+        }
+      } else {
+        final defaultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+        final activeColor = _customColorController.text.trim().isEmpty ? 'WHITE CHOCOLATE' : _customColorController.text.trim().toUpperCase();
+        for (var sz in defaultSizes) {
+          if (_selectedProductMode == 'BOTH (TOP + PANT)') {
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: activeColor,
+              category: _selectedCategory,
+              product: 'TOP',
+              size: sz,
+              orderQty: 0,
+              deliveryQty: 0,
+              qcCheckedQty: 0,
+            ));
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: activeColor,
+              category: _selectedCategory,
+              product: 'PANT',
+              size: sz,
+              orderQty: 0,
+              deliveryQty: 0,
+              qcCheckedQty: 0,
+            ));
+          } else {
+            rows.add(_ArticleVariantRow(
+              artNo: artNo,
+              articleId: artId,
+              color: activeColor,
+              category: _selectedCategory,
+              product: _selectedProductMode,
+              size: sz,
+              orderQty: 0,
+              deliveryQty: 0,
+              qcCheckedQty: 0,
+            ));
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _previewRows = rows;
+        _isFetching = false;
+        _fetchStatusMessage = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isFetching = false;
+        _fetchStatusMessage = 'Error auto-fetching QC logs: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedRows = _previewRows.where((r) => r.isSelected).toList();
+    final totalSelectedPcs = selectedRows.fold<int>(
+      0,
+      (sum, r) => sum + (int.tryParse(r.deliveryController.text.trim()) ?? r.deliveryQty),
+    );
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.90,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Top Header Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.steel, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Add Article to Delivery Challan',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Auto-fetch QC passed quantities for Ollypop dispatch',
+                        style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 22, color: AppTheme.inkSoft),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Config & Matrix Body
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Article Selection Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'SELECT ARTICLE NUMBER *',
+                              style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                            ),
+                            if (_selectedArticleId != null)
+                              InkWell(
+                                onTap: () => _fetchVariantsForArticle(_selectedArticleId!, _selectedArtNo),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.refresh_rounded, size: 14, color: AppTheme.steel),
+                                    const SizedBox(width: 4),
+                                    Text('Re-fetch QC', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedArtNo.isNotEmpty ? _selectedArtNo : null,
+                          hint: const Text('Select an Article'),
+                          items: widget.availableArticles.map((a) {
+                            return DropdownMenuItem<String>(
+                              value: a['art_no'].toString(),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(4)),
+                                    child: Text(
+                                      a['art_no'].toString(),
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      a['description'] ?? 'Garment Article',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedArtNo = val;
+                                final match = widget.availableArticles.firstWhere((a) => a['art_no'].toString() == val, orElse: () => {});
+                                _selectedArticleId = match['id']?.toString();
+                              });
+                              if (_selectedArticleId != null) {
+                                _fetchVariantsForArticle(_selectedArticleId!, _selectedArtNo);
+                              }
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Category and Product Configuration
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('CATEGORY *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                                  const SizedBox(height: 6),
+                                  DropdownButtonFormField<String>(
+                                    value: _selectedCategory,
+                                    items: const ['SUIT', 'FROCK', 'SKIRT', 'KURTI', 'PANT', 'SHIRT', 'OTHER']
+                                        .map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold))))
+                                        .toList(),
+                                    onChanged: (v) {
+                                      if (v != null) setState(() => _selectedCategory = v);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('PRODUCT MODE *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 4,
+                                    children: ['TOP', 'PANT', 'BOTH (TOP + PANT)'].map((p) {
+                                      final isSel = _selectedProductMode == p;
+                                      return ChoiceChip(
+                                        label: Text(
+                                          p == 'BOTH (TOP + PANT)' ? 'BOTH' : p,
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSel ? Colors.white : AppTheme.ink,
+                                          ),
+                                        ),
+                                        selected: isSel,
+                                        selectedColor: AppTheme.steel,
+                                        onSelected: (val) {
+                                          if (val) {
+                                            setState(() => _selectedProductMode = p);
+                                            if (_selectedArticleId != null) {
+                                              _fetchVariantsForArticle(_selectedArticleId!, _selectedArtNo);
+                                            }
+                                          }
+                                        },
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Color / Shade
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('COLOR / SHADE *', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.inkSoft)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _customColorController,
+                              textCapitalization: TextCapitalization.characters,
+                              style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                hintText: 'e.g. WHITE CHOCOLATE, NAVY, RED',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                              ),
+                              onChanged: (val) {
+                                setState(() {
+                                  for (var r in _previewRows) {
+                                    r.color = val.toUpperCase();
+                                  }
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: ['WHITE CHOCOLATE', 'BLACK', 'NAVY', 'RED', 'WINE', 'OLIVE'].map((c) {
+                            return InkWell(
+                              onTap: () {
+                                _customColorController.text = c;
+                                setState(() {
+                                  for (var r in _previewRows) {
+                                    r.color = c;
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: Text(c, style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.ink)),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Section Header: Sizes Matrix
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'QC CHECKED SIZES & QUANTITIES',
+                            style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                          ),
+                          if (_previewRows.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
+                              child: Text(
+                                '${_previewRows.length} rows',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (_previewRows.isNotEmpty)
+                        InkWell(
+                          onTap: () {
+                            final allSelected = _previewRows.every((r) => r.isSelected);
+                            setState(() {
+                              for (var r in _previewRows) {
+                                r.isSelected = !allSelected;
+                              }
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Text(
+                              _previewRows.every((r) => r.isSelected) ? 'Deselect All' : 'Select All',
+                              style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Preview Table
+                  if (_isFetching)
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(color: AppTheme.steel, strokeWidth: 2.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _fetchStatusMessage ?? 'Fetching QC Checked Pieces...',
+                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Querying qc_logs & production lots for Art #$_selectedArtNo',
+                            style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_previewRows.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.info_outline_rounded, color: AppTheme.steel, size: 28),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No Variants Found for Art #$_selectedArtNo',
+                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Select another article or enter custom breakdown.',
+                            style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          children: [
+                            // Table Header
+                            Container(
+                              color: const Color(0xFFF1F5F9),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 32), // Checkbox space
+                                  Expanded(flex: 2, child: Text('SIZE', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.inkSoft))),
+                                  Expanded(flex: 3, child: Text('PRODUCT', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.inkSoft))),
+                                  Expanded(flex: 3, child: Text('ORDER QTY', textAlign: TextAlign.center, style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.inkSoft))),
+                                  Expanded(flex: 3, child: Text('DELIVERY', textAlign: TextAlign.center, style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.steel))),
+                                  Expanded(flex: 2, child: Text('BAL', textAlign: TextAlign.right, style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.inkSoft))),
+                                ],
+                              ),
+                            ),
+
+                            // Table Rows
+                            ..._previewRows.map((row) {
+                              final oQty = int.tryParse(row.orderController.text.trim()) ?? row.orderQty;
+                              final dQty = int.tryParse(row.deliveryController.text.trim()) ?? row.deliveryQty;
+                              final bal = oQty - dQty;
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: const BoxDecoration(
+                                  border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Selection Checkbox
+                                    SizedBox(
+                                      width: 32,
+                                      height: 32,
+                                      child: Checkbox(
+                                        value: row.isSelected,
+                                        activeColor: AppTheme.steel,
+                                        onChanged: (val) => setState(() => row.isSelected = val ?? true),
+                                      ),
+                                    ),
+
+                                    // Size Badge
+                                    Expanded(
+                                      flex: 2,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.steelMist,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          row.size,
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.steel,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 6),
+
+                                    // Product Part (TOP or PANT)
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        row.product,
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: row.product == 'TOP' ? AppTheme.steel : const Color(0xFF0F766E),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Order Qty Input
+                                    Expanded(
+                                      flex: 3,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                                        child: SizedBox(
+                                          height: 34,
+                                          child: TextField(
+                                            controller: row.orderController,
+                                            keyboardType: TextInputType.number,
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold),
+                                            decoration: InputDecoration(
+                                              contentPadding: EdgeInsets.zero,
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
+                                            ),
+                                            onChanged: (_) => setState(() {}),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Delivery Qty Input (Editable, auto-filled from QC)
+                                    Expanded(
+                                      flex: 3,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                                        child: SizedBox(
+                                          height: 34,
+                                          child: TextField(
+                                            controller: row.deliveryController,
+                                            keyboardType: TextInputType.number,
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                                            decoration: InputDecoration(
+                                              contentPadding: EdgeInsets.zero,
+                                              filled: true,
+                                              fillColor: const Color(0xFFEFF6FF),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.steel, width: 1.2)),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.steel, width: 1.2)),
+                                            ),
+                                            onChanged: (_) => setState(() {}),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Balance Display
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        bal == 0 ? '0' : (bal > 0 ? '+$bal' : '$bal'),
+                                        textAlign: TextAlign.right,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: bal == 0 ? AppTheme.inkSoft : (bal < 0 ? AppTheme.green : AppTheme.red),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // Sticky Bottom Summary & 1-Click Action Bar
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, -3)),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${selectedRows.length} rows selected',
+                        style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                      ),
+                      Row(
+                        children: [
+                          Text('Dispatch Total: ', style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft)),
+                          Text(
+                            '$totalSelectedPcs PCS',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: selectedRows.isEmpty
+                          ? null
+                          : () {
+                              final List<Map<String, dynamic>> newItems = [];
+                              for (var r in selectedRows) {
+                                final orderVal = int.tryParse(r.orderController.text.trim()) ?? r.orderQty;
+                                final delivVal = int.tryParse(r.deliveryController.text.trim()) ?? r.deliveryQty;
+                                newItems.add({
+                                  'art_no': r.artNo,
+                                  'article_id': r.articleId,
+                                  'color': r.color,
+                                  'category': r.category,
+                                  'product': r.product,
+                                  'size': r.size,
+                                  'order_qty': orderVal,
+                                  'delivery_qty': delivVal,
+                                  'balance_qty': orderVal - delivVal,
+                                });
+                              }
+
+                              widget.onAddItems(newItems);
+                              Navigator.pop(context);
+                            },
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      label: Text(
+                        'Add All (${selectedRows.length} Sizes • $totalSelectedPcs Pcs) to Challan',
+                        style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.steel,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
