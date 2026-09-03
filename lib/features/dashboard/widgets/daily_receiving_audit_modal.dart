@@ -353,8 +353,10 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
-                      widget.onOpenManualFallback();
+                      Navigator.of(context).pop();
+                      Future.delayed(const Duration(milliseconds: 200), () {
+                        widget.onOpenManualFallback();
+                      });
                     },
                     icon: const Icon(Icons.add_rounded, size: 15, color: AppTheme.steel),
                     label: Text(
@@ -413,8 +415,10 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
             const SizedBox(height: 18),
             OutlinedButton.icon(
               onPressed: () {
-                Navigator.pop(context);
-                widget.onOpenManualFallback();
+                Navigator.of(context).pop();
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  widget.onOpenManualFallback();
+                });
               },
               icon: const Icon(Icons.add_rounded, size: 16),
               label: const Text('Direct Manual Inward'),
