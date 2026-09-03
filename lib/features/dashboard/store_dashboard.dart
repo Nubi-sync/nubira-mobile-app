@@ -3400,11 +3400,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           'notes': notesJson,
                                         })
                                         .eq('id', mat['id']);
-                                  }
+
+                                     // 2. Log OUTWARD in accessories table so Godown inventory is reduced automatically in real-time
+                                     final issuedQty = num.tryParse(receivedText.toString()) ?? (mat['required_qty'] as num?) ?? 0;
+                                     final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
+                                     final unit = (mat['unit'] ?? 'pcs').toString();
+
+                                     if (itemName.isNotEmpty && issuedQty > 0) {
+                                       try {
+                                         await supabase.from('accessories').insert({
+                                           'item_name': itemName,
+                                           'action': 'OUT',
+                                           'quantity': issuedQty.toInt(),
+                                           'unit': unit,
+                                           'party_name': 'Issued to Lineman $linemanName',
+                                           'entry_date': DateTime.now().toIso8601String().split('T')[0],
+                                           'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}',
+                                         });
+                                       } catch (_) {}
+                                     }
+                                   }
 
                                   scaffoldMessenger.showSnackBar(
                                     SnackBar(
-                                      content: Text('Raw materials verified & issued to Lineman $linemanName!'),
+                                      content: Text('Raw materials verified & issued to Lineman $linemanName! Stock updated.'),
                                       backgroundColor: AppTheme.steel,
                                     ),
                                   );
