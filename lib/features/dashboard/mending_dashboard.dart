@@ -973,8 +973,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       final variance = totalCounted - targetQty;
 
       final user = supabase.auth.currentUser;
-      final profileRes = await supabase.from('profiles').select('username, full_name').eq('id', user?.id ?? '').maybeSingle();
-      final senderName = profileRes?['full_name'] ?? profileRes?['username'] ?? user?.email?.split('@').first ?? 'Mending Supervisor';
+      final profileRes = await supabase.from('profiles').select('username').eq('id', user?.id ?? '').maybeSingle();
+      final senderName = profileRes?['username'] ?? user?.email?.split('@').first ?? 'Mending Supervisor';
 
       final varianceRemark = variance == 0
           ? 'Exact 100% Match (Zero Shortage)'
