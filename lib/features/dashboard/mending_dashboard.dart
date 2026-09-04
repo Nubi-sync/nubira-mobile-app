@@ -51,6 +51,17 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', '5XL', 'FREE', 'FS'
   ];
 
+  // Safe helper to extract Map from potentially dynamic/List values
+  static Map<String, dynamic>? _asMap(dynamic val) {
+    if (val == null) return null;
+    if (val is Map<String, dynamic>) return val;
+    if (val is Map) return Map<String, dynamic>.from(val);
+    if (val is List && val.isNotEmpty && val.first is Map) {
+      return Map<String, dynamic>.from(val.first as Map);
+    }
+    return null;
+  }
+
   int _naturalSizeCompare(String a, String b) {
     final aUpper = a.trim().toUpperCase();
     final bUpper = b.trim().toUpperCase();
@@ -178,30 +189,43 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           continue; // Still on sewing floor with Lineman
         }
 
-        final vars = (variantsRes).where((v) => v['allotment_id'].toString() == aId).toList();
-        final assigns = (assignmentsRes).where((m) => m['allotment_id'].toString() == aId).toList();
+        final vars = (variantsRes)
+            .where((v) => v['allotment_id'].toString() == aId)
+            .map((v) => Map<String, dynamic>.from(v as Map))
+            .toList();
+        final assigns = (assignmentsRes)
+            .where((m) => m['allotment_id'].toString() == aId)
+            .map((m) => Map<String, dynamic>.from(m as Map))
+            .toList();
 
         // Sort variants naturally by size
         vars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
 
         int totalTarget = 0;
         for (var v in vars) {
-          totalTarget += (v['quantity'] as int? ?? 0);
+          totalTarget += ((v['quantity'] as num?)?.toInt() ?? 0);
         }
 
         int totalAssigned = 0;
         int totalCounted = 0;
         for (var m in assigns) {
-          totalAssigned += (m['assigned_qty'] as int? ?? 0);
-          final c = (m['completed_qty'] as int? ?? 0);
+          totalAssigned += ((m['assigned_qty'] as num?)?.toInt() ?? 0);
+          final c = ((m['completed_qty'] as num?)?.toInt() ?? 0);
           totalCounted += c;
         }
 
+        final artMap = _asMap(a['article']) ?? _asMap(a['articles']);
+        final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
+        final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
+
         lots.add({
           ...a,
+          'article': artMap,
+          'challans': chalMap,
+          'lineman': lineMap,
           'variants': vars,
           'assignments': assigns,
-          'target_qty': totalTarget > 0 ? totalTarget : (a['target_qty'] as int? ?? 0),
+          'target_qty': totalTarget > 0 ? totalTarget : ((a['target_qty'] as num?)?.toInt() ?? 0),
           'total_assigned': totalAssigned,
           'total_counted': totalCounted,
         });
@@ -212,13 +236,16 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           _lots = lots;
           _isLoading = false;
 
-          // Retain selected lot or pick first
+          // Retain selected lot or pick first from filtered/lots
+          final fLots = _filteredLots;
           if (_selectedLot != null) {
             final match = lots.firstWhere(
               (l) => l['id'] == _selectedLot!['id'],
-              orElse: () => lots.isNotEmpty ? lots.first : <String, dynamic>{},
+              orElse: () => fLots.isNotEmpty ? fLots.first : (lots.isNotEmpty ? lots.first : <String, dynamic>{}),
             );
-            _selectedLot = match.isNotEmpty ? match : (lots.isNotEmpty ? lots.first : null);
+            _selectedLot = match.isNotEmpty ? match : (fLots.isNotEmpty ? fLots.first : (lots.isNotEmpty ? lots.first : null));
+          } else if (fLots.isNotEmpty) {
+            _selectedLot = fLots.first;
           } else if (lots.isNotEmpty) {
             _selectedLot = lots.first;
           } else {
@@ -270,23 +297,27 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Assign Mending Worker',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.steel,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Assign Mending Worker',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.steel,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Allocate piece bundle for thread trimming & counting',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                          ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              'Allocate piece bundle for thread trimming & counting',
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: AppTheme.inkFaint),
@@ -533,9 +564,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   // ======= RECORD WORKER PHYSICAL COUNT =======
   void _openRecordCountDialog(Map<String, dynamic> assignment) {
-    final assignedQty = (assignment['assigned_qty'] as int?) ?? 0;
-    final currentDone = (assignment['completed_qty'] as int?) ?? 0;
-    final workerName = assignment['worker_name'] ?? 'Worker';
+    final assignedQty = (assignment['assigned_qty'] as num?)?.toInt() ?? 0;
+    final currentDone = (assignment['completed_qty'] as num?)?.toInt() ?? 0;
+    final workerName = assignment['worker_name']?.toString() ?? 'Worker';
     final countController = TextEditingController(text: currentDone > 0 ? currentDone.toString() : assignedQty.toString());
 
     showDialog(
@@ -663,8 +694,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       final lotId = _selectedLot!['id'].toString();
       final articleId = _selectedLot!['article_id'];
       final linemanId = _selectedLot!['lineman_id'];
-      final totalCounted = (_selectedLot!['total_counted'] as int?) ?? 0;
-      final targetQty = (_selectedLot!['target_qty'] as int?) ?? 0;
+      final totalCounted = (_selectedLot!['total_counted'] as num?)?.toInt() ?? 0;
+      final targetQty = (_selectedLot!['target_qty'] as num?)?.toInt() ?? 0;
       final variance = totalCounted - targetQty;
 
       final varianceRemark = variance == 0
@@ -962,13 +993,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           itemBuilder: (ctx, idx) {
             final lot = displayLots[idx];
             final isSelected = _selectedLot?['id'] == lot['id'];
-            final art = lot['article'];
-            final artNo = art?['art_no'] ?? 'N/A';
-            final challan = lot['challans'];
-            final challanNo = challan?['challan_no'] ?? 'CH-${lot['id'].toString().substring(0, 4)}';
-            final target = lot['target_qty'] ?? 0;
-            final counted = lot['total_counted'] ?? 0;
-            final supName = lot['mending_supervisor_name'] ?? 'General Pool';
+            final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+            final artNo = art?['art_no']?.toString() ?? 'N/A';
+            final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
+            final challanNo = challan?['challan_no']?.toString() ?? 'CH-${lot['id'].toString().substring(0, 4)}';
+            final target = (lot['target_qty'] as num?)?.toInt() ?? 0;
+            final counted = (lot['total_counted'] as num?)?.toInt() ?? 0;
+            final supName = lot['mending_supervisor_name']?.toString() ?? 'General Pool';
 
             return GestureDetector(
               onTap: () {
@@ -1121,11 +1152,27 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   // ======= TAB 1: WORKER ASSIGNMENTS =======
   Widget _buildWorkerAssignmentsTab() {
-    final lot = _selectedLot!;
+    final lot = _selectedLot;
+    if (lot == null) {
+      return Center(
+        child: Text(
+          'Select an allotment above',
+          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft),
+        ),
+      );
+    }
+
     final assigns = (lot['assignments'] as List<dynamic>?) ?? [];
-    final target = (lot['target_qty'] as int?) ?? 0;
-    final assigned = (lot['total_assigned'] as int?) ?? 0;
-    final counted = (lot['total_counted'] as int?) ?? 0;
+    final target = (lot['target_qty'] as num?)?.toInt() ?? 0;
+    final assigned = (lot['total_assigned'] as num?)?.toInt() ?? 0;
+    final counted = (lot['total_counted'] as num?)?.toInt() ?? 0;
+
+    final handedBy = lot['handed_to_mending_by']?.toString();
+    final linemanName = (handedBy != null && handedBy.isNotEmpty)
+        ? handedBy
+        : (_asMap(lot['lineman'])?['username']?.toString() ?? 'Lineman');
+    final supName = lot['mending_supervisor_name']?.toString() ?? 'General Pool';
+    final notes = lot['mending_handover_notes']?.toString();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1148,7 +1195,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'From Lineman: ${lot['handed_to_mending_by'] ?? lot['lineman']?['username'] ?? 'Lineman'}',
+                      'From Lineman: $linemanName',
                       style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
                     ),
                   ),
@@ -1160,16 +1207,16 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
                     child: Text(
-                      'Custody: ${lot['mending_supervisor_name'] ?? 'General Pool'}',
+                      'Custody: $supName',
                       style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFB45309)),
                     ),
                   ),
                 ],
               ),
-              if (lot['mending_handover_notes'] != null && lot['mending_handover_notes'].toString().isNotEmpty) ...[
+              if (notes != null && notes.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '📝 Note: ${lot['mending_handover_notes']}',
+                  '📝 Note: $notes',
                   style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
                 ),
               ],
@@ -1190,23 +1237,27 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'COUNTING PROGRESS',
-                        style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkFaint),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$counted of $target Pieces Verified',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'COUNTING PROGRESS',
+                          style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.inkFaint),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$counted of $target Pieces Verified',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.steel,
+                      minimumSize: const Size(0, 36),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     ),
@@ -1223,7 +1274,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: target > 0 ? (counted / target).clamp(0.0, 1.0) : 0,
+                  value: target > 0 ? (counted / target).clamp(0.0, 1.0) : 0.0,
                   minHeight: 7,
                   backgroundColor: AppTheme.bg,
                   valueColor: AlwaysStoppedAnimation<Color>(counted >= target ? AppTheme.green : AppTheme.steel),
@@ -1273,13 +1324,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   }
 
   Widget _buildWorkerAssignmentCard(dynamic ass) {
-    final workerName = ass['worker_name'] ?? 'Worker';
-    final color = ass['color'] ?? 'Standard';
-    final size = ass['size'] ?? 'Free';
-    final assignedQty = (ass['assigned_qty'] as int?) ?? 0;
-    final completedQty = (ass['completed_qty'] as int?) ?? 0;
-    final isDone = ass['status'] == 'DONE';
-    final notes = ass['notes'] as String?;
+    if (ass is! Map) return const SizedBox.shrink();
+    final workerName = ass['worker_name']?.toString() ?? 'Worker';
+    final color = ass['color']?.toString() ?? 'Standard';
+    final size = ass['size']?.toString() ?? 'Free';
+    final assignedQty = (ass['assigned_qty'] as num?)?.toInt() ?? 0;
+    final completedQty = (ass['completed_qty'] as num?)?.toInt() ?? 0;
+    final isDone = ass['status']?.toString() == 'DONE';
+    final notes = ass['notes']?.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1334,7 +1386,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '$color  •  Size: $size  ${notes != null ? '• $notes' : ''}',
+                  '$color  •  Size: $size  ${notes != null && notes.isNotEmpty ? '• $notes' : ''}',
                   style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
                 ),
                 const SizedBox(height: 4),
@@ -1355,7 +1407,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               IconButton(
                 icon: const Icon(Icons.edit_note_rounded, color: AppTheme.steel, size: 22),
                 tooltip: 'Enter Physical Count',
-                onPressed: () => _openRecordCountDialog(ass),
+                onPressed: () => _openRecordCountDialog(Map<String, dynamic>.from(ass)),
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.red, size: 18),
@@ -1371,22 +1423,43 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   // ======= TAB 2: NATURAL MATRIX & QC HANDOVER =======
   Widget _buildNaturalMatrixTab() {
-    final lot = _selectedLot!;
+    final lot = _selectedLot;
+    if (lot == null) {
+      return Center(
+        child: Text(
+          'Select an allotment above',
+          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft),
+        ),
+      );
+    }
     final vars = (lot['variants'] as List<dynamic>?) ?? [];
     final assigns = (lot['assignments'] as List<dynamic>?) ?? [];
-    final art = lot['article'];
-    final artNo = art?['art_no'] ?? 'N/A';
-    final desc = art?['description'] ?? '';
+    final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+    final artNo = art?['art_no']?.toString() ?? 'N/A';
+    final desc = art?['description']?.toString() ?? '';
 
     // Group assigned completed counts by "Color_Size"
     final Map<String, int> countedMap = {};
     for (var a in assigns) {
-      final key = '${a['color']}_${a['size']}';
-      countedMap[key] = (countedMap[key] ?? 0) + ((a['completed_qty'] as int?) ?? 0);
+      if (a is Map) {
+        final key = '${a['color']}_${a['size']}';
+        countedMap[key] = (countedMap[key] ?? 0) + ((a['completed_qty'] as num?)?.toInt() ?? 0);
+      }
     }
 
     int grandTarget = 0;
+    for (var v in vars) {
+      if (v is Map) {
+        grandTarget += ((v['quantity'] as num?)?.toInt() ?? 0);
+      }
+    }
+
     int grandCounted = 0;
+    for (var a in assigns) {
+      if (a is Map) {
+        grandCounted += ((a['completed_qty'] as num?)?.toInt() ?? 0);
+      }
+    }
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1458,75 +1531,82 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 ),
               ),
 
-              // Rows
-              ...vars.map((v) {
-                final color = v['color'] ?? 'Standard';
-                final size = v['size'] ?? 'Free';
-                final target = (v['quantity'] as int?) ?? 0;
-                final key = '${color}_$size';
-                final counted = countedMap[key] ?? 0;
-                final diff = counted - target;
-
-                grandTarget += target;
-                grandCounted += counted;
-
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: AppTheme.border)),
+              if (vars.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'No variant details recorded for this article.',
+                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('$color', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                            Text('Size: $size', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '$target pcs',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.ink),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '$counted pcs',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          diff == 0
-                              ? 'MATCH'
-                              : diff < 0
-                                  ? '$diff pcs'
-                                  : '+$diff pcs',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.bold,
-                            color: diff == 0
-                                ? AppTheme.green
-                                : diff < 0
-                                    ? AppTheme.amber
-                                    : const Color(0xFF2563EB),
+                )
+              else
+                ...vars.map((v) {
+                  final color = v['color']?.toString() ?? 'Standard';
+                  final size = v['size']?.toString() ?? 'Free';
+                  final target = (v['quantity'] as num?)?.toInt() ?? 0;
+                  final key = '${color}_$size';
+                  final counted = countedMap[key] ?? 0;
+                  final diff = counted - target;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    decoration: const BoxDecoration(
+                      border: Border(top: BorderSide(color: AppTheme.border)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(color, style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                              Text('Size: $size', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '$target pcs',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '$counted pcs',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            diff == 0
+                                ? 'MATCH'
+                                : diff < 0
+                                    ? '$diff pcs'
+                                    : '+$diff pcs',
+                            textAlign: TextAlign.right,
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: diff == 0
+                                  ? AppTheme.green
+                                  : diff < 0
+                                      ? AppTheme.amber
+                                      : const Color(0xFF2563EB),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
 
               // Grand Total Row
               Container(
