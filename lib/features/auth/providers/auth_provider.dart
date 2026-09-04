@@ -73,7 +73,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _maxAttempts = 5;
   static const _lockoutMinutes = 15;
 
-  AuthNotifier() : super(AuthState(isAuthenticated: false)) {
+  AuthNotifier() : super(AuthState(isAuthenticated: false, isLoading: true)) {
     _initAuth();
   }
 
@@ -96,11 +96,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final attempts = prefs.getInt('login_failed_attempts') ?? 0;
     final savedUsername = prefs.getString('remembered_operator_id');
 
+    // 1. Check if Supabase client has an active session
+    final currentSession = supabase.auth.currentSession;
+    final currentUser = supabase.auth.currentUser;
+
+    if (currentSession != null && currentUser != null) {
+      String? role = await _storage.read(key: 'cached_user_role');
+      if (role == null) {
+        try {
+          final res = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', currentUser.id)
+              .maybeSingle();
+          if (res != null && res['role'] != null) {
+            role = res['role'] as String;
+            await _storage.write(key: 'cached_user_role', value: role);
+          }
+        } catch (_) {}
+      }
+      role ??= 'LINEMAN';
+
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        userRole: role,
+        failedAttempts: 0,
+        lockoutUntil: null,
+        cachedUsername: savedUsername,
+      );
+      return;
+    }
+
+    // 2. Check offline cached session
+    final cachedUserId = await _storage.read(key: 'cached_user_id');
+    final cachedRole = await _storage.read(key: 'cached_user_role');
+    if (cachedUserId != null && cachedRole != null) {
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        userRole: cachedRole,
+        isOfflineSession: true,
+        cachedUsername: savedUsername,
+      );
+      return;
+    }
+
+    // 3. User is not logged in
     state = state.copyWith(
+      isLoading: false,
       failedAttempts: attempts,
       lockoutUntil: lockoutDate,
       cachedUsername: savedUsername,
-      isAuthenticated: false, // NO AUTO LOGIN: Operator must tap Login to Dashboard
+      isAuthenticated: false,
     );
   }
 
