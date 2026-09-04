@@ -73,7 +73,7 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
             lineman:profiles!allotments_lineman_id_fkey ( id, username ),
             challans ( id, challan_no, brand, fabric_type )
           ''')
-          .or('mending_status.eq.QC_PENDING,qc_status.eq.PENDING_RECEIVING')
+          .or('mending_status.eq.QC_PENDING,mending_status.eq.COUNTING_VERIFIED,qc_status.eq.QC_PENDING,qc_status.eq.INCOMING_HANDOVER')
           .order('created_at', ascending: false);
 
       final List<dynamic> allotmentList = allotmentsRes as List<dynamic>;

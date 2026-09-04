@@ -282,7 +282,19 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             mendingTotal += (m['completed_qty'] as int? ?? 0);
           }
         }
-        if (mendingTotal == 0) {
+
+        final int passedQty = (a['qc_total_passed'] as int?) ?? 0;
+        final int alterQty = (a['qc_total_alter'] as int?) ?? 0;
+        final mStatus = (a['mending_status'] ?? '').toString();
+        final qStatus = (a['qc_status'] ?? '').toString();
+
+        final bool isHandedOverFromMending = mStatus == 'QC_PENDING' || 
+                                             mStatus == 'COUNTING_VERIFIED' || 
+                                             qStatus == 'QC_PENDING' || 
+                                             qStatus == 'INCOMING_HANDOVER' ||
+                                             qStatus == 'INCOMING_FROM_MENDING';
+
+        if (mendingTotal == 0 && isHandedOverFromMending) {
           mendingTotal = adminTotal;
         }
 
@@ -299,7 +311,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               mCount += (m['completed_qty'] as int? ?? 0);
             }
           }
-          if (mCount == 0) mCount = allotQty;
+          if (mCount == 0 && isHandedOverFromMending) {
+            mCount = allotQty;
+          }
 
           sizeMatrix.add({
             'size': sz,
@@ -309,11 +323,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             'diff': mCount - allotQty,
           });
         }
-
-        final int passedQty = (a['qc_total_passed'] as int?) ?? 0;
-        final int alterQty = (a['qc_total_alter'] as int?) ?? 0;
-        final mStatus = (a['mending_status'] ?? '').toString();
-        final qStatus = (a['qc_status'] ?? '').toString();
 
         final lotData = {
           ...Map<String, dynamic>.from(a),
@@ -328,18 +337,15 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
         // Determine Stage:
         // 1. Ready for Challan: If QC checking is completed, pending admin approval, approved for store, or passed pieces >= target_qty
-        if (qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= mendingTotal)) {
+        if (qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= (mendingTotal > 0 ? mendingTotal : adminTotal))) {
           readyForChallan.add(lotData);
         }
-        // 2. Incoming from Mending Floor
-        else if (mStatus == 'QC_PENDING' || qStatus == 'PENDING_RECEIVING' || mStatus == 'COUNTING_VERIFIED' || qStatus == 'INCOMING_HANDOVER') {
-          incoming.add(lotData);
-          totalMendingReceived += mendingTotal;
-        } else {
-          // If no specific flag, show in incoming so supervisor can always assign
+        // 2. Incoming from Mending Floor: ONLY if explicitly verified & handed over from Mending
+        else if (isHandedOverFromMending) {
           incoming.add(lotData);
           totalMendingReceived += mendingTotal;
         }
+        // Otherwise: Still with Lineman / in stitching / pending mending -> DO NOT show in QC!
       }
 
       // If ready for challan is empty but some allotments have passed counts, populate

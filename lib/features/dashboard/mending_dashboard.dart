@@ -146,6 +146,19 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       final List<Map<String, dynamic>> lots = [];
       for (var a in allotmentList) {
         final aId = a['id'].toString();
+        final status = (a['status'] ?? '').toString().toUpperCase();
+        final mStatus = (a['mending_status'] ?? '').toString();
+
+        // STRICT FILTER: Only show lots handed over from Lineman to Mending Floor
+        final bool isHandedOverToMending = mStatus == 'PENDING_MENDING' || 
+                                           mStatus == 'MENDING_IN_PROGRESS' || 
+                                           mStatus == 'MENDING_RECEIVED' || 
+                                           (status == 'COMPLETED' && mStatus != 'QC_PENDING' && mStatus != 'COUNTING_VERIFIED');
+
+        if (!isHandedOverToMending) {
+          continue; // Still on sewing floor with Lineman
+        }
+
         final vars = (variantsRes).where((v) => v['allotment_id'].toString() == aId).toList();
         final assigns = (assignmentsRes).where((m) => m['allotment_id'].toString() == aId).toList();
 
@@ -657,6 +670,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       // 2. Update allotment status to QC_PENDING
       await supabase.from('allotments').update({
         'mending_status': 'QC_PENDING',
+        'qc_status': 'QC_PENDING',
         'mending_verified_at': DateTime.now().toUtc().toIso8601String(),
         'mending_total_counted': totalCounted,
       }).eq('id', lotId);

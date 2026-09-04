@@ -310,14 +310,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Finish & Archive Lot',
+                'Handover to Mending Floor',
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.ink),
               ),
             ),
           ],
         ),
         content: Text(
-          'All $target pieces for Art: $artNo are completed.\n\nWould you like to close this lot and archive it to Lot History?',
+          'All $target pieces for Art: $artNo are stitched.\n\nWould you like to hand over this lot to Mending & Counting Floor?',
           style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
         ),
         actions: [
@@ -331,7 +331,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Complete & Archive', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
+            child: Text('Handover to Mending', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -347,11 +347,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           await prefs.setStringList('lineman_archived_lots', archived);
         }
 
-        // Also update Supabase database status
+        // Also update Supabase database status and notify Mending
         try {
           await supabase
               .from('allotments')
-              .update({'status': 'COMPLETED'})
+              .update({
+                'status': 'COMPLETED',
+                'mending_status': 'PENDING_MENDING',
+              })
               .eq('id', allotmentId);
         } catch (dbErr) {
           debugPrint('Supabase update status warning: $dbErr');
@@ -360,7 +363,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Lot for Art: $artNo archived to Lot History'),
+              content: Text('✓ Art: $artNo handed over to Mending Floor!'),
               backgroundColor: AppTheme.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -3370,11 +3373,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.check_circle_outline_rounded, size: 19, color: Colors.white),
+                                    const Icon(Icons.arrow_forward_rounded, size: 19, color: Colors.white),
                                     const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
-                                        'Finish Lot & Move to History',
+                                        'Handover to Mending Floor',
                                         style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
