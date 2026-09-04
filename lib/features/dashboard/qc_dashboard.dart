@@ -22,6 +22,20 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   int _selectedTabIndex = 0; // 0: Incoming Lots, 1: QC Checking, 2: Alterations, 3: Ready for Challan
+  int _incomingFilterMode = 0; // 0: My Assigned Lots, 1: All Floor Lots
+
+  // Filtered incoming lots based on supervisor custody
+  List<Map<String, dynamic>> get _filteredIncomingLots {
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (_incomingFilterMode == 0) {
+      return _incomingLots.where((lot) {
+        final supId = lot['qc_supervisor_id']?.toString();
+        // If assigned to me OR general unassigned pool, show in My Assigned Lots
+        return supId == null || supId.isEmpty || supId == currentUserId;
+      }).toList();
+    }
+    return _incomingLots;
+  }
 
   // Live floor data
   List<Map<String, dynamic>> _incomingLots = [];
@@ -161,6 +175,11 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               mending_verified_at,
               qc_total_passed,
               qc_total_alter,
+              qc_supervisor_id,
+              qc_supervisor_name,
+              handed_to_qc_by,
+              handed_to_qc_at,
+              qc_handover_notes,
               created_at,
               article:articles ( id, art_no, description ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
@@ -1601,6 +1620,90 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   // ====================================================
   // TAB 0: INCOMING LOTS (FROM MENDING FLOOR) WITH ADMIN COMPARISON
   // ====================================================
+  Widget _buildIncomingFilterBar() {
+    final currentUserId = supabase.auth.currentUser?.id;
+    final myCount = _incomingLots.where((l) {
+      final supId = l['qc_supervisor_id']?.toString();
+      return supId == null || supId.isEmpty || supId == currentUserId;
+    }).length;
+    final allCount = _incomingLots.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _incomingFilterMode = 0),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: _incomingFilterMode == 0 ? AppTheme.steel : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _incomingFilterMode == 0 ? AppTheme.steel : AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person_pin_rounded, size: 14, color: _incomingFilterMode == 0 ? Colors.white : AppTheme.inkSoft),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'My Assigned Lots ($myCount)',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          fontWeight: _incomingFilterMode == 0 ? FontWeight.w700 : FontWeight.w600,
+                          color: _incomingFilterMode == 0 ? Colors.white : AppTheme.inkSoft,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _incomingFilterMode = 1),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: _incomingFilterMode == 1 ? AppTheme.steel : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _incomingFilterMode == 1 ? AppTheme.steel : AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.factory_rounded, size: 14, color: _incomingFilterMode == 1 ? Colors.white : AppTheme.inkSoft),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'All Floor Lots ($allCount)',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          fontWeight: _incomingFilterMode == 1 ? FontWeight.w700 : FontWeight.w600,
+                          color: _incomingFilterMode == 1 ? Colors.white : AppTheme.inkSoft,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIncomingLotsSection() {
     if (_incomingLots.isEmpty) {
       return Container(
@@ -1631,71 +1734,141 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       );
     }
 
+    final displayLots = _filteredIncomingLots;
+
     return Column(
-      children: _incomingLots.map((lot) {
-        final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
-        final desc = lot['article']?['description'] ?? lot['description'] ?? '';
-        final challanNo = lot['challans']?['challan_no'] ?? '-';
-        final brand = lot['challans']?['brand'] ?? 'OLLYPOP';
-        final lineman = lot['lineman']?['username'] ?? 'Lineman';
+      children: [
+        _buildIncomingFilterBar(),
+        if (displayLots.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Center(
+              child: Text(
+                'No lots assigned to your queue in this filter.',
+                style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft),
+              ),
+            ),
+          )
+        else
+          ...displayLots.map((lot) {
+            final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
+            final desc = lot['article']?['description'] ?? lot['description'] ?? '';
+            final challanNo = lot['challans']?['challan_no'] ?? '-';
+            final brand = lot['challans']?['brand'] ?? 'OLLYPOP';
+            final lineman = lot['lineman']?['username'] ?? 'Lineman';
+            final handedBy = lot['handed_to_qc_by']?.toString();
+            final supName = lot['qc_supervisor_name']?.toString() ?? 'General Pool';
+            final handoverNotes = lot['qc_handover_notes']?.toString();
 
-        final int adminAllotted = lot['admin_total_qty'] as int? ?? 0;
-        final int mendingCounted = lot['mending_received_qty'] as int? ?? adminAllotted;
-        final int variance = lot['variance'] as int? ?? (mendingCounted - adminAllotted);
-        final sizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
+            final int adminAllotted = lot['admin_total_qty'] as int? ?? 0;
+            final int mendingCounted = lot['mending_received_qty'] as int? ?? adminAllotted;
+            final int variance = lot['variance'] as int? ?? (mendingCounted - adminAllotted);
+            final sizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.border),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Article, Brand, Lineman
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.border),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Custody & Handover Header Banner
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+                      border: Border(bottom: BorderSide(color: Color(0xFFFDE68A))),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                          child: Text(
-                            'CH-$challanNo · $brand',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                          ),
+                        Row(
+                          children: [
+                            const Icon(Icons.handshake_rounded, size: 15, color: Color(0xFFB45309)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'From Mending: ${handedBy != null && handedBy.isNotEmpty ? handedBy : 'Mending Floor'}',
+                                style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Text(
+                                'Custody: $supName',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFB45309)),
+                              ),
+                            ),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
-                          child: Text(
-                            'Stitched by: $lineman',
-                            style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                        if (handoverNotes != null && handoverNotes.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '📝 Note: $handoverNotes',
+                            style: GoogleFonts.publicSans(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Art #$artNo',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                  ),
+
+                  // Header with Article, Brand, Lineman
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
+                              child: Text(
+                                'CH-$challanNo · $brand',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
+                              child: Text(
+                                'Stitched by: $lineman',
+                                style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Art #$artNo',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                        ),
+                        if (desc.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
+                        ],
+                      ],
                     ),
-                    if (desc.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-                    ],
-                  ],
-                ),
-              ),
+                  ),
 
               const Divider(height: 1, color: AppTheme.border),
 
@@ -1816,9 +1989,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             ],
           ),
         );
-      }).toList(),
-    );
-  }
+      }),
+    ],
+  );
+}
 
   // ====================================================
   // TAB 1: ACTIVE QC CHECKING (ASSIGNED WORKERS)

@@ -37,6 +37,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     return _lots;
   }
 
+  // Live QC Supervisors for Floor Handover
+  List<Map<String, dynamic>> _qcSupervisors = [];
+
   // Recent mending worker names for quick chip recommendations
   List<String> _recentWorkerNames = [];
 
@@ -84,7 +87,25 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   void initState() {
     super.initState();
     _loadRecentWorkers();
+    _fetchQcSupervisors();
     _fetchMendingLots();
+  }
+
+  Future<void> _fetchQcSupervisors() async {
+    try {
+      final res = await supabase
+          .from('profiles')
+          .select('id, username, full_name, role')
+          .eq('role', 'QC')
+          .order('username', ascending: true);
+      if (mounted) {
+        setState(() {
+          _qcSupervisors = List<Map<String, dynamic>>.from(res as List);
+        });
+      }
+    } catch (e) {
+      debugPrint('Fetch QC supervisors error: $e');
+    }
   }
 
   @override
@@ -685,8 +706,256 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     }
   }
 
-  // ======= HANDOVER TO QC FLOOR =======
-  Future<void> _handoverToQc() async {
+  // ======= HANDOVER TO QC FLOOR MODAL =======
+  void _openHandoverToQcModal() {
+    if (_selectedLot == null) return;
+    final lot = _selectedLot!;
+    final totalCounted = (lot['total_counted'] as num?)?.toInt() ?? 0;
+    final targetQty = (lot['target_qty'] as num?)?.toInt() ?? 0;
+    final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+    final artNo = art?['art_no']?.toString() ?? 'N/A';
+    final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
+    final challanNo = challan?['challan_no']?.toString() ?? 'CH-${lot['id'].toString().substring(0, 4)}';
+    final variance = totalCounted - targetQty;
+
+    String? selectedSupervisorId;
+    String selectedSupervisorName = 'General QC Pool';
+    final notesController = TextEditingController(text: 'Table 2, Counted $totalCounted pcs');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Handover Lot to QC Floor',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.steel,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Reconciled piece bundle & chain-of-custody transfer',
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppTheme.inkFaint),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Lot Summary Info Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Art: $artNo',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                            ),
+                            Text(
+                              challanNo,
+                              style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.inkSoft),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Physical Counted: $totalCounted pcs',
+                              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.green),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: variance == 0 ? AppTheme.greenMist : (variance < 0 ? AppTheme.amberMist : const Color(0xFFDBEAFE)),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                variance == 0 ? '100% Match' : (variance < 0 ? '$variance pcs Shortage' : '+$variance pcs Excess'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: variance == 0 ? AppTheme.green : (variance < 0 ? AppTheme.amber : const Color(0xFF1D4ED8)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Select QC Supervisor
+                  Text(
+                    'SELECT RECEIVING QC SUPERVISOR *',
+                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.inkSoft),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        isExpanded: true,
+                        value: selectedSupervisorId,
+                        hint: Text('General QC Pool (Unassigned)', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.steel)),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.group_outlined, size: 16, color: AppTheme.inkSoft),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'General QC Pool (Any available checker)',
+                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.inkSoft),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ..._qcSupervisors.map((sup) {
+                            final name = (sup['full_name'] as String?)?.isNotEmpty == true
+                                ? sup['full_name']
+                                : (sup['username'] ?? 'QC Supervisor');
+                            return DropdownMenuItem<String?>(
+                              value: sup['id'].toString(),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.person_outline, size: 16, color: AppTheme.green),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$name (QC)',
+                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setModalState(() {
+                            selectedSupervisorId = val;
+                            if (val == null) {
+                              selectedSupervisorName = 'General QC Pool';
+                            } else {
+                              final found = _qcSupervisors.firstWhere((s) => s['id'].toString() == val, orElse: () => {});
+                              selectedSupervisorName = found['full_name'] ?? found['username'] ?? 'QC Supervisor';
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Handover Notes / Location
+                  Text(
+                    'HANDOVER REMARKS / TABLE LOCATION',
+                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.inkSoft),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Table 2, 500 pcs counted, zero shortage',
+                      filled: true,
+                      fillColor: AppTheme.bg,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppTheme.border),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Confirm Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.green,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        final notes = notesController.text.trim();
+                        Navigator.pop(ctx);
+                        _submitHandoverToQc(
+                          supervisorId: selectedSupervisorId,
+                          supervisorName: selectedSupervisorName,
+                          notes: notes,
+                        );
+                      },
+                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      label: Text(
+                        'Confirm Handover to $selectedSupervisorName',
+                        style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _submitHandoverToQc({
+    required String? supervisorId,
+    required String supervisorName,
+    required String notes,
+  }) async {
     if (_selectedLot == null) return;
     setState(() => _isSubmitting = true);
 
@@ -697,6 +966,10 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       final totalCounted = (_selectedLot!['total_counted'] as num?)?.toInt() ?? 0;
       final targetQty = (_selectedLot!['target_qty'] as num?)?.toInt() ?? 0;
       final variance = totalCounted - targetQty;
+
+      final user = supabase.auth.currentUser;
+      final profileRes = await supabase.from('profiles').select('username, full_name').eq('id', user?.id ?? '').maybeSingle();
+      final senderName = profileRes?['full_name'] ?? profileRes?['username'] ?? user?.email?.split('@').first ?? 'Mending Supervisor';
 
       final varianceRemark = variance == 0
           ? 'Exact 100% Match (Zero Shortage)'
@@ -713,16 +986,21 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         'qty_passed': totalCounted,
         'qty_rejected': 0,
         'defect_type': 'NONE',
-        'remarks': 'Mending Floor Physical Count Verified ($totalCounted pcs). $varianceRemark',
+        'remarks': 'Mending Floor Physical Count Verified ($totalCounted pcs). $varianceRemark${notes.isNotEmpty ? " • Note: $notes" : ""}',
         'mending_status': 'COUNTING_VERIFIED',
       });
 
-      // 2. Update allotment status to QC_PENDING
+      // 2. Update allotment status to QC_PENDING with QC supervisor custody metadata
       await supabase.from('allotments').update({
         'mending_status': 'QC_PENDING',
         'qc_status': 'QC_PENDING',
         'mending_verified_at': DateTime.now().toUtc().toIso8601String(),
         'mending_total_counted': totalCounted,
+        'qc_supervisor_id': supervisorId,
+        'qc_supervisor_name': supervisorName,
+        'handed_to_qc_by': senderName,
+        'handed_to_qc_at': DateTime.now().toUtc().toIso8601String(),
+        'qc_handover_notes': notes.isNotEmpty ? notes : null,
       }).eq('id', lotId);
 
       if (mounted) {
@@ -730,7 +1008,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           SnackBar(
             backgroundColor: AppTheme.green,
             content: Text(
-              'Lot verified! $totalCounted pcs forwarded to QC Floor.',
+              'Lot verified! $totalCounted pcs handed over to $supervisorName on QC Floor.',
               style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ),
@@ -1653,7 +1931,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               backgroundColor: AppTheme.green,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: _isSubmitting ? null : _handoverToQc,
+            onPressed: _isSubmitting ? null : _openHandoverToQcModal,
             icon: _isSubmitting
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
