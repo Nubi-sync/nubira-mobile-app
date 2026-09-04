@@ -983,16 +983,19 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               : 'Excess: +$variance pcs';
 
       // 1. Insert audit record into qc_logs
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
       await supabase.from('qc_logs').insert({
         'allotment_id': lotId,
         'article_id': articleId,
         'from_lineman_id': linemanId,
-        'qty_checked': totalCounted,
+        'stage': 'RECEIVING',
+        'qty_received': totalCounted,
         'qty_passed': totalCounted,
         'qty_rejected': 0,
         'defect_type': 'NONE',
         'remarks': 'Mending Floor Physical Count Verified ($totalCounted pcs). $varianceRemark${notes.isNotEmpty ? " • Note: $notes" : ""}',
         'mending_status': 'COUNTING_VERIFIED',
+        'entry_date': todayStr,
       });
 
       // 2. Update allotment status to QC_PENDING with QC supervisor custody metadata

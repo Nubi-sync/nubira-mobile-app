@@ -237,12 +237,42 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       try {
         final qcAssignRes = await supabase
             .from('qc_assignments')
-            .select('*')
+            .select('''
+              id,
+              allotment_id,
+              qc_supervisor_id,
+              worker_name,
+              article_id,
+              color,
+              size,
+              assigned_qty,
+              checked_qty,
+              passed_qty,
+              alter_qty,
+              status,
+              notes,
+              assigned_at,
+              entry_date,
+              article:articles ( id, art_no, description )
+            ''')
             .order('assigned_at', ascending: false)
-            .timeout(const Duration(seconds: 3), onTimeout: () => []);
+            .timeout(const Duration(seconds: 4), onTimeout: () => []);
         activeAssignments = (qcAssignRes as List).map((e) => Map<String, dynamic>.from(e)).toList();
       } catch (_) {
         activeAssignments = await _loadLocalAssignments();
+      }
+
+      // Enrich activeAssignments with matching article from allotmentList if missing
+      for (var assign in activeAssignments) {
+        if (assign['article'] == null && allotmentList.isNotEmpty) {
+          final match = allotmentList.firstWhere(
+            (a) => a['id'].toString() == assign['allotment_id']?.toString() || a['article_id']?.toString() == assign['article_id']?.toString(),
+            orElse: () => null,
+          );
+          if (match != null && match['article'] != null) {
+            assign['article'] = match['article'];
+          }
+        }
       }
 
       // 5. Fetch Alterations & QC Logs
@@ -317,8 +347,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           mendingTotal = adminTotal;
         }
 
-        // Build Size Audit Breakdown (Admin Allotted vs Mending Counted)
+        // Build Size Audit Breakdown (Admin Allotted vs Mending Counted vs QC Passed)
         final List<Map<String, dynamic>> sizeMatrix = [];
+        final List<Map<String, dynamic>> enrichedVars = [];
+
         for (var v in vars) {
           final sz = v['size']?.toString() ?? '-';
           final clr = v['color']?.toString() ?? '-';
@@ -334,18 +366,36 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             mCount = allotQty;
           }
 
+          int qcPassCount = 0;
+          for (var qc in activeAssignments) {
+            if (qc['allotment_id']?.toString() == aId && (qc['size']?.toString() ?? '') == sz) {
+              qcPassCount += (qc['passed_qty'] as int? ?? 0);
+            }
+          }
+          if (qcPassCount == 0 && vars.length == 1 && passedQty > 0) {
+            qcPassCount = passedQty;
+          }
+
           sizeMatrix.add({
             'size': sz,
             'color': clr,
             'allotted_qty': allotQty,
             'mending_qty': mCount,
+            'qc_passed_qty': qcPassCount,
             'diff': mCount - allotQty,
+          });
+
+          enrichedVars.add({
+            ...Map<String, dynamic>.from(v),
+            'order_qty': allotQty,
+            'allotted_qty': allotQty,
+            'qc_passed_qty': qcPassCount,
           });
         }
 
         final lotData = {
           ...Map<String, dynamic>.from(a),
-          'variants': vars,
+          'variants': enrichedVars,
           'size_matrix': sizeMatrix,
           'admin_total_qty': adminTotal,
           'mending_received_qty': mendingTotal,
@@ -515,43 +565,11 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Recent Worker Quick Chips
                   Text(
-                    'Select or Type Checker Name',
+                    'Checker Name / Worker',
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _recentWorkerNames.map((name) {
-                      final isSelected = workerController.text.trim() == name;
-                      return InkWell(
-                        onTap: () {
-                          setModalState(() => workerController.text = name);
-                        },
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.steel : AppTheme.steelMist,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: isSelected ? AppTheme.steel : AppTheme.border),
-                          ),
-                          child: Text(
-                            name,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                              color: isSelected ? Colors.white : AppTheme.steel,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 10),
-
                   TextField(
                     controller: workerController,
                     decoration: InputDecoration(
@@ -852,18 +870,21 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Record QC Inspection',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                          ),
-                          Text(
-                            'Art #$artNo · $clr ($sz) · Checker: $worker',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Record QC Inspection',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                            ),
+                            Text(
+                              'Art #$artNo · $clr ($sz) · Checker: $worker',
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft),
@@ -973,21 +994,32 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                             children: [
                               const Icon(Icons.notification_important_rounded, color: AppTheme.amber, size: 18),
                               const SizedBox(width: 6),
-                              Text(
-                                'Lineman Alteration Notification',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.ink,
+                              Expanded(
+                                child: Text(
+                                  'Lineman Alteration Alert',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.ink,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const Spacer(),
-                              Text(
-                                '$alterQty pcs to alter',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.amber,
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppTheme.amber),
+                                ),
+                                child: Text(
+                                  '$alterQty pcs to alter',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.amber,
+                                  ),
                                 ),
                               ),
                             ],
@@ -1084,8 +1116,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : Text(
                               alterQty > 0
-                                  ? 'Pass $passedCtrl pcs & Notify Lineman for $alterQty pcs'
-                                  : 'Pass All $passedCtrl Pieces (OK)',
+                                  ? 'Pass ${passedCtrl.text} pcs & Notify Lineman for $alterQty pcs'
+                                  : 'Pass All ${passedCtrl.text} Pieces (OK)',
                               style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                     ),
@@ -1116,10 +1148,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       final color = task['color'] ?? '';
       final size = task['size'] ?? '';
       final worker = task['worker_name'] ?? 'Checker';
+      final assignId = task['id'];
 
       // 1. Insert audit record into qc_logs
       // (This immediately triggers the Lineman Dashboard alert banner!)
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
       await supabase.from('qc_logs').insert({
+        if (allotmentId != null) 'allotment_id': allotmentId,
         'article_id': articleId,
         'from_lineman_id': linemanId,
         'stage': 'CHECKING',
@@ -1133,31 +1168,68 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         'mending_status': alterQty > 0 ? 'WITH_LINEMAN_FOR_REPAIR' : 'NONE',
         'color': color,
         'size': size,
-        'entry_date': DateTime.now().toIso8601String().split('T')[0],
+        'entry_date': todayStr,
       });
 
       // 2. Update allotment counters
       if (allotmentId != null) {
         try {
+          int currentPassed = passedQty;
+          int currentAlter = alterQty;
+          int totalTarget = 0;
+          try {
+            final allotRes = await supabase.from('allotments').select('qc_total_passed, qc_total_alter, target_qty, mending_total_counted').eq('id', allotmentId).maybeSingle();
+            if (allotRes != null) {
+              currentPassed += (allotRes['qc_total_passed'] as int? ?? 0);
+              currentAlter += (allotRes['qc_total_alter'] as int? ?? 0);
+              totalTarget = (allotRes['mending_total_counted'] as int?) ?? (allotRes['target_qty'] as int? ?? 0);
+            }
+          } catch (_) {}
+
+          final bool isLotFullyInspected = totalTarget > 0 && (currentPassed + currentAlter) >= totalTarget;
+
           await supabase.from('allotments').update({
-            'qc_total_passed': (task['qc_total_passed'] as int? ?? 0) + passedQty,
-            'qc_total_alter': (task['qc_total_alter'] as int? ?? 0) + alterQty,
-            'qc_status': alterQty > 0 ? 'IN_QC_CHECKING' : 'QC_COMPLETED',
+            'qc_total_passed': currentPassed,
+            'qc_total_alter': currentAlter,
+            'qc_status': isLotFullyInspected && alterQty == 0 ? 'QC_COMPLETED' : 'IN_QC_CHECKING',
             if (alterQty > 0) 'mending_status': 'WITH_LINEMAN_FOR_REPAIR',
           }).eq('id', allotmentId);
         } catch (_) {}
       }
 
-      // 3. Update task status in local storage / table
+      // 3. Update task in qc_assignments table in Supabase
+      final prevChecked = (task['checked_qty'] as int? ?? 0);
+      final prevPassed = (task['passed_qty'] as int? ?? 0);
+      final prevAlter = (task['alter_qty'] as int? ?? 0);
+      final assignedQty = (task['assigned_qty'] as int? ?? 0);
+
+      final newChecked = prevChecked + checkedQty;
+      final newPassed = prevPassed + passedQty;
+      final newAlter = prevAlter + alterQty;
+      final isDone = newChecked >= assignedQty;
+
+      if (assignId != null && !assignId.toString().startsWith('qc-assign-')) {
+        try {
+          await supabase.from('qc_assignments').update({
+            'checked_qty': newChecked,
+            'passed_qty': newPassed,
+            'alter_qty': newAlter,
+            'status': isDone ? 'DONE' : 'IN_PROGRESS',
+            'completed_at': isDone ? DateTime.now().toUtc().toIso8601String() : null,
+          }).eq('id', assignId);
+        } catch (e) {
+          debugPrint('qc_assignments update error: $e');
+        }
+      }
+
+      // 4. Update task status in local storage / table
       final currentList = await _loadLocalAssignments();
       for (var a in currentList) {
         if (a['id'] == task['id'] || (a['allotment_id'] == allotmentId && a['worker_name'] == worker)) {
-          a['checked_qty'] = (a['checked_qty'] as int? ?? 0) + checkedQty;
-          a['passed_qty'] = (a['passed_qty'] as int? ?? 0) + passedQty;
-          a['alter_qty'] = (a['alter_qty'] as int? ?? 0) + alterQty;
-          if ((a['checked_qty'] as int? ?? 0) >= (a['assigned_qty'] as int? ?? 0)) {
-            a['status'] = 'DONE';
-          }
+          a['checked_qty'] = newChecked;
+          a['passed_qty'] = newPassed;
+          a['alter_qty'] = newAlter;
+          a['status'] = isDone ? 'DONE' : 'IN_PROGRESS';
         }
       }
       await _saveLocalAssignments(currentList);
@@ -2363,12 +2435,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       runSpacing: 6,
                       children: vars.map((v) {
                         final sz = v['size'] ?? '-';
-                        final q = v['quantity'] ?? 0;
+                        final passQ = (v['qc_passed_qty'] as int?) ?? (lot['qc_total_passed'] as int?) ?? (v['allotted_qty'] as int? ?? (v['quantity'] as int? ?? 0));
+                        final totalQ = (v['allotted_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
                           child: Text(
-                            '$sz: $q pcs',
+                            '$sz: $passQ / $totalQ pcs',
                             style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.green),
                           ),
                         );

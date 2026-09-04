@@ -142,15 +142,24 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
       final vars = lot['variants'] as List<dynamic>;
       final artNo = lot['article']?['art_no'] ?? 'Article';
       final articleId = lot['article_id'];
+      final lotTotalPassed = (lot['qc_total_passed'] as int?) ?? 0;
 
       final List<Map<String, dynamic>> items = [];
 
       for (var v in vars) {
         final color = (v['color']?.toString().trim() ?? 'Default').toUpperCase();
         final size = (v['size']?.toString().trim() ?? 'M').toUpperCase();
-        final orderQty = (v['quantity'] as int? ?? 0);
-        final deliveryQty = orderQty;
-        final balanceQty = orderQty - deliveryQty;
+        final orderQty = (v['order_qty'] as int?) ?? (v['allotted_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
+        
+        int deliveryQty = (v['qc_passed_qty'] as int?) ?? 0;
+        if (deliveryQty == 0) {
+          if (vars.length == 1 && lotTotalPassed > 0) {
+            deliveryQty = lotTotalPassed;
+          } else {
+            deliveryQty = orderQty;
+          }
+        }
+        final balanceQty = (orderQty - deliveryQty).clamp(0, orderQty);
 
         items.add({
           'art_no': artNo,
@@ -428,8 +437,19 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.steel),
                     onTap: () {
                       final List<Map<String, dynamic>> newItems = [];
+                      final lotPassed = (lot['qc_total_passed'] as int?) ?? 0;
                       for (var v in variants) {
-                        final q = (v['quantity'] as int? ?? 0);
+                        final orderQ = (v['order_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
+                        int deliveryQ = (v['qc_passed_qty'] as int?) ?? 0;
+                        if (deliveryQ == 0) {
+                          if (variants.length == 1 && lotPassed > 0) {
+                            deliveryQ = lotPassed;
+                          } else {
+                            deliveryQ = orderQ;
+                          }
+                        }
+                        final balQ = (orderQ - deliveryQ).clamp(0, orderQ);
+
                         newItems.add({
                           'art_no': artNo,
                           'article_id': lot['article_id'],
@@ -437,9 +457,9 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                           'category': 'SUIT',
                           'product': 'TOP',
                           'size': (v['size']?.toString() ?? 'M').toUpperCase(),
-                          'order_qty': q,
-                          'delivery_qty': q,
-                          'balance_qty': 0,
+                          'order_qty': orderQ,
+                          'delivery_qty': deliveryQ,
+                          'balance_qty': balQ,
                         });
                       }
                       newItems.sort((x, y) => _naturalSizeCompare(x['size'].toString(), y['size'].toString()));
