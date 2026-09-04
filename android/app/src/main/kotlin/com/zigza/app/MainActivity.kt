@@ -1,4 +1,4 @@
-package com.nubira.mobile_app
+package com.zigza.app
 
 import io.flutter.embedding.android.FlutterActivity
 

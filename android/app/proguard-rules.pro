@@ -14,6 +14,9 @@
 -keepattributes *Annotation*
 -keepattributes InnerClasses
 -dontwarn io.flutter.embedding.**
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
 
 # Security Obfuscation optimizations
 -repackageclasses ''

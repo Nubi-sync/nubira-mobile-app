@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.nubira.mobile_app"
+    namespace = "com.zigza.app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nubira.mobile_app"
+        applicationId = "com.zigza.app"
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
