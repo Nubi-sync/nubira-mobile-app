@@ -29,6 +29,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   List<dynamic> _activeAllotments = [];
   List<dynamic> _completedAllotments = [];
   List<dynamic> _todayAssignments = [];
+  List<Map<String, dynamic>> _mendingSupervisors = [];
   List<String> _recentWorkerNames = [];
   int _totalTargetToday = 0;
   int _totalAssignedToday = 0;
@@ -259,6 +260,18 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           debugPrint('Mending fetch error: $e');
         }
 
+        // 6. Fetch active registered Mending Supervisors
+        List<Map<String, dynamic>> mendingSups = [];
+        try {
+          final mendingSupRes = await supabase
+              .from('profiles')
+              .select('id, username, role')
+              .eq('role', 'MENDING');
+          mendingSups = List<Map<String, dynamic>>.from(mendingSupRes);
+        } catch (e) {
+          debugPrint('Mending supervisors fetch error: $e');
+        }
+
         int totalTarget = 0;
         for (var a in enrichedActive) {
           totalTarget += (a['target_qty'] as int? ?? 0);
@@ -269,6 +282,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           _activeAllotments = enrichedActive;
           _completedAllotments = enrichedCompleted;
           _todayAssignments = todayAssignments;
+          _mendingSupervisors = mendingSups;
           _recentWorkerNames = distinctNames.toList();
           _totalTargetToday = totalTarget;
           _totalAssignedToday = assignedToday;
@@ -286,54 +300,301 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     }
   }
 
-  // ======= COMPLETE & ARCHIVE LOT TO HISTORY =======
+  // ======= COMPLETE & HANDOVER LOT TO MENDING FLOOR =======
   Future<void> _completeAllotment(dynamic allotment) async {
     final artNo = allotment['articles']?['art_no'] ?? 'Article';
     final target = allotment['target_qty'] ?? 0;
     final allotmentId = allotment['id'] as String;
 
-    final confirm = await showDialog<bool>(
+    String? selectedSupervisorId;
+    String selectedSupervisorName = 'General Mending Pool';
+    final notesController = TextEditingController();
+
+    // If there is only 1 supervisor, default to that supervisor
+    if (_mendingSupervisors.length == 1) {
+      selectedSupervisorId = _mendingSupervisors.first['id']?.toString();
+      selectedSupervisorName = _mendingSupervisors.first['username']?.toString() ?? 'Mending Supervisor';
+    }
+
+    final confirm = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.greenMist,
-                borderRadius: BorderRadius.circular(8),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final mediaQuery = MediaQuery.of(context);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: mediaQuery.viewInsets.bottom,
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.border,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.greenMist,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.handshake_rounded, color: AppTheme.green, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Handover to Mending Floor',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.ink,
+                                  ),
+                                ),
+                                Text(
+                                  'Art: $artNo • Target: $target pcs 100% stitched',
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Summary info
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.bg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'All $target pcs ready for counting, trimming & checking.',
+                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Supervisor Selection Section
+                      Text(
+                        'SELECT RECEIVING MENDING SUPERVISOR',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: AppTheme.inkSoft,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Option 1: General Pool
+                      InkWell(
+                        onTap: () {
+                          setModalState(() {
+                            selectedSupervisorId = null;
+                            selectedSupervisorName = 'General Mending Pool';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: selectedSupervisorId == null ? AppTheme.steelMist : AppTheme.card,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selectedSupervisorId == null ? AppTheme.steel : AppTheme.border,
+                              width: selectedSupervisorId == null ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selectedSupervisorId == null ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                                color: selectedSupervisorId == null ? AppTheme.steel : AppTheme.inkFaint,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'General Mending Floor Pool',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.ink,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Open to all mending floor supervisors',
+                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Registered Supervisors List
+                      ..._mendingSupervisors.map((sup) {
+                        final sId = sup['id']?.toString();
+                        final sName = sup['username']?.toString() ?? 'Mending Supervisor';
+                        final isSelected = selectedSupervisorId == sId;
+
+                        return InkWell(
+                          onTap: () {
+                            setModalState(() {
+                              selectedSupervisorId = sId;
+                              selectedSupervisorName = sName;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppTheme.greenMist : AppTheme.card,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected ? AppTheme.green : AppTheme.border,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                                  color: isSelected ? AppTheme.green : AppTheme.inkFaint,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: isSelected ? AppTheme.green : AppTheme.steelMist,
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    size: 16,
+                                    color: isSelected ? Colors.white : AppTheme.steel,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        sName,
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.ink,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Mending & Counting In-Charge',
+                                        style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 12),
+
+                      // Handover remarks / Physical Location
+                      Text(
+                        'HANDOVER REMARKS / TABLE LOCATION (OPTIONAL)',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: AppTheme.inkSoft,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: notesController,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Table 2, 2 bundles, counted & verified...',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                          prefixIcon: const Icon(Icons.note_alt_outlined, size: 18, color: AppTheme.steel),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Submit Handover Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          icon: const Icon(Icons.check_circle_rounded, size: 19),
+                          label: Text(
+                            'Confirm Handover to $selectedSupervisorName',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.green, size: 22),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Handover to Mending Floor',
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.ink),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'All $target pieces for Art: $artNo are stitched.\n\nWould you like to hand over this lot to Mending & Counting Floor?',
-          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Keep Active', style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontWeight: FontWeight.w600)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.green,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Handover to Mending', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600)),
-          ),
-        ],
+          );
+        },
       ),
     );
 
@@ -347,6 +608,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           await prefs.setStringList('lineman_archived_lots', archived);
         }
 
+        final user = supabase.auth.currentUser;
+        final currentUsername = user?.email?.split('@')[0] ?? 'Lineman';
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        final notesText = notesController.text.trim();
+
         // Also update Supabase database status and notify Mending
         try {
           await supabase
@@ -354,6 +620,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               .update({
                 'status': 'COMPLETED',
                 'mending_status': 'PENDING_MENDING',
+                'mending_supervisor_id': selectedSupervisorId,
+                'mending_supervisor_name': selectedSupervisorName,
+                'handed_to_mending_by': currentUsername,
+                'handed_to_mending_at': nowIso,
+                'mending_handover_notes': notesText.isNotEmpty ? notesText : null,
               })
               .eq('id', allotmentId);
         } catch (dbErr) {
@@ -363,7 +634,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✓ Art: $artNo handed over to Mending Floor!'),
+              content: Text('✓ Art: $artNo handed over to $selectedSupervisorName!'),
               backgroundColor: AppTheme.green,
               behavior: SnackBarBehavior.floating,
             ),

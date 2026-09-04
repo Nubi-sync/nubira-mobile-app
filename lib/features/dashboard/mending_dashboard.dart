@@ -21,7 +21,21 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   List<Map<String, dynamic>> _lots = [];
   Map<String, dynamic>? _selectedLot;
   int _selectedTabIndex = 0; // 0: Worker Assignments, 1: Natural Size Matrix & QC
+  int _filterMode = 0; // 0: My Assigned Lots, 1: All Floor Lots
   bool _isSubmitting = false;
+
+  // Filtered lots based on selected filter mode
+  List<Map<String, dynamic>> get _filteredLots {
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (_filterMode == 0) {
+      return _lots.where((lot) {
+        final supId = lot['mending_supervisor_id']?.toString();
+        // If assigned to me OR unassigned pool, show in My Assigned Lots
+        return supId == null || supId.isEmpty || supId == currentUserId;
+      }).toList();
+    }
+    return _lots;
+  }
 
   // Recent mending worker names for quick chip recommendations
   List<String> _recentWorkerNames = [];
@@ -105,6 +119,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             status,
             mending_status,
             target_qty,
+            mending_supervisor_id,
+            mending_supervisor_name,
+            handed_to_mending_by,
+            handed_to_mending_at,
+            mending_handover_notes,
             created_at,
             article:articles ( id, art_no, description ),
             lineman:profiles!allotments_lineman_id_fkey ( id, username ),
@@ -770,6 +789,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               ? _buildEmptyState()
               : Column(
                   children: [
+                    // Top Filter Bar (My Assigned vs All Floor Lots)
+                    _buildFilterBar(),
+
                     // Top Lot Selector Carousel
                     _buildLotSelector(),
 
@@ -786,6 +808,87 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     ),
                   ],
                 ),
+    );
+  }
+
+  // ======= FILTER BAR =======
+  Widget _buildFilterBar() {
+    final currentUserId = supabase.auth.currentUser?.id;
+    final myCount = _lots.where((l) {
+      final supId = l['mending_supervisor_id']?.toString();
+      return supId == null || supId.isEmpty || supId == currentUserId;
+    }).length;
+    final allCount = _lots.length;
+
+    return Container(
+      color: AppTheme.card,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFilterChip(
+              index: 0,
+              label: 'My Assigned Lots ($myCount)',
+              icon: Icons.person_pin_rounded,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildFilterChip(
+              index: 1,
+              label: 'All Floor Lots ($allCount)',
+              icon: Icons.factory_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({required int index, required String label, required IconData icon}) {
+    final isSelected = _filterMode == index;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _filterMode = index;
+          final fLots = _filteredLots;
+          if (fLots.isNotEmpty) {
+            if (_selectedLot == null || !fLots.any((l) => l['id'] == _selectedLot!['id'])) {
+              _selectedLot = fLots.first;
+            }
+          } else {
+            _selectedLot = null;
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.steel : AppTheme.bg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSelected ? AppTheme.steel : AppTheme.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: isSelected ? Colors.white : AppTheme.inkSoft),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.publicSans(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? Colors.white : AppTheme.inkSoft,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -831,18 +934,33 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   // ======= TOP LOT SELECTOR =======
   Widget _buildLotSelector() {
+    final displayLots = _filteredLots;
+
+    if (displayLots.isEmpty) {
+      return Container(
+        color: AppTheme.card,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Center(
+          child: Text(
+            'No lots found in this filter.',
+            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkFaint),
+          ),
+        ),
+      );
+    }
+
     return Container(
       color: AppTheme.card,
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: SizedBox(
-        height: 78,
+        height: 84,
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           scrollDirection: Axis.horizontal,
-          itemCount: _lots.length,
+          itemCount: displayLots.length,
           separatorBuilder: (_, __) => const SizedBox(width: 10),
           itemBuilder: (ctx, idx) {
-            final lot = _lots[idx];
+            final lot = displayLots[idx];
             final isSelected = _selectedLot?['id'] == lot['id'];
             final art = lot['article'];
             final artNo = art?['art_no'] ?? 'N/A';
@@ -850,6 +968,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             final challanNo = challan?['challan_no'] ?? 'CH-${lot['id'].toString().substring(0, 4)}';
             final target = lot['target_qty'] ?? 0;
             final counted = lot['total_counted'] ?? 0;
+            final supName = lot['mending_supervisor_name'] ?? 'General Pool';
 
             return GestureDetector(
               onTap: () {
@@ -858,7 +977,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 });
               },
               child: Container(
-                width: 180,
+                width: 190,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected ? AppTheme.steel : AppTheme.bg,
@@ -893,7 +1012,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       challanNo,
                       style: GoogleFonts.publicSans(
@@ -901,6 +1020,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                         color: isSelected ? Colors.white70 : AppTheme.inkSoft,
                       ),
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline_rounded,
+                          size: 11,
+                          color: isSelected ? const Color(0xFFFDE68A) : AppTheme.steel,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            supName,
+                            style: GoogleFonts.publicSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? const Color(0xFFFDE68A) : AppTheme.steel,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -989,6 +1130,53 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Custody & Handover Details Header Card
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.handshake_rounded, size: 16, color: Color(0xFFB45309)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'From Lineman: ${lot['handed_to_mending_by'] ?? lot['lineman']?['username'] ?? 'Lineman'}',
+                      style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Text(
+                      'Custody: ${lot['mending_supervisor_name'] ?? 'General Pool'}',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFB45309)),
+                    ),
+                  ),
+                ],
+              ),
+              if (lot['mending_handover_notes'] != null && lot['mending_handover_notes'].toString().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '📝 Note: ${lot['mending_handover_notes']}',
+                  style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
+                ),
+              ],
+            ],
+          ),
+        ),
+
         // Summary & Action Bar
         Container(
           padding: const EdgeInsets.all(14),
