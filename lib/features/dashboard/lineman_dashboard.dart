@@ -488,187 +488,195 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: AppTheme.border,
-                    borderRadius: BorderRadius.circular(3),
+      ),      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.greenMist,
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.greenMist,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.inventory_2_rounded, color: AppTheme.green, size: 24),
                     ),
-                    child: const Icon(Icons.inventory_2_rounded, color: AppTheme.green, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Floor Material Handover Verification',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.ink,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Floor Material Handover Verification',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.ink,
+                            ),
                           ),
-                        ),
+                          Text(
+                            'Article: ${allotment['articles']?['art_no'] ?? ''} • Target: ${allotment['target_qty']} pcs',
+                            style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                if (challanNo != null && challanNo.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.receipt_long_rounded, size: 16, color: AppTheme.steelDark),
+                        const SizedBox(width: 6),
                         Text(
-                          'Article: ${allotment['articles']?['art_no'] ?? ''} • Target: ${allotment['target_qty']} pcs',
-                          style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkFaint),
+                          'Supplier Challan / Bill #: $challanNo',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steelDark),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
 
-              if (challanNo != null && challanNo.isNotEmpty)
+                Text(
+                  'Store Godown has inspected and issued the following raw materials. Please verify physical count on sewing floor:',
+                  style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
+                ),
+                const SizedBox(height: 14),
+
+                // Materials List with Store Inspection details
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    color: AppTheme.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.receipt_long_rounded, size: 16, color: AppTheme.steelDark),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Supplier Challan / Bill #: $challanNo',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steelDark),
-                      ),
-                    ],
-                  ),
-                ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: materials.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
+                    itemBuilder: (_, idx) {
+                      final mat = materials[idx];
+                      final ins = _parseInspectionNotes(mat['notes']);
+                      final isShortage = ins?['status'] == 'SHORTAGE' || ins?['status'] == 'DEFECTIVE';
+                      final received = ins?['received_qty'] ?? mat['required_qty'];
 
-              Text(
-                'Store Godown has inspected and issued the following raw materials. Please verify physical count on sewing floor:',
-                style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-
-              // Materials List with Store Inspection details
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.bg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: materials.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
-                  itemBuilder: (_, idx) {
-                    final mat = materials[idx];
-                    final ins = _parseInspectionNotes(mat['notes']);
-                    final isShortage = ins?['status'] == 'SHORTAGE' || ins?['status'] == 'DEFECTIVE';
-                    final received = ins?['received_qty'] ?? mat['required_qty'];
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                isShortage ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
-                                color: isShortage ? AppTheme.amber : AppTheme.green,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  mat['item_name'] ?? 'Item',
-                                  style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  isShortage ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                                  color: isShortage ? AppTheme.amber : AppTheme.green,
+                                  size: 18,
                                 ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isShortage ? const Color(0xFFFEF3C7) : AppTheme.steelMist,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Req: ${mat['required_qty']}',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: isShortage ? const Color(0xFFB45309) : AppTheme.steelDark,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    mat['item_name'] ?? 'Item',
+                                    style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
                                   ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isShortage ? const Color(0xFFFEF3C7) : AppTheme.steelMist,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Req: ${mat['required_qty']}',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: isShortage ? const Color(0xFFB45309) : AppTheme.steelDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isShortage) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Store Count: $received ${ins?['shortage_qty'] != null ? "(${ins!['shortage_qty']})" : ""}',
+                                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
-                          ),
-                          if (isShortage) ...[
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFFBEB),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFD97706)),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Store Count: $received ${ins?['shortage_qty'] != null ? "(${ins!['shortage_qty']})" : ""}',
-                                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ],
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  icon: const Icon(Icons.verified_rounded, size: 18),
-                  label: const Text('Confirm & Acknowledge Material Received'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    },
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    icon: const Icon(Icons.verified_rounded, size: 19),
+                    label: Text(
+                      'Verify & Acknowledge Received',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
