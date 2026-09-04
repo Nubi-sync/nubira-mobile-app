@@ -157,6 +157,27 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     debugPrint('=== QC_DASHBOARD: _fetchQcData starting ===');
     setState(() => _isLoading = true);
     try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser != null) {
+        try {
+          final prof = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', currentUser.id)
+              .maybeSingle();
+          if (prof == null) {
+            await ref.read(authProvider.notifier).logout();
+            if (mounted) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+
       // 1. Fetch Allotments enriched with Articles, Linemen, Challans
       List<dynamic> allotmentList = [];
       try {

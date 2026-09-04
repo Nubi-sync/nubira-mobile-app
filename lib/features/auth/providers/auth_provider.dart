@@ -101,31 +101,68 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final currentUser = supabase.auth.currentUser;
 
     if (currentSession != null && currentUser != null) {
-      String? role = await _storage.read(key: 'cached_user_role');
-      if (role == null) {
-        try {
-          final res = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', currentUser.id)
-              .maybeSingle();
-          if (res != null && res['role'] != null) {
-            role = res['role'] as String;
-            await _storage.write(key: 'cached_user_role', value: role);
-          }
-        } catch (_) {}
-      }
-      role ??= 'LINEMAN';
+      try {
+        final res = await supabase
+            .from('profiles')
+            .select('id, role')
+            .eq('id', currentUser.id)
+            .maybeSingle();
 
-      state = state.copyWith(
-        isLoading: false,
-        isAuthenticated: true,
-        userRole: role,
-        failedAttempts: 0,
-        lockoutUntil: null,
-        cachedUsername: savedUsername,
-      );
-      return;
+        if (res == null || res['role'] == null) {
+          // Employee was deleted or removed by admin from Web Admin!
+          await supabase.auth.signOut();
+          await _storage.deleteAll();
+          await prefs.remove('remembered_operator_id');
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: false,
+            userRole: null,
+            cachedUsername: null,
+            error: 'This account was deleted or deactivated by admin.',
+          );
+          return;
+        }
+
+        final role = res['role'] as String;
+        await _storage.write(key: 'cached_user_role', value: role);
+
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: true,
+          userRole: role,
+          failedAttempts: 0,
+          lockoutUntil: null,
+          cachedUsername: savedUsername,
+        );
+        return;
+      } catch (e) {
+        final isNetwork = e.toString().contains('SocketException') || e.toString().contains('ClientException');
+        if (isNetwork) {
+          final cachedUserId = await _storage.read(key: 'cached_user_id');
+          final cachedRole = await _storage.read(key: 'cached_user_role');
+          if (cachedUserId != null && cachedRole != null) {
+            state = state.copyWith(
+              isLoading: false,
+              isAuthenticated: true,
+              userRole: cachedRole,
+              isOfflineSession: true,
+              cachedUsername: savedUsername,
+            );
+            return;
+          }
+        }
+
+        // Invalid or expired session
+        await supabase.auth.signOut();
+        await _storage.deleteAll();
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: false,
+          userRole: null,
+          cachedUsername: null,
+        );
+        return;
+      }
     }
 
     // 2. Check offline cached session
@@ -213,17 +250,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = authRes.user;
 
       if (user != null) {
-        String role = 'LINEMAN';
-        try {
-          final res = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', user.id)
-              .single();
-          if (res['role'] != null) {
-            role = res['role'] as String;
-          }
-        } catch (_) {}
+        // Validate user in profiles table
+        final res = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (res == null || res['role'] == null) {
+          await supabase.auth.signOut();
+          await _storage.deleteAll();
+          await prefs.remove('remembered_operator_id');
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: false,
+            userRole: null,
+            cachedUsername: null,
+            error: 'This account has been deleted by factory admin.',
+          );
+          return;
+        }
+
+        final role = res['role'] as String;
 
         if (session != null) {
           await _cacheSessionForOffline(session, role);
