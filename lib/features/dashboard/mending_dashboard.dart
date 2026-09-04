@@ -95,12 +95,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     try {
       final res = await supabase
           .from('profiles')
-          .select('id, username, full_name, role')
-          .eq('role', 'QC')
+          .select('id, username, role, is_active')
+          .inFilter('role', ['PRODUCTION', 'QC', 'PRODUCTION_QC'])
           .order('username', ascending: true);
       if (mounted) {
         setState(() {
-          _qcSupervisors = List<Map<String, dynamic>>.from(res as List);
+          _qcSupervisors = List<Map<String, dynamic>>.from(res as List)
+              .where((u) => u['is_active'] != false)
+              .toList();
         });
       }
     } catch (e) {
@@ -707,8 +709,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   }
 
   // ======= HANDOVER TO QC FLOOR MODAL =======
-  void _openHandoverToQcModal() {
+  Future<void> _openHandoverToQcModal() async {
     if (_selectedLot == null) return;
+    await _fetchQcSupervisors();
+    if (!mounted) return;
+
     final lot = _selectedLot!;
     final totalCounted = (lot['total_counted'] as num?)?.toInt() ?? 0;
     final targetQty = (lot['target_qty'] as num?)?.toInt() ?? 0;
@@ -860,9 +865,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             ),
                           ),
                           ..._qcSupervisors.map((sup) {
-                            final name = (sup['full_name'] as String?)?.isNotEmpty == true
-                                ? sup['full_name']
-                                : (sup['username'] ?? 'QC Supervisor');
+                            final name = (sup['username'] as String?)?.isNotEmpty == true
+                                ? sup['username']
+                                : 'QC Supervisor';
                             return DropdownMenuItem<String?>(
                               value: sup['id'].toString(),
                               child: Row(
@@ -870,7 +875,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   const Icon(Icons.person_outline, size: 16, color: AppTheme.green),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '$name (QC)',
+                                    '$name (QC Supervisor)',
                                     style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.steel),
                                   ),
                                 ],
@@ -885,7 +890,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               selectedSupervisorName = 'General QC Pool';
                             } else {
                               final found = _qcSupervisors.firstWhere((s) => s['id'].toString() == val, orElse: () => {});
-                              selectedSupervisorName = found['full_name'] ?? found['username'] ?? 'QC Supervisor';
+                              selectedSupervisorName = found['username'] ?? 'QC Supervisor';
                             }
                           });
                         },
