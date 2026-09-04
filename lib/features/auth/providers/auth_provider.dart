@@ -239,12 +239,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     try {
-      final email = username.contains('@') ? username : '${username.trim()}@nubira.local';
+      final cleanEmailKey = username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_.-]'), '');
+      final email = username.contains('@') ? username.trim() : '$cleanEmailKey@nubira.local';
 
-      final authRes = await supabase.auth.signInWithPassword(
-        email: email.toLowerCase(),
-        password: password,
-      );
+      AuthResponse authRes;
+      try {
+        authRes = await supabase.auth.signInWithPassword(
+          email: email.toLowerCase(),
+          password: password,
+        );
+      } on AuthException catch (_) {
+        // Fallback: check without spaces in case an older account exists
+        if (!username.contains('@') && username.contains(' ')) {
+          final noSpaceEmail = '${username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '')}@nubira.local';
+          authRes = await supabase.auth.signInWithPassword(
+            email: noSpaceEmail.toLowerCase(),
+            password: password,
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       final session = authRes.session;
       final user = authRes.user;
