@@ -707,6 +707,37 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
   // ======= ASSIGN WORKER DIALOG =======
   void _showAssignWorkerDialog(dynamic allotment) {
+    final materials = (allotment['materials'] as List<dynamic>?) ?? [];
+    final hasMaterials = materials.isNotEmpty;
+    final materialsConfirmed = hasMaterials && materials.every((m) => m['lineman_received'] == true);
+
+    if (hasMaterials && !materialsConfirmed) {
+      final isStoreIssued = materials.every((m) {
+        final ins = _parseInspectionNotes(m['notes']);
+        return m['admin_issued'] == true || ins?['store_verified'] == true;
+      });
+
+      if (isStoreIssued) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please verify & receive raw materials from Store first.'),
+            backgroundColor: AppTheme.amber,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _confirmMaterialReceipt(allotment);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Raw materials have not been issued by Store Godown yet.'),
+            backgroundColor: AppTheme.amber,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
     final workerNameController = TextEditingController();
     final qtyController = TextEditingController();
     final notesController = TextEditingController();
@@ -3387,32 +3418,81 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 ),
                               ),
                             )
-                          : _BouncyTap(
-                              onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
-                              child: Container(
-                                height: 48,
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: remaining > 0 ? AppTheme.steel : AppTheme.border,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.person_add_alt_1_rounded, size: 19, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        remaining > 0 ? 'Assign Batch ($remaining left)' : 'All Batches Assigned',
-                                        style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                          : (hasMaterials && !materialsConfirmed)
+                              ? _BouncyTap(
+                                  onTap: () {
+                                    if (isStoreIssued) {
+                                      _confirmMaterialReceipt(a);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Raw materials have not been issued by Store Godown yet.'),
+                                          backgroundColor: AppTheme.amber,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    height: 48,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: isStoreIssued ? const Color(0xFF4F46E5) : AppTheme.border,
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                  ],
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          isStoreIssued ? Icons.inventory_2_rounded : Icons.lock_outline_rounded,
+                                          size: 19,
+                                          color: isStoreIssued ? Colors.white : AppTheme.inkFaint,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            isStoreIssued
+                                                ? 'Receive Materials to Assign ($remaining left)'
+                                                : 'Awaiting Store Issue ($remaining left)',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: isStoreIssued ? Colors.white : AppTheme.inkFaint,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : _BouncyTap(
+                                  onTap: remaining > 0 ? () => _showAssignWorkerDialog(a) : null,
+                                  child: Container(
+                                    height: 48,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: remaining > 0 ? AppTheme.steel : AppTheme.border,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.person_add_alt_1_rounded, size: 19, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                        const SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            remaining > 0 ? 'Assign Batch ($remaining left)' : 'All Batches Assigned',
+                                            style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: remaining > 0 ? Colors.white : AppTheme.inkFaint),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                     ),
                   ],
                 ),
