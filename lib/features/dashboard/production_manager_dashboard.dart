@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/connectivity_indicator.dart';
+import '../../core/utils/parser_utils.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import 'qc_dashboard.dart';
@@ -124,35 +125,35 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
       for (var a in allotmentsRes) {
         final aId = a['id'];
-        final aStatus = (a['status'] as String? ?? 'PENDING').toUpperCase();
+        final aStatus = (a['status']?.toString() ?? 'PENDING').toUpperCase();
 
         // Target pieces from variants
         final vars = (variantsRes as List)
-            .where((v) => v['allotment_id'] == aId)
+            .where((v) => v['allotment_id']?.toString() == aId?.toString())
             .toList();
         int targetQty = 0;
         for (var v in vars) {
-          targetQty += (v['quantity'] as int? ?? 0);
+          targetQty += parseQty(v['quantity']);
         }
 
         // Stitched pieces from worker assignments
         final assigns = (assignmentsRes as List)
-            .where((w) => w['allotment_id'] == aId)
+            .where((w) => w['allotment_id']?.toString() == aId?.toString())
             .toList();
         int stitchedQty = 0;
         for (var w in assigns) {
-          stitchedQty += (w['total_pieces'] as int? ?? 0);
+          stitchedQty += parseQty(w['total_pieces'], parseQty(w['completed_qty'], parseQty(w['assigned_qty'])));
         }
 
         // QC Inspection summary
         final lotQcLogs = (qcLogsRes as List)
-            .where((q) => q['allotment_id'] == aId)
+            .where((q) => q['allotment_id']?.toString() == aId?.toString())
             .toList();
         int passedQty = 0;
         int rejectedQty = 0;
         for (var q in lotQcLogs) {
-          passedQty += (q['qty_passed'] as int? ?? 0);
-          rejectedQty += (q['qty_rejected'] as int? ?? 0);
+          passedQty += parseQty(q['qty_passed']);
+          rejectedQty += parseQty(q['qty_rejected']);
         }
 
         sumTarget += targetQty;
@@ -207,11 +208,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               'articles': <String>{},
             };
           }
-          linemenMap[linemanId]!['active_lots'] = (linemenMap[linemanId]!['active_lots'] as int) + 1;
-          linemenMap[linemanId]!['target_pcs'] = (linemenMap[linemanId]!['target_pcs'] as int) + targetQty;
-          linemenMap[linemanId]!['stitched_pcs'] = (linemenMap[linemanId]!['stitched_pcs'] as int) + stitchedQty;
-          linemenMap[linemanId]!['passed_pcs'] = (linemenMap[linemanId]!['passed_pcs'] as int) + passedQty;
-          linemenMap[linemanId]!['mending_pcs'] = (linemenMap[linemanId]!['mending_pcs'] as int) + rejectedQty;
+          linemenMap[linemanId]!['active_lots'] = parseQty(linemenMap[linemanId]!['active_lots']) + 1;
+          linemenMap[linemanId]!['target_pcs'] = parseQty(linemenMap[linemanId]!['target_pcs']) + targetQty;
+          linemenMap[linemanId]!['stitched_pcs'] = parseQty(linemenMap[linemanId]!['stitched_pcs']) + stitchedQty;
+          linemenMap[linemanId]!['passed_pcs'] = parseQty(linemenMap[linemanId]!['passed_pcs']) + passedQty;
+          linemenMap[linemanId]!['mending_pcs'] = parseQty(linemenMap[linemanId]!['mending_pcs']) + rejectedQty;
           if (a['article'] != null && a['article']['art_no'] != null) {
             (linemenMap[linemanId]!['articles'] as Set<String>).add(a['article']['art_no'].toString());
           }
@@ -788,11 +789,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (ctx, i) {
               final line = _linemenSummary[i];
-              final target = line['target_pcs'] as int? ?? 0;
-              final stitched = line['stitched_pcs'] as int? ?? 0;
-              final mending = line['mending_pcs'] as int? ?? 0;
+              final target = parseQty(line['target_pcs']);
+              final stitched = parseQty(line['stitched_pcs']);
+              final mending = parseQty(line['mending_pcs']);
               final double progress = target > 0 ? (stitched / target).clamp(0.0, 1.0) : 0.0;
-              final articles = (line['articles'] as Set<String>).join(', ');
+              final articles = ((line['articles'] as Set?)?.map((e) => e.toString()) ?? []).join(', ');
 
               return Container(
                 padding: const EdgeInsets.all(12),
@@ -920,14 +921,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (ctx, i) {
             final lot = _allotments[i];
-            final article = lot['article'] as Map<String, dynamic>? ?? {};
+            final article = parseMap(lot['article']);
             final artNo = article['art_no'] ?? 'N/A';
             final color = article['color_pattern'] ?? 'Standard';
             final sizeRange = article['size_range'] ?? 'STD';
-            final target = lot['target_qty'] as int? ?? 0;
-            final stitched = lot['stitched_qty'] as int? ?? 0;
-            final passed = lot['passed_qty'] as int? ?? 0;
-            final stage = lot['stage'] as String? ?? 'SEWING_LINES';
+            final target = parseQty(lot['target_qty']);
+            final stitched = parseQty(lot['stitched_qty']);
+            final passed = parseQty(lot['passed_qty']);
+            final stage = lot['stage']?.toString() ?? 'SEWING_LINES';
 
             Color stageColor = AppTheme.steel;
             String stageLabel = 'Sewing';
@@ -1031,14 +1032,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
   // Exact Challan Article Reference Sheet Modal
   void _showChallanBreakdownModal(Map<String, dynamic> lot) {
-    final article = lot['article'] as Map<String, dynamic>? ?? {};
-    final variants = lot['variants'] as List<dynamic>? ?? [];
+    final article = parseMap(lot['article']);
+    final variants = parseList(lot['variants']);
     final artNo = article['art_no'] ?? 'N/A';
     final color = article['color_pattern'] ?? 'Standard';
     final sizeRange = article['size_range'] ?? 'STD';
-    final target = lot['target_qty'] as int? ?? 0;
-    final stitched = lot['stitched_qty'] as int? ?? 0;
-    final passed = lot['passed_qty'] as int? ?? 0;
+    final target = parseQty(lot['target_qty']);
+    final stitched = parseQty(lot['stitched_qty']);
+    final passed = parseQty(lot['passed_qty']);
 
     showModalBottomSheet(
       context: context,

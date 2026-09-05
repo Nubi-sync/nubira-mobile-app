@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/connectivity_indicator.dart';
+import '../../core/utils/parser_utils.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import 'widgets/delivery_challan_modal.dart';
@@ -87,6 +88,21 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     if (aNum != null && bNum != null) return aNum.compareTo(bNum);
 
     return aUpper.compareTo(bUpper);
+  }
+
+  // Safe helper to extract integers from dynamic types (Strings, num, ints)
+  static int _parseQty(dynamic val) {
+    if (val == null) return 0;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    final str = val.toString().trim();
+    final direct = int.tryParse(str);
+    if (direct != null) return direct;
+    final match = RegExp(r'[-+]?\d+').firstMatch(str);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? 0;
+    }
+    return 0;
   }
 
   @override
@@ -339,22 +355,22 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
         vars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
 
-        int adminTotal = (a['target_qty'] as int?) ?? 0;
+        int adminTotal = parseQty(a['target_qty']);
         if (adminTotal == 0) {
           for (var v in vars) {
-            adminTotal += (v['quantity'] as int? ?? 0);
+            adminTotal += parseQty(v['quantity']);
           }
         }
 
-        int mendingTotal = (a['mending_total_counted'] as int?) ?? 0;
+        int mendingTotal = parseQty(a['mending_total_counted']);
         if (mendingTotal == 0 && mendAssigns.isNotEmpty) {
           for (var m in mendAssigns) {
-            mendingTotal += (m['completed_qty'] as int? ?? 0);
+            mendingTotal += parseQty(m['completed_qty']);
           }
         }
 
-        final int passedQty = (a['qc_total_passed'] as int?) ?? 0;
-        final int alterQty = (a['qc_total_alter'] as int?) ?? 0;
+        final int passedQty = parseQty(a['qc_total_passed']);
+        final int alterQty = parseQty(a['qc_total_alter']);
         final mStatus = (a['mending_status'] ?? '').toString();
         final qStatus = (a['qc_status'] ?? '').toString();
 
@@ -375,12 +391,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         for (var v in vars) {
           final sz = v['size']?.toString() ?? '-';
           final clr = v['color']?.toString() ?? '-';
-          final allotQty = (v['quantity'] as int?) ?? 0;
+          final allotQty = parseQty(v['quantity']);
 
           int mCount = 0;
           for (var m in mendAssigns) {
             if ((m['size']?.toString() ?? '') == sz) {
-              mCount += (m['completed_qty'] as int? ?? 0);
+              mCount += parseQty(m['completed_qty']);
             }
           }
           if (mCount == 0 && isHandedOverFromMending) {
@@ -390,7 +406,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           int qcPassCount = 0;
           for (var qc in activeAssignments) {
             if (qc['allotment_id']?.toString() == aId && (qc['size']?.toString() ?? '') == sz) {
-              qcPassCount += (qc['passed_qty'] as int? ?? 0);
+              qcPassCount += parseQty(qc['passed_qty']);
             }
           }
           if (qcPassCount == 0 && vars.length == 1 && passedQty > 0) {
@@ -441,17 +457,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       // If ready for challan is empty but some allotments have passed counts, populate
       if (readyForChallan.isEmpty) {
         for (var a in allotmentList) {
-          final passed = (a['qc_total_passed'] as int?) ?? 0;
+          final passed = parseQty(a['qc_total_passed']);
           if (passed > 0) {
             final aId = a['id'].toString();
             final vars = variantsRes.where((v) => v['allotment_id'].toString() == aId).toList();
             readyForChallan.add({
               ...Map<String, dynamic>.from(a),
               'variants': vars,
-              'admin_total_qty': (a['target_qty'] as int?) ?? passed,
-              'mending_received_qty': (a['mending_total_counted'] as int?) ?? passed,
+              'admin_total_qty': parseQty(a['target_qty'], passed),
+              'mending_received_qty': parseQty(a['mending_total_counted'], passed),
               'qc_total_passed': passed,
-              'qc_total_alter': (a['qc_total_alter'] as int?) ?? 0,
+              'qc_total_alter': parseQty(a['qc_total_alter']),
             });
           }
         }
@@ -466,9 +482,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       int passedToday = 0;
 
       for (var log in qcLogsRes) {
-        final qRej = (log['qty_rejected'] as int?) ?? 0;
-        final qPass = (log['qty_passed'] as int?) ?? 0;
-        final qRec = (log['qty_received'] as int?) ?? 0;
+        final qRej = parseQty(log['qty_rejected']);
+        final qPass = parseQty(log['qty_passed']);
+        final qRec = parseQty(log['qty_received']);
         final mStatus = (log['mending_status'] ?? '').toString();
 
         final c = (qPass + qRej > 0) ? (qPass + qRej) : qRec;
@@ -484,15 +500,15 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       int inCheckingPieces = 0;
       for (var assign in activeAssignments) {
         if (assign['status'] != 'DONE') {
-          final assigned = (assign['assigned_qty'] as int?) ?? 0;
-          final checked = (assign['checked_qty'] as int?) ?? 0;
+          final assigned = parseQty(assign['assigned_qty']);
+          final checked = parseQty(assign['checked_qty']);
           inCheckingPieces += (assigned - checked).clamp(0, assigned);
         }
       }
 
       int readyPieces = 0;
       for (var r in readyForChallan) {
-        readyPieces += ((r['qc_total_passed'] as int?) ?? (r['mending_received_qty'] as int?) ?? 0);
+        readyPieces += parseQty(r['qc_total_passed'], parseQty(r['mending_received_qty']));
       }
 
       if (mounted) {
@@ -529,8 +545,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     Map<String, dynamic>? selectedVariant = sizeMatrix.isNotEmpty ? sizeMatrix.first : null;
 
     int defaultQty = selectedVariant != null
-        ? (selectedVariant['mending_qty'] as int? ?? selectedVariant['allotted_qty'] as int? ?? 50)
-        : (lot['mending_received_qty'] as int? ?? 100);
+        ? (_parseQty(selectedVariant['mending_qty']) > 0 
+            ? _parseQty(selectedVariant['mending_qty']) 
+            : (_parseQty(selectedVariant['allotted_qty']) > 0 ? _parseQty(selectedVariant['allotted_qty']) : 50))
+        : (_parseQty(lot['mending_received_qty']) > 0 ? _parseQty(lot['mending_received_qty']) : 100);
 
     qtyController.text = defaultQty.toString();
 
@@ -851,8 +869,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     final alterCtrl = TextEditingController();
     final remarksCtrl = TextEditingController();
 
-    final int assignedQty = task['assigned_qty'] as int? ?? 50;
-    final int alreadyChecked = task['checked_qty'] as int? ?? 0;
+    final int assignedQty = parseQty(task['assigned_qty'], 50);
+    final int alreadyChecked = parseQty(task['checked_qty']);
     final int remaining = (assignedQty - alreadyChecked).clamp(0, assignedQty);
 
     checkedCtrl.text = remaining > 0 ? remaining.toString() : assignedQty.toString();
@@ -1201,9 +1219,11 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           try {
             final allotRes = await supabase.from('allotments').select('qc_total_passed, qc_total_alter, target_qty, mending_total_counted').eq('id', allotmentId).maybeSingle();
             if (allotRes != null) {
-              currentPassed += (allotRes['qc_total_passed'] as int? ?? 0);
-              currentAlter += (allotRes['qc_total_alter'] as int? ?? 0);
-              totalTarget = (allotRes['mending_total_counted'] as int?) ?? (allotRes['target_qty'] as int? ?? 0);
+              currentPassed += _parseQty(allotRes['qc_total_passed']);
+              currentAlter += _parseQty(allotRes['qc_total_alter']);
+              totalTarget = _parseQty(allotRes['mending_total_counted']) > 0 
+                  ? _parseQty(allotRes['mending_total_counted']) 
+                  : _parseQty(allotRes['target_qty']);
             }
           } catch (_) {}
 
@@ -1219,10 +1239,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       }
 
       // 3. Update task in qc_assignments table in Supabase
-      final prevChecked = (task['checked_qty'] as int? ?? 0);
-      final prevPassed = (task['passed_qty'] as int? ?? 0);
-      final prevAlter = (task['alter_qty'] as int? ?? 0);
-      final assignedQty = (task['assigned_qty'] as int? ?? 0);
+      final prevChecked = _parseQty(task['checked_qty']);
+      final prevPassed = _parseQty(task['passed_qty']);
+      final prevAlter = _parseQty(task['alter_qty']);
+      final assignedQty = _parseQty(task['assigned_qty']);
 
       final newChecked = prevChecked + checkedQty;
       final newPassed = prevPassed + passedQty;
@@ -1285,7 +1305,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   // VERIFY & PASS REPAIRED ALTERATION PIECES FROM LINEMAN
   // ====================================================
   Future<void> _verifyAndPassRepairedPieces(Map<String, dynamic> alt) async {
-    final qty = (alt['qty_rejected'] as int?) ?? 0;
+    final qty = parseQty(alt['qty_rejected']);
     final logId = alt['id'];
     final artNo = alt['article']?['art_no'] ?? 'Article';
 
@@ -1858,9 +1878,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             final supName = lot['qc_supervisor_name']?.toString() ?? 'General Pool';
             final handoverNotes = lot['qc_handover_notes']?.toString();
 
-            final int adminAllotted = lot['admin_total_qty'] as int? ?? 0;
-            final int mendingCounted = lot['mending_received_qty'] as int? ?? adminAllotted;
-            final int variance = lot['variance'] as int? ?? (mendingCounted - adminAllotted);
+            final int adminAllotted = parseQty(lot['admin_total_qty']);
+            final int mendingCounted = parseQty(lot['mending_received_qty'], adminAllotted);
+            final int variance = parseQty(lot['variance'], mendingCounted - adminAllotted);
             final sizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
 
             return Container(
@@ -2119,10 +2139,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         final artNo = task['article']?['art_no'] ?? 'Article';
         final clr = task['color'] ?? '';
         final sz = task['size'] ?? '';
-        final int assigned = task['assigned_qty'] as int? ?? 0;
-        final int checked = task['checked_qty'] as int? ?? 0;
-        final int passed = task['passed_qty'] as int? ?? 0;
-        final int alter = task['alter_qty'] as int? ?? 0;
+        final int assigned = parseQty(task['assigned_qty']);
+        final int checked = parseQty(task['checked_qty']);
+        final int passed = parseQty(task['passed_qty']);
+        final int alter = parseQty(task['alter_qty']);
         final isDone = task['status'] == 'DONE' || checked >= assigned;
 
         final double progress = assigned > 0 ? (checked / assigned).clamp(0.0, 1.0) : 1.0;
@@ -2256,7 +2276,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       children: _activeAlterations.map((alt) {
         final artNo = alt['article']?['art_no'] ?? 'Article';
         final lineman = alt['lineman']?['username'] ?? 'Lineman';
-        final int qty = alt['qty_rejected'] as int? ?? 0;
+        final int qty = parseQty(alt['qty_rejected']);
         final defect = alt['defect_type'] ?? 'Defect';
         final remarks = alt['remarks'] ?? '';
         final color = alt['color'] ?? '';
@@ -2386,8 +2406,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           final desc = lot['article']?['description'] ?? lot['description'] ?? '';
           final challanNo = lot['challans']?['challan_no'] ?? '-';
           final brand = lot['challans']?['brand'] ?? 'OLLYPOP';
-          final int passedQty = (lot['qc_total_passed'] as int?) ?? (lot['mending_received_qty'] as int?) ?? 0;
-          final vars = lot['variants'] as List<dynamic>? ?? [];
+          final int passedQty = parseQty(lot['qc_total_passed'], parseQty(lot['mending_received_qty']));
+          final vars = parseList(lot['variants']);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 14),
@@ -2456,8 +2476,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       runSpacing: 6,
                       children: vars.map((v) {
                         final sz = v['size'] ?? '-';
-                        final passQ = (v['qc_passed_qty'] as int?) ?? (lot['qc_total_passed'] as int?) ?? (v['allotted_qty'] as int? ?? (v['quantity'] as int? ?? 0));
-                        final totalQ = (v['allotted_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
+                        final passQ = parseQty(v['qc_passed_qty'], parseQty(lot['qc_total_passed'], parseQty(v['allotted_qty'], parseQty(v['quantity']))));
+                        final totalQ = parseQty(v['allotted_qty'], parseQty(v['quantity']));
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/parser_utils.dart';
 import '../../../../main.dart';
 
 class _ArticleVariantRow {
@@ -139,19 +140,19 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   void _buildInitialItems() {
     final lot = widget.prefilledLot;
     if (lot != null && lot['variants'] != null) {
-      final vars = lot['variants'] as List<dynamic>;
+      final vars = parseList(lot['variants']);
       final artNo = lot['article']?['art_no'] ?? 'Article';
       final articleId = lot['article_id'];
-      final lotTotalPassed = (lot['qc_total_passed'] as int?) ?? 0;
+      final lotTotalPassed = parseQty(lot['qc_total_passed']);
 
       final List<Map<String, dynamic>> items = [];
 
       for (var v in vars) {
         final color = (v['color']?.toString().trim() ?? 'Default').toUpperCase();
         final size = (v['size']?.toString().trim() ?? 'M').toUpperCase();
-        final orderQty = (v['order_qty'] as int?) ?? (v['allotted_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
+        final orderQty = parseQty(v['order_qty'], parseQty(v['allotted_qty'], parseQty(v['quantity'])));
         
-        int deliveryQty = (v['qc_passed_qty'] as int?) ?? 0;
+        int deliveryQty = parseQty(v['qc_passed_qty']);
         if (deliveryQty == 0) {
           if (vars.length == 1 && lotTotalPassed > 0) {
             deliveryQty = lotTotalPassed;
@@ -228,9 +229,9 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
     }
   }
 
-  int get _totalOrderQty => _challanItems.fold(0, (sum, i) => sum + (i['order_qty'] as int));
-  int get _totalDeliveryQty => _challanItems.fold(0, (sum, i) => sum + (i['delivery_qty'] as int));
-  int get _totalBalanceQty => _challanItems.fold(0, (sum, i) => sum + (i['balance_qty'] as int));
+  int get _totalOrderQty => _challanItems.fold(0, (sum, i) => sum + parseQty(i['order_qty']));
+  int get _totalDeliveryQty => _challanItems.fold(0, (sum, i) => sum + parseQty(i['delivery_qty']));
+  int get _totalBalanceQty => _challanItems.fold(0, (sum, i) => sum + parseQty(i['balance_qty']));
 
   Future<void> _submitToAdmin() async {
     final vehicleNo = _vehicleNoController.text.trim();
@@ -437,10 +438,10 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.steel),
                     onTap: () {
                       final List<Map<String, dynamic>> newItems = [];
-                      final lotPassed = (lot['qc_total_passed'] as int?) ?? 0;
+                      final lotPassed = parseQty(lot['qc_total_passed']);
                       for (var v in variants) {
-                        final orderQ = (v['order_qty'] as int?) ?? (v['quantity'] as int? ?? 0);
-                        int deliveryQ = (v['qc_passed_qty'] as int?) ?? 0;
+                        final orderQ = parseQty(v['order_qty'], parseQty(v['quantity']));
+                        int deliveryQ = parseQty(v['qc_passed_qty']);
                         if (deliveryQ == 0) {
                           if (variants.length == 1 && lotPassed > 0) {
                             deliveryQ = lotPassed;
@@ -1079,7 +1080,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                                 ..._challanItems.asMap().entries.map((entry) {
                                   final idx = entry.key;
                                   final item = entry.value;
-                                  final bal = item['balance_qty'] as int;
+                                  final bal = parseQty(item['balance_qty']);
                                   return TableRow(
                                     children: [
                                       _buildDeliveryCell(item['art_no'].toString(), isMono: true, isBold: true),
@@ -1459,11 +1460,11 @@ class _ArticleAutoFetchSheetState extends State<_ArticleAutoFetchSheet> {
       final Map<String, Map<String, int>> variantMap = {};
 
       for (var lot in lotRes) {
-        final vars = lot['allotment_variants'] as List<dynamic>? ?? [];
+        final vars = parseList(lot['allotment_variants']);
         for (var v in vars) {
           final c = (v['color']?.toString() ?? 'WHITE CHOCOLATE').trim().toUpperCase();
           final s = (v['size']?.toString() ?? 'M').trim().toUpperCase();
-          final q = (v['quantity'] as int?) ?? 0;
+          final q = parseQty(v['quantity']);
           final key = '$c|||$s';
           variantMap.putIfAbsent(key, () => {'passed': 0, 'received': 0, 'order': 0});
           variantMap[key]!['order'] = (variantMap[key]!['order'] ?? 0) + q;
@@ -1473,8 +1474,8 @@ class _ArticleAutoFetchSheetState extends State<_ArticleAutoFetchSheet> {
       for (var log in qcLogs) {
         final c = (log['color']?.toString() ?? 'WHITE CHOCOLATE').trim().toUpperCase();
         final s = (log['size']?.toString() ?? 'M').trim().toUpperCase();
-        final p = (log['qty_passed'] as int?) ?? 0;
-        final r = (log['qty_received'] as int?) ?? 0;
+        final p = parseQty(log['qty_passed']);
+        final r = parseQty(log['qty_received']);
         final key = '$c|||$s';
         variantMap.putIfAbsent(key, () => {'passed': 0, 'received': 0, 'order': 0});
         variantMap[key]!['passed'] = (variantMap[key]!['passed'] ?? 0) + p;

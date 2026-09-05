@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/parser_utils.dart';
 import '../../../main.dart'; // supabase client
 
 class DispatchDashboard extends ConsumerStatefulWidget {
@@ -56,8 +57,8 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
 
       final Map<String, int> expMap = {};
       for (var row in storeOutwardRes) {
-        final artId = row['article_id'] as String;
-        final q = (row['quantity'] as int?) ?? 0;
+        final artId = row['article_id']?.toString() ?? '';
+        final q = parseQty(row['quantity']);
         expMap[artId] = (expMap[artId] ?? 0) + q;
       }
 
@@ -111,9 +112,9 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
       int discCount = 0;
       for (var c in countingRes) {
         if (c['entry_date'] == today) {
-          totalCounted += (c['counted_qty'] as int?) ?? 0;
-          final exp = (c['expected_qty'] as int?) ?? 0;
-          final cnt = (c['counted_qty'] as int?) ?? 0;
+          totalCounted += parseQty(c['counted_qty']);
+          final exp = parseQty(c['expected_qty']);
+          final cnt = parseQty(c['counted_qty']);
           if (exp > 0 && exp != cnt) {
             discCount++;
           }
@@ -124,7 +125,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
       int activeChallans = 0;
       for (var ch in challansRes) {
         if (ch['delivery_date'] == today) {
-          totalDelivered += (ch['total_pieces'] as int?) ?? 0;
+          totalDelivered += parseQty(ch['total_pieces']);
           activeChallans++;
         }
       }
@@ -1238,8 +1239,8 @@ TOTAL QUANTITY: $total Pieces
     final artNo = c['article']?['art_no'] ?? '-';
     final color = c['color'] ?? '';
     final size = c['size'] ?? '';
-    final counted = (c['counted_qty'] as int?) ?? 0;
-    final expected = (c['expected_qty'] as int?) ?? 0;
+    final counted = parseQty(c['counted_qty']);
+    final expected = parseQty(c['expected_qty']);
     final diff = counted - expected;
     final remarks = c['remarks'] ?? '';
     final timeStr = c['created_at'] != null ? DateTime.parse(c['created_at']).toLocal().toString().substring(11, 16) : '-';

@@ -22,6 +22,21 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
   List<Map<String, dynamic>> _incomingLots = [];
   String? _processingLotId;
 
+  // Safe helper to extract integers from dynamic types (Strings, num, ints)
+  static int _parseQty(dynamic val) {
+    if (val == null) return 0;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    final str = val.toString().trim();
+    final direct = int.tryParse(str);
+    if (direct != null) return direct;
+    final match = RegExp(r'[-+]?\d+').firstMatch(str);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? 0;
+    }
+    return 0;
+  }
+
   // Natural size ordering sequence
   static const List<String> _alphaSizeOrder = [
     'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', '5XL', 'FREE', 'FS'
@@ -138,15 +153,15 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
             int allotted = 0;
             for (var v in colorVars) {
               if (v['size']?.toString().trim() == size) {
-                allotted += (v['quantity'] as int? ?? 0);
+                allotted += _parseQty(v['quantity']);
               }
             }
 
             int received = 0;
             for (var m in colorAssigns) {
               if (m['size']?.toString().trim() == size) {
-                final c = (m['completed_qty'] as int? ?? 0);
-                received += (c > 0 ? c : (m['assigned_qty'] as int? ?? 0));
+                final c = _parseQty(m['completed_qty']);
+                received += (c > 0 ? c : _parseQty(m['assigned_qty']));
               }
             }
 
@@ -173,16 +188,16 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
         int lotTotalReceived = 0;
         sizeMatrixByColor.forEach((col, list) {
           for (var item in list) {
-            lotTotalAllotted += (item['allotted'] as int);
-            lotTotalReceived += (item['received'] as int);
+            lotTotalAllotted += _parseQty(item['allotted']);
+            lotTotalReceived += _parseQty(item['received']);
           }
         });
 
         if (lotTotalAllotted == 0) {
-          lotTotalAllotted = (a['target_qty'] as int? ?? 0);
+          lotTotalAllotted = _parseQty(a['target_qty']);
         }
         if (lotTotalReceived == 0) {
-          lotTotalReceived = (a['mending_total_counted'] as int? ?? lotTotalAllotted);
+          lotTotalReceived = _parseQty(a['mending_total_counted']) > 0 ? _parseQty(a['mending_total_counted']) : lotTotalAllotted;
         }
 
         final overallVariance = lotTotalReceived - lotTotalAllotted;
@@ -212,8 +227,8 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
     final lotId = lot['id'].toString();
     final articleId = lot['article_id'];
     final linemanId = lot['lineman_id'];
-    final receivedQty = lot['total_received'] as int;
-    final variance = lot['overall_variance'] as int;
+    final receivedQty = _parseQty(lot['total_received']);
+    final variance = _parseQty(lot['overall_variance']);
 
     setState(() => _processingLotId = lotId);
 
@@ -441,15 +456,23 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
     final artNo = lot['article']?['art_no'] ?? '-';
     final artDesc = lot['article']?['description'] ?? '';
     final linemanName = lot['lineman']?['username'] ?? 'Lineman';
-    final totalAllotted = lot['total_allotted'] as int;
-    final totalReceived = lot['total_received'] as int;
-    final overallVariance = lot['overall_variance'] as int;
+    final totalAllotted = _parseQty(lot['total_allotted']);
+    final totalReceived = _parseQty(lot['total_received']);
+    final overallVariance = _parseQty(lot['overall_variance']);
     final isProcessing = _processingLotId == lotId;
 
     final isShort = overallVariance < 0;
     final isExcess = overallVariance > 0;
 
-    final matrixByColor = lot['size_matrix_by_color'] as Map<String, List<Map<String, dynamic>>>;
+    final rawMatrix = lot['size_matrix_by_color'];
+    final Map<String, List<Map<String, dynamic>>> matrixByColor = {};
+    if (rawMatrix is Map) {
+      rawMatrix.forEach((k, v) {
+        if (v is List) {
+          matrixByColor[k.toString()] = v.map((e) => e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{}).toList();
+        }
+      });
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -782,7 +805,7 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                   _buildTableCell('Allotted Qty', isMetricLabel: true),
                   ...rows.map((r) => _buildTableCell(r['allotted'].toString())),
                   _buildTableCell(
-                    rows.fold<int>(0, (sum, r) => sum + (r['allotted'] as int)).toString(),
+                    rows.fold<int>(0, (sum, r) => sum + _parseQty(r['allotted'])).toString(),
                     isTotal: true,
                   ),
                 ],
@@ -793,11 +816,11 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                   _buildTableCell('Received Qty', isMetricLabel: true),
                   ...rows.map((r) => _buildTableCell(
                         r['received'].toString(),
-                        textColor: (r['variance'] as int) < 0 ? AppTheme.amber : AppTheme.steel,
+                        textColor: _parseQty(r['variance']) < 0 ? AppTheme.amber : AppTheme.steel,
                         isBold: true,
                       )),
                   _buildTableCell(
-                    rows.fold<int>(0, (sum, r) => sum + (r['received'] as int)).toString(),
+                    rows.fold<int>(0, (sum, r) => sum + _parseQty(r['received'])).toString(),
                     isTotal: true,
                     textColor: AppTheme.steel,
                     isBold: true,
@@ -810,7 +833,7 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                 children: [
                   _buildTableCell('Variance', isMetricLabel: true),
                   ...rows.map((r) {
-                    final v = r['variance'] as int;
+                    final v = _parseQty(r['variance']);
                     return _buildTableCell(
                       v == 0 ? '0' : (v > 0 ? '+$v' : '$v'),
                       textColor: v < 0 ? AppTheme.red : (v > 0 ? AppTheme.green : AppTheme.inkSoft),
@@ -819,11 +842,11 @@ class _DailyReceivingAuditModalState extends State<DailyReceivingAuditModal> {
                   }),
                   _buildTableCell(
                     (() {
-                      final totV = rows.fold<int>(0, (sum, r) => sum + (r['variance'] as int));
+                      final totV = rows.fold<int>(0, (sum, r) => sum + _parseQty(r['variance']));
                       return totV == 0 ? '0' : (totV > 0 ? '+$totV' : '$totV');
                     })(),
                     isTotal: true,
-                    textColor: rows.fold<int>(0, (sum, r) => sum + (r['variance'] as int)) < 0 ? AppTheme.red : AppTheme.ink,
+                    textColor: rows.fold<int>(0, (sum, r) => sum + _parseQty(r['variance'])) < 0 ? AppTheme.red : AppTheme.ink,
                     isBold: true,
                   ),
                 ],

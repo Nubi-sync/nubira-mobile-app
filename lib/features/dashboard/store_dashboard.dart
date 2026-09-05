@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/parser_utils.dart';
 import '../../../main.dart'; // supabase client
 
 class _AccessoryChallanItem {
@@ -196,7 +197,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           'challans': ch,
           'lineman_id': lId,
           'article_id': aId,
-          'target_qty': (al['target_qty'] as num?)?.toInt() ?? 0,
+          'target_qty': parseQty(al['target_qty']),
           'allotment_date': al['allotment_date'],
           'status': al['status'],
           'created_at': al['created_at'],
@@ -233,7 +234,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             }
           }
 
-          final passedQty = (al['qc_total_passed'] as int?) ?? (al['target_qty'] as int?) ?? 0;
+          final passedQty = parseQty(al['qc_total_passed'], parseQty(al['target_qty']));
 
           readyQcRes.add({
             ...Map<String, dynamic>.from(al),
@@ -303,7 +304,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final Map<String, int> varStockMap = {};
 
       for (var tx in txRes) {
-        final qty = (tx['quantity'] as int?) ?? 0;
+        final qty = parseQty(tx['quantity']);
         final type = tx['type'] as String? ?? 'INWARD';
         final artId = tx['article']?['id'] as String? ?? 'UNKNOWN';
         final color = (tx['color'] as String?)?.toLowerCase().trim() ?? '';
@@ -1090,7 +1091,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                             }
                                           }
                                         } else {
-                                          final qty = int.parse(fallbackQtyController.text.trim());
+                                          final qty = int.tryParse(fallbackQtyController.text.trim()) ?? 0;
                                           rowsToInsert.add({
                                             'article_id': selectedArticleId,
                                             'type': 'INWARD',
@@ -1711,7 +1712,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                             }
                                           }
                                         } else {
-                                          final qty = int.parse(fallbackQtyController.text.trim());
+                                          final qty = int.tryParse(fallbackQtyController.text.trim()) ?? 0;
                                           rowsToInsert.add({
                                             'article_id': selectedArticleId,
                                             'type': 'OUTWARD',
@@ -3536,7 +3537,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                     final mId = mat['id'].toString();
                                     final state = inspectionState[mId] ?? {};
                                     final status = state['status'] ?? 'VERIFIED';
-                                    final receivedText = (state['receivedQtyCtrl'] as TextEditingController?)?.text.trim() ?? (mat['required_qty'] ?? '');
+                                    final receivedText = (state['receivedQtyCtrl'] as TextEditingController?)?.text.trim() ?? (mat['required_qty']?.toString() ?? '');
                                     final shortageText = (state['shortageCtrl'] as TextEditingController?)?.text.trim() ?? '';
                                     final remarksText = (state['remarksCtrl'] as TextEditingController?)?.text.trim() ?? '';
 
@@ -3548,7 +3549,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                     }
 
                                     existingNotes['lineman_name'] = linemanName;
-                                    existingNotes['received_qty'] = receivedText.isEmpty ? mat['required_qty'] : receivedText;
+                                    existingNotes['received_qty'] = receivedText.isEmpty ? (mat['required_qty']?.toString() ?? '') : receivedText;
                                     existingNotes['status'] = status;
                                     existingNotes['shortage_qty'] = shortageText.isEmpty ? null : shortageText;
                                     existingNotes['supplier_challan_no'] = challanNo.isEmpty ? null : challanNo;
@@ -3566,25 +3567,40 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                         })
                                         .eq('id', mat['id']);
 
-                                     // 2. Log OUTWARD in accessories table so Godown inventory is reduced automatically in real-time
-                                     final issuedQty = num.tryParse(receivedText.toString()) ?? (mat['required_qty'] as num?) ?? 0;
-                                     final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
-                                     final unit = (mat['unit'] ?? 'pcs').toString();
+                                    // 2. Log OUTWARD in accessories table so Godown inventory is reduced automatically in real-time
+                                    int parseQuantity(dynamic val) {
+                                      if (val == null) return 0;
+                                      if (val is int) return val;
+                                      if (val is num) return val.toInt();
+                                      final str = val.toString().trim();
+                                      final direct = int.tryParse(str);
+                                      if (direct != null) return direct;
+                                      final match = RegExp(r'[-+]?\d+').firstMatch(str);
+                                      if (match != null) {
+                                        return int.tryParse(match.group(0) ?? '') ?? 0;
+                                      }
+                                      return 0;
+                                    }
 
-                                     if (itemName.isNotEmpty && issuedQty > 0) {
-                                       try {
-                                         await supabase.from('accessories').insert({
-                                           'item_name': itemName,
-                                           'action': 'OUT',
-                                           'quantity': issuedQty.toInt(),
-                                           'unit': unit,
-                                           'party_name': 'Issued to Lineman $linemanName',
-                                           'entry_date': DateTime.now().toIso8601String().split('T')[0],
-                                           'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}',
-                                         });
-                                       } catch (_) {}
-                                     }
-                                   }
+                                    final rawQtyVal = receivedText.isNotEmpty ? receivedText : mat['required_qty'];
+                                    final issuedQty = parseQuantity(rawQtyVal);
+                                    final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
+                                    final unit = (mat['unit'] ?? 'pcs').toString();
+
+                                    if (itemName.isNotEmpty && issuedQty > 0) {
+                                      try {
+                                        await supabase.from('accessories').insert({
+                                          'item_name': itemName,
+                                          'action': 'OUT',
+                                          'quantity': issuedQty,
+                                          'unit': unit,
+                                          'party_name': 'Issued to Lineman $linemanName',
+                                          'entry_date': DateTime.now().toIso8601String().split('T')[0],
+                                          'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}',
+                                        });
+                                      } catch (_) {}
+                                    }
+                                  }
 
                                   scaffoldMessenger.showSnackBar(
                                     SnackBar(
@@ -4287,7 +4303,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     '${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "• $party" : ""}',
                     style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
                   ),
-                  if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
+                  if (log['notes'] != null && log['notes'].toString().trim().isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
                       'Note: ${log['notes']}',
@@ -4358,7 +4374,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     '${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "• $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}',
                     style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
                   ),
-                  if (log['notes'] != null && (log['notes'] as String).isNotEmpty) ...[
+                  if (log['notes'] != null && log['notes'].toString().trim().isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
                       'Note: ${log['notes']}',
@@ -4496,7 +4512,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final desc = lot['description'] ?? '';
     final color = lot['color_name'] ?? 'STANDARD';
     final challanNo = lot['challan_no'] ?? '-';
-    final int passedQty = lot['qc_passed_qty'] as int? ?? 0;
+    final int passedQty = parseQty(lot['qc_passed_qty']);
     final lineman = lot['lineman_name'] ?? 'Lineman';
     final qcName = lot['qc_name'] ?? 'QC Supervisor';
 

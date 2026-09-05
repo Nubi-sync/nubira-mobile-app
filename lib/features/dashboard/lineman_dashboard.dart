@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/parser_utils.dart';
 import '../../../main.dart';
 
 class LinemanDashboard extends ConsumerStatefulWidget {
@@ -110,7 +111,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             .eq('lineman_id', user.id)
             .order('allotment_date', ascending: false);
 
-        final allAllotmentIds = allotmentsRes.map((a) => a['id'] as String).toList();
+        final allAllotmentIds = allotmentsRes.map((a) => a['id'].toString()).toList();
 
         // 2. Fetch variants for these allotments
         List<dynamic> variantsRes = [];
@@ -171,26 +172,26 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         final Set<String> distinctNames = {};
 
         for (var a in allAssignmentsRes) {
-          final qty = (a['assigned_qty'] as int?) ?? 0;
-          final allotId = a['allotment_id'] as String? ?? '';
+          final qty = parseQty(a['assigned_qty']);
+          final allotId = a['allotment_id']?.toString() ?? '';
           assignedPerAllotment[allotId] = (assignedPerAllotment[allotId] ?? 0) + qty;
 
-          final name = a['worker_name'] as String?;
+          final name = a['worker_name']?.toString();
           if (name != null && name.trim().isNotEmpty) {
             distinctNames.add(name.trim());
           }
 
           if (a['status'] == 'DONE') {
-            final cQty = (a['completed_qty'] as int?) ?? qty;
+            final cQty = parseQty(a['completed_qty'], qty);
             donePerAllotment[allotId] = (donePerAllotment[allotId] ?? 0) + cQty;
           }
         }
 
         for (var a in todayAssignments) {
-          final qty = (a['assigned_qty'] as int?) ?? 0;
+          final qty = parseQty(a['assigned_qty']);
           assignedToday += qty;
           if (a['status'] == 'DONE') {
-            final cQty = (a['completed_qty'] as int?) ?? qty;
+            final cQty = parseQty(a['completed_qty'], qty);
             doneToday += cQty;
           }
         }
@@ -200,8 +201,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         final List<dynamic> enrichedCompleted = [];
 
         for (var a in allotmentsRes) {
-          final aId = a['id'] as String;
-          final status = (a['status'] as String? ?? '').toUpperCase();
+          final aId = a['id'].toString();
+          final status = (a['status']?.toString() ?? '').toUpperCase();
           
           // Cancelled allotments are terminated by Admin/Manager and must NOT appear on the live sewing floor
           if (status == 'CANCELLED') {
@@ -255,7 +256,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               .neq('mending_status', 'REPAIR_COMPLETED')
               .order('created_at', ascending: false);
 
-          activeMending = mendingRes.where((m) => (m['qty_rejected'] as int? ?? 0) > 0).toList();
+          activeMending = mendingRes.where((m) => parseQty(m['qty_rejected']) > 0).toList();
         } catch (e) {
           debugPrint('Mending fetch error: $e');
         }
@@ -274,7 +275,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
         int totalTarget = 0;
         for (var a in enrichedActive) {
-          totalTarget += (a['target_qty'] as int? ?? 0);
+          totalTarget += parseQty(a['target_qty']);
         }
 
         setState(() {
@@ -303,8 +304,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   // ======= COMPLETE & HANDOVER LOT TO MENDING FLOOR =======
   Future<void> _completeAllotment(dynamic allotment) async {
     final artNo = allotment['articles']?['art_no'] ?? 'Article';
-    final target = allotment['target_qty'] ?? 0;
-    final allotmentId = allotment['id'] as String;
+    final target = parseQty(allotment['target_qty']);
+    final allotmentId = allotment['id']?.toString() ?? '';
 
     String? selectedSupervisorId;
     String selectedSupervisorName = 'General Mending Pool';
@@ -1021,12 +1022,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     final qtyController = TextEditingController();
     final notesController = TextEditingController();
 
-    final target = (allotment['target_qty'] as int?) ?? 0;
-    final alreadyAssigned = (allotment['total_assigned'] as int?) ?? 0;
+    final target = parseQty(allotment['target_qty']);
+    final alreadyAssigned = parseQty(allotment['total_assigned']);
     final remaining = target - alreadyAssigned;
 
-    final variants = (allotment['variants'] as List<dynamic>?) ?? [];
-    final assignments = (allotment['assignments'] as List<dynamic>?) ?? [];
+    final variants = parseList(allotment['variants']);
+    final assignments = parseList(allotment['assignments']);
 
     final Set<String> colorSet = {};
     final Set<String> sizeSet = {};
@@ -1050,14 +1051,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       return variants
           .where((v) => (v['color']?.toString().toLowerCase().trim() == color.toLowerCase().trim()) &&
                         (v['size']?.toString().toLowerCase().trim() == size.toLowerCase().trim()))
-          .fold<int>(0, (sum, v) => sum + ((v['quantity'] as int?) ?? 0));
+          .fold<int>(0, (sum, v) => sum + parseQty(v['quantity']));
     }
 
     int getVariantAssigned(String color, String size) {
       return assignments
           .where((a) => (a['color']?.toString().toLowerCase().trim() == color.toLowerCase().trim()) &&
                         (a['size']?.toString().toLowerCase().trim() == size.toLowerCase().trim()))
-          .fold<int>(0, (sum, a) => sum + ((a['assigned_qty'] as int?) ?? 0));
+          .fold<int>(0, (sum, a) => sum + parseQty(a['assigned_qty']));
     }
 
     int getVariantRemaining(String color, String size) {
@@ -1692,7 +1693,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   Future<void> _markAsDone(dynamic a) async {
     final assignmentId = a['id'];
     final workerName = a['worker_name'] ?? 'Worker';
-    final qty = (a['assigned_qty'] as int?) ?? 0;
+    final qty = parseQty(a['assigned_qty']);
 
     // Permanently dismiss swipe hint on first swipe action
     if (_showSwipeHint) {
@@ -1838,8 +1839,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   // ======= SHOW LOT HISTORY BREAKDOWN MODAL =======
   void _showLotHistoryDetailsSheet(dynamic lot) {
     final art = lot['articles'];
-    final target = (lot['target_qty'] as int?) ?? 0;
-    final lotAssignments = (lot['assignments'] as List<dynamic>?) ?? [];
+    final target = parseQty(lot['target_qty']);
+    final lotAssignments = parseList(lot['assignments']);
     final allotmentDate = lot['allotment_date'] ?? '-';
 
     // Group worker pieces
@@ -1848,7 +1849,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
     for (var ass in lotAssignments) {
       final name = ass['worker_name'] ?? 'Worker';
-      final qty = (ass['completed_qty'] as int?) ?? ((ass['assigned_qty'] as int?) ?? 0);
+      final qty = parseQty(ass['completed_qty'], parseQty(ass['assigned_qty']));
       workerTotalPieces[name] = (workerTotalPieces[name] ?? 0) + qty;
       workerEntries.putIfAbsent(name, () => []).add(ass);
     }
@@ -3085,11 +3086,11 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       if (article['size_rates'] != null && article['size_rates'] is Map) {
         final sizeMap = article['size_rates'] as Map;
         if (sizeMap.containsKey(size) && sizeMap[size] != null) {
-          return (sizeMap[size] as num).toDouble();
+          return parseDouble(sizeMap[size]);
         }
       }
     } catch (_) {}
-    return ((article['stitching_rate'] as num?)?.toDouble() ?? 0.0);
+    return parseDouble(article['stitching_rate']);
   }
 
   // ==========================================
@@ -3097,9 +3098,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   // ==========================================
   Widget _buildActiveAllotmentCard(dynamic a) {
     final art = a['articles'];
-    final target = (a['target_qty'] as int?) ?? 1;
-    final assigned = (a['total_assigned'] as int?) ?? 0;
-    final done = (a['total_done'] as int?) ?? 0;
+    final target = parseQty(a['target_qty'], 1);
+    final assigned = parseQty(a['total_assigned']);
+    final done = parseQty(a['total_done']);
     final remaining = target - assigned;
     final progress = target > 0 ? (done / target).clamp(0.0, 1.0) : 0.0;
     final percent = (progress * 100).toInt();

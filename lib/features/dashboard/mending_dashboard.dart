@@ -65,6 +65,21 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     return null;
   }
 
+  // Safe helper to extract integers from dynamic types (Strings, num, ints)
+  static int _parseQty(dynamic val) {
+    if (val == null) return 0;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    final str = val.toString().trim();
+    final direct = int.tryParse(str);
+    if (direct != null) return direct;
+    final match = RegExp(r'[-+]?\d+').firstMatch(str);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? 0;
+    }
+    return 0;
+  }
+
   int _naturalSizeCompare(String a, String b) {
     final aUpper = a.trim().toUpperCase();
     final bUpper = b.trim().toUpperCase();
@@ -226,14 +241,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
         int totalTarget = 0;
         for (var v in vars) {
-          totalTarget += ((v['quantity'] as num?)?.toInt() ?? 0);
+          totalTarget += _parseQty(v['quantity']);
         }
 
         int totalAssigned = 0;
         int totalCounted = 0;
         for (var m in assigns) {
-          totalAssigned += ((m['assigned_qty'] as num?)?.toInt() ?? 0);
-          final c = ((m['completed_qty'] as num?)?.toInt() ?? 0);
+          totalAssigned += _parseQty(m['assigned_qty']);
+          final c = _parseQty(m['completed_qty']);
           totalCounted += c;
         }
 
@@ -248,7 +263,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           'lineman': lineMap,
           'variants': vars,
           'assignments': assigns,
-          'target_qty': totalTarget > 0 ? totalTarget : ((a['target_qty'] as num?)?.toInt() ?? 0),
+          'target_qty': totalTarget > 0 ? totalTarget : _parseQty(a['target_qty']),
           'total_assigned': totalAssigned,
           'total_counted': totalCounted,
         });
@@ -587,8 +602,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   // ======= RECORD WORKER PHYSICAL COUNT =======
   void _openRecordCountDialog(Map<String, dynamic> assignment) {
-    final assignedQty = (assignment['assigned_qty'] as num?)?.toInt() ?? 0;
-    final currentDone = (assignment['completed_qty'] as num?)?.toInt() ?? 0;
+    final assignedQty = _parseQty(assignment['assigned_qty']);
+    final currentDone = _parseQty(assignment['completed_qty']);
     final workerName = assignment['worker_name']?.toString() ?? 'Worker';
     final countController = TextEditingController(text: currentDone > 0 ? currentDone.toString() : assignedQty.toString());
 
@@ -715,8 +730,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     if (!mounted) return;
 
     final lot = _selectedLot!;
-    final totalCounted = (lot['total_counted'] as num?)?.toInt() ?? 0;
-    final targetQty = (lot['target_qty'] as num?)?.toInt() ?? 0;
+    final totalCounted = _parseQty(lot['total_counted']);
+    final targetQty = _parseQty(lot['target_qty']);
     final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
     final artNo = art?['art_no']?.toString() ?? 'N/A';
     final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
@@ -968,8 +983,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       final lotId = _selectedLot!['id'].toString();
       final articleId = _selectedLot!['article_id'];
       final linemanId = _selectedLot!['lineman_id'];
-      final totalCounted = (_selectedLot!['total_counted'] as num?)?.toInt() ?? 0;
-      final targetQty = (_selectedLot!['target_qty'] as num?)?.toInt() ?? 0;
+      final totalCounted = _parseQty(_selectedLot!['total_counted']);
+      final targetQty = _parseQty(_selectedLot!['target_qty']);
       final variance = totalCounted - targetQty;
 
       final user = supabase.auth.currentUser;
@@ -1283,8 +1298,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             final artNo = art?['art_no']?.toString() ?? 'N/A';
             final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
             final challanNo = challan?['challan_no']?.toString() ?? 'CH-${lot['id'].toString().substring(0, 4)}';
-            final target = (lot['target_qty'] as num?)?.toInt() ?? 0;
-            final counted = (lot['total_counted'] as num?)?.toInt() ?? 0;
+            final target = _parseQty(lot['target_qty']);
+            final counted = _parseQty(lot['total_counted']);
             final supName = lot['mending_supervisor_name']?.toString() ?? 'General Pool';
 
             return GestureDetector(
@@ -1449,9 +1464,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     }
 
     final assigns = (lot['assignments'] as List<dynamic>?) ?? [];
-    final target = (lot['target_qty'] as num?)?.toInt() ?? 0;
-    final assigned = (lot['total_assigned'] as num?)?.toInt() ?? 0;
-    final counted = (lot['total_counted'] as num?)?.toInt() ?? 0;
+    final target = _parseQty(lot['target_qty']);
+    final assigned = _parseQty(lot['total_assigned']);
+    final counted = _parseQty(lot['total_counted']);
 
     final handedBy = lot['handed_to_mending_by']?.toString();
     final linemanName = (handedBy != null && handedBy.isNotEmpty)
@@ -1614,8 +1629,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     final workerName = ass['worker_name']?.toString() ?? 'Worker';
     final color = ass['color']?.toString() ?? 'Standard';
     final size = ass['size']?.toString() ?? 'Free';
-    final assignedQty = (ass['assigned_qty'] as num?)?.toInt() ?? 0;
-    final completedQty = (ass['completed_qty'] as num?)?.toInt() ?? 0;
+    final assignedQty = _parseQty(ass['assigned_qty']);
+    final completedQty = _parseQty(ass['completed_qty']);
     final isDone = ass['status']?.toString() == 'DONE';
     final notes = ass['notes']?.toString();
 
@@ -1729,21 +1744,21 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     for (var a in assigns) {
       if (a is Map) {
         final key = '${a['color']}_${a['size']}';
-        countedMap[key] = (countedMap[key] ?? 0) + ((a['completed_qty'] as num?)?.toInt() ?? 0);
+        countedMap[key] = (countedMap[key] ?? 0) + _parseQty(a['completed_qty']);
       }
     }
 
     int grandTarget = 0;
     for (var v in vars) {
       if (v is Map) {
-        grandTarget += ((v['quantity'] as num?)?.toInt() ?? 0);
+        grandTarget += _parseQty(v['quantity']);
       }
     }
 
     int grandCounted = 0;
     for (var a in assigns) {
       if (a is Map) {
-        grandCounted += ((a['completed_qty'] as num?)?.toInt() ?? 0);
+        grandCounted += _parseQty(a['completed_qty']);
       }
     }
 
@@ -1831,7 +1846,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 ...vars.map((v) {
                   final color = v['color']?.toString() ?? 'Standard';
                   final size = v['size']?.toString() ?? 'Free';
-                  final target = (v['quantity'] as num?)?.toInt() ?? 0;
+                  final target = _parseQty(v['quantity']);
                   final key = '${color}_$size';
                   final counted = countedMap[key] ?? 0;
                   final diff = counted - target;
