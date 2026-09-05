@@ -98,6 +98,35 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     return aUpper.compareTo(bUpper);
   }
 
+  // Get total already assigned pieces for a specific variant (by color & size)
+  int _getAssignedQtyForVariant(Map<String, dynamic>? v) {
+    if (v == null || _selectedLot == null) return 0;
+    final assigns = (_selectedLot!['assignments'] as List<dynamic>?) ?? [];
+    final vColor = (v['color'] ?? 'Standard').toString().trim().toUpperCase();
+    final vSize = (v['size'] ?? 'Free').toString().trim().toUpperCase();
+
+    int totalAssigned = 0;
+    for (var a in assigns) {
+      if (a is Map) {
+        final aColor = (a['color'] ?? 'Standard').toString().trim().toUpperCase();
+        final aSize = (a['size'] ?? 'Free').toString().trim().toUpperCase();
+        if (aColor == vColor && aSize == vSize) {
+          totalAssigned += _parseQty(a['assigned_qty']);
+        }
+      }
+    }
+    return totalAssigned;
+  }
+
+  // Get remaining unassigned pieces for a specific variant
+  int _getRemainingQtyForVariant(Map<String, dynamic>? v) {
+    if (v == null) return 0;
+    final target = _parseQty(v['quantity']);
+    final assigned = _getAssignedQtyForVariant(v);
+    final rem = target - assigned;
+    return rem > 0 ? rem : 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -300,19 +329,29 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   // ======= ASSIGN MENDING WORKER =======
   void _openAssignWorkerModal() {
     if (_selectedLot == null) return;
-    final vars = _selectedLot!['variants'] as List<dynamic>? ?? [];
-    if (vars.isEmpty) {
+    final rawVars = _selectedLot!['variants'] as List<dynamic>? ?? [];
+    if (rawVars.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No color/size variants found for this article.')),
       );
       return;
     }
 
+    final vars = rawVars.map((v) => Map<String, dynamic>.from(v as Map)).toList();
+
     _workerNameController.clear();
     _qtyController.clear();
     _notesController.clear();
-    _selectedVariantForAssignment = vars.first;
-    _qtyController.text = (_selectedVariantForAssignment!['quantity'] ?? 50).toString();
+
+    // Pick first variant that still has remaining unassigned pieces
+    final initialVar = vars.firstWhere(
+      (v) => _getRemainingQtyForVariant(v) > 0,
+      orElse: () => vars.first,
+    );
+
+    _selectedVariantForAssignment = initialVar;
+    final initialRem = _getRemainingQtyForVariant(initialVar);
+    _qtyController.text = initialRem > 0 ? initialRem.toString() : '';
 
     showModalBottomSheet(
       context: context,
@@ -321,6 +360,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
+          // Keep _selectedVariantForAssignment referencing an item from `vars`
+          final currentSelected = vars.firstWhere(
+            (v) => (v['id'] != null && v['id'] == _selectedVariantForAssignment?['id']) ||
+                   (v['color'] == _selectedVariantForAssignment?['color'] && v['size'] == _selectedVariantForAssignment?['size']),
+            orElse: () => vars.first,
+          );
+          _selectedVariantForAssignment = currentSelected;
+
           return Padding(
             padding: EdgeInsets.only(
               left: 20,
@@ -410,9 +457,23 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   const SizedBox(height: 16),
 
                   // Select Color & Size Variant
-                  Text(
-                    'SELECT BUNDLE VARIANT *',
-                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.inkSoft),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'SELECT BUNDLE VARIANT *',
+                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.inkSoft),
+                      ),
+                      if (_selectedVariantForAssignment != null)
+                        Text(
+                          '${_getRemainingQtyForVariant(_selectedVariantForAssignment!)} pcs remaining',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _getRemainingQtyForVariant(_selectedVariantForAssignment!) > 0 ? AppTheme.green : AppTheme.red,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Container(
@@ -429,12 +490,46 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                         items: vars.map((v) {
                           final color = v['color'] ?? 'Standard';
                           final size = v['size'] ?? 'Free';
-                          final qty = v['quantity'] ?? 0;
+                          final target = _parseQty(v['quantity']);
+                          final assigned = _getAssignedQtyForVariant(v);
+                          final rem = target - assigned;
+                          final isDone = rem <= 0;
+
                           return DropdownMenuItem<Map<String, dynamic>>(
                             value: v,
-                            child: Text(
-                              '$color  •  Size: $size  (Challan Target: $qty pcs)',
-                              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    isDone
+                                        ? '$color • Size: $size (Target: $target pcs)'
+                                        : '$color • Size: $size (Target: $target pcs)',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDone ? AppTheme.inkSoft : AppTheme.ink,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDone ? AppTheme.greenMist : const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: isDone ? AppTheme.green.withValues(alpha: 0.3) : const Color(0xFFFDE68A)),
+                                  ),
+                                  child: Text(
+                                    isDone ? 'Fully Assigned ✓' : '$rem pcs left',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDone ? AppTheme.green : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         }).toList(),
@@ -442,13 +537,57 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                           if (newVal != null) {
                             setModalState(() {
                               _selectedVariantForAssignment = newVal;
-                              _qtyController.text = (newVal['quantity'] ?? 50).toString();
+                              final rem = _getRemainingQtyForVariant(newVal);
+                              _qtyController.text = rem > 0 ? rem.toString() : '';
                             });
                           }
                         },
                       ),
                     ),
                   ),
+
+                  // Live Allocation stats card
+                  if (_selectedVariantForAssignment != null) ...[
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (_) {
+                        final selVar = _selectedVariantForAssignment!;
+                        final vTarget = _parseQty(selVar['quantity']);
+                        final vAssigned = _getAssignedQtyForVariant(selVar);
+                        final vRem = vTarget - vAssigned;
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: vRem > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: vRem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Target: $vTarget pcs',
+                                style: const TextStyle(fontSize: 11, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                'Assigned: $vAssigned pcs',
+                                style: const TextStyle(fontSize: 11, color: AppTheme.steel, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                vRem > 0 ? 'Remaining: $vRem pcs' : 'Fully Allocated ✓',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: vRem > 0 ? AppTheme.green : AppTheme.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
@@ -468,7 +607,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               controller: _qtyController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                hintText: '50',
+                                hintText: 'e.g. 50',
                                 filled: true,
                                 fillColor: AppTheme.bg,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -531,6 +670,44 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                           return;
                         }
 
+                        // Check if qty exceeds remaining
+                        if (_selectedVariantForAssignment != null) {
+                          final rem = _getRemainingQtyForVariant(_selectedVariantForAssignment!);
+                          if (rem > 0 && qty > rem) {
+                            final proceed = await showDialog<bool>(
+                              context: ctx,
+                              builder: (dCtx) => AlertDialog(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                title: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: AppTheme.amber, size: 22),
+                                    const SizedBox(width: 8),
+                                    Text('Exceeds Remaining', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.steel)),
+                                  ],
+                                ),
+                                content: Text(
+                                  'Only $rem pcs are remaining for ${_selectedVariantForAssignment!['color']} (Size: ${_selectedVariantForAssignment!['size']}). You entered $qty pcs.\n\nDo you want to allocate $qty pcs anyway?',
+                                  style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(dCtx, false),
+                                    child: const Text('Cancel / Edit Qty'),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.steel),
+                                    onPressed: () => Navigator.pop(dCtx, true),
+                                    child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (proceed != true) return;
+                          }
+                        }
+
+                        if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         await _saveRecentWorker(name);
                         await _submitWorkerAssignment(name, qty);
@@ -1739,11 +1916,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     final artNo = art?['art_no']?.toString() ?? 'N/A';
     final desc = art?['description']?.toString() ?? '';
 
-    // Group assigned completed counts by "Color_Size"
+    // Group assigned and completed counts by "Color_Size"
+    final Map<String, int> assignedMap = {};
     final Map<String, int> countedMap = {};
     for (var a in assigns) {
       if (a is Map) {
-        final key = '${a['color']}_${a['size']}';
+        final key = '${(a['color'] ?? 'Standard').toString().trim().toUpperCase()}_${(a['size'] ?? 'Free').toString().trim().toUpperCase()}';
+        assignedMap[key] = (assignedMap[key] ?? 0) + _parseQty(a['assigned_qty']);
         countedMap[key] = (countedMap[key] ?? 0) + _parseQty(a['completed_qty']);
       }
     }
@@ -1847,7 +2026,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   final color = v['color']?.toString() ?? 'Standard';
                   final size = v['size']?.toString() ?? 'Free';
                   final target = _parseQty(v['quantity']);
-                  final key = '${color}_$size';
+                  final key = '${color.trim().toUpperCase()}_${size.trim().toUpperCase()}';
+                  final assigned = assignedMap[key] ?? 0;
                   final counted = countedMap[key] ?? 0;
                   final diff = counted - target;
 
@@ -1864,7 +2044,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(color, style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                              Text('Size: $size', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
+                              Text('Size: $size • Assigned: $assigned/$target pcs', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft)),
                             ],
                           ),
                         ),
