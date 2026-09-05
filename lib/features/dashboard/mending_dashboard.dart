@@ -1517,7 +1517,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               if (notes != null && notes.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '📝 Note: $notes',
+                  'Note: $notes',
                   style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
                 ),
               ],

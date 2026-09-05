@@ -1935,7 +1935,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         if (handoverNotes != null && handoverNotes.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            '📝 Note: $handoverNotes',
+                            'Note: $handoverNotes',
                             style: GoogleFonts.publicSans(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
                           ),
                         ],

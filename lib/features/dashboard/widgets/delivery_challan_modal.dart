@@ -897,9 +897,20 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                               onTap: () => setState(() => _isEditingPartyDetails = !_isEditingPartyDetails),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                child: Text(
-                                  _isEditingPartyDetails ? '✓ Done Editing' : '✎ Edit Party Details',
-                                  style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _isEditingPartyDetails ? Icons.check_circle_outline_rounded : Icons.edit_outlined,
+                                      size: 13,
+                                      color: AppTheme.steel,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _isEditingPartyDetails ? 'Done Editing' : 'Edit Party Details',
+                                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

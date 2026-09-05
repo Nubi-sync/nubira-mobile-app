@@ -78,6 +78,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   List<dynamic> _allotmentMaterials = [];
   List<dynamic> _readyQcAllotments = [];
 
+  // Activity Feed Filters & Controls
+  String _feedTimeFilter = '24h'; // '24h' (default), '7d', 'all'
+  String _feedCategoryFilter = 'ALL'; // 'ALL', 'BOM', 'TRIMS', 'GARMENTS'
+  String _feedSearchQuery = '';
+  final Set<String> _expandedBOMKeys = {};
+
   @override
   void initState() {
     super.initState();
@@ -333,38 +339,95 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         if (name != null && name.isNotEmpty) distinctAcc.add(name);
       }
 
-      // 6. Merge & sort activity logs
+      // 6. Merge & sort activity logs with Smart BOM Batch Grouping
+      final Map<String, Map<String, dynamic>> groupedBOMMap = {};
       final List<Map<String, dynamic>> combinedLogs = [];
 
+      for (var acc in accRes) {
+        final notes = (acc['notes']?.toString() ?? '');
+        final isBOM = notes.contains('BOM Handover') || notes.contains('BOM Package');
+
+        if (isBOM) {
+          // Extract UUID or allotment identifier
+          final uuidMatch = RegExp(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').firstMatch(notes);
+          final allotmentId = uuidMatch != null ? uuidMatch.group(0)! : (acc['party_name'] ?? '');
+
+          // Extract Challan # if present
+          final chMatch = RegExp(r'Challan #([^\s•]+)').firstMatch(notes);
+          final challanStr = chMatch != null ? chMatch.group(1)! : '';
+
+          final createdAt = acc['created_at']?.toString() ?? '';
+          final timeMinute = createdAt.length >= 16 ? createdAt.substring(0, 16) : (acc['entry_date']?.toString() ?? '');
+          final partyName = acc['party_name']?.toString() ?? 'Issued to Lineman';
+          final groupKey = 'BOM_${allotmentId}_${timeMinute}_$partyName';
+
+          final itemName = acc['item_name']?.toString() ?? 'Material Item';
+          final qty = parseQty(acc['quantity']);
+          final unit = acc['unit']?.toString() ?? 'pcs';
+
+          if (!groupedBOMMap.containsKey(groupKey)) {
+            groupedBOMMap[groupKey] = {
+              'isGroupedBOM': true,
+              'isAccessory': true,
+              'id': groupKey,
+              'groupKey': groupKey,
+              'created_at': acc['created_at'],
+              'entry_date': acc['entry_date'],
+              'party_name': partyName,
+              'challan_no': challanStr,
+              'allotment_id': allotmentId,
+              'total_items_count': 0,
+              'total_units_count': 0,
+              'items': <Map<String, dynamic>>[],
+              'notes': notes,
+            };
+          }
+
+          groupedBOMMap[groupKey]!['total_items_count'] = (groupedBOMMap[groupKey]!['total_items_count'] as int) + 1;
+          groupedBOMMap[groupKey]!['total_units_count'] = (groupedBOMMap[groupKey]!['total_units_count'] as int) + qty;
+          (groupedBOMMap[groupKey]!['items'] as List<Map<String, dynamic>>).add({
+            'name': itemName,
+            'qty': qty,
+            'unit': unit,
+          });
+        } else {
+          combinedLogs.add({
+            'isGroupedBOM': false,
+            'isAccessory': true,
+            'id': acc['id'],
+            'created_at': acc['created_at'],
+            'entry_date': acc['entry_date'],
+            'action': acc['action'],
+            'item_name': acc['item_name'],
+            'quantity': parseQty(acc['quantity']),
+            'unit': acc['unit'] ?? 'pcs',
+            'party_name': acc['party_name'],
+            'notes': acc['notes'],
+          });
+        }
+      }
+
+      // Add grouped BOM packages
+      for (var grouped in groupedBOMMap.values) {
+        combinedLogs.add(grouped);
+      }
+
+      // Add Garment Inward/Outward Transactions
       for (var tx in txRes) {
         combinedLogs.add({
+          'isGroupedBOM': false,
           'isAccessory': false,
           'id': tx['id'],
           'created_at': tx['created_at'],
           'entry_date': tx['entry_date'],
           'type': tx['type'],
-          'quantity': tx['quantity'],
+          'quantity': parseQty(tx['quantity']),
           'art_no': tx['article']?['art_no'] ?? '-',
           'color': tx['color'],
           'size': tx['size'],
           'party_name': tx['party_name'],
           'challan_no': tx['challan_no'],
           'notes': tx['notes'],
-        });
-      }
-
-      for (var acc in accRes) {
-        combinedLogs.add({
-          'isAccessory': true,
-          'id': acc['id'],
-          'created_at': acc['created_at'],
-          'entry_date': acc['entry_date'],
-          'action': acc['action'],
-          'item_name': acc['item_name'],
-          'quantity': acc['quantity'],
-          'unit': acc['unit'] ?? 'pcs',
-          'party_name': acc['party_name'],
-          'notes': acc['notes'],
         });
       }
 
@@ -723,8 +786,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           color: isSelected ? AppTheme.green : AppTheme.inkSoft,
                                         ),
                                         const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.person_outline_rounded,
+                                          size: 13,
+                                          color: isSelected ? AppTheme.green : AppTheme.inkSoft,
+                                        ),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          '$clr ($qPcs pcs) · 🧵 $lName',
+                                          '$clr ($qPcs pcs) · $lName',
                                           style: GoogleFonts.publicSans(
                                             fontSize: 11.5,
                                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -767,10 +836,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                   spacing: 6,
                                   runSpacing: 6,
                                   children: [
-                                    _buildCustodyChip('🧵 Lineman: ${selectedLinemanName.isNotEmpty ? selectedLinemanName : "Floor"}', AppTheme.steel),
-                                    _buildCustodyChip('✂️ Mending: ${selectedMendingName.isNotEmpty ? selectedMendingName : "Floor"}', AppTheme.steel),
-                                    _buildCustodyChip('🔍 QC: ${selectedQcName.isNotEmpty ? selectedQcName : "Checked"}', AppTheme.green),
-                                    _buildCustodyChip('👤 Store: $currentStoreUserName', AppTheme.steel),
+                                    _buildCustodyChip('Lineman: ${selectedLinemanName.isNotEmpty ? selectedLinemanName : "Floor"}', Icons.person_outline_rounded, AppTheme.steel),
+                                    _buildCustodyChip('Mending: ${selectedMendingName.isNotEmpty ? selectedMendingName : "Floor"}', Icons.content_cut_rounded, AppTheme.steel),
+                                    _buildCustodyChip('QC: ${selectedQcName.isNotEmpty ? selectedQcName : "Checked"}', Icons.verified_outlined, AppTheme.green),
+                                    _buildCustodyChip('Store: $currentStoreUserName', Icons.storefront_outlined, AppTheme.steel),
                                   ],
                                 ),
                               ],
@@ -1191,7 +1260,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  Widget _buildCustodyChip(String text, Color color) {
+  Widget _buildCustodyChip(String text, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -1199,9 +1268,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
       ),
     );
   }
@@ -3586,6 +3662,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                     final issuedQty = parseQuantity(rawQtyVal);
                                     final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
                                     final unit = (mat['unit'] ?? 'pcs').toString();
+                                    final artNo = (mat['article_no'] ?? '').toString().trim();
 
                                     if (itemName.isNotEmpty && issuedQty > 0) {
                                       try {
@@ -3596,7 +3673,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           'unit': unit,
                                           'party_name': 'Issued to Lineman $linemanName',
                                           'entry_date': DateTime.now().toIso8601String().split('T')[0],
-                                          'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}',
+                                          'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}${artNo.isNotEmpty ? ' • Art #$artNo' : ''}',
                                         });
                                       } catch (_) {}
                                     }
@@ -3981,56 +4058,168 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     ],
 
                     // ====== STORE LEDGER ACTIVITY FEED ======
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Recent Store Ledger Feed',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.ink,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.steelMist,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.steelTint),
-                          ),
-                          child: Text(
-                            '${_storeLogs.length} entries',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.steel,
+                    Builder(
+                      builder: (ctx) {
+                        final filteredLogs = _getFilteredStoreLogs();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Store Ledger Feed',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.ink,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _feedTimeFilter == '24h'
+                                          ? 'Showing last 24 hours live movements'
+                                          : (_feedTimeFilter == '7d' ? 'Showing past 7 days activity' : 'Showing all historical logs'),
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 11.5,
+                                        color: AppTheme.inkSoft,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.steelMist,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppTheme.steelTint),
+                                  ),
+                                  child: Text(
+                                    '${filteredLogs.length} entries',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.steel,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                            const SizedBox(height: 12),
 
-                    if (_storeLogs.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(
-                          color: AppTheme.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.border),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'No store transactions logged yet.\nTap Inward, Outward, or Accessory Challan above to record movements.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontSize: 13, height: 1.5),
-                          ),
-                        ),
-                      )
-                    else
-                      ..._storeLogs.map((log) => _buildLedgerCard(log)),
+                            // TIME FILTER TOGGLE & SEARCH
+                            Row(
+                              children: [
+                                // Segmented Time Filter
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.bg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppTheme.border),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _buildTimeFilterPill('24h', 'Today (24h)'),
+                                      _buildTimeFilterPill('7d', '7 Days'),
+                                      _buildTimeFilterPill('all', 'All Time'),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Quick Search Bar
+                                Expanded(
+                                  child: Container(
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: AppTheme.border),
+                                    ),
+                                    child: TextField(
+                                      onChanged: (v) => setState(() => _feedSearchQuery = v.trim()),
+                                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.ink),
+                                      decoration: InputDecoration(
+                                        hintText: 'Search feed...',
+                                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkFaint),
+                                        prefixIcon: const Icon(Icons.search, size: 16, color: AppTheme.steel),
+                                        suffixIcon: _feedSearchQuery.isNotEmpty
+                                            ? GestureDetector(
+                                                onTap: () => setState(() => _feedSearchQuery = ''),
+                                                child: const Icon(Icons.close, size: 14, color: AppTheme.steel),
+                                              )
+                                            : null,
+                                        border: InputBorder.none,
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // CATEGORY FILTER PILLS
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildCategoryFilterPill('ALL', 'All Activities', icon: Icons.apps_rounded),
+                                  const SizedBox(width: 6),
+                                  _buildCategoryFilterPill('BOM', 'BOM Packages', icon: Icons.inventory_2_outlined),
+                                  const SizedBox(width: 6),
+                                  _buildCategoryFilterPill('TRIMS', 'Trims & Materials', icon: Icons.style_outlined),
+                                  const SizedBox(width: 6),
+                                  _buildCategoryFilterPill('GARMENTS', 'Garments In/Out', icon: Icons.checkroom_outlined),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            if (filteredLogs.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(28),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.card,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppTheme.border),
+                                ),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.history_toggle_off_rounded, size: 36, color: AppTheme.inkSoft.withValues(alpha: 0.5)),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _feedTimeFilter == '24h'
+                                            ? 'No store transactions in the last 24 hours.'
+                                            : 'No transactions found matching the selected filter.',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.plusJakartaSans(color: AppTheme.ink, fontSize: 13, fontWeight: FontWeight.bold),
+                                      ),
+                                      if (_feedTimeFilter == '24h') ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Older entries automatically roll off after 24 hours.\nTap "7 Days" or "All Time" above to view full history.',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontSize: 11.5),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              ...filteredLogs.map((log) => _buildLedgerCard(log)),
+                          ],
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 32),
                   ],
@@ -4250,9 +4439,351 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
+  // ==========================================
+  // ACTIVITY FEED FILTER & GROUPED RENDERERS
+  // ==========================================
+  List<Map<String, dynamic>> _getFilteredStoreLogs() {
+    final now = DateTime.now();
+    return _storeLogs.cast<Map<String, dynamic>>().where((log) {
+      // 1. Time filter (24h, 7d, all)
+      if (_feedTimeFilter != 'all') {
+        final createdStr = log['created_at']?.toString();
+        DateTime? logTime;
+        if (createdStr != null && createdStr.isNotEmpty) {
+          logTime = DateTime.tryParse(createdStr)?.toLocal();
+        }
+        if (logTime != null) {
+          final diff = now.difference(logTime);
+          if (_feedTimeFilter == '24h' && diff.inHours >= 24) return false;
+          if (_feedTimeFilter == '7d' && diff.inDays >= 7) return false;
+        } else {
+          final entryDate = log['entry_date']?.toString() ?? '';
+          final today = now.toIso8601String().split('T')[0];
+          if (_feedTimeFilter == '24h' && entryDate != today) return false;
+        }
+      }
+
+      // 2. Category filter
+      if (_feedCategoryFilter == 'BOM') {
+        if (log['isGroupedBOM'] != true) return false;
+      } else if (_feedCategoryFilter == 'TRIMS') {
+        if (log['isAccessory'] != true || log['isGroupedBOM'] == true) return false;
+      } else if (_feedCategoryFilter == 'GARMENTS') {
+        if (log['isAccessory'] == true) return false;
+      }
+
+      // 3. Search query filter
+      if (_feedSearchQuery.isNotEmpty) {
+        final q = _feedSearchQuery.toLowerCase();
+        final party = (log['party_name'] ?? '').toString().toLowerCase();
+        final notes = (log['notes'] ?? '').toString().toLowerCase();
+        final artNo = (log['art_no'] ?? '').toString().toLowerCase();
+        final itemName = (log['item_name'] ?? '').toString().toLowerCase();
+        final challan = (log['challan_no'] ?? '').toString().toLowerCase();
+
+        bool itemMatch = false;
+        if (log['isGroupedBOM'] == true && log['items'] is List) {
+          for (var item in log['items']) {
+            if (item['name'].toString().toLowerCase().contains(q)) {
+              itemMatch = true;
+              break;
+            }
+          }
+        }
+
+        if (!party.contains(q) &&
+            !notes.contains(q) &&
+            !artNo.contains(q) &&
+            !itemName.contains(q) &&
+            !challan.contains(q) &&
+            !itemMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+  }
+
+  String _cleanNotes(dynamic rawNotes) {
+    if (rawNotes == null) return '';
+    String n = rawNotes.toString();
+    n = n.replaceAll(RegExp(r'#?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'), '');
+    n = n.replaceAll('Allotment #', '');
+    n = n.replaceAll('Allotment', '');
+    n = n.replaceAll(RegExp(r'\s+•\s+•'), ' •');
+    n = n.trim();
+    if (n.startsWith('•')) n = n.substring(1).trim();
+    if (n.endsWith('•')) n = n.substring(0, n.length - 1).trim();
+    return n;
+  }
+
+  Widget _buildTimeFilterPill(String key, String label) {
+    final isSelected = _feedTimeFilter == key;
+    return GestureDetector(
+      onTap: () => setState(() => _feedTimeFilter = key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.steel : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : AppTheme.inkSoft,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilterPill(String key, String label, {IconData? icon}) {
+    final isSelected = _feedCategoryFilter == key;
+    return GestureDetector(
+      onTap: () => setState(() => _feedCategoryFilter = key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.ink : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? AppTheme.ink : AppTheme.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? Colors.white : AppTheme.steel,
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : AppTheme.inkSoft,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupedBOMCard(Map<String, dynamic> log) {
+    final groupKey = log['groupKey'] ?? log['id'] ?? '';
+    final isExpanded = _expandedBOMKeys.contains(groupKey);
+    final party = log['party_name'] ?? 'Lineman Handover';
+    final challan = log['challan_no'] ?? '';
+    final totalItems = log['total_items_count'] ?? 0;
+    final totalUnits = log['total_units_count'] ?? 0;
+    final items = (log['items'] as List<dynamic>?) ?? [];
+    final timeStr = log['created_at'] != null ? DateTime.parse(log['created_at']).toLocal().toString().substring(11, 16) : '-';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.amber.withValues(alpha: 0.35), width: 1.3),
+        boxShadow: [
+          BoxShadow(color: AppTheme.amber.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header / Summary Row (Tap to expand/collapse)
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedBOMKeys.remove(groupKey);
+                } else {
+                  _expandedBOMKeys.add(groupKey);
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.amberMist,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.inventory_2_outlined, color: AppTheme.amber, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.amberMist,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'BOM PACKAGE ISSUED',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.amber,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                            if (challan.toString().isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.steelMist,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'CH-$challan',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.steel,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          party,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.ink,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$totalItems materials · $totalUnits units total',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.inkSoft,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        timeStr,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.inkFaint,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        color: AppTheme.steel,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expanded Items Breakdown Table
+          if (isExpanded) ...[
+            const Divider(height: 1, color: AppTheme.border),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: const BoxDecoration(
+                color: AppTheme.bg,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ISSUED RAW MATERIALS BREAKDOWN',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.inkFaint,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...items.map((item) {
+                    final name = item['name']?.toString() ?? 'Material';
+                    final qty = item['qty'] ?? 0;
+                    final unit = item['unit'] ?? 'pcs';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline_rounded, size: 14, color: AppTheme.green),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.ink,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '-$qty $unit',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildLedgerCard(Map<String, dynamic> log) {
+    if (log['isGroupedBOM'] == true) {
+      return _buildGroupedBOMCard(log);
+    }
+
     final isAcc = log['isAccessory'] == true;
     final timeStr = log['created_at'] != null ? DateTime.parse(log['created_at']).toLocal().toString().substring(11, 16) : '-';
+    final cleanedNotes = _cleanNotes(log['notes']);
 
     if (isAcc) {
       final isIN = log['action'] == 'IN';
@@ -4303,10 +4834,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     '${isIN ? "+" : "-"}$qty $unit ${party.isNotEmpty ? "• $party" : ""}',
                     style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
                   ),
-                  if (log['notes'] != null && log['notes'].toString().trim().isNotEmpty) ...[
+                  if (cleanedNotes.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      'Note: ${log['notes']}',
+                      'Note: $cleanedNotes',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
                     ),
                   ],
@@ -4374,10 +4905,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     '${isIN ? "+" : "-"}$qty pcs ${party.isNotEmpty ? "• $party" : ""} ${challan.isNotEmpty ? "($challan)" : ""}',
                     style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
                   ),
-                  if (log['notes'] != null && log['notes'].toString().trim().isNotEmpty) ...[
+                  if (cleanedNotes.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      'Note: ${log['notes']}',
+                      'Note: $cleanedNotes',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
                     ),
                   ],
@@ -4557,12 +5088,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           ],
           const SizedBox(height: 8),
           Wrap(
-            spacing: 8,
-            runSpacing: 4,
+            spacing: 6,
+            runSpacing: 6,
             children: [
-              Text('🧵 Lineman: $lineman', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.inkSoft)),
-              Text('🔍 QC: $qcName', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.green)),
-              Text('🛡️ Admin: ${lot['admin_approved_by'] ?? 'Approved'}', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steel)),
+              _buildCustodyChip('Lineman: $lineman', Icons.person_outline_rounded, AppTheme.inkSoft),
+              _buildCustodyChip('QC: $qcName', Icons.verified_outlined, AppTheme.green),
+              _buildCustodyChip('Admin: ${lot['admin_approved_by'] ?? 'Approved'}', Icons.shield_outlined, AppTheme.steel),
             ],
           ),
           const SizedBox(height: 12),
@@ -4571,7 +5102,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             height: 40,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.download_done_rounded, size: 16, color: Colors.white),
-              label: Text('Collect & Inward ➔', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+              label: Text('Collect & Inward', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.green,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

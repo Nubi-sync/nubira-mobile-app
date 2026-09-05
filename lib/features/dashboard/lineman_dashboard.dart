@@ -3506,60 +3506,134 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                   );
                 }(),
 
-                // Size & Color Matrix Chips (Visual Variant Design)
+                // Size & Color Matrix (Visual Variant Design)
                 if (colorGroups.isNotEmpty) ...[
-                  Text(
-                    'SIZE & COLOR RATIOS',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.9, color: AppTheme.inkSoft),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'SIZE & COLOR RATIOS',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.9,
+                          color: AppTheme.inkSoft,
+                        ),
+                      ),
+                      Text(
+                        '${variants.length} SKU${variants.length == 1 ? '' : 's'}',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.inkSoft,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: colorGroups.entries.map((cg) {
-                      final sizeBreakdown = cg.value.map((v) => '${v['size']}: ${v['quantity']}').join(' · ');
+                      final colorTotal = cg.value.fold<int>(
+                        0,
+                        (sum, v) => sum + parseQty(v['quantity']),
+                      );
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: AppTheme.bg,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppTheme.border),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppTheme.steel,
-                                shape: BoxShape.circle,
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.steel,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    cg.key.toUpperCase(),
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.ink,
+                                      letterSpacing: 0.2,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.steelMist,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Text(
+                                    '$colorTotal pcs',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.steel,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 7),
-                            Text(
-                              cg.key,
-                              style: GoogleFonts.publicSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.ink,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '($sizeBreakdown)',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.inkSoft,
-                              ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: cg.value.map((v) {
+                                final sz = (v['size'] ?? '-').toString();
+                                final qty = parseQty(v['quantity']);
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: AppTheme.border),
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '$sz: ',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.ink,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: '$qty',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.steel,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ],
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                 ],
 
                 // Smooth Animated Progress Bar
