@@ -52,8 +52,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   int _totalPassedToday = 0;
   int _totalCheckedToday = 0;
 
-  // Recent QC workers for 1-tap chip recommendations
-  List<String> _recentWorkerNames = ['Sunil Kumar', 'Ramesh', 'Pooja', 'Anita', 'Vikas'];
+  // Recent QC workers
+  List<String> _recentWorkerNames = [];
 
   // Defect types
   final List<Map<String, String>> _defectTypes = [
@@ -103,6 +103,55 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       return int.tryParse(match.group(0) ?? '') ?? 0;
     }
     return 0;
+  }
+
+  // Helper to calculate total pieces assigned to QC checkers for a specific variant
+  int _getAssignedQtyForVariant(Map<String, dynamic> lot, Map<String, dynamic>? v) {
+    if (v == null) return 0;
+    final lotId = lot['id']?.toString();
+    final articleId = lot['article_id']?.toString();
+    final vSize = (v['size'] ?? '').toString().trim().toUpperCase();
+    final vColor = (v['color'] ?? '').toString().trim().toUpperCase();
+
+    int total = 0;
+    for (var assign in _activeAssignments) {
+      final aLotId = assign['allotment_id']?.toString();
+      final aArtId = assign['article_id']?.toString();
+      final bool matchesLot = (lotId != null && aLotId == lotId) ||
+          (lotId == null && articleId != null && aArtId == articleId) ||
+          (aLotId == null && articleId != null && aArtId == articleId);
+
+      if (matchesLot) {
+        final aSize = (assign['size'] ?? '').toString().trim().toUpperCase();
+        final aColor = (assign['color'] ?? '').toString().trim().toUpperCase();
+
+        final bool sizeMatch = aSize == vSize ||
+            aSize.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vSize.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+        final bool colorMatch = (vColor.isEmpty || vColor == '-' || vColor == 'DEFAULT') ||
+            (aColor.isEmpty || aColor == '-' || aColor == 'DEFAULT') ||
+            (aColor == vColor) ||
+            (aColor.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vColor.replaceAll(RegExp(r'[^A-Z0-9]'), ''));
+
+        if (sizeMatch && colorMatch) {
+          total += _parseQty(assign['assigned_qty']);
+        }
+      }
+    }
+    return total;
+  }
+
+  // Helper to calculate remaining unassigned pieces for a specific variant in QC
+  int _getRemainingQtyForVariant(Map<String, dynamic> lot, Map<String, dynamic>? v) {
+    if (v == null) return 0;
+    final target = _parseQty(v['allotted_qty']) > 0
+        ? _parseQty(v['allotted_qty'])
+        : (_parseQty(v['quantity']) > 0
+            ? _parseQty(v['quantity'])
+            : _parseQty(v['mending_qty']));
+    final assigned = _getAssignedQtyForVariant(lot, v);
+    final rem = target - assigned;
+    return rem > 0 ? rem : 0;
   }
 
   @override
@@ -389,13 +438,27 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         final List<Map<String, dynamic>> enrichedVars = [];
 
         for (var v in vars) {
-          final sz = v['size']?.toString() ?? '-';
-          final clr = v['color']?.toString() ?? '-';
+          final sz = (v['size'] ?? '-').toString().trim();
+          final clr = (v['color'] ?? '-').toString().trim();
           final allotQty = parseQty(v['quantity']);
+
+          final vSizeUpper = sz.toUpperCase();
+          final vColorUpper = clr.toUpperCase();
 
           int mCount = 0;
           for (var m in mendAssigns) {
-            if ((m['size']?.toString() ?? '') == sz) {
+            final mSize = (m['size'] ?? '').toString().trim().toUpperCase();
+            final mColor = (m['color'] ?? '').toString().trim().toUpperCase();
+
+            final bool sizeMatch = mSize == vSizeUpper ||
+                mSize.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vSizeUpper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+            final bool colorMatch = (vColorUpper.isEmpty || vColorUpper == '-' || vColorUpper == 'DEFAULT') ||
+                (mColor.isEmpty || mColor == '-' || mColor == 'DEFAULT') ||
+                (mColor == vColorUpper) ||
+                (mColor.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vColorUpper.replaceAll(RegExp(r'[^A-Z0-9]'), ''));
+
+            if (sizeMatch && colorMatch) {
               mCount += parseQty(m['completed_qty']);
             }
           }
@@ -405,8 +468,21 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
           int qcPassCount = 0;
           for (var qc in activeAssignments) {
-            if (qc['allotment_id']?.toString() == aId && (qc['size']?.toString() ?? '') == sz) {
-              qcPassCount += parseQty(qc['passed_qty']);
+            if (qc['allotment_id']?.toString() == aId) {
+              final qSize = (qc['size'] ?? '').toString().trim().toUpperCase();
+              final qColor = (qc['color'] ?? '').toString().trim().toUpperCase();
+
+              final bool sizeMatch = qSize == vSizeUpper ||
+                  qSize.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vSizeUpper.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+              final bool colorMatch = (vColorUpper.isEmpty || vColorUpper == '-' || vColorUpper == 'DEFAULT') ||
+                  (qColor.isEmpty || qColor == '-' || qColor == 'DEFAULT') ||
+                  (qColor == vColorUpper) ||
+                  (qColor.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vColorUpper.replaceAll(RegExp(r'[^A-Z0-9]'), ''));
+
+              if (sizeMatch && colorMatch) {
+                qcPassCount += parseQty(qc['passed_qty']);
+              }
             }
           }
           if (qcPassCount == 0 && vars.length == 1 && passedQty > 0) {
@@ -426,6 +502,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             ...Map<String, dynamic>.from(v),
             'order_qty': allotQty,
             'allotted_qty': allotQty,
+            'mending_qty': mCount,
             'qc_passed_qty': qcPassCount,
           });
         }
@@ -541,16 +618,24 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     final qtyController = TextEditingController();
     final notesController = TextEditingController();
 
-    final sizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
-    Map<String, dynamic>? selectedVariant = sizeMatrix.isNotEmpty ? sizeMatrix.first : null;
+    final rawSizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
+    final sizeMatrix = rawSizeMatrix.map((v) => Map<String, dynamic>.from(v as Map)).toList();
 
-    int defaultQty = selectedVariant != null
-        ? (_parseQty(selectedVariant['mending_qty']) > 0 
-            ? _parseQty(selectedVariant['mending_qty']) 
-            : (_parseQty(selectedVariant['allotted_qty']) > 0 ? _parseQty(selectedVariant['allotted_qty']) : 50))
-        : (_parseQty(lot['mending_received_qty']) > 0 ? _parseQty(lot['mending_received_qty']) : 100);
+    // Auto-select the first variant that still has remaining unassigned pieces
+    Map<String, dynamic>? selectedVariant;
+    for (var v in sizeMatrix) {
+      if (_getRemainingQtyForVariant(lot, v) > 0) {
+        selectedVariant = v;
+        break;
+      }
+    }
+    selectedVariant ??= sizeMatrix.isNotEmpty ? sizeMatrix.first : null;
 
-    qtyController.text = defaultQty.toString();
+    final initialRem = selectedVariant != null
+        ? _getRemainingQtyForVariant(lot, selectedVariant)
+        : _parseQty(lot['mending_received_qty']);
+
+    qtyController.text = initialRem > 0 ? initialRem.toString() : '';
 
     showModalBottomSheet(
       context: context,
@@ -605,7 +690,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                   const SizedBox(height: 16),
 
                   Text(
-                    'Checker Name / Worker',
+                    'Checker Name / Worker *',
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
                   ),
                   const SizedBox(height: 8),
@@ -624,46 +709,174 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
                   // Variant / Size Selector
                   if (sizeMatrix.isNotEmpty) ...[
-                    Text(
-                      'Select Size / Color Variant',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Select Size / Color Variant *',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                          ),
+                        ),
+                        if (selectedVariant != null)
+                          Flexible(
+                            child: Text(
+                              '${_getRemainingQtyForVariant(lot, selectedVariant)} pcs left',
+                              textAlign: TextAlign.end,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: _getRemainingQtyForVariant(lot, selectedVariant) > 0 ? AppTheme.green : AppTheme.red,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: sizeMatrix.map((v) {
-                        final isSel = selectedVariant == v;
+                        final isSel = selectedVariant != null &&
+                            (selectedVariant!['size'] == v['size'] && selectedVariant!['color'] == v['color']);
                         final sz = v['size'] ?? '-';
                         final clr = v['color'] ?? '';
-                        final mQty = v['mending_qty'] ?? v['allotted_qty'] ?? 0;
+                        final targetQty = _parseQty(v['allotted_qty']) > 0
+                            ? _parseQty(v['allotted_qty'])
+                            : (_parseQty(v['quantity']) > 0
+                                ? _parseQty(v['quantity'])
+                                : _parseQty(v['mending_qty']));
+                        final assignedQty = _getAssignedQtyForVariant(lot, v);
+                        final remQty = targetQty - assignedQty;
+                        final isDone = remQty <= 0;
+
                         return InkWell(
                           onTap: () {
                             setModalState(() {
                               selectedVariant = v;
-                              qtyController.text = mQty.toString();
+                              final rem = _getRemainingQtyForVariant(lot, v);
+                              qtyController.text = rem > 0 ? rem.toString() : '';
                             });
                           },
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: isSel ? AppTheme.steel : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: isSel ? AppTheme.steel : AppTheme.border),
-                            ),
-                            child: Text(
-                              '$sz ${clr.isNotEmpty ? "($clr)" : ""} · $mQty pcs',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11.5,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                color: isSel ? Colors.white : AppTheme.ink,
+                              color: isSel ? AppTheme.steel : (isDone ? const Color(0xFFF3F4F6) : Colors.white),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSel ? AppTheme.steel : (isDone ? AppTheme.border : const Color(0xFF93C5FD)),
+                                width: isSel ? 1.5 : 1,
                               ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$sz ${clr.isNotEmpty && clr != "-" ? "($clr)" : ""}',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11.5,
+                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                    color: isSel ? Colors.white : (isDone ? AppTheme.inkFaint : AppTheme.ink),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSel
+                                        ? Colors.white.withValues(alpha: 0.25)
+                                        : (isDone ? AppTheme.greenMist : const Color(0xFFDBEAFE)),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    isDone ? '✓ Done' : '$remQty/$targetQty pcs',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSel
+                                          ? Colors.white
+                                          : (isDone ? AppTheme.green : const Color(0xFF1D4ED8)),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
                       }).toList(),
                     ),
+
+                    // Live Variant Allocation Summary Card (Responsive 3-Column Layout)
+                    if (selectedVariant != null) ...[
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (_) {
+                          final v = selectedVariant!;
+                          final target = _parseQty(v['allotted_qty']) > 0
+                              ? _parseQty(v['allotted_qty'])
+                              : (_parseQty(v['quantity']) > 0
+                                  ? _parseQty(v['quantity'])
+                                  : _parseQty(v['mending_qty']));
+                          final assigned = _getAssignedQtyForVariant(lot, v);
+                          final rem = target - assigned;
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: rem > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Lot Target', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                      const SizedBox(height: 2),
+                                      Text('$target pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                                    ],
+                                  ),
+                                ),
+                                Container(width: 1, height: 24, color: (rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Text('QC Assigned', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                      const SizedBox(height: 2),
+                                      Text('$assigned pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                                    ],
+                                  ),
+                                ),
+                                Container(width: 1, height: 24, color: (rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      const Text('Remaining', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        rem > 0 ? '$rem pcs' : 'Done ✓',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: rem > 0 ? AppTheme.green : AppTheme.red,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 16),
                   ],
 
@@ -675,7 +888,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Assigned Qty to Check',
+                              'Assigned Qty to Check *',
                               style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
                             ),
                             const SizedBox(height: 6),
@@ -741,6 +954,44 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                                 return;
                               }
 
+                              // Check if qty exceeds remaining
+                              if (selectedVariant != null) {
+                                final rem = _getRemainingQtyForVariant(lot, selectedVariant);
+                                if (rem > 0 && qty > rem) {
+                                  final proceed = await showDialog<bool>(
+                                    context: ctx,
+                                    builder: (dCtx) => AlertDialog(
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      title: Row(
+                                        children: [
+                                          const Icon(Icons.warning_amber_rounded, color: AppTheme.amber, size: 22),
+                                          const SizedBox(width: 8),
+                                          Text('Exceeds Remaining', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.steel)),
+                                        ],
+                                      ),
+                                      content: Text(
+                                        'Only $rem pcs are remaining for ${selectedVariant?['size']} ${selectedVariant?['color'] != null && selectedVariant?['color'] != "-" ? "(${selectedVariant!['color']})" : ""}. You entered $qty pcs.\n\nDo you want to allocate $qty pcs anyway?',
+                                        style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dCtx, false),
+                                          child: const Text('Cancel / Edit Qty'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.steel),
+                                          onPressed: () => Navigator.pop(dCtx, true),
+                                          child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (proceed != true) return;
+                                }
+                              }
+
+                              if (!ctx.mounted) return;
                               Navigator.pop(ctx);
                               await _submitWorkerAssignment(
                                 lot: lot,
@@ -2054,19 +2305,33 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         runSpacing: 6,
                         children: sizeMatrix.map((sm) {
                           final sz = sm['size'] ?? '-';
-                          final aQ = sm['allotted_qty'] ?? 0;
-                          final mQ = sm['mending_qty'] ?? 0;
-                          final isDiff = mQ != aQ;
+                          final clr = sm['color'] ?? '';
+                          final aQ = _parseQty(sm['allotted_qty']);
+                          final mQ = _parseQty(sm['mending_qty']);
+                          final target = aQ > 0 ? aQ : (mQ > 0 ? mQ : aQ);
+                          final qcAssigned = _getAssignedQtyForVariant(lot, sm);
+                          final qcRem = target - qcAssigned;
+                          final isDiff = mQ != aQ && mQ > 0;
+                          final clrLabel = clr.isNotEmpty && clr != '-' ? ' ($clr)' : '';
+
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isDiff ? AppTheme.amberMist : AppTheme.steelMist,
+                              color: qcRem <= 0 && target > 0 ? AppTheme.greenMist : (isDiff ? AppTheme.amberMist : AppTheme.steelMist),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: isDiff ? AppTheme.amber : AppTheme.border),
+                              border: Border.all(color: qcRem <= 0 && target > 0 ? AppTheme.green.withValues(alpha: 0.4) : (isDiff ? AppTheme.amber : AppTheme.border)),
                             ),
                             child: Text(
-                              '$sz: $mQ/$aQ pcs',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                              qcAssigned > 0
+                                  ? '$sz$clrLabel: $aQ pcs (${qcRem > 0 ? "$qcRem left" : "Done ✓"})'
+                                  : (mQ > 0 && mQ != aQ
+                                      ? '$sz$clrLabel: $mQ/$aQ pcs'
+                                      : '$sz$clrLabel: $aQ pcs'),
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: qcRem <= 0 && target > 0 ? AppTheme.green : AppTheme.ink,
+                              ),
                             ),
                           );
                         }).toList(),

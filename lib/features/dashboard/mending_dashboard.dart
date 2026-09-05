@@ -433,27 +433,6 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     ),
                   ),
 
-                  // Recent Workers Chips
-                  if (_recentWorkerNames.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _recentWorkerNames.take(5).map((name) {
-                        return ActionChip(
-                          label: Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                          backgroundColor: AppTheme.bg,
-                          side: const BorderSide(color: AppTheme.border),
-                          onPressed: () {
-                            setModalState(() {
-                              _workerNameController.text = name;
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ],
-
                   const SizedBox(height: 16),
 
                   // Select Color & Size Variant
@@ -564,22 +543,46 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             border: Border.all(color: vRem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA)),
                           ),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Target: $vTarget pcs',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Lot Target', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 2),
+                                    Text('$vTarget pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                'Assigned: $vAssigned pcs',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.steel, fontWeight: FontWeight.w600),
+                              Container(width: 1, height: 24, color: (vRem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Text('Assigned', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 2),
+                                    Text('$vAssigned pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                vRem > 0 ? 'Remaining: $vRem pcs' : 'Fully Allocated ✓',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: vRem > 0 ? AppTheme.green : AppTheme.red,
+                              Container(width: 1, height: 24, color: (vRem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text('Remaining', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      vRem > 0 ? '$vRem pcs' : 'Done ✓',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: vRem > 0 ? AppTheme.green : AppTheme.red,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
