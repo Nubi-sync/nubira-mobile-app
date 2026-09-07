@@ -20,7 +20,6 @@ class _ChallanHubScreenState extends ConsumerState<ChallanHubScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _brands = ['ALL', 'OLLYPOP', 'FIRST SMILE', 'GALAXY'];
-  final List<String> _statuses = ['ALL', 'PENDING', 'IN_PROGRESS', 'COMPLETED'];
 
   @override
   void dispose() {
@@ -113,18 +112,19 @@ class _ChallanHubScreenState extends ConsumerState<ChallanHubScreen> {
                     'status': 'PENDING',
                   });
 
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ref.invalidate(adminChallansListProvider);
-                    ref.invalidate(adminDashboardProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: AppTheme.green,
-                        content: Text('Challan created successfully!'),
-                      ),
-                    );
-                  }
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  ref.invalidate(adminChallansListProvider);
+                  ref.invalidate(adminDashboardProvider);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppTheme.green,
+                      content: Text('Challan created successfully!'),
+                    ),
+                  );
                 } catch (e) {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),
                   );
@@ -322,19 +322,20 @@ class _ChallanHubScreenState extends ConsumerState<ChallanHubScreen> {
                     // Update challan status
                     await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', challan.id);
 
-                    if (mounted) {
-                      Navigator.pop(ctx);
-                      ref.invalidate(adminChallansListProvider);
-                      ref.invalidate(adminAllotmentsListProvider);
-                      ref.invalidate(adminDashboardProvider);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: AppTheme.green,
-                          content: Text('Challan #${challan.challanNo} successfully allotted to $selectedLinemanName!'),
-                        ),
-                      );
-                    }
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    ref.invalidate(adminChallansListProvider);
+                    ref.invalidate(adminAllotmentsListProvider);
+                    ref.invalidate(adminDashboardProvider);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppTheme.green,
+                        content: Text('Challan #${challan.challanNo} successfully allotted to $selectedLinemanName!'),
+                      ),
+                    );
                   } catch (e) {
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: ${e.toString()}')),
                     );

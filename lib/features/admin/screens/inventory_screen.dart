@@ -114,18 +114,19 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     'entry_date': DateTime.now().toIso8601String().substring(0, 10),
                   });
 
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ref.invalidate(adminInventoryListProvider);
-                    ref.invalidate(adminDashboardProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: AppTheme.green,
-                        content: Text('Inventory entry saved successfully!'),
-                      ),
-                    );
-                  }
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  ref.invalidate(adminInventoryListProvider);
+                  ref.invalidate(adminDashboardProvider);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppTheme.green,
+                      content: Text('Inventory entry saved successfully!'),
+                    ),
+                  );
                 } catch (e) {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),
                   );

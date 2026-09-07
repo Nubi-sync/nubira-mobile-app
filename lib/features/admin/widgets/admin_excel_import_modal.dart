@@ -404,7 +404,7 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
               decoration: BoxDecoration(
                 color: AppTheme.greenMist,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.green.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

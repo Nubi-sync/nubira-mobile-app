@@ -157,9 +157,9 @@ class AdminAllotmentCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.steelMist.withOpacity(0.4),
+                            color: AppTheme.steelMist.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.steel.withOpacity(0.2)),
+                            border: Border.all(color: AppTheme.steel.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,7 +205,7 @@ class AdminAllotmentCard extends StatelessWidget {
         border: Border.all(color: AppTheme.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -342,10 +342,10 @@ class AdminAllotmentCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: isStorePending ? const Color(0xFFFEF3C7).withOpacity(0.7) : AppTheme.greenMist,
+                        color: isStorePending ? const Color(0xFFFEF3C7).withValues(alpha: 0.7) : AppTheme.greenMist,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isStorePending ? const Color(0xFFFDE68A) : AppTheme.green.withOpacity(0.3),
+                          color: isStorePending ? const Color(0xFFFDE68A) : AppTheme.green.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(

@@ -85,10 +85,6 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 }
 
                 try {
-                  // Internal Auth Email representation
-                  final authEmailKey = uname.toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_.-]'), '');
-                  final fakeEmail = '$authEmailKey@nubira.local';
-
                   // Attempt creating profile record
                   await supabase.from('profiles').insert({
                     'username': uname,
@@ -96,18 +92,19 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                     'is_active': true,
                   });
 
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ref.invalidate(adminEmployeesListProvider);
-                    ref.invalidate(adminDashboardProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: AppTheme.green,
-                        content: Text('Employee profile created successfully!'),
-                      ),
-                    );
-                  }
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  ref.invalidate(adminEmployeesListProvider);
+                  ref.invalidate(adminDashboardProvider);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: AppTheme.green,
+                      content: Text('Employee profile created successfully!'),
+                    ),
+                  );
                 } catch (e) {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),
                   );
@@ -252,6 +249,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                                 .eq('id', emp.id);
                             ref.invalidate(adminEmployeesListProvider);
                           } catch (e) {
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Error: ${e.toString()}')),
                             );

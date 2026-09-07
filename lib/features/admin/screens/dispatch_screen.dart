@@ -78,18 +78,19 @@ class _DispatchScreenState extends ConsumerState<DispatchScreen> {
                   'status': 'PENDING',
                 });
 
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  ref.invalidate(adminDispatchListProvider);
-                  ref.invalidate(adminDashboardProvider);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppTheme.green,
-                      content: Text('Delivery Challan created successfully!'),
-                    ),
-                  );
-                }
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                ref.invalidate(adminDispatchListProvider);
+                ref.invalidate(adminDashboardProvider);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.green,
+                    content: Text('Delivery Challan created successfully!'),
+                  ),
+                );
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error: ${e.toString()}')),
                 );

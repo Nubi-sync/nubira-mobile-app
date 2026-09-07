@@ -77,7 +77,7 @@ class _AdminCreateAllotmentModalState extends State<AdminCreateAllotmentModal> {
   String _activePreset = 'alpha';
   List<String> _selectedSizes = ['S', 'M', 'L', 'XL'];
   final TextEditingController _customSizeCtrl = TextEditingController();
-  List<ColorMatrixRow> _colorRows = [
+  final List<ColorMatrixRow> _colorRows = [
     ColorMatrixRow(id: '1', color: 'Navy Blue', quantities: {}),
     ColorMatrixRow(id: '2', color: 'Black', quantities: {}),
   ];
@@ -805,7 +805,7 @@ class _AdminCreateAllotmentModalState extends State<AdminCreateAllotmentModal> {
                     decoration: BoxDecoration(
                       color: AppTheme.steelMist,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.steel.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.steel.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -1017,9 +1017,9 @@ class _AdminCreateAllotmentModalState extends State<AdminCreateAllotmentModal> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppTheme.steelMist.withOpacity(0.5),
+                              color: AppTheme.steelMist.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.steel.withOpacity(0.2)),
+                              border: Border.all(color: AppTheme.steel.withValues(alpha: 0.2)),
                             ),
                             child: Row(
                               children: [
@@ -1186,7 +1186,7 @@ class _AdminCreateAllotmentModalState extends State<AdminCreateAllotmentModal> {
                                     deleteIcon: const Icon(Icons.close, size: 14),
                                     onDeleted: () => _toggleSize(s),
                                     backgroundColor: AppTheme.steelMist,
-                                    side: BorderSide(color: AppTheme.steel.withOpacity(0.3)),
+                                    side: BorderSide(color: AppTheme.steel.withValues(alpha: 0.3)),
                                   )),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1621,7 +1621,7 @@ class _AdminCreateAllotmentModalState extends State<AdminCreateAllotmentModal> {
         border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

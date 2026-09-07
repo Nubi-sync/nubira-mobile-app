@@ -254,57 +254,68 @@ class _AllotmentsScreenState extends ConsumerState<AllotmentsScreen> {
                 ref.invalidate(adminAllotmentsListProvider);
               },
               child: allotmentsAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppTheme.steel),
+                loading: () => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(height: 120),
+                    Center(child: CircularProgressIndicator(color: AppTheme.steel)),
+                  ],
                 ),
-                error: (err, stack) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 40, color: AppTheme.red),
-                        const SizedBox(height: 10),
-                        Text('Error loading allotments: ${err.toString()}', textAlign: TextAlign.center, style: GoogleFonts.publicSans(color: AppTheme.inkSoft)),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () => ref.invalidate(adminAllotmentsListProvider),
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                error: (err, stack) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    const SizedBox(height: 80),
+                    const Center(child: Icon(Icons.error_outline, size: 40, color: AppTheme.red)),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Text(
+                        'Error loading allotments: ${err.toString()}',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.publicSans(color: AppTheme.inkSoft),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () => ref.invalidate(adminAllotmentsListProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ),
+                  ],
                 ),
                 data: (allotments) {
                   if (allotments.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.assignment_late_outlined, size: 48, color: AppTheme.inkFaint),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No Allotments Found',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.ink,
-                              ),
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(32),
+                      children: [
+                        const SizedBox(height: 60),
+                        const Center(child: Icon(Icons.assignment_late_outlined, size: 48, color: AppTheme.inkFaint)),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            'No Allotments Found',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.ink,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tap "Assign Target" to create a new allotment.',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Center(
+                          child: Text(
+                            'Tap "Assign Target" to create a new allotment.',
+                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                          ),
+                        ),
+                      ],
                     );
                   }
 
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     itemCount: allotments.length,
                     itemBuilder: (ctx, index) {

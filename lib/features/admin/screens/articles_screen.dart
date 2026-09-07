@@ -76,18 +76,19 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                   'is_active': true,
                 });
 
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  ref.invalidate(adminArticlesListProvider);
-                  ref.invalidate(adminDashboardProvider);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppTheme.green,
-                      content: Text('Article created successfully!'),
-                    ),
-                  );
-                }
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                ref.invalidate(adminArticlesListProvider);
+                ref.invalidate(adminDashboardProvider);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.green,
+                    content: Text('Article created successfully!'),
+                  ),
+                );
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error: ${e.toString()}')),
                 );
