@@ -26,7 +26,6 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ChallanHubScreen(),
     AllotmentsScreen(),
     InventoryScreen(),
-    DispatchScreen(),
   ];
 
   @override
@@ -56,13 +55,9 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
-            if (index == 5) {
-              adminScaffoldKey.currentState?.openDrawer();
-            } else {
-              setState(() {
-                _currentIndex = index;
-              });
-            }
+            setState(() {
+              _currentIndex = index;
+            });
           },
           backgroundColor: AppTheme.card,
           indicatorColor: AppTheme.steelMist,
@@ -88,16 +83,6 @@ class _AdminShellState extends ConsumerState<AdminShell> {
               icon: Icon(Icons.warehouse_outlined, color: AppTheme.inkSoft),
               selectedIcon: Icon(Icons.warehouse, color: AppTheme.steel),
               label: 'Inventory',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.local_shipping_outlined, color: AppTheme.inkSoft),
-              selectedIcon: Icon(Icons.local_shipping, color: AppTheme.steel),
-              label: 'Dispatch',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.menu_rounded, color: AppTheme.inkSoft),
-              selectedIcon: Icon(Icons.menu_open_rounded, color: AppTheme.steel),
-              label: 'More',
             ),
           ],
         ),

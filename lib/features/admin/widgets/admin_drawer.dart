@@ -8,6 +8,7 @@ import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/security_screen.dart';
+import '../screens/dispatch_screen.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
@@ -152,10 +153,12 @@ class AdminDrawer extends ConsumerWidget {
                     icon: Icons.local_shipping_outlined,
                     activeIcon: Icons.local_shipping,
                     title: 'Dispatch & Challans',
-                    isSelected: activeIndex == 4,
                     onTap: () {
                       Navigator.pop(context);
-                      onTabSelected(4);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DispatchScreen()),
+                      );
                     },
                   ),
 
