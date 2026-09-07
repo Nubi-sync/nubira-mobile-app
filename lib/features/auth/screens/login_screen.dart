@@ -11,6 +11,7 @@ import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../dashboard/production_manager_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
+import '../../admin/screens/admin_shell.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connectivity_indicator.dart';
 
@@ -180,8 +181,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Listen for Auth Changes & Route to Dashboards
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.isAuthenticated && next.userRole != null) {
+        final roleUpper = next.userRole!.toUpperCase();
         Widget destination;
-        switch (next.userRole) {
+        switch (roleUpper) {
+          case 'ADMIN':
+          case 'SUPERADMIN':
+            destination = const AdminShell();
+            break;
           case 'DISPATCH':
             destination = const DispatchDashboard();
             break;

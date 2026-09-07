@@ -9,6 +9,7 @@ import 'features/dashboard/store_dashboard.dart';
 import 'features/dashboard/dispatch_dashboard.dart';
 import 'features/dashboard/production_manager_dashboard.dart';
 import 'features/dashboard/mending_dashboard.dart';
+import 'features/admin/screens/admin_shell.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -61,7 +62,11 @@ class AuthGate extends ConsumerWidget {
     }
 
     if (authState.isAuthenticated && authState.userRole != null) {
-      switch (authState.userRole) {
+      final roleUpper = authState.userRole!.toUpperCase();
+      switch (roleUpper) {
+        case 'ADMIN':
+        case 'SUPERADMIN':
+          return const AdminShell();
         case 'DISPATCH':
           return const DispatchDashboard();
         case 'STORE':

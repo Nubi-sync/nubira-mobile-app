@@ -108,7 +108,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
             .eq('id', currentUser.id)
             .maybeSingle();
 
-        if (res == null || res['role'] == null) {
+        final role = _determineRole(currentUser, res, savedUsername);
+
+        if (res == null && role != 'ADMIN') {
           // Employee was deleted or removed by admin from Web Admin!
           await supabase.auth.signOut();
           await _storage.deleteAll();
@@ -123,7 +125,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return;
         }
 
-        final role = res['role'] as String;
         await _storage.write(key: 'cached_user_role', value: role);
 
         state = state.copyWith(
@@ -132,7 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userRole: role,
           failedAttempts: 0,
           lockoutUntil: null,
-          cachedUsername: savedUsername,
+          cachedUsername: savedUsername ?? currentUser.email?.split('@').first,
         );
         return;
       } catch (e) {
@@ -268,11 +269,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Validate user in profiles table
         final res = await supabase
             .from('profiles')
-            .select('role')
+            .select('id, role')
             .eq('id', user.id)
             .maybeSingle();
 
-        if (res == null || res['role'] == null) {
+        final role = _determineRole(user, res, username);
+
+        if (res == null && role != 'ADMIN') {
           await supabase.auth.signOut();
           await _storage.deleteAll();
           await prefs.remove('remembered_operator_id');
@@ -285,8 +288,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           );
           return;
         }
-
-        final role = res['role'] as String;
 
         if (session != null) {
           await _cacheSessionForOffline(session, role);
@@ -302,6 +303,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           failedAttempts: 0,
           lockoutUntil: null,
+          cachedUsername: username.trim(),
         );
       }
     } on AuthException catch (e) {
@@ -333,6 +335,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
             : 'An unexpected authentication error occurred.',
       );
     }
+  }
+
+  String _determineRole(User user, Map<String, dynamic>? profileRes, [String? inputUsername]) {
+    final email = (user.email ?? '').toLowerCase();
+    final uname = (inputUsername ?? '').trim().toLowerCase();
+
+    // 1. Check known admin identifiers and emails
+    if (email == 'team.anga9@gmail.com' ||
+        email == 'creationnubira@gmail.com' ||
+        email.startsWith('admin') ||
+        email.contains('admin') ||
+        uname == 'admin' ||
+        uname.startsWith('admin') ||
+        uname.contains('admin')) {
+      return 'ADMIN';
+    }
+
+    // 2. Check profiles table role
+    if (profileRes != null && profileRes['role'] != null) {
+      final r = profileRes['role'].toString().trim().toUpperCase();
+      if (r.isNotEmpty) return r;
+    }
+
+    // 3. Check user metadata
+    if (user.userMetadata != null && user.userMetadata!['role'] != null) {
+      final r = user.userMetadata!['role'].toString().trim().toUpperCase();
+      if (r.isNotEmpty) return r;
+    }
+
+    return 'LINEMAN';
   }
 
   Future<void> _cacheSessionForOffline(Session session, String? role) async {
