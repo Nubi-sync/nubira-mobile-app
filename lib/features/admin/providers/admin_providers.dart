@@ -303,7 +303,7 @@ final adminEmployeesListProvider = FutureProvider.autoDispose<List<AdminEmployee
 
 final adminInventoryListProvider = FutureProvider.autoDispose<List<AdminStoreEntry>>((ref) async {
   final response = await supabase
-      .from('store_entries')
+      .from('store_transactions')
       .select('''
         id, type, quantity, color, size, party_name, challan_no, entry_date, created_at,
         articles:article_id ( art_no, description )

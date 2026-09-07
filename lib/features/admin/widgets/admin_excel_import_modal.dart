@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' hide Border;
@@ -38,14 +38,13 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
         return;
       }
 
-      final file = result.files.first;
       setState(() {
         _isLoading = true;
-        _selectedFileName = file.name;
+        _selectedFileName = result.files.first.name;
         _statusMessage = 'Parsing Excel sheet...';
       });
 
-      final bytes = file.bytes ?? (file.path != null ? await File(file.path!).readAsBytes() : null);
+      final bytes = result.files.first.bytes;
       if (bytes == null) {
         setState(() {
           _isLoading = false;
@@ -71,6 +70,9 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
         int qtyIdx = -1;
         int artIdx = -1;
         int descIdx = -1;
+        int colorIdx = -1;
+        int sizeIdx = -1;
+        int linemanIdx = -1;
 
         for (int i = 0; i < headerRow.length; i++) {
           final h = headerRow[i];
@@ -79,7 +81,10 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
           if (h.contains('FABRIC') || h.contains('CLOTH') || h.contains('MATERIAL')) fabricIdx = i;
           if (h.contains('QTY') || h.contains('QUANTITY') || h.contains('PCS') || h.contains('TOTAL')) qtyIdx = i;
           if (h.contains('ART') || h.contains('STYLE') || h.contains('ITEM')) artIdx = i;
-          if (h.contains('DESC') || h.contains('REMARK')) descIdx = i;
+          if (h.contains('DESC') || h.contains('REMARK') || h.contains('PRODUCT')) descIdx = i;
+          if (h.contains('COLOR') || h.contains('COLOUR') || h.contains('SHADE')) colorIdx = i;
+          if (h.contains('SIZE') || h.contains('RATIO')) sizeIdx = i;
+          if (h.contains('LINEMAN') || h.contains('OPERATOR') || h.contains('LINE') || h.contains('SUPERVISOR')) linemanIdx = i;
         }
 
         // Parse data rows
@@ -97,25 +102,57 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
           final rawQty = int.tryParse(rawQtyStr?.replaceAll(RegExp(r'[^0-9]'), '') ?? '0') ?? 0;
           final rawArt = artIdx != -1 && artIdx < row.length ? row[artIdx]?.value?.toString().trim() : null;
           final rawDesc = descIdx != -1 && descIdx < row.length ? row[descIdx]?.value?.toString().trim() : null;
+          final rawColor = colorIdx != -1 && colorIdx < row.length ? row[colorIdx]?.value?.toString().trim() : 'Standard';
+          final rawSize = sizeIdx != -1 && sizeIdx < row.length ? row[sizeIdx]?.value?.toString().trim() : 'Free Size';
+          final rawLineman = linemanIdx != -1 && linemanIdx < row.length ? row[linemanIdx]?.value?.toString().trim() : null;
 
-          final key = '$rawChallan-$rawBrand';
+          final key = '${rawChallan.toUpperCase()}-${(rawBrand == null || rawBrand.isEmpty) ? 'OLLYPOP' : rawBrand.toUpperCase()}';
           if (!groupedChallans.containsKey(key)) {
             groupedChallans[key] = {
-              'challan_no': rawChallan,
+              'challan_no': rawChallan.toUpperCase(),
               'brand': (rawBrand == null || rawBrand.isEmpty) ? 'OLLYPOP' : rawBrand.toUpperCase(),
               'fabric_type': rawFabric,
-              'description': rawDesc ?? (rawArt != null ? 'Art: $rawArt' : null),
-              'total_qty': rawQty,
+              'total_pcs': rawQty,
               'status': 'PENDING',
               'created_at': DateTime.now().toIso8601String(),
+              '_lines': <Map<String, dynamic>>[],
             };
           } else {
-            groupedChallans[key]!['total_qty'] = (groupedChallans[key]!['total_qty'] as int) + rawQty;
+            groupedChallans[key]!['total_pcs'] = (groupedChallans[key]!['total_pcs'] as int) + rawQty;
+          }
+
+          if (rawArt != null && rawArt.isNotEmpty) {
+            (groupedChallans[key]!['_lines'] as List).add({
+              'art_no': rawArt.toUpperCase(),
+              'description': rawDesc ?? 'Art: $rawArt',
+              'color_pattern': rawColor ?? 'Standard',
+              'size_range': rawSize ?? 'Free Size',
+              'total_pcs': rawQty,
+              'lineman_name': rawLineman,
+            });
           }
         }
       }
 
-      final parsedList = groupedChallans.values.toList();
+      // Format challans with JSON notes containing article lines
+      final parsedList = groupedChallans.values.map((c) {
+        final lines = (c['_lines'] as List?) ?? [];
+        final totalPcs = c['total_pcs'] as int? ?? 0;
+        return {
+          'challan_no': c['challan_no'],
+          'brand': c['brand'],
+          'fabric_type': c['fabric_type'],
+          'total_pcs': totalPcs,
+          'total_sets': lines.isNotEmpty ? (totalPcs / 9).round() : 1,
+          'status': 'IN_PROGRESS',
+          'notes': jsonEncode({
+            'user_notes': '',
+            'article_lines': lines,
+          }),
+          '_raw_lines': lines,
+          'created_at': c['created_at'],
+        };
+      }).toList();
 
       setState(() {
         _isLoading = false;
@@ -137,35 +174,109 @@ class _AdminExcelImportModalState extends State<AdminExcelImportModal> {
 
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Uploading ${_challansToInsert.length} challans to Supabase...';
+      _statusMessage = 'Uploading ${_challansToInsert.length} challans & syncing allotments...';
     });
 
     try {
-      // Chunked upsert to prevent Supabase payload limits
-      const int chunkSize = 50;
-      for (var i = 0; i < _challansToInsert.length; i += chunkSize) {
-        final chunk = _challansToInsert.sublist(
-          i,
-          i + chunkSize > _challansToInsert.length ? _challansToInsert.length : i + chunkSize,
-        );
+      // 1. Fetch active linemen profiles for auto-matching
+      final profilesRes = await supabase.from('profiles').select('id, username').eq('is_active', true);
+      final Map<String, String> profileMap = {};
+      for (var p in (profilesRes as List)) {
+        final un = p['username']?.toString().trim().toLowerCase();
+        if (un != null && un.isNotEmpty) {
+          profileMap[un] = p['id'].toString();
+        }
+      }
 
-        await supabase.from('challans').upsert(
-          chunk,
-          onConflict: 'challan_no, brand',
-        );
+      int totalAllotmentsCreated = 0;
+
+      for (var ch in _challansToInsert) {
+        final rawLines = (ch['_raw_lines'] as List?) ?? [];
+        final insertPayload = Map<String, dynamic>.from(ch)..remove('_raw_lines');
+
+        // Insert or Upsert challan
+        final challanRes = await supabase
+            .from('challans')
+            .upsert(insertPayload, onConflict: 'challan_no, brand')
+            .select('id')
+            .single();
+
+        final challanId = challanRes['id']?.toString();
+        if (challanId == null) continue;
+
+        // 2. Process article lines & auto-allot matched linemen
+        for (var line in rawLines) {
+          final artNo = line['art_no']?.toString().trim().toUpperCase();
+          if (artNo == null || artNo.isEmpty) continue;
+
+          // Ensure article style exists in catalog
+          final artRes = await supabase
+              .from('articles')
+              .select('id')
+              .eq('art_no', artNo)
+              .maybeSingle();
+
+          String artId;
+          if (artRes != null && artRes['id'] != null) {
+            artId = artRes['id'].toString();
+          } else {
+            final newArt = await supabase.from('articles').insert({
+              'art_no': artNo,
+              'description': line['description'] ?? 'Art: $artNo',
+              'stitching_rate': 20.0,
+              'is_active': true,
+            }).select('id').single();
+            artId = newArt['id'].toString();
+          }
+
+          // Check for lineman match
+          final lmName = line['lineman_name']?.toString().trim().toLowerCase();
+          final matchedLinemanId = lmName != null && lmName.isNotEmpty ? profileMap[lmName] : null;
+
+          if (matchedLinemanId != null) {
+            final targetQty = (line['total_pcs'] as num?)?.toInt() ?? 0;
+
+            final newAl = await supabase.from('allotments').insert({
+              'challan_id': challanId,
+              'article_id': artId,
+              'lineman_id': matchedLinemanId,
+              'target_qty': targetQty,
+              'status': 'IN_PROGRESS',
+              'qc_status': 'PENDING_STITCHING',
+              'mending_status': 'PENDING_STITCHING',
+              'allotment_date': DateTime.now().toIso8601String().substring(0, 10),
+            }).select('id').single();
+
+            if (newAl['id'] != null) {
+              totalAllotmentsCreated++;
+              final sizeList = (line['size_range']?.toString() ?? 'Free Size').split('/').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+              final perSizeQty = (targetQty / (sizeList.isEmpty ? 1 : sizeList.length)).round();
+
+              for (var sz in (sizeList.isEmpty ? ['Free Size'] : sizeList)) {
+                await supabase.from('allotment_variants').insert({
+                  'allotment_id': newAl['id'],
+                  'color': line['color_pattern']?.toString() ?? 'Standard',
+                  'size': sz,
+                  'quantity': perSizeQty,
+                  'completed_qty': 0,
+                });
+              }
+            }
+          }
+        }
       }
 
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _statusMessage = 'Successfully imported ${_challansToInsert.length} challans!';
+          _statusMessage = 'Successfully imported ${_challansToInsert.length} challans ($totalAllotmentsCreated auto-allotted)!';
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppTheme.green,
             content: Text(
-              'Successfully imported ${_challansToInsert.length} challans!',
+              'Imported ${_challansToInsert.length} challans ($totalAllotmentsCreated auto-allotted to Linemen)!',
               style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),

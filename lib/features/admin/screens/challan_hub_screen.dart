@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../main.dart';
+import '../models/admin_models.dart';
 import '../providers/admin_providers.dart';
 import '../widgets/admin_challan_card.dart';
 import '../widgets/admin_excel_import_modal.dart';
@@ -132,6 +133,220 @@ class _ChallanHubScreenState extends ConsumerState<ChallanHubScreen> {
               child: const Text('Create Challan'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showAllotChallanModal(AdminChallan challan) async {
+    final linemenRes = await supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('is_active', true);
+
+    final linemen = (linemenRes as List?) ?? [];
+    if (linemen.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No active floor employees found. Please create employees first.')),
+        );
+      }
+      return;
+    }
+
+    String selectedLinemanId = linemen.first['id'].toString();
+    String selectedLinemanName = linemen.first['username']?.toString() ?? 'Staff';
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.steelMist,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.assignment_ind_rounded, color: AppTheme.steel, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Allot Challan #${challan.challanNo}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.inkSoft),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.bg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          challan.brand,
+                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          challan.fabricType ?? 'Standard Fabric',
+                          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${challan.totalQty}',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                        ),
+                        Text(
+                          'Total Pieces',
+                          style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkFaint),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedLinemanId,
+                decoration: const InputDecoration(
+                  labelText: 'Assign to Lineman / Tailor *',
+                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                ),
+                items: linemen.map((l) {
+                  final id = l['id'].toString();
+                  final name = l['username']?.toString() ?? 'Staff';
+                  return DropdownMenuItem(value: id, child: Text(name));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    final matched = linemen.firstWhere((l) => l['id'].toString() == val, orElse: () => null);
+                    setModalState(() {
+                      selectedLinemanId = val;
+                      if (matched != null) selectedLinemanName = matched['username']?.toString() ?? '';
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.steel,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  try {
+                    // Fetch or match article
+                    final articlesRes = await supabase.from('articles').select('id, art_no').limit(1);
+                    String? articleId;
+                    if ((articlesRes as List).isNotEmpty) {
+                      articleId = articlesRes.first['id'].toString();
+                    } else {
+                      final newArt = await supabase.from('articles').insert({
+                        'art_no': challan.challanNo,
+                        'description': challan.description ?? 'Challan #${challan.challanNo}',
+                        'stitching_rate': 20.0,
+                        'is_active': true,
+                      }).select('id').single();
+                      articleId = newArt['id'].toString();
+                    }
+
+                    // Create allotment
+                    final newAl = await supabase.from('allotments').insert({
+                      'challan_id': challan.id,
+                      'article_id': articleId,
+                      'lineman_id': selectedLinemanId,
+                      'target_qty': challan.totalQty,
+                      'status': 'IN_PROGRESS',
+                      'qc_status': 'PENDING_STITCHING',
+                      'mending_status': 'PENDING_STITCHING',
+                      'allotment_date': DateTime.now().toIso8601String().substring(0, 10),
+                    }).select('id').single();
+
+                    if (newAl['id'] != null) {
+                      await supabase.from('allotment_variants').insert({
+                        'allotment_id': newAl['id'],
+                        'color': 'Standard',
+                        'size': 'Free Size',
+                        'quantity': challan.totalQty,
+                        'completed_qty': 0,
+                      });
+                    }
+
+                    // Update challan status
+                    await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', challan.id);
+
+                    if (mounted) {
+                      Navigator.pop(ctx);
+                      ref.invalidate(adminChallansListProvider);
+                      ref.invalidate(adminAllotmentsListProvider);
+                      ref.invalidate(adminDashboardProvider);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppTheme.green,
+                          content: Text('Challan #${challan.challanNo} successfully allotted to $selectedLinemanName!'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
+                },
+                child: Text(
+                  'Confirm Allotment',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -302,7 +517,8 @@ class _ChallanHubScreenState extends ConsumerState<ChallanHubScreen> {
                       final challan = challans[index];
                       return AdminChallanCard(
                         challan: challan,
-                        onTap: () {},
+                        onTap: () => _showAllotChallanModal(challan),
+                        onAllotTap: () => _showAllotChallanModal(challan),
                       );
                     },
                   );

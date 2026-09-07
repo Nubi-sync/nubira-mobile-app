@@ -104,7 +104,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 }
 
                 try {
-                  await supabase.from('store_entries').insert({
+                  await supabase.from('store_transactions').insert({
                     'type': type,
                     'quantity': qty,
                     'party_name': partyCtrl.text.trim().isEmpty ? null : partyCtrl.text.trim(),
