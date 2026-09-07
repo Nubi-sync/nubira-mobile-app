@@ -150,6 +150,15 @@ class AdminAllotment {
   final int? qcTotalAlter;
   final DateTime createdAt;
   final List<AdminAllotmentVariant> variants;
+  final List<Map<String, dynamic>> materials;
+  final String? managerName;
+  final String? productionOrderNo;
+  final String? dueDate;
+  final int targetHours;
+  final String priority;
+  final String? clientChallanNo;
+  final List<String> samplePhotos;
+  final int achievedQty;
 
   AdminAllotment({
     required this.id,
@@ -172,7 +181,34 @@ class AdminAllotment {
     this.qcTotalAlter,
     required this.createdAt,
     this.variants = const [],
+    this.materials = const [],
+    this.managerName,
+    this.productionOrderNo,
+    this.dueDate,
+    this.targetHours = 16,
+    this.priority = 'NORMAL',
+    this.clientChallanNo,
+    this.samplePhotos = const [],
+    this.achievedQty = 0,
   });
+
+  /// Check if materials have been issued
+  bool get areMaterialsIssued {
+    if (materials.isEmpty) return false;
+    return materials.every((m) => m['admin_issued'] == true || m['is_issued'] == true);
+  }
+
+  /// Get Material Handover status label
+  String get materialHandoverStatus {
+    if (materials.isEmpty) return 'Pending Store Inspection';
+    final issuedCount = materials.where((m) => m['admin_issued'] == true || m['is_issued'] == true).length;
+    if (issuedCount == materials.length) {
+      return 'Materials Issued';
+    } else if (issuedCount > 0) {
+      return 'Partially Issued ($issuedCount/${materials.length})';
+    }
+    return 'Pending Store Inspection';
+  }
 
   factory AdminAllotment.fromJson(Map<String, dynamic> json) {
     // Lineman profile
@@ -203,6 +239,70 @@ class AdminAllotment {
       fabric = json['challans']['fabric_type']?.toString();
     }
 
+    // Variants parsing
+    final List<AdminAllotmentVariant> parsedVariants = [];
+    if (json['allotment_variants'] != null && json['allotment_variants'] is List) {
+      for (var v in (json['allotment_variants'] as List)) {
+        if (v is Map) {
+          parsedVariants.add(AdminAllotmentVariant.fromJson(Map<String, dynamic>.from(v)));
+        }
+      }
+    }
+
+    // Materials parsing
+    final List<Map<String, dynamic>> parsedMaterials = [];
+    if (json['allotment_materials'] != null && json['allotment_materials'] is List) {
+      for (var m in (json['allotment_materials'] as List)) {
+        if (m is Map) {
+          parsedMaterials.add(Map<String, dynamic>.from(m));
+        }
+      }
+    }
+
+    // Extract extended metadata from materials notes if available
+    String? manager = json['manager_name']?.toString();
+    String? poNo = json['production_order_no']?.toString();
+    String? due = json['due_date']?.toString();
+    int hours = (json['target_hours'] as num?)?.toInt() ?? 16;
+    String prio = json['priority']?.toString().toUpperCase() ?? 'NORMAL';
+    String? clientChNo = json['client_challan_no']?.toString();
+    List<String> photos = [];
+
+    if (json['sample_photos'] is List) {
+      photos = (json['sample_photos'] as List).map((e) => e.toString()).toList();
+    }
+
+    for (var m in parsedMaterials) {
+      final rawNotes = m['notes']?.toString();
+      if (rawNotes != null && rawNotes.trim().startsWith('{')) {
+        try {
+          final parsed = jsonDecode(rawNotes);
+          if (parsed is Map) {
+            if (manager == null && parsed['manager_name'] != null) manager = parsed['manager_name'].toString();
+            if (poNo == null && parsed['production_order_no'] != null) poNo = parsed['production_order_no'].toString();
+            if (due == null && parsed['due_date'] != null) due = parsed['due_date'].toString();
+            if (parsed['target_hours'] != null) hours = int.tryParse(parsed['target_hours'].toString()) ?? hours;
+            if (parsed['priority'] != null) prio = parsed['priority'].toString().toUpperCase();
+            if (clientChNo == null && parsed['client_challan_no'] != null) clientChNo = parsed['client_challan_no'].toString();
+            if (photos.isEmpty && parsed['sample_photos'] is List) {
+              photos = (parsed['sample_photos'] as List).map((e) => e.toString()).toList();
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    // Calculate achieved pieces sum from variants
+    int achieved = 0;
+    for (var v in parsedVariants) {
+      achieved += v.completedQty;
+    }
+    final rawStatus = json['status']?.toString().toUpperCase() ?? 'PENDING';
+    final target = (json['target_qty'] as num?)?.toInt() ?? 0;
+    if (rawStatus == 'COMPLETED' && achieved == 0) {
+      achieved = target;
+    }
+
     return AdminAllotment(
       id: json['id']?.toString() ?? '',
       challanId: json['challan_id']?.toString(),
@@ -214,8 +314,8 @@ class AdminAllotment {
       challanNo: chNo,
       brand: brand,
       fabricType: fabric,
-      targetQty: (json['target_qty'] as num?)?.toInt() ?? 0,
-      status: json['status']?.toString().toUpperCase() ?? 'PENDING',
+      targetQty: target,
+      status: rawStatus,
       allotmentDate: json['allotment_date']?.toString(),
       mendingStatus: json['mending_status']?.toString(),
       mendingTotalCounted: (json['mending_total_counted'] as num?)?.toInt(),
@@ -225,6 +325,16 @@ class AdminAllotment {
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
+      variants: parsedVariants,
+      materials: parsedMaterials,
+      managerName: manager,
+      productionOrderNo: poNo,
+      dueDate: due,
+      targetHours: hours,
+      priority: prio,
+      clientChallanNo: clientChNo,
+      samplePhotos: photos,
+      achievedQty: achieved,
     );
   }
 }
@@ -236,6 +346,7 @@ class AdminAllotmentVariant {
   final String size;
   final String color;
   final int quantity;
+  final int completedQty;
 
   AdminAllotmentVariant({
     required this.id,
@@ -243,6 +354,7 @@ class AdminAllotmentVariant {
     required this.size,
     required this.color,
     required this.quantity,
+    this.completedQty = 0,
   });
 
   factory AdminAllotmentVariant.fromJson(Map<String, dynamic> json) {
@@ -252,6 +364,7 @@ class AdminAllotmentVariant {
       size: json['size']?.toString() ?? '',
       color: json['color']?.toString() ?? '',
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      completedQty: (json['completed_qty'] as num?)?.toInt() ?? 0,
     );
   }
 }

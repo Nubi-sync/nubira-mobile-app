@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../main.dart';
 import '../models/admin_models.dart';
 
@@ -239,36 +237,77 @@ final allotmentFilterProvider = StateProvider<AllotmentFilterState>((ref) {
 final adminAllotmentsListProvider = FutureProvider.autoDispose<List<AdminAllotment>>((ref) async {
   final filter = ref.watch(allotmentFilterProvider);
 
-  var query = supabase.from('allotments').select('''
-    id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
-    mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
-    created_at,
-    profiles:lineman_id ( id, username ),
-    articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
-    challans:challan_id ( id, challan_no, brand, fabric_type )
-  ''');
+  try {
+    var query = supabase.from('allotments').select('''
+      id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
+      mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
+      created_at,
+      profiles:lineman_id ( id, username ),
+      articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
+      challans:challan_id ( id, challan_no, brand, fabric_type )
+    ''');
 
-  if (filter.selectedStatus != 'ALL') {
-    query = query.eq('status', filter.selectedStatus);
+    if (filter.selectedStatus != 'ALL') {
+      query = query.eq('status', filter.selectedStatus);
+    }
+    if (filter.selectedLinemanId != null && filter.selectedLinemanId!.isNotEmpty) {
+      query = query.eq('lineman_id', filter.selectedLinemanId!);
+    }
+
+    final response = await query.order('created_at', ascending: false).limit(100);
+    final rawList = (response as List);
+    final allotmentIds = rawList
+        .map((e) => e['id']?.toString())
+        .where((id) => id != null && id.isNotEmpty)
+        .toList();
+
+    List<dynamic> variantsRaw = [];
+    List<dynamic> materialsRaw = [];
+
+    if (allotmentIds.isNotEmpty) {
+      try {
+        final vRes = await supabase
+            .from('allotment_variants')
+            .select('*')
+            .inFilter('allotment_id', allotmentIds);
+        variantsRaw = (vRes as List?) ?? [];
+      } catch (_) {}
+
+      try {
+        final mRes = await supabase
+            .from('allotment_materials')
+            .select('*')
+            .inFilter('allotment_id', allotmentIds);
+        materialsRaw = (mRes as List?) ?? [];
+      } catch (_) {}
+    }
+
+    final list = rawList.map((json) {
+      final aId = json['id']?.toString();
+      final aVars = variantsRaw.where((v) => v['allotment_id']?.toString() == aId).toList();
+      final aMats = materialsRaw.where((m) => m['allotment_id']?.toString() == aId).toList();
+
+      final fullJson = Map<String, dynamic>.from(json);
+      fullJson['allotment_variants'] = aVars;
+      fullJson['allotment_materials'] = aMats;
+
+      return AdminAllotment.fromJson(fullJson);
+    }).toList();
+
+    if (filter.searchQuery.trim().isEmpty) {
+      return list;
+    }
+
+    final q = filter.searchQuery.trim().toLowerCase();
+    return list.where((a) {
+      return (a.challanNo?.toLowerCase().contains(q) ?? false) ||
+          (a.articleNo?.toLowerCase().contains(q) ?? false) ||
+          (a.linemanName?.toLowerCase().contains(q) ?? false) ||
+          (a.brand?.toLowerCase().contains(q) ?? false);
+    }).toList();
+  } catch (e) {
+    return [];
   }
-  if (filter.selectedLinemanId != null && filter.selectedLinemanId!.isNotEmpty) {
-    query = query.eq('lineman_id', filter.selectedLinemanId!);
-  }
-
-  final response = await query.order('created_at', ascending: false).limit(100);
-  final list = (response as List).map((json) => AdminAllotment.fromJson(json)).toList();
-
-  if (filter.searchQuery.trim().isEmpty) {
-    return list;
-  }
-
-  final q = filter.searchQuery.trim().toLowerCase();
-  return list.where((a) {
-    return (a.challanNo?.toLowerCase().contains(q) ?? false) ||
-        (a.articleNo?.toLowerCase().contains(q) ?? false) ||
-        (a.linemanName?.toLowerCase().contains(q) ?? false) ||
-        (a.brand?.toLowerCase().contains(q) ?? false);
-  }).toList();
 });
 
 // ==========================================

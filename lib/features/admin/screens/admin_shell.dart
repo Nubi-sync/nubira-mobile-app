@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/admin_drawer.dart';
 import 'admin_dashboard_screen.dart';
 import 'challan_hub_screen.dart';
 import 'allotments_screen.dart';
 import 'inventory_screen.dart';
-import 'dispatch_screen.dart';
 
 final GlobalKey<ScaffoldState> adminScaffoldKey = GlobalKey<ScaffoldState>();
 
