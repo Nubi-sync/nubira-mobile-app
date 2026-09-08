@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../models/admin_models.dart';
 
@@ -15,6 +16,16 @@ class AllotmentCardWidget extends StatelessWidget {
     this.onStatusChange,
     this.onDelete,
   });
+
+  String _formatDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw.trim());
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +119,13 @@ class AllotmentCardWidget extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  allotment.allotmentDate ?? 'Today',
+                                  allotment.allotmentDate != null && allotment.allotmentDate!.isNotEmpty
+                                      ? 'Allotted: ${_formatDate(allotment.allotmentDate)}'
+                                      : 'Allotted: Today',
                                   style: const TextStyle(
                                     color: AppTheme.inkFaint,
                                     fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -221,6 +235,23 @@ class AllotmentCardWidget extends StatelessWidget {
                                 color: AppTheme.inkSoft,
                                 fontSize: 12,
                               ),
+                            ),
+                          ],
+                          if (allotment.dueDate != null && allotment.dueDate!.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                const Icon(Icons.event_outlined, size: 12, color: AppTheme.amber),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Due: ${_formatDate(allotment.dueDate)} (${allotment.targetHours}h Target)',
+                                  style: const TextStyle(
+                                    color: AppTheme.amber,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ],

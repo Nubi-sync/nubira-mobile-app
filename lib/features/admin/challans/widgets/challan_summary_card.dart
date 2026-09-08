@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../challan_models.dart';
 
 class ChallanSummaryCard extends StatelessWidget {
@@ -14,6 +15,16 @@ class ChallanSummaryCard extends StatelessWidget {
     this.onRecall,
     this.onDelete,
   });
+
+  String _formatDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw.trim());
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +184,7 @@ class ChallanSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-                // 2. Brand, Fabric and Date
+                // 2. Brand & Fabric tags
                 Row(
                   children: [
                     Container(
@@ -211,18 +222,53 @@ class ChallanSummaryCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const Spacer(),
-                    Text(
-                      challan.challanDate,
-                      style: const TextStyle(
-                        color: Color(0xFF9B9A94),
-                        fontSize: 11,
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // 2.1 Explicit Dates Row (Challan Date & Delivery Date matching Web)
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF6B6A65)),
+                    const SizedBox(width: 5),
+                    const Text(
+                      'Challan Date: ',
+                      style: TextStyle(
+                        color: Color(0xFF6B6A65),
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    Text(
+                      _formatDate(challan.challanDate),
+                      style: const TextStyle(
+                        color: Color(0xFF1C1C1A),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (challan.deliveryDate != null && challan.deliveryDate!.trim().isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      const Text(
+                        '• Due: ',
+                        style: TextStyle(
+                          color: Color(0xFF854F0B),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        _formatDate(challan.deliveryDate),
+                        style: const TextStyle(
+                          color: Color(0xFF854F0B),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
 
                 // 3. Master Styles & Variants summary
                 Text(

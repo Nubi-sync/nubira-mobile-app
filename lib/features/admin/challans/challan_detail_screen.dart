@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../providers/admin_providers.dart';
 import '../models/admin_models.dart';
 import '../allotments/allotment_form_state.dart';
@@ -20,6 +21,16 @@ class ChallanDetailScreen extends ConsumerStatefulWidget {
 class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
   String? _globalLinemanId;
   final Map<String, String?> _colorLinemanMap = {};
+
+  String _formatDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw.trim());
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (_) {
+      return raw;
+    }
+  }
 
   @override
   void initState() {
@@ -403,11 +414,34 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                challan.challanDate,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF9B9A94), fontWeight: FontWeight.w500),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Dates Row
+          Row(
+            children: [
+              const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF6B6A65)),
+              const SizedBox(width: 5),
+              const Text(
+                'Challan Date: ',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B6A65), fontWeight: FontWeight.w500),
               ),
+              Text(
+                _formatDate(challan.challanDate),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF1C1C1A), fontWeight: FontWeight.bold),
+              ),
+              if (challan.deliveryDate != null && challan.deliveryDate!.trim().isNotEmpty) ...[
+                const SizedBox(width: 8),
+                const Text(
+                  '• Due: ',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF854F0B), fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  _formatDate(challan.deliveryDate),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF854F0B), fontWeight: FontWeight.bold),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
