@@ -423,25 +423,24 @@ class _CreateChallanModalState extends ConsumerState<CreateChallanModal> with Si
 
                     // Sample Given Switch
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAFAF8),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFDAD9D3), width: 0.8),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.checkroom_outlined, size: 18, color: Color(0xFF332B6B)),
-                              SizedBox(width: 8),
-                              Text(
-                                'Physical Sample Provided to Lineman',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1C1C1A)),
-                              ),
-                            ],
+                          const Icon(Icons.checkroom_outlined, size: 18, color: Color(0xFF332B6B)),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Physical Sample Provided to Lineman',
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF1C1C1A)),
+                              maxLines: 2,
+                            ),
                           ),
+                          const SizedBox(width: 6),
                           Switch.adaptive(
                             value: _sampleGiven,
                             activeColor: const Color(0xFF332B6B),
@@ -450,19 +449,25 @@ class _CreateChallanModalState extends ConsumerState<CreateChallanModal> with Si
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // SECTION 2: Article Style Lines
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSectionHeader('2. Article Lines (${_articleLines.length})', Icons.style_outlined),
+                        Expanded(
+                          child: _buildSectionHeader('2. Article Lines (${_articleLines.length})', Icons.style_outlined),
+                        ),
                         TextButton.icon(
                           onPressed: _addArticleLine,
-                          icon: const Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF332B6B)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.add_circle_outline, size: 16, color: Color(0xFF332B6B)),
                           label: const Text(
-                            '+ Add Article Style',
-                            style: TextStyle(color: Color(0xFF332B6B), fontWeight: FontWeight.bold, fontSize: 13),
+                            '+ Add Style',
+                            style: TextStyle(color: Color(0xFF332B6B), fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ),
                       ],
@@ -480,13 +485,19 @@ class _CreateChallanModalState extends ConsumerState<CreateChallanModal> with Si
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSectionHeader('3. BOM Fabrics / Raw Materials (Optional)', Icons.inventory_2_outlined),
+                        Expanded(
+                          child: _buildSectionHeader('3. BOM & Lots (Optional)', Icons.inventory_2_outlined),
+                        ),
                         TextButton.icon(
                           onPressed: _addBomItem,
-                          icon: const Icon(Icons.add, size: 18, color: Color(0xFF332B6B)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.add, size: 16, color: Color(0xFF332B6B)),
                           label: const Text(
-                            '+ Add Material Lot',
-                            style: TextStyle(color: Color(0xFF332B6B), fontWeight: FontWeight.bold, fontSize: 13),
+                            '+ Add Lot',
+                            style: TextStyle(color: Color(0xFF332B6B), fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ),
                       ],
@@ -798,6 +809,8 @@ class _CreateChallanModalState extends ConsumerState<CreateChallanModal> with Si
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 18, color: Color(0xFF6B6A65)),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             onPressed: () => _removeBomItem(index),
           ),
         ],
@@ -807,16 +820,20 @@ class _CreateChallanModalState extends ConsumerState<CreateChallanModal> with Si
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: const Color(0xFF332B6B)),
         const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF1C1C1A),
-            letterSpacing: 0.2,
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1C1C1A),
+              letterSpacing: 0.2,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
