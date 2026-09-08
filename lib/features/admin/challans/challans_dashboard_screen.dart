@@ -4,7 +4,7 @@ import '../providers/admin_providers.dart';
 import 'challan_models.dart';
 import 'challan_detail_screen.dart';
 import 'widgets/challan_summary_card.dart';
-import 'widgets/create_challan_modal.dart';
+import 'widgets/create_job_work_challan_sheet.dart';
 
 class ChallansDashboardScreen extends ConsumerStatefulWidget {
   const ChallansDashboardScreen({super.key});
@@ -35,10 +35,12 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
   }
 
   void _showCreateChallanModal() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const CreateChallanModal(),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const CreateJobWorkChallanSheet(),
     );
   }
 

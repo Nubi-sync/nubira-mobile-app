@@ -695,7 +695,7 @@ Future<bool> deleteChallanInSupabase(String challanId) async {
   }
 }
 
-/// Create a Multi-Article Job Work Delivery Challan
+/// Create a Multi-Article Job Work Delivery Challan (100% Web Admin Parity)
 Future<String?> createChallanInSupabase({
   required String challanNo,
   required String challanDate,
@@ -711,35 +711,79 @@ Future<String?> createChallanInSupabase({
     final cleanChallanNo = challanNo.trim().toUpperCase();
     if (cleanChallanNo.isEmpty) return 'Challan Number is required.';
 
+    if (articleLines.isEmpty) return 'Please add at least one article line.';
+
+    // 1. Duplicate check in Supabase
+    final existingChallan = await supabase
+        .from('challans')
+        .select('id, challan_no')
+        .ilike('challan_no', cleanChallanNo)
+        .limit(1)
+        .maybeSingle();
+
+    if (existingChallan != null) {
+      return 'Challan #$cleanChallanNo already exists in the system! Each delivery job challan must have a unique Challan Number.';
+    }
+
     final grandTotalSets = articleLines.fold<int>(0, (sum, l) => sum + ((l['sets'] as num?)?.toInt() ?? 1));
     final grandTotalPcs = articleLines.fold<int>(0, (sum, l) => sum + ((l['total_pcs'] as num?)?.toInt() ?? 0));
 
-    // Save article catalog styles
+    // 2. Process and save article catalog styles with size_rates._meta
+    final List<Map<String, dynamic>> processedLines = [];
     for (var line in articleLines) {
       final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? '';
-      if (cleanArtNo.isNotEmpty) {
-        final existing = await supabase.from('articles').select('id').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+      final cleanSubArt = (line['sub_art_no']?.toString() ?? '').trim().toUpperCase();
+      final fullArtCode = cleanSubArt.isNotEmpty ? '$cleanArtNo$cleanSubArt' : cleanArtNo;
+      final linePcs = (line['total_pcs'] as num?)?.toInt() ??
+          (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
+      final lineSets = (line['sets'] as num?)?.toInt() ?? 1;
+      final lineRatio = (line['pcs_per_set'] as num?)?.toInt() ?? 9;
+
+      if (fullArtCode.isNotEmpty) {
+        final existing = await supabase.from('articles').select('id').eq('art_no', fullArtCode).limit(1).maybeSingle();
         if (existing == null) {
           await supabase.from('articles').insert({
-            'art_no': cleanArtNo,
-            'description': line['description']?.toString() ?? '$cleanArtNo - ${line['color_pattern'] ?? ""}',
+            'art_no': fullArtCode,
+            'description': line['description']?.toString() ?? '$fullArtCode - ${line['color_pattern'] ?? ""} (${line['size_range'] ?? ""})',
             'stitching_rate': (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
             'is_active': true,
+            'size_rates': {
+              '_meta': {
+                'base_art': cleanArtNo,
+                'sub_art': cleanSubArt,
+                'pattern': line['product'] ?? line['pattern_no'] ?? '',
+                'category': line['category'] ?? '',
+                'fabric': fabricType?.trim() ?? '',
+                'party': brand.trim().toUpperCase(),
+                'size': line['size_range'] ?? '',
+                'picture_url': line['picture_url'] ?? '',
+              }
+            }
           });
         }
       }
+
+      processedLines.add({
+        ...line,
+        'full_art_code': fullArtCode,
+        'sets': lineSets,
+        'pcs_per_set': lineRatio,
+        'total_pcs': linePcs,
+      });
     }
 
+    // 3. Structured Challan Notes JSON
     final notesJson = jsonEncode({
       'user_notes': notes.trim(),
-      'article_lines': articleLines,
+      'article_lines': processedLines,
     });
 
+    // 4. Insert into `challans` table
     await supabase.from('challans').insert({
       'challan_no': cleanChallanNo,
       'challan_date': challanDate,
       'brand': brand.trim().toUpperCase(),
-      'delivery_date': deliveryDate,
+      'delivery_date': deliveryDate != null && deliveryDate.isNotEmpty ? deliveryDate : null,
       'fabric_type': fabricType?.trim(),
       'sample_given': sampleGiven,
       'notes': notesJson,

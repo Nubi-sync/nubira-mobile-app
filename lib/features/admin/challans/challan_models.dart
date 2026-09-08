@@ -62,9 +62,12 @@ class ChallanArticleLine {
   final String artNo;
   final String? subArtNo;
   final String? patternNo;
+  final String? category;
+  final String? product;
   final String? description;
   final String colorPattern;
   final String sizeRange;
+  final int? orderQty;
   final int sets;
   final int pcsPerSet;
   final int totalPcs;
@@ -81,9 +84,12 @@ class ChallanArticleLine {
     required this.artNo,
     this.subArtNo,
     this.patternNo,
+    this.category,
+    this.product,
     this.description,
     required this.colorPattern,
     required this.sizeRange,
+    this.orderQty,
     this.sets = 1,
     this.pcsPerSet = 9,
     required this.totalPcs,
@@ -113,10 +119,13 @@ class ChallanArticleLine {
       allotmentId: json['allotment_id']?.toString(),
       artNo: json['art_no']?.toString().trim().toUpperCase() ?? 'Style',
       subArtNo: json['sub_art_no']?.toString().trim().toUpperCase(),
-      patternNo: json['pattern_no']?.toString(),
+      patternNo: json['pattern_no']?.toString() ?? json['product']?.toString(),
+      category: json['category']?.toString(),
+      product: json['product']?.toString() ?? json['pattern_no']?.toString(),
       description: json['description']?.toString(),
       colorPattern: json['color_pattern']?.toString().trim() ?? 'Standard',
       sizeRange: json['size_range']?.toString().trim() ?? 'Free Size',
+      orderQty: (json['order_qty'] as num?)?.toInt(),
       sets: lineSets,
       pcsPerSet: lineRatio,
       totalPcs: linePcs,
@@ -136,9 +145,12 @@ class ChallanArticleLine {
       'art_no': artNo,
       'sub_art_no': subArtNo,
       'pattern_no': patternNo,
+      'category': category,
+      'product': product,
       'description': description,
       'color_pattern': colorPattern,
       'size_range': sizeRange,
+      'order_qty': orderQty,
       'sets': sets,
       'pcs_per_set': pcsPerSet,
       'total_pcs': totalPcs,
