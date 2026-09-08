@@ -328,7 +328,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
           'total_pcs': pcs,
           'assigned_lineman_id': line.assignedLinemanId,
           'assigned_lineman_name': line.assignedLinemanName,
-          'status': 'PENDING',
+          'status': (line.assignedLinemanId != null && line.assignedLinemanId!.isNotEmpty) ? 'IN_PROGRESS' : 'PENDING',
         };
       }).toList();
 
@@ -598,52 +598,28 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
             ],
           ),
           const SizedBox(height: 12),
-          // Action Buttons: Download Template & Import Excel
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: cardBorder, width: 1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                  ),
-                  onPressed: () => ChallanExcelHelper.generateAndDownloadTemplate(context),
-                  icon: const Icon(Icons.download_rounded, size: 15, color: Color(0xFF475569)),
-                  label: Text(
-                    'Download template',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF334155),
-                    ),
-                  ),
+          // Action Button: Import Excel
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: brandIndigo,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+              ),
+              onPressed: _handleImportExcel,
+              icon: const Icon(Icons.cloud_upload_outlined, size: 17, color: Colors.white),
+              label: Text(
+                'Import from Excel (.xlsx / .xls)',
+                style: GoogleFonts.publicSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: brandIndigo,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                  ),
-                  onPressed: _handleImportExcel,
-                  icon: const Icon(Icons.cloud_upload_outlined, size: 16, color: Colors.white),
-                  label: Text(
-                    'Import Excel',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1017,7 +993,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: brandIndigo.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(6),
@@ -1025,72 +1001,83 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                     child: Text(
                       'LINE ${index + 1}',
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         color: brandIndigo,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (artNoDisplay.isNotEmpty)
-                    Text(
-                      artNoDisplay,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
-                      ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (artNoDisplay.isNotEmpty)
+                          Flexible(
+                            child: Text(
+                              artNoDisplay,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                        if (colorDisplay.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '• $colorDisplay',
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (sizeDisplay.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: cardBorder),
+                            ),
+                            child: Text(
+                              sizeDisplay,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF334155),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  if (colorDisplay.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      '• $colorDisplay',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  if (sizeDisplay.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: cardBorder),
-                      ),
-                      child: Text(
-                        sizeDisplay,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF334155),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
+                  ),
                   // Duplicate button
                   IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF64748B)),
+                    icon: const Icon(Icons.copy_rounded, size: 15, color: Color(0xFF64748B)),
                     onPressed: () => _duplicateArticleLine(index),
                     tooltip: 'Duplicate Line',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                   ),
                   // Delete button
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFE11D48)),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFE11D48)),
                     onPressed: () => _removeArticleLine(index),
                     tooltip: 'Delete Line',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                   ),
                   Icon(
                     line.isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    size: 20,
+                    size: 19,
                     color: const Color(0xFF64748B),
                   ),
                 ],

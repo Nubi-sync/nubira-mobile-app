@@ -79,7 +79,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             lineman_id,
             status,
             created_at,
-            article:articles ( id, art_no, description, color_pattern, size_range, pattern_no ),
+            article:articles ( id, art_no, description, size_rates ),
             lineman:profiles!allotments_lineman_id_fkey ( id, username )
           ''')
           .order('created_at', ascending: false)

@@ -301,14 +301,14 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 .fold<int>(0, (sum, c) => sum + c.totalPcs);
 
             final pendingCount = rawList.where((c) => c.status == 'PENDING' || c.status == 'PARTIALLY_ALLOTTED').length;
-            final allottedCount = rawList.where((c) => c.status != 'PENDING').length;
+            final allottedCount = rawList.where((c) => c.status != 'PENDING' && c.status != 'PARTIALLY_ALLOTTED').length;
 
-            // Filter for current view
+            // Filter for current view: Partially allotted challans remain in Pending tab until 100% allotted
             var displayList = rawList;
             if (_activeTab == 'PENDING') {
               displayList = displayList.where((c) => c.status == 'PENDING' || c.status == 'PARTIALLY_ALLOTTED').toList();
             } else {
-              displayList = displayList.where((c) => c.status != 'PENDING').toList();
+              displayList = displayList.where((c) => c.status != 'PENDING' && c.status != 'PARTIALLY_ALLOTTED').toList();
             }
 
             if (_selectedBrand != 'ALL') {

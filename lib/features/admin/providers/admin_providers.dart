@@ -170,8 +170,6 @@ final challanFilterProvider = StateProvider<ChallanFilterState>((ref) {
 
 /// Hierarchical grouped Challans provider matching Web's getProductionOrders()
 final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGroupedOrder>>((ref) async {
-  final filter = ref.watch(challanFilterProvider);
-
   try {
     final results = await Future.wait([
       supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
@@ -191,7 +189,20 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
 
     for (var chJson in challansRaw) {
       final chId = chJson['id']?.toString() ?? '';
-      final chAllotments = allotmentsRaw.where((a) => a['challan_id']?.toString() == chId).toList();
+      final chNo = chJson['challan_no']?.toString().trim().toUpperCase() ?? '';
+
+      // Match allotments belonging to this challan by challan_id, production_order_no, or client_challan_no
+      final chAllotments = allotmentsRaw.where((a) {
+        final alChId = a['challan_id']?.toString();
+        if (alChId == chId) return true;
+        final alProdNo = a['production_order_no']?.toString().trim().toUpperCase() ?? '';
+        final alClientNo = a['client_challan_no']?.toString().trim().toUpperCase() ?? '';
+        if (chNo.isNotEmpty && (alProdNo == chNo || alClientNo == chNo || alClientNo == 'JOB-$chNo')) {
+          return true;
+        }
+        return false;
+      }).toList();
+
       final rawNotes = chJson['notes']?.toString();
 
       List<ChallanArticleLine> parsedLines = [];
@@ -232,18 +243,47 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                   }
                 }
 
+                // Global fallback matching if allotment was created with client_challan_no for this order
+                if (matchingAl == null) {
+                  for (var al in allotmentsRaw) {
+                    final art = al['articles'] as Map?;
+                    final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
+                    if (alArtNo == cleanArtNo || alArtNo == fullArtCode) {
+                      final alProdNo = al['production_order_no']?.toString().trim().toUpperCase() ?? '';
+                      final alClientNo = al['client_challan_no']?.toString().trim().toUpperCase() ?? '';
+                      if (chNo.isNotEmpty && (alProdNo == chNo || alClientNo == chNo || alClientNo == 'JOB-$chNo')) {
+                        matchingAl = al;
+                        break;
+                      }
+                    }
+                  }
+                }
+
                 String? linemanId;
                 String? linemanName;
                 String lineStatus = 'PENDING';
                 String? allotmentId;
                 int completedQty = 0;
 
+                // Priority 1: Check if note line itself already has assigned lineman
+                final rawLmId = line['assigned_lineman_id']?.toString().trim();
+                final rawLmName = (line['assigned_lineman_name'] ?? line['lineman_name'])?.toString().trim();
+                if (rawLmId != null && rawLmId.isNotEmpty) {
+                  linemanId = rawLmId;
+                  linemanName = (rawLmName != null && rawLmName.isNotEmpty) ? rawLmName : 'Lineman';
+                  lineStatus = 'IN_PROGRESS';
+                } else if (rawLmName != null && rawLmName.isNotEmpty && !rawLmName.toLowerCase().contains('unassigned')) {
+                  linemanName = rawLmName;
+                  lineStatus = 'IN_PROGRESS';
+                }
+
+                // Priority 2: Override / enrich from live child allotment record if matched
                 if (matchingAl != null) {
                   allotmentId = matchingAl['id']?.toString();
                   if (matchingAl['lineman_id'] != null) {
                     linemanId = matchingAl['lineman_id']?.toString();
                     final prof = matchingAl['profiles'] as Map?;
-                    linemanName = prof?['username']?.toString() ?? 'Lineman';
+                    linemanName = prof?['username']?.toString() ?? linemanName ?? 'Lineman';
                     lineStatus = matchingAl['status']?.toString().toUpperCase() ?? 'IN_PROGRESS';
                   }
 
@@ -278,6 +318,11 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                   ),
                 );
               }
+            }
+
+            // Auto-heal / backfill missing floor allotments for legacy / imported challans with assigned linemen
+            if (chAllotments.isEmpty && rawLineItems.isNotEmpty) {
+              _syncMissingAllotmentsFromNotes(chJson, rawLineItems);
             }
           }
         } catch (_) {}
@@ -327,7 +372,13 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
 
       // Dynamic Status Calculation matching Web
       final totalLines = parsedLines.length;
-      final allottedLines = parsedLines.where((a) => a.assignedLinemanId != null && a.assignedLinemanId!.isNotEmpty && a.status != 'PENDING').length;
+      final allottedLines = parsedLines.where((a) {
+        final hasLineman = (a.assignedLinemanId != null && a.assignedLinemanId!.isNotEmpty) ||
+            (a.assignedLinemanName != null &&
+                a.assignedLinemanName!.isNotEmpty &&
+                !a.assignedLinemanName!.toLowerCase().contains('unassigned'));
+        return hasLineman && a.status != 'PENDING';
+      }).length;
       final completedLines = parsedLines.where((a) => a.status == 'QC_PASSED' || a.status == 'COMPLETED').length;
       final dispatchedLines = parsedLines.where((a) => a.status == 'DISPATCHED').length;
 
@@ -341,6 +392,8 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
         dynamicStatus = 'IN_PROGRESS';
       } else if (allottedLines > 0) {
         dynamicStatus = 'PARTIALLY_ALLOTTED';
+      } else if (rawStatus == 'IN_PROGRESS' || rawStatus == 'ALLOTTED') {
+        dynamicStatus = 'IN_PROGRESS';
       } else {
         dynamicStatus = 'PENDING';
       }
@@ -365,30 +418,7 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       groupedList.add(groupedOrder);
     }
 
-    // Apply Filters
-    var filtered = groupedList;
-
-    if (filter.selectedBrand != 'ALL') {
-      filtered = filtered.where((c) => c.brand.toUpperCase() == filter.selectedBrand.toUpperCase()).toList();
-    }
-
-    if (filter.selectedStatus == 'PENDING') {
-      filtered = filtered.where((c) => c.status == 'PENDING' || c.status == 'PARTIALLY_ALLOTTED').toList();
-    } else if (filter.selectedStatus == 'ALLOTTED') {
-      filtered = filtered.where((c) => c.status != 'PENDING').toList();
-    }
-
-    if (filter.searchQuery.trim().isNotEmpty) {
-      final q = filter.searchQuery.trim().toLowerCase();
-      filtered = filtered.where((c) {
-        return c.challanNo.toLowerCase().contains(q) ||
-            c.brand.toLowerCase().contains(q) ||
-            (c.fabricType?.toLowerCase().contains(q) ?? false) ||
-            c.articles.any((a) => a.artNo.toLowerCase().contains(q) || a.colorPattern.toLowerCase().contains(q));
-      }).toList();
-    }
-
-    return filtered;
+    return groupedList;
   } catch (e, stack) {
     debugPrint('Error loading grouped challans: $e\n$stack');
     return [];
@@ -481,32 +511,16 @@ Future<String?> allotFullChallanDirectlyInSupabase(String challanId, String line
 
               if (artId != null && !existingArtIds.contains(artId)) {
                 existingArtIds.add(artId);
-                Map<String, dynamic> newAl;
-                try {
-                  newAl = await supabase.from('allotments').insert({
-                    'challan_id': challanId,
-                    'lineman_id': linemanId,
-                    'article_id': artId,
-                    'target_qty': linePcs,
-                    'status': 'IN_PROGRESS',
-                    'qc_status': 'PENDING_STITCHING',
-                    'mending_status': 'PENDING_STITCHING',
-                    'allotment_date': todayDate,
-                    'production_order_no': ch['challan_no'],
-                    'client_challan_no': ch['challan_no'],
-                  }).select('id').single();
-                } catch (_) {
-                  newAl = await supabase.from('allotments').insert({
-                    'challan_id': challanId,
-                    'lineman_id': linemanId,
-                    'article_id': artId,
-                    'target_qty': linePcs,
-                    'status': 'IN_PROGRESS',
-                    'qc_status': 'PENDING_STITCHING',
-                    'mending_status': 'PENDING_STITCHING',
-                    'allotment_date': todayDate,
-                  }).select('id').single();
-                }
+                final newAl = await supabase.from('allotments').insert({
+                  'challan_id': challanId,
+                  'lineman_id': linemanId,
+                  'article_id': artId,
+                  'target_qty': linePcs,
+                  'status': 'IN_PROGRESS',
+                  'qc_status': 'PENDING_STITCHING',
+                  'mending_status': 'PENDING_STITCHING',
+                  'allotment_date': todayDate,
+                }).select('id').single();
 
                 final aId = newAl['id']?.toString();
                 if (aId != null) {
@@ -528,6 +542,8 @@ Future<String?> allotFullChallanDirectlyInSupabase(String challanId, String line
                       'client_challan_no': ch['challan_no'],
                       'color_pattern': color,
                       'size_range': size,
+                      'brand': ch['brand'],
+                      'fabric': ch['fabric_type'],
                     }),
                   });
                 }
@@ -597,32 +613,16 @@ Future<String?> allotColorGroupDirectlyInSupabase(String challanId, String color
       }
 
       if (artId != null) {
-        Map<String, dynamic> newAl;
-        try {
-          newAl = await supabase.from('allotments').insert({
-            'challan_id': challanId,
-            'lineman_id': linemanId,
-            'article_id': artId,
-            'target_qty': linePcs,
-            'status': 'IN_PROGRESS',
-            'qc_status': 'PENDING_STITCHING',
-            'mending_status': 'PENDING_STITCHING',
-            'allotment_date': todayDate,
-            'production_order_no': ch['challan_no'],
-            'client_challan_no': ch['challan_no'],
-          }).select('id').single();
-        } catch (_) {
-          newAl = await supabase.from('allotments').insert({
-            'challan_id': challanId,
-            'lineman_id': linemanId,
-            'article_id': artId,
-            'target_qty': linePcs,
-            'status': 'IN_PROGRESS',
-            'qc_status': 'PENDING_STITCHING',
-            'mending_status': 'PENDING_STITCHING',
-            'allotment_date': todayDate,
-          }).select('id').single();
-        }
+        final newAl = await supabase.from('allotments').insert({
+          'challan_id': challanId,
+          'lineman_id': linemanId,
+          'article_id': artId,
+          'target_qty': linePcs,
+          'status': 'IN_PROGRESS',
+          'qc_status': 'PENDING_STITCHING',
+          'mending_status': 'PENDING_STITCHING',
+          'allotment_date': todayDate,
+        }).select('id').single();
 
         final aId = newAl['id']?.toString();
         if (aId != null) {
@@ -695,6 +695,129 @@ Future<bool> deleteChallanInSupabase(String challanId) async {
   }
 }
 
+class _GroupedAllotmentData {
+  final Map<String, dynamic> artObj;
+  final String resolvedLinemanId;
+  final String resolvedLinemanName;
+  int totalTargetQty;
+  final String fullArtCode;
+  final Map<String, Map<String, dynamic>> variantsMap;
+  final Set<String> descriptions;
+
+  _GroupedAllotmentData({
+    required this.artObj,
+    required this.resolvedLinemanId,
+    required this.resolvedLinemanName,
+    required this.totalTargetQty,
+    required this.fullArtCode,
+    required this.variantsMap,
+    required this.descriptions,
+  });
+}
+
+/// Auto-sync / backfill missing floor allotments for legacy / imported challans with assigned linemen
+void _syncMissingAllotmentsFromNotes(Map<String, dynamic> chJson, List<dynamic> lines) async {
+  try {
+    final chId = chJson['id']?.toString();
+    if (chId == null || chId.isEmpty) return;
+    final chNo = chJson['challan_no']?.toString() ?? '';
+    final chDate = chJson['challan_date']?.toString() ?? DateTime.now().toIso8601String().split('T')[0];
+    final fabric = chJson['fabric_type']?.toString() ?? '';
+    final brand = chJson['brand']?.toString() ?? 'OLLYPOP';
+
+    final allProfiles = await supabase.from('profiles').select('id, username').eq('is_active', true);
+    final Map<String, String> profileMap = {};
+    for (var p in allProfiles) {
+      final u = p['username']?.toString().trim().toLowerCase();
+      final id = p['id']?.toString();
+      if (u != null && id != null) profileMap[u] = id;
+    }
+
+    bool anyCreated = false;
+    for (var line in lines) {
+      if (line is! Map) continue;
+      final rawLmId = line['assigned_lineman_id']?.toString().trim();
+      final rawLmName = (line['assigned_lineman_name'] ?? line['lineman_name'])?.toString().trim();
+      String? resolvedLmId = (rawLmId != null && rawLmId.isNotEmpty) ? rawLmId : null;
+      if (resolvedLmId == null && rawLmName != null && rawLmName.isNotEmpty) {
+        resolvedLmId = profileMap[rawLmName.toLowerCase()];
+      }
+      if (resolvedLmId == null || resolvedLmId.isEmpty) continue;
+
+      final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? '';
+      final fullArtCode = (line['full_art_code'] ?? cleanArtNo).toString().trim().toUpperCase();
+
+      var artObj = await supabase.from('articles').select('id, description, art_no').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+      if (artObj == null && fullArtCode != cleanArtNo) {
+        artObj = await supabase.from('articles').select('id, description, art_no').eq('art_no', fullArtCode).limit(1).maybeSingle();
+      }
+      if (artObj == null) {
+        final newArt = await supabase.from('articles').insert({
+          'art_no': cleanArtNo,
+          'description': line['description']?.toString() ?? cleanArtNo,
+          'stitching_rate': (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+          'is_active': true,
+        }).select('id').single();
+        artObj = newArt;
+      }
+
+      final artId = artObj['id'].toString();
+      final linePcs = (line['total_pcs'] as num?)?.toInt() ?? 100;
+      final color = line['color_pattern']?.toString().trim() ?? 'Standard';
+      final size = line['size_range']?.toString().trim() ?? 'Free Size';
+
+      final newAl = await supabase.from('allotments').insert({
+        'challan_id': chId,
+        'lineman_id': resolvedLmId,
+        'article_id': artId,
+        'target_qty': linePcs,
+        'status': 'IN_PROGRESS',
+        'qc_status': 'PENDING_STITCHING',
+        'mending_status': 'PENDING_STITCHING',
+        'allotment_date': chDate,
+      }).select('id').single();
+
+      final aId = newAl['id']?.toString();
+      if (aId != null) {
+        anyCreated = true;
+        await supabase.from('allotment_variants').insert({
+          'allotment_id': aId,
+          'color': color,
+          'size': size,
+          'quantity': linePcs,
+          'completed_qty': 0,
+        });
+
+        final matNote = jsonEncode({
+          'lineman_id': resolvedLmId,
+          'lineman_name': rawLmName ?? 'Lineman',
+          'article_id': artId,
+          'art_no': cleanArtNo,
+          'article_description': line['description']?.toString() ?? '',
+          'client_challan_no': chNo,
+          'brand': brand,
+          'fabric': fabric,
+          'total_pcs': linePcs,
+          'status': 'PENDING',
+        });
+
+        await supabase.from('allotment_materials').insert([
+          {'allotment_id': aId, 'item_name': 'Main Fabric ($fabric)', 'required_qty': 'As per lot', 'admin_issued': false, 'notes': matNote},
+          {'allotment_id': aId, 'item_name': 'Matching Sewing Thread', 'required_qty': '5 Cones', 'admin_issued': false, 'notes': matNote},
+          {'allotment_id': aId, 'item_name': 'Main Brand Neck Tag', 'required_qty': '$linePcs pcs', 'admin_issued': false, 'notes': matNote},
+          {'allotment_id': aId, 'item_name': 'Master Polybags', 'required_qty': '$linePcs pcs', 'admin_issued': false, 'notes': matNote},
+        ]);
+      }
+    }
+
+    if (anyCreated) {
+      await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', chId);
+    }
+  } catch (e) {
+    debugPrint('Auto sync background error: $e');
+  }
+}
+
 /// Create a Multi-Article Job Work Delivery Challan (100% Web Admin Parity)
 Future<String?> createChallanInSupabase({
   required String challanNo,
@@ -728,7 +851,18 @@ Future<String?> createChallanInSupabase({
     final grandTotalSets = articleLines.fold<int>(0, (sum, l) => sum + ((l['sets'] as num?)?.toInt() ?? 1));
     final grandTotalPcs = articleLines.fold<int>(0, (sum, l) => sum + ((l['total_pcs'] as num?)?.toInt() ?? 0));
 
-    // 2. Process and save article catalog styles with size_rates._meta
+    // 2. Fetch all profiles for username to id resolution
+    final allProfiles = await supabase.from('profiles').select('id, username').eq('is_active', true);
+    final Map<String, String> profileMap = {};
+    final Map<String, String> profileIdToName = {};
+    for (var p in allProfiles) {
+      final u = p['username']?.toString().trim().toLowerCase();
+      final id = p['id']?.toString();
+      if (u != null && id != null) profileMap[u] = id;
+      if (id != null && p['username'] != null) profileIdToName[id] = p['username'].toString();
+    }
+
+    // 3. Process and save article catalog styles with size_rates._meta
     final List<Map<String, dynamic>> processedLines = [];
     for (var line in articleLines) {
       final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? '';
@@ -738,6 +872,16 @@ Future<String?> createChallanInSupabase({
           (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
       final lineSets = (line['sets'] as num?)?.toInt() ?? 1;
       final lineRatio = (line['pcs_per_set'] as num?)?.toInt() ?? 9;
+
+      final rawLmId = line['assigned_lineman_id']?.toString().trim();
+      final rawLmName = (line['assigned_lineman_name'] ?? line['lineman_name'])?.toString().trim();
+      String? resolvedLmId = (rawLmId != null && rawLmId.isNotEmpty) ? rawLmId : null;
+      if (resolvedLmId == null && rawLmName != null && rawLmName.isNotEmpty) {
+        resolvedLmId = profileMap[rawLmName.toLowerCase()];
+      }
+      final resolvedLmName = resolvedLmId != null
+          ? (profileIdToName[resolvedLmId] ?? rawLmName ?? 'Lineman')
+          : (rawLmName ?? '');
 
       if (fullArtCode.isNotEmpty) {
         final existing = await supabase.from('articles').select('id').eq('art_no', fullArtCode).limit(1).maybeSingle();
@@ -765,21 +909,35 @@ Future<String?> createChallanInSupabase({
 
       processedLines.add({
         ...line,
+        'art_no': cleanArtNo,
+        'sub_art_no': cleanSubArt,
         'full_art_code': fullArtCode,
         'sets': lineSets,
         'pcs_per_set': lineRatio,
         'total_pcs': linePcs,
+        'assigned_lineman_id': resolvedLmId,
+        'assigned_lineman_name': resolvedLmName,
+        'status': resolvedLmId != null ? 'IN_PROGRESS' : 'PENDING',
       });
     }
 
-    // 3. Structured Challan Notes JSON
+    // 4. Calculate Challan Status
+    final assignedCount = processedLines.where((l) => l['assigned_lineman_id'] != null && l['assigned_lineman_id'].toString().isNotEmpty).length;
+    String challanStatus = 'PENDING';
+    if (assignedCount == processedLines.length && processedLines.isNotEmpty) {
+      challanStatus = 'IN_PROGRESS';
+    } else if (assignedCount > 0) {
+      challanStatus = 'PARTIALLY_ALLOTTED';
+    }
+
+    // 5. Structured Challan Notes JSON
     final notesJson = jsonEncode({
       'user_notes': notes.trim(),
       'article_lines': processedLines,
     });
 
-    // 4. Insert into `challans` table
-    await supabase.from('challans').insert({
+    // 6. Insert into `challans` table
+    final newChallanRes = await supabase.from('challans').insert({
       'challan_no': cleanChallanNo,
       'challan_date': challanDate,
       'brand': brand.trim().toUpperCase(),
@@ -789,9 +947,148 @@ Future<String?> createChallanInSupabase({
       'notes': notesJson,
       'total_sets': grandTotalSets,
       'total_pcs': grandTotalPcs,
-      'status': 'PENDING',
+      'status': challanStatus,
       'bom_details': bomItems,
-    });
+    }).select('id').single();
+
+    final newChallanId = newChallanRes['id']?.toString();
+    if (newChallanId == null) {
+      return 'Failed to obtain new challan id from database.';
+    }
+
+    // 7. Auto-create Allotments for any article lines with assigned Lineman (100% Web Admin Parity)
+    final Map<String, _GroupedAllotmentData> groupedAllotmentMap = {};
+
+    for (var line in processedLines) {
+      final resolvedLinemanId = line['assigned_lineman_id']?.toString();
+      if (resolvedLinemanId == null || resolvedLinemanId.isEmpty) continue;
+
+      final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? '';
+      final fullArtCode = line['full_art_code']?.toString().trim().toUpperCase() ?? cleanArtNo;
+
+      var artObj = await supabase.from('articles').select('id, description, art_no').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+      if (artObj == null && fullArtCode != cleanArtNo) {
+        artObj = await supabase.from('articles').select('id, description, art_no').eq('art_no', fullArtCode).limit(1).maybeSingle();
+      }
+
+      if (artObj == null) continue;
+
+      final artId = artObj['id'].toString();
+      final key = '${artId}__$resolvedLinemanId';
+      final linePcs = (line['total_pcs'] as num?)?.toInt() ?? 0;
+      final resolvedLinemanName = line['assigned_lineman_name']?.toString() ?? 'Lineman';
+
+      if (!groupedAllotmentMap.containsKey(key)) {
+        groupedAllotmentMap[key] = _GroupedAllotmentData(
+          artObj: artObj,
+          resolvedLinemanId: resolvedLinemanId,
+          resolvedLinemanName: resolvedLinemanName,
+          totalTargetQty: 0,
+          fullArtCode: cleanArtNo,
+          variantsMap: {},
+          descriptions: <String>{},
+        );
+      }
+
+      final grp = groupedAllotmentMap[key]!;
+      grp.totalTargetQty += linePcs;
+      if (line['description'] != null) grp.descriptions.add(line['description'].toString());
+
+      final color = (line['color_pattern']?.toString().trim().isNotEmpty == true) ? line['color_pattern'].toString().trim() : 'Standard';
+      final sizeRange = (line['size_range']?.toString().trim().isNotEmpty == true) ? line['size_range'].toString().trim() : 'Free Size';
+      final sizeList = sizeRange.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      final perSizeQty = (sizeList.isNotEmpty) ? (linePcs / sizeList.length).round() : linePcs;
+
+      for (var sz in (sizeList.isNotEmpty ? sizeList : [sizeRange])) {
+        final vKey = '${color.toUpperCase()}__${sz.toUpperCase()}';
+        final curQty = grp.variantsMap[vKey]?['quantity'] ?? 0;
+        grp.variantsMap[vKey] = {
+          'color': color,
+          'size': sz,
+          'quantity': curQty + perSizeQty,
+        };
+      }
+    }
+
+    for (var grp in groupedAllotmentMap.values) {
+      final newAl = await supabase.from('allotments').insert({
+        'challan_id': newChallanId,
+        'article_id': grp.artObj['id'],
+        'lineman_id': grp.resolvedLinemanId,
+        'target_qty': grp.totalTargetQty,
+        'status': 'IN_PROGRESS',
+        'qc_status': 'PENDING_STITCHING',
+        'mending_status': 'PENDING_STITCHING',
+        'allotment_date': challanDate,
+      }).select('id').single();
+
+      final alId = newAl['id']?.toString();
+      if (alId != null) {
+        final vars = grp.variantsMap.values.map((v) => {
+          'allotment_id': alId,
+          'color': v['color'] ?? 'Standard',
+          'size': v['size'] ?? 'Free',
+          'quantity': v['quantity'],
+          'completed_qty': 0,
+        }).toList();
+
+        if (vars.isNotEmpty) {
+          try {
+            await supabase.from('allotment_variants').insert(vars);
+          } catch (vErr) {
+            debugPrint('Error inserting allotment_variants: $vErr');
+          }
+        }
+
+        final matNote = jsonEncode({
+          'lineman_id': grp.resolvedLinemanId,
+          'lineman_name': grp.resolvedLinemanName,
+          'article_id': grp.artObj['id'],
+          'art_no': grp.fullArtCode,
+          'article_description': grp.descriptions.isNotEmpty ? grp.descriptions.join(', ') : (grp.artObj['description'] ?? ''),
+          'client_challan_no': cleanChallanNo,
+          'brand': brand,
+          'fabric': fabricType ?? '',
+          'total_pcs': grp.totalTargetQty,
+          'status': 'PENDING',
+        });
+
+        try {
+          await supabase.from('allotment_materials').insert([
+            {
+              'allotment_id': alId,
+              'item_name': 'Main Fabric (${fabricType ?? "Sinker"})',
+              'required_qty': 'As per lot',
+              'admin_issued': false,
+              'notes': matNote,
+            },
+            {
+              'allotment_id': alId,
+              'item_name': 'Matching Sewing Thread',
+              'required_qty': '5 Cones',
+              'admin_issued': false,
+              'notes': matNote,
+            },
+            {
+              'allotment_id': alId,
+              'item_name': 'Main Brand Neck Tag',
+              'required_qty': '${grp.totalTargetQty} pcs',
+              'admin_issued': false,
+              'notes': matNote,
+            },
+            {
+              'allotment_id': alId,
+              'item_name': 'Master Polybags',
+              'required_qty': '${grp.totalTargetQty} pcs',
+              'admin_issued': false,
+              'notes': matNote,
+            },
+          ]);
+        } catch (mErr) {
+          debugPrint('Error inserting allotment_materials: $mErr');
+        }
+      }
+    }
 
     return null; // Success!
   } catch (e) {
@@ -1014,7 +1311,28 @@ Future<String?> createDetailedAllotmentInSupabase({
       return 'Could not resolve or create a valid Article ID for this allotment.';
     }
 
-    // 1. Insert into allotments
+    // 1. Resolve Challan ID if passed as ID, challanNo, or clientChallanNo
+    String? resolvedChallanId = challanId;
+    if ((resolvedChallanId == null || resolvedChallanId.isEmpty) && challanNo != null && challanNo.isNotEmpty) {
+      final cleanNo = challanNo.replaceAll('JOB-', '').trim();
+      try {
+        final ch = await supabase.from('challans').select('id').ilike('challan_no', cleanNo).limit(1).maybeSingle();
+        if (ch != null && ch['id'] != null) {
+          resolvedChallanId = ch['id'].toString();
+        }
+      } catch (_) {}
+    }
+    if ((resolvedChallanId == null || resolvedChallanId.isEmpty) && clientChallanNo.isNotEmpty) {
+      final cleanNo = clientChallanNo.replaceAll('JOB-', '').trim();
+      try {
+        final ch = await supabase.from('challans').select('id').ilike('challan_no', cleanNo).limit(1).maybeSingle();
+        if (ch != null && ch['id'] != null) {
+          resolvedChallanId = ch['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    // 2. Insert into allotments
     final allotPayload = <String, dynamic>{
       'lineman_id': linemanId,
       'article_id': resolvedArticleId,
@@ -1025,49 +1343,25 @@ Future<String?> createDetailedAllotmentInSupabase({
       'allotment_date': nowIso,
     };
 
-    if (managerName != null && managerName.isNotEmpty) {
-      allotPayload['manager_name'] = managerName;
-    }
-    if (challanNo != null && challanNo.isNotEmpty) {
-      allotPayload['production_order_no'] = challanNo;
-    }
-    if (dueDate != null) {
-      allotPayload['due_date'] = dueDate.toIso8601String().split('T')[0];
-    }
-    allotPayload['target_hours'] = targetHours;
-    allotPayload['priority'] = priority;
-    if (clientChallanNo.isNotEmpty) {
-      allotPayload['client_challan_no'] = clientChallanNo;
-    }
-    if (samplePhotos.isNotEmpty) {
-      allotPayload['sample_photos'] = samplePhotos;
+    if (resolvedChallanId != null && resolvedChallanId.isNotEmpty) {
+      allotPayload['challan_id'] = resolvedChallanId;
     }
 
-    Map<String, dynamic>? allotment;
-    try {
-      final res = await supabase.from('allotments').insert(allotPayload).select('id').single();
-      allotment = res;
-    } catch (err) {
-      // Fallback if optional schema columns not present
-      final fallbackPayload = <String, dynamic>{
-        'lineman_id': linemanId,
-        'article_id': resolvedArticleId,
-        'target_qty': targetQty,
-        'status': 'IN_PROGRESS',
-        'qc_status': 'PENDING_STITCHING',
-        'mending_status': 'PENDING_STITCHING',
-        'allotment_date': nowIso,
-      };
-      allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
-    }
+    final res = await supabase.from('allotments').insert(allotPayload).select('id').single();
+    final allotmentId = res['id']?.toString();
 
-    if (allotment['id'] == null) {
+    if (allotmentId == null) {
       return 'Failed to create allotment in database.';
     }
 
-    final allotmentId = allotment['id'].toString();
+    // 3. Update parent Challan status to IN_PROGRESS
+    if (resolvedChallanId != null && resolvedChallanId.isNotEmpty) {
+      try {
+        await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', resolvedChallanId);
+      } catch (_) {}
+    }
 
-    // 2. Insert variants
+    // 4. Insert variants
     if (variants.isNotEmpty) {
       final validVariants = variants
           .where((v) => (v['quantity'] as num? ?? 0) > 0)
@@ -1089,46 +1383,59 @@ Future<String?> createDetailedAllotmentInSupabase({
       }
     }
 
-    // 3. Insert materials checklist with notes metadata
-    if (materials.isNotEmpty) {
-      final notesJson = jsonEncode({
-        'lineman_name': linemanName ?? 'Lineman',
-        'article_id': articleId,
-        'art_no': articleNo ?? '',
-        'article_description': articleDesc ?? '',
-        'lineman_id': linemanId,
-        'production_order_no': challanNo ?? '',
-        'manager_name': managerName ?? 'Production Manager',
-        'due_date': dueDate != null ? dueDate.toIso8601String().split('T')[0] : '',
-        'target_hours': targetHours,
-        'priority': priority,
-        'client_challan_no': clientChallanNo,
-        'sample_photos': samplePhotos,
-        'status': 'PENDING',
-      });
+    // 5. Insert materials checklist with notes metadata
+    final notesJson = jsonEncode({
+      'lineman_name': linemanName ?? 'Lineman',
+      'article_id': resolvedArticleId,
+      'art_no': articleNo ?? '',
+      'article_description': articleDesc ?? '',
+      'lineman_id': linemanId,
+      'production_order_no': challanNo ?? '',
+      'manager_name': managerName ?? 'Production Manager',
+      'due_date': dueDate != null ? dueDate.toIso8601String().split('T')[0] : '',
+      'target_hours': targetHours,
+      'priority': priority,
+      'client_challan_no': clientChallanNo,
+      'sample_photos': samplePhotos,
+      'brand': brand ?? '',
+      'fabric': fabricType ?? '',
+      'total_pcs': targetQty,
+      'status': 'PENDING',
+    });
 
-      final validMaterials = materials
-          .where((m) => (m['item_name']?.toString().trim().isNotEmpty ?? false))
-          .map((m) => {
-                'allotment_id': allotmentId,
-                'item_name': m['item_name'].toString().trim(),
-                'required_qty': m['required_qty']?.toString().trim().isNotEmpty == true
-                    ? m['required_qty'].toString().trim()
-                    : 'As required',
-                'admin_issued': m['admin_issued'] == true,
-                'admin_issued_at': m['admin_issued'] == true ? DateTime.now().toIso8601String() : null,
-                'lineman_received': false,
-                'notes': notesJson,
-              })
-          .toList();
+    final validMaterials = materials
+        .where((m) => (m['item_name']?.toString().trim().isNotEmpty ?? false))
+        .map((m) => {
+              'allotment_id': allotmentId,
+              'item_name': m['item_name'].toString().trim(),
+              'required_qty': m['required_qty']?.toString().trim().isNotEmpty == true
+                  ? m['required_qty'].toString().trim()
+                  : 'As required',
+              'admin_issued': m['admin_issued'] == true,
+              'admin_issued_at': m['admin_issued'] == true ? DateTime.now().toIso8601String() : null,
+              'lineman_received': false,
+              'notes': notesJson,
+            })
+        .toList();
 
-      if (validMaterials.isNotEmpty) {
-        try {
-          await supabase.from('allotment_materials').insert(validMaterials);
-        } catch (mErr) {
-          debugPrint('Error inserting allotment_materials: $mErr');
-        }
-      }
+    final materialsToInsert = validMaterials.isNotEmpty
+        ? validMaterials
+        : [
+            {
+              'allotment_id': allotmentId,
+              'item_name': 'Main Fabric - Cut Panels',
+              'required_qty': '$targetQty pcs',
+              'admin_issued': true,
+              'admin_issued_at': DateTime.now().toIso8601String(),
+              'lineman_received': false,
+              'notes': notesJson,
+            }
+          ];
+
+    try {
+      await supabase.from('allotment_materials').insert(materialsToInsert);
+    } catch (mErr) {
+      debugPrint('Error inserting allotment_materials: $mErr');
     }
 
     return null; // Success!
