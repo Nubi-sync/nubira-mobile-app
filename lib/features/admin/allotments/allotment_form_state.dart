@@ -1,4 +1,42 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../challans/challan_models.dart';
+import '../models/admin_models.dart';
+
+/// Expands size tiers (e.g. 'L/XXL' -> ['L', 'XL', 'XXL'], '22X26' -> ['22', '24', '26']) matching Web Admin
+List<String> expandGarmentSizeTier(String? sizeTier) {
+  if (sizeTier == null || sizeTier.trim().isEmpty) return ['L', 'XL', 'XXL'];
+  final upper = sizeTier.trim().toUpperCase();
+
+  if (upper == 'L/XXL' || upper == 'L-XXL' || upper == 'L/XL/XXL') {
+    return ['L', 'XL', 'XXL'];
+  }
+  if (upper == '22X26' || upper == '22-26' || upper == '22/26') {
+    return ['22', '24', '26'];
+  }
+  if (upper == '28X32' || upper == '28-32' || upper == '28/32') {
+    return ['28', '30', '32'];
+  }
+  if (upper == '16X20' || upper == '16-20' || upper == '16/20') {
+    return ['16', '18', '20'];
+  }
+  if (upper == 'S/M/L' || upper == 'S-L') {
+    return ['S', 'M', 'L'];
+  }
+  if (upper == 'M/L/XL' || upper == 'M-XL') {
+    return ['M', 'L', 'XL'];
+  }
+  if (upper == '2X6' || upper == '2X8') {
+    return ['2', '4', '6'];
+  }
+  if (upper.contains('/') || upper.contains(',')) {
+    return upper
+        .split(RegExp(r'[/,]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+  return [upper];
+}
 
 /// Predefined standard garment size presets (matching web)
 class SizePreset {
@@ -419,6 +457,263 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
           state.materials[idx].source == 'CLIENT' ? 'FACTORY_STORE' : 'CLIENT';
       _notify();
     }
+  }
+
+  void prefillFromColorLineGroup({
+    required ChallanGroupedOrder challan,
+    required ColorLineGroup colorGroup,
+    required String linemanId,
+    required String linemanName,
+    required List<AdminArticle> articles,
+  }) {
+    state.linemanId = linemanId;
+    state.linemanName = linemanName;
+    state.challanId = challan.id;
+    state.challanNo = challan.challanNo;
+    state.brand = challan.brand;
+    state.fabricType = challan.fabricType;
+    final challanRef = challan.challanNo.startsWith('JOB-')
+        ? challan.challanNo
+        : 'JOB-${challan.challanNo}';
+    state.clientChallanNo = challanRef;
+
+    if (challan.deliveryDate != null && challan.deliveryDate!.isNotEmpty) {
+      try {
+        state.dueDate = DateTime.parse(challan.deliveryDate!);
+      } catch (_) {}
+    }
+
+    // Find matching article
+    final firstArt = challan.articles.isNotEmpty ? challan.articles.first : null;
+    final firstArtNo = firstArt?.artNo.trim().toUpperCase() ?? '';
+    AdminArticle? matchedArticle;
+    if (firstArtNo.isNotEmpty) {
+      for (var a in articles) {
+        if (a.artNo.trim().toUpperCase() == firstArtNo) {
+          matchedArticle = a;
+          break;
+        }
+      }
+    }
+    matchedArticle ??= articles.isNotEmpty ? articles.first : null;
+
+    state.articleId = matchedArticle?.id ?? (firstArt != null && firstArt.id.isNotEmpty ? firstArt.id : challan.id);
+    state.articleNo = matchedArticle?.artNo ?? (firstArt != null && firstArt.artNo.isNotEmpty ? firstArt.artNo : challan.challanNo);
+    state.articleDesc = challan.brand.isNotEmpty
+        ? '${challan.challanNo} (${challan.brand}) • ${colorGroup.colorName} LINE'
+        : '${challan.challanNo} • ${colorGroup.colorName} LINE';
+
+    // Expand sizes and compute quantities
+    final List<String> allIndividualSizes = [];
+    final Map<String, int> perCellQtys = {};
+
+    colorGroup.sizeBreakdown.forEach((tierName, tierPcs) {
+      final subSizes = expandGarmentSizeTier(tierName);
+      final perSubSizeQty =
+          (tierPcs / (subSizes.isEmpty ? 1 : subSizes.length)).round();
+      for (var s in subSizes) {
+        if (!allIndividualSizes.contains(s)) {
+          allIndividualSizes.add(s);
+        }
+        perCellQtys[s] = (perCellQtys[s] ?? 0) + perSubSizeQty;
+      }
+    });
+
+    state.selectedSizes =
+        allIndividualSizes.isNotEmpty ? allIndividualSizes : ['S', 'M', 'L', 'XL'];
+    state.colorRows = [
+      ColorMatrixRow(
+        id: '1',
+        color: colorGroup.colorName,
+        quantities: perCellQtys,
+      )
+    ];
+
+    // Auto-generate BOM matching Web Admin
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final totalPcs = colorGroup.totalPcs;
+    final threadCones = totalPcs > 0 ? (totalPcs / 250).ceil() : 4;
+    final minThread = threadCones < 4 ? 4 : threadCones;
+    final sizesStr = allIndividualSizes.join(', ');
+    final fabricLabel = (challan.fabricType != null && challan.fabricType!.isNotEmpty)
+        ? challan.fabricType!
+        : 'Sinker';
+
+    state.materials = [
+      BomItem(
+        id: 'mat_fab_$now',
+        itemName:
+            '${colorGroup.colorName} Fabric Lot ($fabricLabel)',
+        requiredQty: 'As per roll marker',
+        adminIssued: true,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_thread_$now',
+        itemName: 'Matching Sewing Thread (${colorGroup.colorName})',
+        requiredQty: '$minThread Cones',
+        adminIssued: true,
+        source: 'FACTORY_STORE',
+      ),
+      BomItem(
+        id: 'mat_neck_$now',
+        itemName:
+            '${challan.brand.isNotEmpty ? challan.brand : "Brand"} Main Neck Labels',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_size_$now',
+        itemName: 'Size Labels ($sizesStr)',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_poly_$now',
+        itemName: 'Master Polybags',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+    ];
+
+    _notify();
+  }
+
+  void prefillFromFullChallan({
+    required ChallanGroupedOrder challan,
+    required String linemanId,
+    required String linemanName,
+    required List<AdminArticle> articles,
+  }) {
+    state.linemanId = linemanId;
+    state.linemanName = linemanName;
+    state.challanId = challan.id;
+    state.challanNo = challan.challanNo;
+    state.brand = challan.brand;
+    state.fabricType = challan.fabricType;
+    final challanRef = challan.challanNo.startsWith('JOB-')
+        ? challan.challanNo
+        : 'JOB-${challan.challanNo}';
+    state.clientChallanNo = challanRef;
+
+    if (challan.deliveryDate != null && challan.deliveryDate!.isNotEmpty) {
+      try {
+        state.dueDate = DateTime.parse(challan.deliveryDate!);
+      } catch (_) {}
+    }
+
+    // Find matching article
+    final firstArt = challan.articles.isNotEmpty ? challan.articles.first : null;
+    final firstArtNo = firstArt?.artNo.trim().toUpperCase() ?? '';
+    AdminArticle? matchedArticle;
+    if (firstArtNo.isNotEmpty) {
+      for (var a in articles) {
+        if (a.artNo.trim().toUpperCase() == firstArtNo) {
+          matchedArticle = a;
+          break;
+        }
+      }
+    }
+    matchedArticle ??= articles.isNotEmpty ? articles.first : null;
+
+    state.articleId = matchedArticle?.id ?? (firstArt != null && firstArt.id.isNotEmpty ? firstArt.id : challan.id);
+    state.articleNo = matchedArticle?.artNo ?? (firstArt != null && firstArt.artNo.isNotEmpty ? firstArt.artNo : challan.challanNo);
+    state.articleDesc = challan.brand.isNotEmpty
+        ? '${challan.challanNo} (${challan.brand}) • FULL CHALLAN'
+        : '${challan.challanNo} • FULL CHALLAN';
+
+    // Build matrix rows for all color lines
+    final Set<String> fullChallanSizes = {};
+    final List<ColorMatrixRow> rows = [];
+
+    for (int i = 0; i < challan.colorLines.length; i++) {
+      final cl = challan.colorLines[i];
+      final Map<String, int> perCellQtys = {};
+
+      cl.sizeBreakdown.forEach((tierName, tierPcs) {
+        final subSizes = expandGarmentSizeTier(tierName);
+        final perSubSizeQty =
+            (tierPcs / (subSizes.isEmpty ? 1 : subSizes.length)).round();
+        for (var s in subSizes) {
+          fullChallanSizes.add(s);
+          perCellQtys[s] = (perCellQtys[s] ?? 0) + perSubSizeQty;
+        }
+      });
+
+      rows.add(ColorMatrixRow(
+        id: (i + 1).toString(),
+        color: cl.colorName,
+        quantities: perCellQtys,
+      ));
+    }
+
+    state.selectedSizes = fullChallanSizes.isNotEmpty
+        ? fullChallanSizes.toList()
+        : ['S', 'M', 'L', 'XL'];
+    state.colorRows = rows.isNotEmpty
+        ? rows
+        : [
+            ColorMatrixRow(
+              id: '1',
+              color: 'Standard Color',
+              quantities: {for (var s in state.selectedSizes) s: challan.totalPcs},
+            )
+          ];
+
+    // Auto-generate BOM
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final totalPcs = challan.totalPcs;
+    final threadCones = totalPcs > 0 ? (totalPcs / 250).ceil() : 4;
+    final minThread = threadCones < 4 ? 4 : threadCones;
+    final sizesStr = state.selectedSizes.join(', ');
+    final fabricLabel = (challan.fabricType != null && challan.fabricType!.isNotEmpty)
+        ? challan.fabricType!
+        : 'Sinker';
+
+    state.materials = [
+      BomItem(
+        id: 'mat_fab_$now',
+        itemName:
+            'Fabric Lots ($fabricLabel) - Multi Color',
+        requiredQty: 'As per roll marker',
+        adminIssued: true,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_thread_$now',
+        itemName: 'Matching Sewing Thread Cones',
+        requiredQty: '$minThread Cones',
+        adminIssued: true,
+        source: 'FACTORY_STORE',
+      ),
+      BomItem(
+        id: 'mat_neck_$now',
+        itemName:
+            '${challan.brand.isNotEmpty ? challan.brand : "Brand"} Main Neck Labels',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_size_$now',
+        itemName: 'Size Labels ($sizesStr)',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+      BomItem(
+        id: 'mat_poly_$now',
+        itemName: 'Master Polybags',
+        requiredQty: '$totalPcs pcs',
+        adminIssued: false,
+        source: 'CLIENT',
+      ),
+    ];
+
+    _notify();
   }
 
   void reset() {

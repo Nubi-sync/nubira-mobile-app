@@ -481,18 +481,32 @@ Future<String?> allotFullChallanDirectlyInSupabase(String challanId, String line
 
               if (artId != null && !existingArtIds.contains(artId)) {
                 existingArtIds.add(artId);
-                final newAl = await supabase.from('allotments').insert({
-                  'challan_id': challanId,
-                  'lineman_id': linemanId,
-                  'article_id': artId,
-                  'target_qty': linePcs,
-                  'status': 'IN_PROGRESS',
-                  'qc_status': 'PENDING_STITCHING',
-                  'mending_status': 'PENDING_STITCHING',
-                  'allotment_date': todayDate,
-                  'production_order_no': ch['challan_no'],
-                  'client_challan_no': ch['challan_no'],
-                }).select('id').single();
+                Map<String, dynamic> newAl;
+                try {
+                  newAl = await supabase.from('allotments').insert({
+                    'challan_id': challanId,
+                    'lineman_id': linemanId,
+                    'article_id': artId,
+                    'target_qty': linePcs,
+                    'status': 'IN_PROGRESS',
+                    'qc_status': 'PENDING_STITCHING',
+                    'mending_status': 'PENDING_STITCHING',
+                    'allotment_date': todayDate,
+                    'production_order_no': ch['challan_no'],
+                    'client_challan_no': ch['challan_no'],
+                  }).select('id').single();
+                } catch (_) {
+                  newAl = await supabase.from('allotments').insert({
+                    'challan_id': challanId,
+                    'lineman_id': linemanId,
+                    'article_id': artId,
+                    'target_qty': linePcs,
+                    'status': 'IN_PROGRESS',
+                    'qc_status': 'PENDING_STITCHING',
+                    'mending_status': 'PENDING_STITCHING',
+                    'allotment_date': todayDate,
+                  }).select('id').single();
+                }
 
                 final aId = newAl['id']?.toString();
                 if (aId != null) {
@@ -583,18 +597,32 @@ Future<String?> allotColorGroupDirectlyInSupabase(String challanId, String color
       }
 
       if (artId != null) {
-        final newAl = await supabase.from('allotments').insert({
-          'challan_id': challanId,
-          'lineman_id': linemanId,
-          'article_id': artId,
-          'target_qty': linePcs,
-          'status': 'IN_PROGRESS',
-          'qc_status': 'PENDING_STITCHING',
-          'mending_status': 'PENDING_STITCHING',
-          'allotment_date': todayDate,
-          'production_order_no': ch['challan_no'],
-          'client_challan_no': ch['challan_no'],
-        }).select('id').single();
+        Map<String, dynamic> newAl;
+        try {
+          newAl = await supabase.from('allotments').insert({
+            'challan_id': challanId,
+            'lineman_id': linemanId,
+            'article_id': artId,
+            'target_qty': linePcs,
+            'status': 'IN_PROGRESS',
+            'qc_status': 'PENDING_STITCHING',
+            'mending_status': 'PENDING_STITCHING',
+            'allotment_date': todayDate,
+            'production_order_no': ch['challan_no'],
+            'client_challan_no': ch['challan_no'],
+          }).select('id').single();
+        } catch (_) {
+          newAl = await supabase.from('allotments').insert({
+            'challan_id': challanId,
+            'lineman_id': linemanId,
+            'article_id': artId,
+            'target_qty': linePcs,
+            'status': 'IN_PROGRESS',
+            'qc_status': 'PENDING_STITCHING',
+            'mending_status': 'PENDING_STITCHING',
+            'allotment_date': todayDate,
+          }).select('id').single();
+        }
 
         final aId = newAl['id']?.toString();
         if (aId != null) {
