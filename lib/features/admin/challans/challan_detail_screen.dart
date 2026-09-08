@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/admin_providers.dart';
 import '../models/admin_models.dart';
-import '../allotments/allotment_form_state.dart';
-import '../allotments/allotment_step1_screen.dart';
 import 'challan_models.dart';
 import 'challan_reference_sheet_screen.dart';
 import 'widgets/challan_summary_card.dart';
@@ -52,7 +50,10 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     }
   }
 
-  void _handleFullChallanAllotment(List<AdminEmployee> linemen) {
+  final Map<String, bool> _isAllottingColorMap = {};
+  bool _isAllottingFull = false;
+
+  Future<void> _handleFullChallanAllotment(List<AdminEmployee> linemen) async {
     if (_globalLinemanId == null || _globalLinemanId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -73,26 +74,49 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
       ),
     );
 
-    final articles = ref.read(adminArticlesListProvider).value ?? [];
-
-    ref.read(allotmentFormProvider.notifier).prefillFromFullChallan(
-          challan: widget.challan,
-          linemanId: lineman.id,
-          linemanName: lineman.username,
-          articles: articles,
-        );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AllotmentStep1Screen()),
-    ).then((_) {
-      ref.invalidate(challanGroupedOrdersProvider);
-      ref.invalidate(adminDashboardProvider);
-      ref.invalidate(adminAllotmentsListProvider);
+    setState(() {
+      _isAllottingFull = true;
     });
+
+    final error = await allotFullChallanDirectlyInSupabase(
+      widget.challan.id,
+      lineman.id,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isAllottingFull = false;
+      });
+
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to allot full challan: $error'),
+            backgroundColor: const Color(0xFFBE123C),
+          ),
+        );
+      } else {
+        ref.invalidate(challanGroupedOrdersProvider);
+        ref.invalidate(adminDashboardProvider);
+        ref.invalidate(adminAllotmentsListProvider);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text('✅ Full challan allotted to ${lineman.username} successfully!')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF047857),
+          ),
+        );
+      }
+    }
   }
 
-  void _handleColorLineAllotment(String colorName, List<AdminEmployee> linemen) {
+  Future<void> _handleColorLineAllotment(String colorName, List<AdminEmployee> linemen) async {
     final linemanId = _colorLinemanMap[colorName] ?? _globalLinemanId;
     if (linemanId == null || linemanId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,35 +138,47 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
       ),
     );
 
-    final colorGroup = widget.challan.colorLines.firstWhere(
-      (cl) => cl.colorName.trim().toUpperCase() == colorName.trim().toUpperCase(),
-      orElse: () => ColorLineGroup(
-        colorName: colorName,
-        themeColor: const Color(0xFF332B6B),
-        bgLight: const Color(0xFFFAFAF8),
-        totalPcs: widget.challan.totalPcs,
-        sizeBreakdown: {},
-      ),
+    setState(() {
+      _isAllottingColorMap[colorName] = true;
+    });
+
+    final error = await allotColorGroupDirectlyInSupabase(
+      widget.challan.id,
+      colorName,
+      lineman.id,
     );
 
-    final articles = ref.read(adminArticlesListProvider).value ?? [];
+    if (mounted) {
+      setState(() {
+        _isAllottingColorMap[colorName] = false;
+      });
 
-    ref.read(allotmentFormProvider.notifier).prefillFromColorLineGroup(
-          challan: widget.challan,
-          colorGroup: colorGroup,
-          linemanId: lineman.id,
-          linemanName: lineman.username,
-          articles: articles,
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to allot $colorName line: $error'),
+            backgroundColor: const Color(0xFFBE123C),
+          ),
         );
+      } else {
+        ref.invalidate(challanGroupedOrdersProvider);
+        ref.invalidate(adminDashboardProvider);
+        ref.invalidate(adminAllotmentsListProvider);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AllotmentStep1Screen()),
-    ).then((_) {
-      ref.invalidate(challanGroupedOrdersProvider);
-      ref.invalidate(adminDashboardProvider);
-      ref.invalidate(adminAllotmentsListProvider);
-    });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text('✅ $colorName line allotted to ${lineman.username} successfully!')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF047857),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -566,11 +602,17 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onPressed: () => _handleFullChallanAllotment(linemen),
-                    child: const Text(
-                      'Allot Full Challan',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
+                    onPressed: _isAllottingFull ? null : () => _handleFullChallanAllotment(linemen),
+                    child: _isAllottingFull
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Allot Full Challan',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
               ),
@@ -751,12 +793,20 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
-                    onPressed: () => _handleColorLineAllotment(group.colorName, linemen),
-                    child: Text(
-                      'Allot ${group.colorName}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    onPressed: _isAllottingColorMap[group.colorName] == true
+                        ? null
+                        : () => _handleColorLineAllotment(group.colorName, linemen),
+                    child: _isAllottingColorMap[group.colorName] == true
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            group.isAssigned ? 'Reallot ${group.colorName}' : 'Allot ${group.colorName}',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   ),
                 ),
               ),
