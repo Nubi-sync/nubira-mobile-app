@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ParsedExcelArticleLine {
   final String artNo;
@@ -71,7 +72,7 @@ class ChallanExcelHelper {
     'SPECIAL REMARKS',
   ];
 
-  /// Generates and saves a clean 17-column Excel template matching Web Admin
+  /// Generates clean 17-column Excel template matching Web Admin and triggers native Save / Share
   static Future<String?> generateAndDownloadTemplate(BuildContext context) async {
     try {
       final excel = Excel.createExcel();
@@ -82,39 +83,65 @@ class ChallanExcelHelper {
         excel.delete('Sheet1');
       }
 
-      // Add headers
+      // Add standard 17 headers
       sheet.appendRow(standardHeaders.map((h) => TextCellValue(h)).toList());
 
       // Encode bytes
       final fileBytes = excel.save();
-      if (fileBytes == null) return null;
+      if (fileBytes == null) {
+        throw Exception('Failed to encode Excel file bytes');
+      }
 
-      // Save to temporary / documents directory
-      final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/delivery_challan_template.xlsx';
+      // Save to application directory and temporary directory
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/delivery_challan_template.xlsx';
       final file = File(filePath);
       await file.writeAsBytes(fileBytes);
 
+      // Also try saving to public Download directory if accessible
+      try {
+        final publicDownloadDir = Directory('/storage/emulated/0/Download');
+        if (await publicDownloadDir.exists()) {
+          final publicFile = File('/storage/emulated/0/Download/delivery_challan_template.xlsx');
+          await publicFile.writeAsBytes(fileBytes);
+        }
+      } catch (e) {
+        debugPrint('Note on public download dir: $e');
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF332B6B),
+          const SnackBar(
+            backgroundColor: Color(0xFF332B6B),
             content: Row(
               children: [
-                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
+                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Template created successfully: delivery_challan_template.xlsx',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    'Template generated! Opening share / save prompt...',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            duration: Duration(seconds: 3),
           ),
         );
       }
+
+      // Open native Share / Save sheet so user can open in Excel, save to files, or send
+      final xFile = XFile(
+        filePath,
+        name: 'delivery_challan_template.xlsx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      await Share.shareXFiles(
+        [xFile],
+        text: 'Delivery Challan Excel Template (17 Standard Columns)',
+        subject: 'Delivery Challan Excel Template',
+      );
 
       return filePath;
     } catch (e) {
