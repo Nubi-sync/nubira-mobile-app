@@ -114,20 +114,31 @@ class _AllotmentStep1ScreenState extends ConsumerState<AllotmentStep1Screen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('New Target Allotment'),
-        backgroundColor: AppTheme.card,
+        title: const Text(
+          'New allotment',
+          style: TextStyle(
+            color: Color(0xFF1C1C1A),
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.ink),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1A)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
         children: [
           // Step progress indicator
-          const AllotmentStepIndicator(currentStep: 1),
+          const AllotmentStepIndicator(
+            currentStep: 1,
+            subtitle: 'Step 1 of 3 - Target & lineman assignment',
+          ),
 
           // Scrollable Form Body
           Expanded(

@@ -230,60 +230,61 @@ class AllotmentFormData {
     return selectedSizes.isNotEmpty && totalPieces > 0;
   }
 
-  /// Generate auto-calculated BOM matching the Web Admin algorithm
+  /// Generate auto-calculated BOM matching the Web Admin algorithm and UI
   void autoGenerateBom() {
     final total = totalPieces;
     final List<BomItem> list = [];
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // 1. Fabric Lot (Client)
+    // 1. Main fabric roll (Client)
     final fabName = (fabricType != null && fabricType!.isNotEmpty)
-        ? '$fabricType Fabric Lot'
-        : 'Fabric Lot (As per marker)';
+        ? '$fabricType roll'
+        : 'Main fabric roll';
+    final meters = total > 0 ? (total * 1.5).ceil() : 500;
     list.add(BomItem(
       id: 'fab_${now}_1',
       itemName: fabName,
-      requiredQty: 'As per roll marker',
+      requiredQty: '$meters meters',
       adminIssued: false,
       source: 'CLIENT',
     ));
 
-    // 2. Sewing Thread Cones (Factory Store) - 1 cone per 250 pcs, min 4
+    // 2. Matching sewing thread (Factory Sourced)
     final threadCones = (total > 0) ? (total / 250).ceil() : 4;
-    final minThread = threadCones < 4 ? 4 : threadCones;
+    final minThread = threadCones < 4 ? 12 : threadCones;
     list.add(BomItem(
       id: 'thr_${now}_2',
-      itemName: 'Matching Sewing Thread Cones',
-      requiredQty: '$minThread Cones',
+      itemName: 'Matching sewing thread',
+      requiredQty: '$minThread cones',
       adminIssued: false,
       source: 'FACTORY_STORE',
     ));
 
-    // 3. Brand Main Neck Labels (Client)
-    final brandLabel = (brand != null && brand!.isNotEmpty) ? '$brand Main Neck Labels' : 'Main Neck Labels';
+    // 3. 18L 4-hole buttons (Client)
+    final btnQty = total > 0 ? total * 3 : 1500;
     list.add(BomItem(
-      id: 'lbl_${now}_3',
+      id: 'btn_${now}_3',
+      itemName: '18L 4-hole buttons',
+      requiredQty: '$btnQty pcs',
+      adminIssued: false,
+      source: 'CLIENT',
+    ));
+
+    // 4. Main brand label (Client)
+    final brandLabel = (brand != null && brand!.isNotEmpty) ? '$brand main label' : 'Main brand label';
+    list.add(BomItem(
+      id: 'lbl_${now}_4',
       itemName: brandLabel,
-      requiredQty: total > 0 ? '$total pcs' : 'As required',
+      requiredQty: total > 0 ? '$total pcs' : '500 pcs',
       adminIssued: false,
       source: 'CLIENT',
     ));
 
-    // 4. Size Labels (Client)
-    final sizesListStr = selectedSizes.isNotEmpty ? selectedSizes.join(', ') : 'All Sizes';
+    // 5. Size labels (Client)
     list.add(BomItem(
-      id: 'sz_${now}_4',
-      itemName: 'Size Labels ($sizesListStr)',
-      requiredQty: total > 0 ? '$total pcs' : 'As required',
-      adminIssued: false,
-      source: 'CLIENT',
-    ));
-
-    // 5. Master Polybags (Client)
-    list.add(BomItem(
-      id: 'poly_${now}_5',
-      itemName: 'Master Polybags (Packaging)',
-      requiredQty: total > 0 ? '$total pcs' : 'As required',
+      id: 'sz_${now}_5',
+      itemName: 'Size labels',
+      requiredQty: total > 0 ? '$total pcs' : '500 pcs',
       adminIssued: false,
       source: 'CLIENT',
     ));
@@ -455,6 +456,24 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
     if (idx != -1) {
       state.materials[idx].source =
           state.materials[idx].source == 'CLIENT' ? 'FACTORY_STORE' : 'CLIENT';
+      _notify();
+    }
+  }
+
+  void toggleMaterialIssued(String id) {
+    final idx = state.materials.indexWhere((m) => m.id == id);
+    if (idx != -1) {
+      state.materials[idx].adminIssued = !state.materials[idx].adminIssued;
+      _notify();
+    }
+  }
+
+  void updateMaterialItem(String id, {required String name, required String qty, required String source}) {
+    final idx = state.materials.indexWhere((m) => m.id == id);
+    if (idx != -1) {
+      state.materials[idx].itemName = name;
+      state.materials[idx].requiredQty = qty;
+      state.materials[idx].source = source;
       _notify();
     }
   }

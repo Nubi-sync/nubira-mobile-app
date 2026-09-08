@@ -66,20 +66,31 @@ class _AllotmentStep2ScreenState extends ConsumerState<AllotmentStep2Screen> {
     final form = ref.watch(allotmentFormProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Size & Color Matrix'),
-        backgroundColor: AppTheme.card,
+        title: const Text(
+          'New allotment',
+          style: TextStyle(
+            color: Color(0xFF1C1C1A),
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.ink),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1A)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
         children: [
           // Step Progress
-          const AllotmentStepIndicator(currentStep: 2),
+          const AllotmentStepIndicator(
+            currentStep: 2,
+            subtitle: 'Step 2 of 3 - Size & color ratio matrix',
+          ),
 
           // Scrollable Matrix Body
           Expanded(
