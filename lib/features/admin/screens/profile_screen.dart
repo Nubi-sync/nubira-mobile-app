@@ -56,26 +56,30 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nubira Creation',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.ink,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nubira Creation',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.ink,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Garment Manufacturing & Floor Operations',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 12,
-                            color: AppTheme.inkSoft,
+                          const SizedBox(height: 2),
+                          Text(
+                            'Garment Manufacturing & Floor Operations',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 12,
+                              color: AppTheme.inkSoft,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
