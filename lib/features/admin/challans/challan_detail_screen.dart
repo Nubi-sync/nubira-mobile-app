@@ -109,7 +109,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
   Widget build(BuildContext context) {
     final employeesAsync = ref.watch(adminEmployeesListProvider);
     final employees = employeesAsync.value ?? [];
-    final linemen = employees.where((e) => e.isActive).toList();
+    final linemen = employees.where((e) => e.role.toUpperCase() == 'LINEMAN' && e.isActive).toList();
 
     // Re-watch live challan if updated
     final allChallansAsync = ref.watch(challanGroupedOrdersProvider);
@@ -489,12 +489,12 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       isExpanded: true,
-                      value: _globalLinemanId,
+                      value: linemen.any((l) => l.id == _globalLinemanId) ? _globalLinemanId : null,
                       hint: const Text('Select Lineman', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A94))),
                       items: linemen.map((emp) {
                         return DropdownMenuItem(
                           value: emp.id,
-                          child: Text('${emp.username} (${emp.role})', style: const TextStyle(fontSize: 12, color: Color(0xFF1C1C1A))),
+                          child: Text(emp.username, style: const TextStyle(fontSize: 12, color: Color(0xFF1C1C1A))),
                         );
                       }).toList(),
                       onChanged: (val) => setState(() => _globalLinemanId = val),
@@ -670,7 +670,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       isExpanded: true,
-                      value: selectedLinemanForColor,
+                      value: linemen.any((l) => l.id == selectedLinemanForColor) ? selectedLinemanForColor : null,
                       hint: const Text('Assign Lineman', style: TextStyle(fontSize: 11, color: Color(0xFF9B9A94))),
                       items: linemen.map((emp) {
                         return DropdownMenuItem(
