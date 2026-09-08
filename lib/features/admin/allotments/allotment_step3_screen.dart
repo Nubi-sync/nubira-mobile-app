@@ -147,7 +147,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: selectedSource == 'CLIENT' ? const Color(0xFF1C1C1A) : const Color(0xFFF1F1EE),
+                          color: selectedSource == 'CLIENT' ? const Color(0xFF332B6B) : const Color(0xFFF1F1EE),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -169,7 +169,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: selectedSource == 'FACTORY_STORE' ? const Color(0xFF1C1C1A) : const Color(0xFFF1F1EE),
+                          color: selectedSource == 'FACTORY_STORE' ? const Color(0xFF332B6B) : const Color(0xFFF1F1EE),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -234,7 +234,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1C1C1A),
+                        backgroundColor: const Color(0xFF332B6B),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -410,7 +410,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _activeFilter == 'CLIENT'
-                                ? const Color(0xFF1C1C1A)
+                                ? const Color(0xFF332B6B)
                                 : const Color(0xFFF1F1EE),
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -441,7 +441,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _activeFilter == 'FACTORY_STORE'
-                                ? const Color(0xFF1C1C1A)
+                                ? const Color(0xFF332B6B)
                                 : const Color(0xFFF1F1EE),
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -487,7 +487,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.auto_awesome, size: 14, color: Color(0xFF1C1C1A)),
+                              Icon(Icons.auto_awesome, size: 14, color: Color(0xFF332B6B)),
                               SizedBox(width: 6),
                               Flexible(
                                 child: Text(
@@ -512,7 +512,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1C1C1A),
+                          color: const Color(0xFF332B6B),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Row(
@@ -682,7 +682,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submitAllotment,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1C1C1A),
+                      backgroundColor: const Color(0xFF332B6B),
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: const Color(0xFF9B9A94),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -763,7 +763,7 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
             scale: 0.95,
             child: Checkbox(
               value: m.adminIssued,
-              activeColor: const Color(0xFF1C1C1A),
+              activeColor: const Color(0xFF332B6B),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
               side: const BorderSide(color: Color(0xFFDAD9D3), width: 1.2),
               onChanged: (_) => ref.read(allotmentFormProvider.notifier).toggleMaterialIssued(m.id),

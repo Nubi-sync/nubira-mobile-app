@@ -223,7 +223,8 @@ class AllotmentFormData {
 
   bool get isStep1Valid {
     return (linemanId != null && linemanId!.isNotEmpty) &&
-        (articleId != null && articleId!.isNotEmpty);
+        ((articleId != null && articleId!.isNotEmpty) ||
+            (articleNo != null && articleNo!.isNotEmpty));
   }
 
   bool get isStep2Valid {
@@ -516,7 +517,7 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
     }
     matchedArticle ??= articles.isNotEmpty ? articles.first : null;
 
-    state.articleId = matchedArticle?.id ?? (firstArt != null && firstArt.id.isNotEmpty ? firstArt.id : challan.id);
+    state.articleId = matchedArticle?.id;
     state.articleNo = matchedArticle?.artNo ?? (firstArt != null && firstArt.artNo.isNotEmpty ? firstArt.artNo : challan.challanNo);
     state.articleDesc = challan.brand.isNotEmpty
         ? '${challan.challanNo} (${challan.brand}) • ${colorGroup.colorName} LINE'
@@ -638,7 +639,7 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
     }
     matchedArticle ??= articles.isNotEmpty ? articles.first : null;
 
-    state.articleId = matchedArticle?.id ?? (firstArt != null && firstArt.id.isNotEmpty ? firstArt.id : challan.id);
+    state.articleId = matchedArticle?.id;
     state.articleNo = matchedArticle?.artNo ?? (firstArt != null && firstArt.artNo.isNotEmpty ? firstArt.artNo : challan.challanNo);
     state.articleDesc = challan.brand.isNotEmpty
         ? '${challan.challanNo} (${challan.brand}) • FULL CHALLAN'

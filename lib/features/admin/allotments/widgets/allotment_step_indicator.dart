@@ -38,7 +38,7 @@ class AllotmentStepIndicator extends StatelessWidget {
                   child: Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: i <= currentStep ? const Color(0xFF1C1C1A) : const Color(0xFFE5E5E0),
+                      color: i <= currentStep ? const Color(0xFF332B6B) : const Color(0xFFE5E5E0),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

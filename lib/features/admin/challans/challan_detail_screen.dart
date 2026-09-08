@@ -139,6 +139,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     final employeesAsync = ref.watch(adminEmployeesListProvider);
     final employees = employeesAsync.value ?? [];
     final linemen = employees.where((e) => e.role.toUpperCase() == 'LINEMAN' && e.isActive).toList();
+    ref.watch(adminArticlesListProvider); // Preload articles for instant matching
 
     // Re-watch live challan if updated
     final allChallansAsync = ref.watch(challanGroupedOrdersProvider);

@@ -912,10 +912,68 @@ Future<String?> createDetailedAllotmentInSupabase({
   try {
     final nowIso = DateTime.now().toIso8601String().split('T')[0];
 
+    // Safely resolve article ID to ensure it is a valid UUID present in articles table
+    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    String resolvedArticleId = articleId.trim();
+
+    if (!uuidRegex.hasMatch(resolvedArticleId)) {
+      resolvedArticleId = '';
+    }
+
+    if (resolvedArticleId.isNotEmpty) {
+      try {
+        final checkArt = await supabase.from('articles').select('id').eq('id', resolvedArticleId).limit(1).maybeSingle();
+        if (checkArt == null || checkArt['id'] == null) {
+          resolvedArticleId = '';
+        }
+      } catch (_) {
+        resolvedArticleId = '';
+      }
+    }
+
+    if (resolvedArticleId.isEmpty) {
+      final cleanArtNo = (articleNo ?? '').trim().isNotEmpty
+          ? (articleNo ?? '').trim()
+          : (challanNo ?? 'Standard');
+      try {
+        final found = await supabase.from('articles').select('id').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+        if (found != null && found['id'] != null) {
+          resolvedArticleId = found['id'].toString();
+        }
+      } catch (_) {}
+
+      if (resolvedArticleId.isEmpty) {
+        try {
+          final newArt = await supabase.from('articles').insert({
+            'art_no': cleanArtNo,
+            'description': articleDesc ?? 'Auto-created style for Allotment',
+            'stitching_rate': 20.0,
+            'is_active': true,
+          }).select('id').single();
+          if (newArt['id'] != null) {
+            resolvedArticleId = newArt['id'].toString();
+          }
+        } catch (_) {}
+      }
+
+      if (resolvedArticleId.isEmpty) {
+        try {
+          final anyArt = await supabase.from('articles').select('id').limit(1).maybeSingle();
+          if (anyArt != null && anyArt['id'] != null) {
+            resolvedArticleId = anyArt['id'].toString();
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (resolvedArticleId.isEmpty) {
+      return 'Could not resolve or create a valid Article ID for this allotment.';
+    }
+
     // 1. Insert into allotments
     final allotPayload = <String, dynamic>{
       'lineman_id': linemanId,
-      'article_id': articleId,
+      'article_id': resolvedArticleId,
       'target_qty': targetQty,
       'status': 'IN_PROGRESS',
       'qc_status': 'PENDING_STITCHING',
@@ -940,9 +998,6 @@ Future<String?> createDetailedAllotmentInSupabase({
     if (samplePhotos.isNotEmpty) {
       allotPayload['sample_photos'] = samplePhotos;
     }
-    if (challanId != null && challanId.isNotEmpty) {
-      allotPayload['challan_id'] = challanId;
-    }
 
     Map<String, dynamic>? allotment;
     try {
@@ -952,24 +1007,14 @@ Future<String?> createDetailedAllotmentInSupabase({
       // Fallback if optional schema columns not present
       final fallbackPayload = <String, dynamic>{
         'lineman_id': linemanId,
-        'article_id': articleId,
+        'article_id': resolvedArticleId,
         'target_qty': targetQty,
         'status': 'IN_PROGRESS',
         'qc_status': 'PENDING_STITCHING',
         'mending_status': 'PENDING_STITCHING',
         'allotment_date': nowIso,
       };
-      if (challanId != null && challanId.isNotEmpty) {
-        try {
-          final withChallan = Map<String, dynamic>.from(fallbackPayload);
-          withChallan['challan_id'] = challanId;
-          allotment = await supabase.from('allotments').insert(withChallan).select('id').single();
-        } catch (_) {
-          allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
-        }
-      } else {
-        allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
-      }
+      allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
     }
 
     if (allotment['id'] == null) {

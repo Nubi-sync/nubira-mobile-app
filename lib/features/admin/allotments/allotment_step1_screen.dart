@@ -70,10 +70,21 @@ class _AllotmentStep1ScreenState extends ConsumerState<AllotmentStep1Screen> {
         },
         onChallanSelected: (ch, colorName) {
           final artDesc = (ch.description != null && ch.description!.isNotEmpty)
-              ? ch.description
+              ? ch.description!
               : 'Challan #${ch.challanNo} (${ch.brand})';
+          AdminArticle? matched;
+          if (ch.challanNo.isNotEmpty) {
+            for (var a in articles) {
+              if (a.artNo.trim().toUpperCase() == ch.challanNo.trim().toUpperCase()) {
+                matched = a;
+                break;
+              }
+            }
+          }
+          matched ??= articles.isNotEmpty ? articles.first : null;
+
           ref.read(allotmentFormProvider.notifier).setArticle(
-                articleId: articles.isNotEmpty ? articles.first.id : ch.id,
+                articleId: matched?.id ?? '',
                 articleNo: ch.challanNo,
                 articleDesc: colorName != null ? '$artDesc • $colorName LINE' : artDesc,
                 challanId: ch.id,
