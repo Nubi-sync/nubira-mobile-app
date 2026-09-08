@@ -72,7 +72,7 @@ class ChallanExcelHelper {
     'SPECIAL REMARKS',
   ];
 
-  /// Generates clean 17-column Excel template matching Web Admin and triggers native Save / Share
+  /// Generates clean 17-column Excel template and opens/saves it on device
   static Future<String?> generateAndDownloadTemplate(BuildContext context) async {
     try {
       final excel = Excel.createExcel();
@@ -92,18 +92,21 @@ class ChallanExcelHelper {
         throw Exception('Failed to encode Excel file bytes');
       }
 
-      // Save to application directory and temporary directory
+      // 1. Save to application documents directory
       final dir = await getApplicationDocumentsDirectory();
       final filePath = '${dir.path}/delivery_challan_template.xlsx';
       final file = File(filePath);
       await file.writeAsBytes(fileBytes);
 
-      // Also try saving to public Download directory if accessible
+      String savedLocation = filePath;
+
+      // 2. Also save to public Download directory if accessible
       try {
         final publicDownloadDir = Directory('/storage/emulated/0/Download');
         if (await publicDownloadDir.exists()) {
           final publicFile = File('/storage/emulated/0/Download/delivery_challan_template.xlsx');
           await publicFile.writeAsBytes(fileBytes);
+          savedLocation = publicFile.path;
         }
       } catch (e) {
         debugPrint('Note on public download dir: $e');
@@ -111,39 +114,41 @@ class ChallanExcelHelper {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF332B6B),
+          SnackBar(
+            backgroundColor: const Color(0xFF332B6B),
             content: Row(
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Template generated! Opening share / save prompt...',
-                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    'Template saved to Downloads: delivery_challan_template.xlsx',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
 
-      // Open native Share / Save sheet so user can open in Excel, save to files, or send
-      final xFile = XFile(
-        filePath,
-        name: 'delivery_challan_template.xlsx',
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      );
+      // 3. Open native share sheet so user can open in Excel, Sheets, or send
+      try {
+        final xFile = XFile(
+          savedLocation,
+          name: 'delivery_challan_template.xlsx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+        await Share.shareXFiles(
+          [xFile],
+          text: 'Delivery Challan Excel Template',
+        );
+      } catch (shareErr) {
+        debugPrint('Share prompt note: $shareErr');
+      }
 
-      await Share.shareXFiles(
-        [xFile],
-        text: 'Delivery Challan Excel Template (17 Standard Columns)',
-        subject: 'Delivery Challan Excel Template',
-      );
-
-      return filePath;
+      return savedLocation;
     } catch (e) {
       debugPrint('Error generating excel template: $e');
       if (context.mounted) {
