@@ -49,36 +49,45 @@ class ChallanReferenceSheetScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEDEAF6),
-                            borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDEAF6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.description_outlined, color: Color(0xFF332B6B), size: 20),
                           ),
-                          child: const Icon(Icons.description_outlined, color: Color(0xFF332B6B), size: 20),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Master Article Reference Sheet',
-                              style: TextStyle(
-                                color: Color(0xFF1C1C1A),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Master Article Reference Sheet',
+                                  style: TextStyle(
+                                    color: Color(0xFF1C1C1A),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${challan.articles.length} Lines • ${challan.totalPcs.toLocaleString()} Total Pcs',
+                                  style: const TextStyle(color: Color(0xFF6B6A65), fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            Text(
-                              '${challan.articles.length} Article Lines • ${challan.totalPcs.toLocaleString()} Total Pcs',
-                              style: const TextStyle(color: Color(0xFF6B6A65), fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -101,14 +110,13 @@ class ChallanReferenceSheetScreen extends StatelessWidget {
                 const Divider(height: 1, color: Color(0xFFECECE8)),
                 const SizedBox(height: 10),
 
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    _buildMetaPill('Brand', challan.brand),
-                    const SizedBox(width: 8),
-                    if (challan.fabricType != null && challan.fabricType!.isNotEmpty) ...[
-                      _buildMetaPill('Fabric', challan.fabricType!),
-                      const SizedBox(width: 8),
-                    ],
+                    _buildMetaPill('Brand', challan.brand.trim().isNotEmpty ? challan.brand.trim() : 'OLLYPOP'),
+                    if (challan.fabricType != null && challan.fabricType!.trim().isNotEmpty)
+                      _buildMetaPill('Fabric', challan.fabricType!.trim()),
                     _buildMetaPill('Date', challan.challanDate),
                   ],
                 ),
@@ -273,38 +281,45 @@ class ChallanReferenceSheetScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFDAD9D3)),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAF8),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFFDAD9D3)),
+                      ),
+                      child: Text(
+                        '#$lineNo',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF6B6A65)),
+                      ),
                     ),
-                    child: Text(
-                      '#$lineNo',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF6B6A65)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Art: ${line.fullArtCode}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF332B6B),
-                    ),
-                  ),
-                  if (line.patternNo != null && line.patternNo!.isNotEmpty) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Text(
-                      '• ${line.patternNo}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B6A65)),
+                      'Art: ${line.fullArtCode}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF332B6B),
+                      ),
                     ),
+                    if (line.patternNo != null && line.patternNo!.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '• ${line.patternNo}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B6A65)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
