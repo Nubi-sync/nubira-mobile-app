@@ -4,9 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/admin_providers.dart';
 import '../widgets/admin_stat_card.dart';
-import '../widgets/admin_allotment_card.dart';
 import '../widgets/admin_excel_import_modal.dart';
-import '../widgets/admin_create_allotment_modal.dart';
+import '../allotments/widgets/allotment_card_widget.dart';
+import '../allotments/allotment_step1_screen.dart';
+import '../allotments/allotment_form_state.dart';
 import 'admin_shell.dart';
 import 'employees_screen.dart';
 import 'articles_screen.dart';
@@ -205,18 +206,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                       icon: Icons.add_task_rounded,
                       label: 'New Allotment',
                       onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => AdminCreateAllotmentModal(
-                            onSuccess: () {
-                              ref.invalidate(adminDashboardProvider);
-                              ref.invalidate(adminAllotmentsListProvider);
-                            },
+                        ref.read(allotmentFormProvider.notifier).reset();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AllotmentStep1Screen(),
                           ),
-                        );
+                        ).then((_) {
+                          ref.invalidate(adminDashboardProvider);
+                          ref.invalidate(adminAllotmentsListProvider);
+                        });
                       },
                     ),
                     const SizedBox(width: 10),
@@ -300,7 +299,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 )
               else
                 ...kpi.recentAllotments.take(15).map(
-                  (allotment) => AdminAllotmentCard(allotment: allotment),
+                  (allotment) => AllotmentCardWidget(allotment: allotment),
                 ),
             ],
           ),

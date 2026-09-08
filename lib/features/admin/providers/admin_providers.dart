@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../main.dart';
@@ -238,24 +240,47 @@ final adminAllotmentsListProvider = FutureProvider.autoDispose<List<AdminAllotme
   final filter = ref.watch(allotmentFilterProvider);
 
   try {
-    var query = supabase.from('allotments').select('''
-      id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
-      mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
-      created_at,
-      profiles:lineman_id ( id, username ),
-      articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
-      challans:challan_id ( id, challan_no, brand, fabric_type )
-    ''');
+    List<dynamic> rawList = [];
+    try {
+      var query = supabase.from('allotments').select('''
+        id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
+        mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
+        created_at,
+        profiles:lineman_id ( id, username ),
+        articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
+        challans:challan_id ( id, challan_no, brand, fabric_type )
+      ''');
 
-    if (filter.selectedStatus != 'ALL') {
-      query = query.eq('status', filter.selectedStatus);
-    }
-    if (filter.selectedLinemanId != null && filter.selectedLinemanId!.isNotEmpty) {
-      query = query.eq('lineman_id', filter.selectedLinemanId!);
+      if (filter.selectedStatus != 'ALL') {
+        query = query.eq('status', filter.selectedStatus);
+      }
+      if (filter.selectedLinemanId != null && filter.selectedLinemanId!.isNotEmpty) {
+        query = query.eq('lineman_id', filter.selectedLinemanId!);
+      }
+
+      final response = await query.order('created_at', ascending: false).limit(100);
+      rawList = (response as List);
+    } catch (queryErr) {
+      // Fallback query without challans join if foreign key relationship differs
+      var fallbackQuery = supabase.from('allotments').select('''
+        id, lineman_id, article_id, target_qty, status, allotment_date,
+        mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
+        created_at,
+        profiles:lineman_id ( id, username ),
+        articles:article_id ( id, art_no, description, size_rates, stitching_rate )
+      ''');
+
+      if (filter.selectedStatus != 'ALL') {
+        fallbackQuery = fallbackQuery.eq('status', filter.selectedStatus);
+      }
+      if (filter.selectedLinemanId != null && filter.selectedLinemanId!.isNotEmpty) {
+        fallbackQuery = fallbackQuery.eq('lineman_id', filter.selectedLinemanId!);
+      }
+
+      final fbResponse = await fallbackQuery.order('created_at', ascending: false).limit(100);
+      rawList = (fbResponse as List);
     }
 
-    final response = await query.order('created_at', ascending: false).limit(100);
-    final rawList = (response as List);
     final allotmentIds = rawList
         .map((e) => e['id']?.toString())
         .where((id) => id != null && id.isNotEmpty)
@@ -305,10 +330,201 @@ final adminAllotmentsListProvider = FutureProvider.autoDispose<List<AdminAllotme
           (a.linemanName?.toLowerCase().contains(q) ?? false) ||
           (a.brand?.toLowerCase().contains(q) ?? false);
     }).toList();
-  } catch (e) {
+  } catch (e, stack) {
+    debugPrint('Error loading allotments: $e\n$stack');
     return [];
   }
 });
+
+/// Create a detailed allotment record in Supabase with variants and materials
+Future<String?> createDetailedAllotmentInSupabase({
+  required String linemanId,
+  required String? linemanName,
+  required String articleId,
+  required String? articleNo,
+  required String? articleDesc,
+  required int targetQty,
+  String? managerName,
+  String? challanId,
+  String? challanNo,
+  String? brand,
+  String? fabricType,
+  String priority = 'NORMAL',
+  DateTime? dueDate,
+  int targetHours = 16,
+  String clientChallanNo = '',
+  List<String> samplePhotos = const [],
+  required List<Map<String, dynamic>> variants,
+  required List<Map<String, dynamic>> materials,
+}) async {
+  try {
+    final nowIso = DateTime.now().toIso8601String().split('T')[0];
+
+    // 1. Insert into allotments
+    final allotPayload = <String, dynamic>{
+      'lineman_id': linemanId,
+      'article_id': articleId,
+      'target_qty': targetQty,
+      'status': 'IN_PROGRESS',
+      'qc_status': 'PENDING_STITCHING',
+      'mending_status': 'PENDING_STITCHING',
+      'allotment_date': nowIso,
+    };
+
+    if (managerName != null && managerName.isNotEmpty) {
+      allotPayload['manager_name'] = managerName;
+    }
+    if (challanNo != null && challanNo.isNotEmpty) {
+      allotPayload['production_order_no'] = challanNo;
+    }
+    if (dueDate != null) {
+      allotPayload['due_date'] = dueDate.toIso8601String().split('T')[0];
+    }
+    allotPayload['target_hours'] = targetHours;
+    allotPayload['priority'] = priority;
+    if (clientChallanNo.isNotEmpty) {
+      allotPayload['client_challan_no'] = clientChallanNo;
+    }
+    if (samplePhotos.isNotEmpty) {
+      allotPayload['sample_photos'] = samplePhotos;
+    }
+    if (challanId != null && challanId.isNotEmpty) {
+      allotPayload['challan_id'] = challanId;
+    }
+
+    Map<String, dynamic>? allotment;
+    try {
+      final res = await supabase.from('allotments').insert(allotPayload).select('id').single();
+      allotment = res;
+    } catch (err) {
+      // Fallback if optional schema columns not present
+      final fallbackPayload = <String, dynamic>{
+        'lineman_id': linemanId,
+        'article_id': articleId,
+        'target_qty': targetQty,
+        'status': 'IN_PROGRESS',
+        'qc_status': 'PENDING_STITCHING',
+        'mending_status': 'PENDING_STITCHING',
+        'allotment_date': nowIso,
+      };
+      if (challanId != null && challanId.isNotEmpty) {
+        try {
+          final withChallan = Map<String, dynamic>.from(fallbackPayload);
+          withChallan['challan_id'] = challanId;
+          allotment = await supabase.from('allotments').insert(withChallan).select('id').single();
+        } catch (_) {
+          allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
+        }
+      } else {
+        allotment = await supabase.from('allotments').insert(fallbackPayload).select('id').single();
+      }
+    }
+
+    if (allotment['id'] == null) {
+      return 'Failed to create allotment in database.';
+    }
+
+    final allotmentId = allotment['id'].toString();
+
+    // 2. Insert variants
+    if (variants.isNotEmpty) {
+      final validVariants = variants
+          .where((v) => (v['quantity'] as num? ?? 0) > 0)
+          .map((v) => {
+                'allotment_id': allotmentId,
+                'color': (v['color'] ?? 'Standard').toString().trim(),
+                'size': (v['size'] ?? 'Free').toString().trim(),
+                'quantity': (v['quantity'] as num).toInt(),
+                'completed_qty': 0,
+              })
+          .toList();
+
+      if (validVariants.isNotEmpty) {
+        try {
+          await supabase.from('allotment_variants').insert(validVariants);
+        } catch (vErr) {
+          debugPrint('Error inserting allotment_variants: $vErr');
+        }
+      }
+    }
+
+    // 3. Insert materials checklist with notes metadata
+    if (materials.isNotEmpty) {
+      final notesJson = jsonEncode({
+        'lineman_name': linemanName ?? 'Lineman',
+        'article_id': articleId,
+        'art_no': articleNo ?? '',
+        'article_description': articleDesc ?? '',
+        'lineman_id': linemanId,
+        'production_order_no': challanNo ?? '',
+        'manager_name': managerName ?? 'Production Manager',
+        'due_date': dueDate != null ? dueDate.toIso8601String().split('T')[0] : '',
+        'target_hours': targetHours,
+        'priority': priority,
+        'client_challan_no': clientChallanNo,
+        'sample_photos': samplePhotos,
+        'status': 'PENDING',
+      });
+
+      final validMaterials = materials
+          .where((m) => (m['item_name']?.toString().trim().isNotEmpty ?? false))
+          .map((m) => {
+                'allotment_id': allotmentId,
+                'item_name': m['item_name'].toString().trim(),
+                'required_qty': m['required_qty']?.toString().trim().isNotEmpty == true
+                    ? m['required_qty'].toString().trim()
+                    : 'As required',
+                'admin_issued': m['admin_issued'] == true,
+                'admin_issued_at': m['admin_issued'] == true ? DateTime.now().toIso8601String() : null,
+                'lineman_received': false,
+                'notes': notesJson,
+              })
+          .toList();
+
+      if (validMaterials.isNotEmpty) {
+        try {
+          await supabase.from('allotment_materials').insert(validMaterials);
+        } catch (mErr) {
+          debugPrint('Error inserting allotment_materials: $mErr');
+        }
+      }
+    }
+
+    return null; // Success!
+  } catch (e) {
+    debugPrint('Fatal error in createDetailedAllotmentInSupabase: $e');
+    return e.toString();
+  }
+}
+
+/// Update status of an existing allotment
+Future<bool> updateAllotmentStatusInSupabase(String allotmentId, String newStatus) async {
+  try {
+    await supabase.from('allotments').update({'status': newStatus}).eq('id', allotmentId);
+    return true;
+  } catch (e) {
+    debugPrint('Error updating allotment status: $e');
+    return false;
+  }
+}
+
+/// Delete allotment and cascade child variants/materials
+Future<bool> deleteAllotmentInSupabase(String allotmentId) async {
+  try {
+    // Delete child records first for safety
+    try {
+      await supabase.from('allotment_variants').delete().eq('allotment_id', allotmentId);
+    } catch (_) {}
+    try {
+      await supabase.from('allotment_materials').delete().eq('allotment_id', allotmentId);
+    } catch (_) {}
+    await supabase.from('allotments').delete().eq('id', allotmentId);
+    return true;
+  } catch (e) {
+    debugPrint('Error deleting allotment: $e');
+    return false;
+  }
+}
 
 // ==========================================
 // 4. ARTICLES CRUD PROVIDER

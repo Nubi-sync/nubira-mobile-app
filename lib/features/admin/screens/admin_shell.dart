@@ -4,7 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../widgets/admin_drawer.dart';
 import 'admin_dashboard_screen.dart';
 import 'challan_hub_screen.dart';
-import 'allotments_screen.dart';
+import '../allotments/allotments_list_screen.dart';
 import 'inventory_screen.dart';
 
 final GlobalKey<ScaffoldState> adminScaffoldKey = GlobalKey<ScaffoldState>();
@@ -19,22 +19,22 @@ class AdminShell extends ConsumerStatefulWidget {
 class _AdminShellState extends ConsumerState<AdminShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    AdminDashboardScreen(),
-    ChallanHubScreen(),
-    AllotmentsScreen(),
-    InventoryScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    const screens = [
+      AdminDashboardScreen(),
+      ChallanHubScreen(),
+      AllotmentsListScreen(),
+      InventoryScreen(),
+    ];
+
     return Scaffold(
       key: adminScaffoldKey,
       backgroundColor: AppTheme.bg,
       drawer: AdminDrawer(
         activeIndex: _currentIndex,
         onTabSelected: (index) {
-          if (index < _screens.length) {
+          if (index < screens.length) {
             setState(() {
               _currentIndex = index;
             });
@@ -43,7 +43,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       ),
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
