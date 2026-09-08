@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../main.dart';
 import '../models/admin_models.dart';
+import '../challans/challan_models.dart';
 
 // ==========================================
 // 1. FACTORY KPI & DASHBOARD OVERVIEW PROVIDER
@@ -142,12 +143,12 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
 class ChallanFilterState {
   final String searchQuery;
   final String selectedBrand;
-  final String selectedStatus;
+  final String selectedStatus; // 'ALL' | 'PENDING' | 'ALLOTTED'
 
   ChallanFilterState({
     this.searchQuery = '',
     this.selectedBrand = 'ALL',
-    this.selectedStatus = 'ALL',
+    this.selectedStatus = 'PENDING',
   });
 
   ChallanFilterState copyWith({
@@ -167,42 +168,565 @@ final challanFilterProvider = StateProvider<ChallanFilterState>((ref) {
   return ChallanFilterState();
 });
 
-final adminChallansListProvider = FutureProvider.autoDispose<List<AdminChallan>>((ref) async {
+/// Hierarchical grouped Challans provider matching Web's getProductionOrders()
+final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGroupedOrder>>((ref) async {
   final filter = ref.watch(challanFilterProvider);
 
-  var query = supabase.from('challans').select('''
-    *,
-    allotments (
-      id,
-      target_qty,
-      status,
-      articles ( id, art_no, description )
-    )
-  ''');
+  try {
+    final results = await Future.wait([
+      supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
+      supabase.from('allotments').select('''
+        id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
+        profiles:lineman_id ( id, username ),
+        articles:article_id ( id, art_no, description, size_rates, stitching_rate )
+      ''').order('created_at', ascending: true),
+      supabase.from('allotment_variants').select('allotment_id, color, size, quantity, completed_qty'),
+    ]);
 
-  if (filter.selectedBrand != 'ALL') {
-    query = query.eq('brand', filter.selectedBrand);
+    final challansRaw = (results[0] as List?) ?? [];
+    final allotmentsRaw = (results[1] as List?) ?? [];
+    final variantsRaw = (results[2] as List?) ?? [];
+
+    final List<ChallanGroupedOrder> groupedList = [];
+
+    for (var chJson in challansRaw) {
+      final chId = chJson['id']?.toString() ?? '';
+      final chAllotments = allotmentsRaw.where((a) => a['challan_id']?.toString() == chId).toList();
+      final rawNotes = chJson['notes']?.toString();
+
+      List<ChallanArticleLine> parsedLines = [];
+
+      if (rawNotes != null && rawNotes.trim().isNotEmpty) {
+        try {
+          if (rawNotes.trim().startsWith('{') || rawNotes.trim().startsWith('[')) {
+            final decoded = jsonDecode(rawNotes);
+            List<dynamic> rawLineItems = [];
+            if (decoded is Map && decoded['article_lines'] is List) {
+              rawLineItems = decoded['article_lines'] as List;
+            } else if (decoded is List) {
+              rawLineItems = decoded;
+            }
+
+            for (var idx = 0; idx < rawLineItems.length; idx++) {
+              final line = rawLineItems[idx];
+              if (line is Map) {
+                final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? 'Style';
+                final cleanSubArt = line['sub_art_no']?.toString().trim().toUpperCase();
+                final fullArtCode = cleanSubArt != null && cleanSubArt.isNotEmpty ? '$cleanArtNo$cleanSubArt' : cleanArtNo;
+                final colorPattern = line['color_pattern']?.toString().trim() ?? 'Standard';
+                final sizeRange = line['size_range']?.toString().trim() ?? 'Free Size';
+
+                final linePcs = (line['total_pcs'] as num?)?.toInt() ??
+                    (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
+                final lineSets = (line['sets'] as num?)?.toInt() ?? 1;
+                final lineRatio = (line['pcs_per_set'] as num?)?.toInt() ?? 9;
+
+                // Match with active floor allotment for this article and color
+                dynamic matchingAl;
+                for (var al in chAllotments) {
+                  final art = al['articles'] as Map?;
+                  final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
+                  if (alArtNo == cleanArtNo || alArtNo == fullArtCode) {
+                    matchingAl = al;
+                    break;
+                  }
+                }
+
+                String? linemanId;
+                String? linemanName;
+                String lineStatus = 'PENDING';
+                String? allotmentId;
+                int completedQty = 0;
+
+                if (matchingAl != null) {
+                  allotmentId = matchingAl['id']?.toString();
+                  if (matchingAl['lineman_id'] != null) {
+                    linemanId = matchingAl['lineman_id']?.toString();
+                    final prof = matchingAl['profiles'] as Map?;
+                    linemanName = prof?['username']?.toString() ?? 'Lineman';
+                    lineStatus = matchingAl['status']?.toString().toUpperCase() ?? 'IN_PROGRESS';
+                  }
+
+                  // Find completed qty from variants
+                  final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == allotmentId).toList();
+                  for (var v in alVars) {
+                    if ((v['color']?.toString().toUpperCase() ?? '') == colorPattern.toUpperCase()) {
+                      completedQty += (v['completed_qty'] as num?)?.toInt() ?? 0;
+                    }
+                  }
+                }
+
+                parsedLines.add(
+                  ChallanArticleLine(
+                    id: '$chId-line-$idx',
+                    allotmentId: allotmentId,
+                    artNo: cleanArtNo,
+                    subArtNo: cleanSubArt,
+                    patternNo: line['pattern_no']?.toString(),
+                    description: line['description']?.toString() ?? '$fullArtCode - $colorPattern ($sizeRange)',
+                    colorPattern: colorPattern,
+                    sizeRange: sizeRange,
+                    sets: lineSets,
+                    pcsPerSet: lineRatio,
+                    totalPcs: linePcs,
+                    completedQty: completedQty,
+                    assignedLinemanId: linemanId,
+                    assignedLinemanName: linemanName ?? 'Unassigned (Floor Order)',
+                    pictureUrl: line['picture_url']?.toString(),
+                    stitchingRate: (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+                    status: lineStatus,
+                  ),
+                );
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Fallback if no structured lines in notes: construct from child allotments
+      if (parsedLines.isEmpty && chAllotments.isNotEmpty) {
+        for (var al in chAllotments) {
+          final art = al['articles'] as Map?;
+          final prof = al['profiles'] as Map?;
+          final aId = al['id']?.toString() ?? '';
+          final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == aId).toList();
+          final firstVar = alVars.isNotEmpty ? alVars.first : null;
+          final targetQty = (al['target_qty'] as num?)?.toInt() ?? 0;
+
+          parsedLines.add(
+            ChallanArticleLine(
+              id: aId,
+              allotmentId: aId,
+              artNo: art?['art_no']?.toString() ?? 'Style',
+              description: art?['description']?.toString(),
+              colorPattern: firstVar?['color']?.toString() ?? 'Standard',
+              sizeRange: firstVar?['size']?.toString() ?? 'Free Size',
+              totalPcs: targetQty,
+              assignedLinemanId: al['lineman_id']?.toString(),
+              assignedLinemanName: prof?['username']?.toString() ?? 'Lineman',
+              status: al['status']?.toString().toUpperCase() ?? 'PENDING',
+            ),
+          );
+        }
+      }
+
+      final totalSets = parsedLines.fold(0, (sum, a) => sum + a.sets);
+      final totalPcsCalculated = parsedLines.fold(0, (sum, a) => sum + a.totalPcs);
+      final finalPcs = totalPcsCalculated > 0 ? totalPcsCalculated : ((chJson['total_pcs'] as num?)?.toInt() ?? 0);
+      final finalSets = totalSets > 0 ? totalSets : ((chJson['total_sets'] as num?)?.toInt() ?? 1);
+
+      // Parse BOM details
+      List<ChallanBomItem> bomItems = [];
+      if (chJson['bom_details'] != null) {
+        try {
+          final rawBom = chJson['bom_details'];
+          final List<dynamic> bomList = rawBom is String ? jsonDecode(rawBom) : (rawBom is List ? rawBom : []);
+          bomItems = bomList.map((b) => ChallanBomItem.fromJson(Map<String, dynamic>.from(b))).toList();
+        } catch (_) {}
+      }
+
+      // Dynamic Status Calculation matching Web
+      final totalLines = parsedLines.length;
+      final allottedLines = parsedLines.where((a) => a.assignedLinemanId != null && a.assignedLinemanId!.isNotEmpty && a.status != 'PENDING').length;
+      final completedLines = parsedLines.where((a) => a.status == 'QC_PASSED' || a.status == 'COMPLETED').length;
+      final dispatchedLines = parsedLines.where((a) => a.status == 'DISPATCHED').length;
+
+      String dynamicStatus = 'PENDING';
+      final rawStatus = chJson['status']?.toString().toUpperCase() ?? 'PENDING';
+      if (rawStatus == 'DISPATCHED' || (dispatchedLines == totalLines && totalLines > 0)) {
+        dynamicStatus = 'DISPATCHED';
+      } else if (rawStatus == 'QC_PASSED' || (completedLines == totalLines && totalLines > 0)) {
+        dynamicStatus = 'QC_PASSED';
+      } else if (allottedLines == totalLines && totalLines > 0) {
+        dynamicStatus = 'IN_PROGRESS';
+      } else if (allottedLines > 0) {
+        dynamicStatus = 'PARTIALLY_ALLOTTED';
+      } else {
+        dynamicStatus = 'PENDING';
+      }
+
+      final groupedOrder = ChallanGroupedOrder(
+        id: chId,
+        challanNo: chJson['challan_no']?.toString() ?? 'CHALLAN',
+        challanDate: chJson['challan_date']?.toString() ?? DateTime.now().toIso8601String().split('T')[0],
+        brand: (chJson['brand']?.toString().trim().isNotEmpty == true) ? chJson['brand'].toString().trim() : 'OLLYPOP',
+        deliveryDate: chJson['delivery_date']?.toString(),
+        fabricType: chJson['fabric_type']?.toString(),
+        sampleGiven: chJson['sample_given'] == true,
+        notes: rawNotes ?? '',
+        totalSets: finalSets,
+        totalPcs: finalPcs,
+        status: dynamicStatus,
+        bomDetails: bomItems,
+        articles: parsedLines,
+        createdAt: chJson['created_at'] != null ? (DateTime.tryParse(chJson['created_at'].toString()) ?? DateTime.now()) : DateTime.now(),
+      );
+
+      groupedList.add(groupedOrder);
+    }
+
+    // Apply Filters
+    var filtered = groupedList;
+
+    if (filter.selectedBrand != 'ALL') {
+      filtered = filtered.where((c) => c.brand.toUpperCase() == filter.selectedBrand.toUpperCase()).toList();
+    }
+
+    if (filter.selectedStatus == 'PENDING') {
+      filtered = filtered.where((c) => c.status == 'PENDING' || c.status == 'PARTIALLY_ALLOTTED').toList();
+    } else if (filter.selectedStatus == 'ALLOTTED') {
+      filtered = filtered.where((c) => c.status != 'PENDING').toList();
+    }
+
+    if (filter.searchQuery.trim().isNotEmpty) {
+      final q = filter.searchQuery.trim().toLowerCase();
+      filtered = filtered.where((c) {
+        return c.challanNo.toLowerCase().contains(q) ||
+            c.brand.toLowerCase().contains(q) ||
+            (c.fabricType?.toLowerCase().contains(q) ?? false) ||
+            c.articles.any((a) => a.artNo.toLowerCase().contains(q) || a.colorPattern.toLowerCase().contains(q));
+      }).toList();
+    }
+
+    return filtered;
+  } catch (e, stack) {
+    debugPrint('Error loading grouped challans: $e\n$stack');
+    return [];
   }
-
-  if (filter.selectedStatus != 'ALL') {
-    query = query.eq('status', filter.selectedStatus);
-  }
-
-  final response = await query.order('created_at', ascending: false).limit(100);
-  final list = (response as List).map((json) => AdminChallan.fromJson(json)).toList();
-
-  if (filter.searchQuery.trim().isEmpty) {
-    return list;
-  }
-
-  final q = filter.searchQuery.trim().toLowerCase();
-  return list.where((c) {
-    return c.challanNo.toLowerCase().contains(q) ||
-        c.brand.toLowerCase().contains(q) ||
-        (c.fabricType?.toLowerCase().contains(q) ?? false) ||
-        (c.description?.toLowerCase().contains(q) ?? false);
-  }).toList();
 });
+
+/// Legacy provider alias for backward compatibility
+final adminChallansListProvider = FutureProvider.autoDispose<List<AdminChallan>>((ref) async {
+  final grouped = await ref.watch(challanGroupedOrdersProvider.future);
+  return grouped.map((g) => AdminChallan(
+    id: g.id,
+    challanNo: g.challanNo,
+    brand: g.brand,
+    fabricType: g.fabricType,
+    totalQty: g.totalPcs,
+    status: g.status,
+    createdAt: g.createdAt,
+  )).toList();
+});
+
+// ==========================================
+// CHALLAN DIRECT MUTATION ACTIONS (100% Web Parity)
+// ==========================================
+
+/// 1-Click Allot Entire Challan to a Single Lineman
+Future<String?> allotFullChallanDirectlyInSupabase(String challanId, String linemanId) async {
+  try {
+    if (challanId.isEmpty || linemanId.isEmpty) {
+      return 'Please select a valid Challan and Lineman.';
+    }
+
+    // 1. Fetch lineman profile username
+    String linemanName = 'Lineman';
+    final prof = await supabase.from('profiles').select('username').eq('id', linemanId).single();
+    if (prof['username'] != null) linemanName = prof['username'].toString();
+
+    // 2. Fetch challan details
+    final ch = await supabase.from('challans').select('*').eq('id', challanId).single();
+
+    final todayDate = DateTime.now().toIso8601String().split('T')[0];
+
+    // 3. Update existing allotments for this challan
+    final existingAllots = await supabase
+        .from('allotments')
+        .select('id, article_id')
+        .eq('challan_id', challanId);
+
+    final existingArtIds = <String>{};
+    if (existingAllots.isNotEmpty) {
+      final allIds = existingAllots.map((a) => a['id']?.toString()).where((id) => id != null).toList();
+      await supabase.from('allotments').update({
+        'lineman_id': linemanId,
+        'status': 'IN_PROGRESS',
+        'qc_status': 'PENDING_STITCHING',
+        'mending_status': 'PENDING_STITCHING',
+      }).inFilter('id', allIds);
+
+      for (var a in existingAllots) {
+        if (a['article_id'] != null) existingArtIds.add(a['article_id'].toString());
+      }
+    }
+
+    // 4. Create missing allotments for planned lines in notes
+    if (ch['notes'] != null) {
+      try {
+        final parsed = jsonDecode(ch['notes'].toString());
+        final lines = parsed is Map ? (parsed['article_lines'] as List?) : (parsed is List ? parsed : null);
+
+        if (lines != null) {
+          for (var line in lines) {
+            if (line is Map) {
+              final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? 'Style';
+              final linePcs = (line['total_pcs'] as num?)?.toInt() ?? 100;
+              final color = line['color_pattern']?.toString().trim() ?? 'Standard';
+              final size = line['size_range']?.toString().trim() ?? 'Free Size';
+
+              // Ensure article exists in articles catalog
+              var artRes = await supabase.from('articles').select('id').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+              String? artId = artRes?['id']?.toString();
+
+              if (artId == null) {
+                final newArt = await supabase.from('articles').insert({
+                  'art_no': cleanArtNo,
+                  'description': line['description']?.toString() ?? '$cleanArtNo - $color ($size)',
+                  'stitching_rate': (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+                  'is_active': true,
+                }).select('id').single();
+                artId = newArt['id']?.toString();
+              }
+
+              if (artId != null && !existingArtIds.contains(artId)) {
+                existingArtIds.add(artId);
+                final newAl = await supabase.from('allotments').insert({
+                  'challan_id': challanId,
+                  'lineman_id': linemanId,
+                  'article_id': artId,
+                  'target_qty': linePcs,
+                  'status': 'IN_PROGRESS',
+                  'qc_status': 'PENDING_STITCHING',
+                  'mending_status': 'PENDING_STITCHING',
+                  'allotment_date': todayDate,
+                  'production_order_no': ch['challan_no'],
+                  'client_challan_no': ch['challan_no'],
+                }).select('id').single();
+
+                final aId = newAl['id']?.toString();
+                if (aId != null) {
+                  await supabase.from('allotment_variants').insert({
+                    'allotment_id': aId,
+                    'color': color,
+                    'size': size,
+                    'quantity': linePcs,
+                    'completed_qty': 0,
+                  });
+
+                  await supabase.from('allotment_materials').insert({
+                    'allotment_id': aId,
+                    'item_name': '${ch['fabric_type'] ?? "Fabric"} - $color',
+                    'required_qty': '$linePcs pcs',
+                    'admin_issued': true,
+                    'notes': jsonEncode({
+                      'lineman_name': linemanName,
+                      'client_challan_no': ch['challan_no'],
+                      'color_pattern': color,
+                      'size_range': size,
+                    }),
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 5. Update challan status to IN_PROGRESS
+    await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', challanId);
+    return null; // Success
+  } catch (e) {
+    debugPrint('Error in allotFullChallanDirectlyInSupabase: $e');
+    return e.toString();
+  }
+}
+
+/// 1-Click Allot Specific Color Line to a Lineman
+Future<String?> allotColorGroupDirectlyInSupabase(String challanId, String colorName, String linemanId) async {
+  try {
+    if (challanId.isEmpty || colorName.isEmpty || linemanId.isEmpty) {
+      return 'Please select a valid Challan, Color line, and Lineman.';
+    }
+
+    // 1. Fetch lineman profile
+    String linemanName = 'Lineman';
+    final prof = await supabase.from('profiles').select('username').eq('id', linemanId).single();
+    if (prof['username'] != null) linemanName = prof['username'].toString();
+
+    final ch = await supabase.from('challans').select('*').eq('id', challanId).single();
+    final todayDate = DateTime.now().toIso8601String().split('T')[0];
+
+    // 2. Parse lines matching color
+    List<dynamic> targetLines = [];
+    if (ch['notes'] != null) {
+      try {
+        final p = jsonDecode(ch['notes'].toString());
+        final lines = p is Map ? (p['article_lines'] as List?) : (p is List ? p : null);
+        if (lines != null) {
+          targetLines = lines.where((line) {
+            final c = (line['color_pattern']?.toString() ?? line['description']?.toString() ?? '').trim().toUpperCase();
+            final target = colorName.trim().toUpperCase();
+            return c == target || c.contains(target) || c.contains('3 COLOUR') || c.contains('3 COLOR') || target == 'ALL';
+          }).toList();
+        }
+      } catch (_) {}
+    }
+
+    for (var line in targetLines) {
+      final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? 'Style';
+      final linePcs = (line['total_pcs'] as num?)?.toInt() ?? 100;
+      final size = line['size_range']?.toString().trim() ?? 'Free Size';
+
+      var artRes = await supabase.from('articles').select('id').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+      String? artId = artRes?['id']?.toString();
+
+      if (artId == null) {
+        final newArt = await supabase.from('articles').insert({
+          'art_no': cleanArtNo,
+          'description': line['description']?.toString() ?? '$cleanArtNo - $colorName',
+          'stitching_rate': (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+          'is_active': true,
+        }).select('id').single();
+        artId = newArt['id']?.toString();
+      }
+
+      if (artId != null) {
+        final newAl = await supabase.from('allotments').insert({
+          'challan_id': challanId,
+          'lineman_id': linemanId,
+          'article_id': artId,
+          'target_qty': linePcs,
+          'status': 'IN_PROGRESS',
+          'qc_status': 'PENDING_STITCHING',
+          'mending_status': 'PENDING_STITCHING',
+          'allotment_date': todayDate,
+          'production_order_no': ch['challan_no'],
+          'client_challan_no': ch['challan_no'],
+        }).select('id').single();
+
+        final aId = newAl['id']?.toString();
+        if (aId != null) {
+          await supabase.from('allotment_variants').insert({
+            'allotment_id': aId,
+            'color': colorName,
+            'size': size,
+            'quantity': linePcs,
+            'completed_qty': 0,
+          });
+
+          await supabase.from('allotment_materials').insert({
+            'allotment_id': aId,
+            'item_name': '${ch['fabric_type'] ?? "Fabric"} - $colorName',
+            'required_qty': '$linePcs pcs',
+            'admin_issued': true,
+            'notes': jsonEncode({
+              'lineman_name': linemanName,
+              'client_challan_no': ch['challan_no'],
+              'color_pattern': colorName,
+              'size_range': size,
+            }),
+          });
+        }
+      }
+    }
+
+    await supabase.from('challans').update({'status': 'IN_PROGRESS'}).eq('id', challanId);
+    return null;
+  } catch (e) {
+    debugPrint('Error in allotColorGroupDirectlyInSupabase: $e');
+    return e.toString();
+  }
+}
+
+/// Unallot / Recall Challan back to Pending Allotment
+Future<bool> unallotChallanDirectlyInSupabase(String challanId) async {
+  try {
+    if (challanId.isEmpty) return false;
+
+    // Delete floor allotments associated with this challan
+    await supabase.from('allotments').delete().eq('challan_id', challanId);
+    await supabase.from('challans').update({'status': 'PENDING'}).eq('id', challanId);
+    return true;
+  } catch (e) {
+    debugPrint('Error in unallotChallanDirectlyInSupabase: $e');
+    return false;
+  }
+}
+
+/// Delete Challan and cascade its floor allotments
+Future<bool> deleteChallanInSupabase(String challanId) async {
+  try {
+    if (challanId.isEmpty) return false;
+
+    // 1. Find child allotments
+    final childAllots = await supabase.from('allotments').select('id').eq('challan_id', challanId);
+    if (childAllots.isNotEmpty) {
+      final ids = childAllots.map((a) => a['id']?.toString()).where((id) => id != null).toList();
+      try { await supabase.from('allotment_variants').delete().inFilter('allotment_id', ids); } catch (_) {}
+      try { await supabase.from('allotment_materials').delete().inFilter('allotment_id', ids); } catch (_) {}
+      try { await supabase.from('allotments').delete().eq('challan_id', challanId); } catch (_) {}
+    }
+
+    await supabase.from('challans').delete().eq('id', challanId);
+    return true;
+  } catch (e) {
+    debugPrint('Error in deleteChallanInSupabase: $e');
+    return false;
+  }
+}
+
+/// Create a Multi-Article Job Work Delivery Challan
+Future<String?> createChallanInSupabase({
+  required String challanNo,
+  required String challanDate,
+  required String brand,
+  String? deliveryDate,
+  String? fabricType,
+  bool sampleGiven = false,
+  String notes = '',
+  required List<Map<String, dynamic>> articleLines,
+  List<Map<String, dynamic>> bomItems = const [],
+}) async {
+  try {
+    final cleanChallanNo = challanNo.trim().toUpperCase();
+    if (cleanChallanNo.isEmpty) return 'Challan Number is required.';
+
+    final grandTotalSets = articleLines.fold<int>(0, (sum, l) => sum + ((l['sets'] as num?)?.toInt() ?? 1));
+    final grandTotalPcs = articleLines.fold<int>(0, (sum, l) => sum + ((l['total_pcs'] as num?)?.toInt() ?? 0));
+
+    // Save article catalog styles
+    for (var line in articleLines) {
+      final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? '';
+      if (cleanArtNo.isNotEmpty) {
+        final existing = await supabase.from('articles').select('id').eq('art_no', cleanArtNo).limit(1).maybeSingle();
+        if (existing == null) {
+          await supabase.from('articles').insert({
+            'art_no': cleanArtNo,
+            'description': line['description']?.toString() ?? '$cleanArtNo - ${line['color_pattern'] ?? ""}',
+            'stitching_rate': (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+            'is_active': true,
+          });
+        }
+      }
+    }
+
+    final notesJson = jsonEncode({
+      'user_notes': notes.trim(),
+      'article_lines': articleLines,
+    });
+
+    await supabase.from('challans').insert({
+      'challan_no': cleanChallanNo,
+      'challan_date': challanDate,
+      'brand': brand.trim().toUpperCase(),
+      'delivery_date': deliveryDate,
+      'fabric_type': fabricType?.trim(),
+      'sample_given': sampleGiven,
+      'notes': notesJson,
+      'total_sets': grandTotalSets,
+      'total_pcs': grandTotalPcs,
+      'status': 'PENDING',
+      'bom_details': bomItems,
+    });
+
+    return null; // Success!
+  } catch (e) {
+    debugPrint('Error in createChallanInSupabase: $e');
+    return e.toString();
+  }
+}
 
 // ==========================================
 // 3. ALLOTMENTS PROVIDER

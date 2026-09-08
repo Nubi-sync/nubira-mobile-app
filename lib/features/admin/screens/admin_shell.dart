@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/admin_drawer.dart';
 import 'admin_dashboard_screen.dart';
-import 'challan_hub_screen.dart';
+import '../challans/challans_dashboard_screen.dart';
 import '../allotments/allotments_list_screen.dart';
 import 'inventory_screen.dart';
 
@@ -23,7 +23,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   Widget build(BuildContext context) {
     const screens = [
       AdminDashboardScreen(),
-      ChallanHubScreen(),
+      ChallansDashboardScreen(),
       AllotmentsListScreen(),
       InventoryScreen(),
     ];
