@@ -105,20 +105,39 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         final List<String> archivedIds = prefs.getStringList('lineman_archived_lots') ?? [];
 
         // 1. Fetch ALL Allotments assigned to this lineman
-        final allotmentsRes = await supabase
-            .from('allotments')
-            .select('''
-              id,
-              challan_id,
-              target_qty,
-              allotment_date,
-              status,
-              article_id,
-              articles ( id, art_no, description, stitching_rate, size_rates ),
-              challans ( id, challan_no, brand, fabric_type )
-            ''')
-            .eq('lineman_id', user.id)
-            .order('allotment_date', ascending: false);
+        List<dynamic> allotmentsRes = [];
+        try {
+          allotmentsRes = await supabase
+              .from('allotments')
+              .select('''
+                id,
+                challan_id,
+                target_qty,
+                allotment_date,
+                status,
+                priority,
+                article_id,
+                articles ( id, art_no, description, stitching_rate, size_rates ),
+                challans ( id, challan_no, brand, fabric_type )
+              ''')
+              .eq('lineman_id', user.id)
+              .order('allotment_date', ascending: false);
+        } catch (_) {
+          allotmentsRes = await supabase
+              .from('allotments')
+              .select('''
+                id,
+                challan_id,
+                target_qty,
+                allotment_date,
+                status,
+                article_id,
+                articles ( id, art_no, description, stitching_rate, size_rates ),
+                challans ( id, challan_no, brand, fabric_type )
+              ''')
+              .eq('lineman_id', user.id)
+              .order('allotment_date', ascending: false);
+        }
 
         final allAllotmentIds = allotmentsRes.map((a) => a['id'].toString()).toList();
 
@@ -242,8 +261,26 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           final lotMaterials = materialsRes.where((m) => m['allotment_id'] == aId).toList();
           final lotReissues = reissuesRes.where((r) => r['allotment_id']?.toString() == aId).toList();
 
+          // Extract priority (from column or fallback from material notes)
+          String lotPriority = (a['priority'] ?? '').toString().toUpperCase();
+          if (lotPriority.isEmpty || lotPriority == 'NORMAL') {
+            for (var m in lotMaterials) {
+              if (m['notes'] != null) {
+                try {
+                  final parsed = jsonDecode(m['notes'].toString());
+                  if (parsed['priority'] != null && parsed['priority'].toString().isNotEmpty) {
+                    lotPriority = parsed['priority'].toString().toUpperCase();
+                    break;
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+          if (lotPriority.isEmpty) lotPriority = 'NORMAL';
+
           final enriched = {
             ...a,
+            'priority': lotPriority,
             'total_assigned': assigned,
             'total_done': done,
             'variants': lotVariants,
@@ -258,6 +295,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             enrichedActive.add(enriched);
           }
         }
+
+        // Universal Priority Queue Sorting: CRITICAL (Rank 0) -> RUSH (Rank 1) -> NORMAL (Rank 2)
+        enrichedActive.sort((a, b) {
+          final pA = (a['priority'] ?? 'NORMAL').toString().toUpperCase();
+          final pB = (b['priority'] ?? 'NORMAL').toString().toUpperCase();
+          int rank(String p) => p == 'CRITICAL' ? 0 : (p == 'RUSH' ? 1 : 2);
+          final diff = rank(pA).compareTo(rank(pB));
+          if (diff != 0) return diff;
+          return (b['allotment_date'] ?? '').toString().compareTo((a['allotment_date'] ?? '').toString());
+        });
 
         // 5. Fetch active mending tasks assigned to this lineman from QC
         List<dynamic> activeMending = [];
@@ -3643,6 +3690,44 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // TOP PRIORITY ALERT BANNER (CRITICAL / RUSH)
+                if ((a['priority'] ?? '') == 'CRITICAL' || (a['priority'] ?? '') == 'RUSH')
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
+                    decoration: BoxDecoration(
+                      color: (a['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFFF1F2) : const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: (a['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFDA4AF) : const Color(0xFFFDE68A),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          (a['priority'] ?? '') == 'CRITICAL' ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
+                          size: 19,
+                          color: (a['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFE11D48) : const Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            (a['priority'] ?? '') == 'CRITICAL'
+                                ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले सिलाई करो (DO THIS FIRST)'
+                                : 'RUSH ORDER PRIORITY • HIGH URGENCY',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: (a['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFBE123C) : const Color(0xFFB45309),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,

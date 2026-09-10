@@ -171,6 +171,23 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         artMap[a['id'].toString()] = a;
       }
 
+      final Map<String, String> priorityMap = {};
+      for (var mat in allotMatsRes) {
+        final aId = mat['allotment_id']?.toString() ?? '';
+        final notesRaw = mat['notes'];
+        if (notesRaw is String && notesRaw.contains('"priority"')) {
+          try {
+            final parsed = jsonDecode(notesRaw);
+            if (parsed is Map && parsed['priority'] != null) {
+              final p = parsed['priority'].toString().toUpperCase();
+              if (p == 'CRITICAL' || p == 'RUSH' || p == 'NORMAL') {
+                priorityMap[aId] = p;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
       for (var al in allotQuery) {
         final aId = al['article_id']?.toString() ?? '';
         final lId = al['lineman_id']?.toString() ?? '';
@@ -179,6 +196,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         final art = artMap[aId] ?? {};
         final prof = profMap[lId] ?? {};
         final ch = challansQuery.firstWhere((c) => c['id']?.toString() == chId, orElse: () => <String, dynamic>{});
+
+        final colPriority = (al['priority'] ?? '').toString().toUpperCase();
+        final lotPriority = (colPriority == 'CRITICAL' || colPriority == 'RUSH' || colPriority == 'NORMAL')
+            ? colPriority
+            : (priorityMap[al['id']?.toString() ?? ''] ?? 'NORMAL');
 
         // Determine specific assigned colors for this allotment
         final allotVars = variantsRes.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
@@ -198,6 +220,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
         activeAllotsRes.add({
           'id': al['id'],
+          'priority': lotPriority,
           'challan_id': chId,
           'challan_no': ch['challan_no'] ?? al['challan_no'] ?? '-',
           'challans': ch,
@@ -242,8 +265,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
           final passedQty = parseQty(al['qc_total_passed'], parseQty(al['target_qty']));
 
+          final colPriority = (al['priority'] ?? '').toString().toUpperCase();
+          final lotPriority = (colPriority == 'CRITICAL' || colPriority == 'RUSH' || colPriority == 'NORMAL')
+              ? colPriority
+              : (priorityMap[al['id']?.toString() ?? ''] ?? 'NORMAL');
+
           readyQcRes.add({
             ...Map<String, dynamic>.from(al),
+            'priority': lotPriority,
             'articles': art,
             'profiles': prof,
             'challans': ch,
@@ -263,6 +292,31 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       } catch (e) {
         debugPrint('QC Ready allotments fetch warning: $e');
       }
+
+      // Sort both queues by priority queue: CRITICAL (0) -> RUSH (1) -> NORMAL (2)
+      int priorityWeight(String p) {
+        if (p == 'CRITICAL') return 0;
+        if (p == 'RUSH') return 1;
+        return 2;
+      }
+
+      activeAllotsRes.sort((x, y) {
+        final pX = priorityWeight((x['priority'] ?? 'NORMAL').toString());
+        final pY = priorityWeight((y['priority'] ?? 'NORMAL').toString());
+        if (pX != pY) return pX.compareTo(pY);
+        final dtX = DateTime.tryParse(x['created_at']?.toString() ?? '') ?? DateTime(2000);
+        final dtY = DateTime.tryParse(y['created_at']?.toString() ?? '') ?? DateTime(2000);
+        return dtY.compareTo(dtX);
+      });
+
+      readyQcRes.sort((x, y) {
+        final pX = priorityWeight((x['priority'] ?? 'NORMAL').toString());
+        final pY = priorityWeight((y['priority'] ?? 'NORMAL').toString());
+        if (pX != pY) return pX.compareTo(pY);
+        final dtX = DateTime.tryParse(x['created_at']?.toString() ?? '') ?? DateTime(2000);
+        final dtY = DateTime.tryParse(y['created_at']?.toString() ?? '') ?? DateTime(2000);
+        return dtY.compareTo(dtX);
+      });
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
       final txRes = await supabase
@@ -3197,14 +3251,20 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                   final aNo = al['articles']?['art_no'] ?? '';
                                   final cLabel = (al['assigned_color_label']?.toString() ?? '').trim();
                                   final qty = al['target_qty'] ?? 0;
+                                  final p = (al['priority'] ?? 'NORMAL').toString().toUpperCase();
+                                  final pTag = p == 'CRITICAL' ? '[CRITICAL] ' : (p == 'RUSH' ? '[RUSH] ' : '');
                                   final targetTitle = cLabel.isNotEmpty 
-                                      ? '$lName • $aNo ($cLabel - $qty pcs)'
-                                      : '$lName • $aNo ($qty pcs)';
+                                      ? '$pTag$lName • $aNo ($cLabel - $qty pcs)'
+                                      : '$pTag$lName • $aNo ($qty pcs)';
                                   return DropdownMenuItem<String>(
                                     value: al['id'],
                                     child: Text(
                                       targetTitle,
-                                      style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppTheme.ink),
+                                      style: GoogleFonts.publicSans(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.5,
+                                        color: p == 'CRITICAL' ? AppTheme.red : (p == 'RUSH' ? const Color(0xFFD97706) : AppTheme.ink),
+                                      ),
                                     ),
                                   );
                                 }).toList(),
@@ -3219,6 +3279,48 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               ),
                             ),
                           ),
+
+                          // Priority Banner if selected allotment is CRITICAL or RUSH
+                          if ((allotment['priority'] ?? 'NORMAL').toString().toUpperCase() == 'CRITICAL' ||
+                              (allotment['priority'] ?? 'NORMAL').toString().toUpperCase() == 'RUSH') ...[
+                            Builder(
+                              builder: (_) {
+                                final p = (allotment['priority'] ?? 'NORMAL').toString().toUpperCase();
+                                final isCrit = p == 'CRITICAL';
+                                return Container(
+                                  margin: const EdgeInsets.only(top: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: isCrit ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isCrit ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A), width: 1.2),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isCrit ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
+                                        size: 15,
+                                        color: isCrit ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          isCrit
+                                              ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले माल इशू करो (DO THIS FIRST)'
+                                              : 'RUSH ORDER PRIORITY • उच्च प्राथमिकता',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: isCrit ? const Color(0xFF991B1B) : const Color(0xFF92400E),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
 
                           const SizedBox(height: 14),
 
@@ -5046,17 +5148,27 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final int passedQty = parseQty(lot['qc_passed_qty']);
     final lineman = lot['lineman_name'] ?? 'Lineman';
     final qcName = lot['qc_name'] ?? 'QC Supervisor';
+    final priority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
+    final isCritical = priority == 'CRITICAL';
+    final isRush = priority == 'RUSH';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isCritical ? const Color(0xFFFFF5F5) : (isRush ? const Color(0xFFFFFDF5) : Colors.white),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.green.withValues(alpha: 0.4), width: 1.3),
+        border: Border.all(
+          color: isCritical
+              ? const Color(0xFFFCA5A5)
+              : (isRush ? const Color(0xFFFDE68A) : AppTheme.green.withValues(alpha: 0.4)),
+          width: isCritical ? 1.5 : 1.3,
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.green.withValues(alpha: 0.06),
+            color: isCritical
+                ? const Color(0xFFEF4444).withValues(alpha: 0.08)
+                : AppTheme.green.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -5065,13 +5177,123 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top Urgency Alert Banner (if CRITICAL or RUSH)
+          if (isCritical) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFCA5A5), width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_fire_department_rounded, size: 15, color: Color(0xFFDC2626)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'CRITICAL / EXPORT PRIORITY • सबसे पहले इनवर्ड करो (DO THIS FIRST)',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF991B1B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isRush) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, size: 15, color: Color(0xFFD97706)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'RUSH ORDER PRIORITY • उच्च प्राथमिकता',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                child: Text('CH-$challanNo', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
+                    child: Text('CH-$challanNo', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                  ),
+                  if (isCritical) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFDC2626)),
+                          const SizedBox(width: 2),
+                          Text(
+                            'CRITICAL',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFFDC2626),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (isRush) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFD97706)),
+                          const SizedBox(width: 2),
+                          Text(
+                            'RUSH',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFFD97706),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

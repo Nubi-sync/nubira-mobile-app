@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -186,31 +187,60 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   Future<void> _fetchMendingLots() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Fetch Allotments (Both handed over to mending and in-progress)
-      final res = await supabase
-          .from('allotments')
-          .select('''
-            id,
-            challan_id,
-            article_id,
-            lineman_id,
-            status,
-            mending_status,
-            target_qty,
-            mending_supervisor_id,
-            mending_supervisor_name,
-            handed_to_mending_by,
-            handed_to_mending_at,
-            mending_handover_notes,
-            created_at,
-            article:articles ( id, art_no, description ),
-            lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-            challans ( id, challan_no, brand, fabric_type )
-          ''')
-          .order('created_at', ascending: false)
-          .limit(50);
+      // 1. Fetch Allotments (Both handed over to mending and in-progress) with priority resilience
+      List<dynamic> allotmentList = [];
+      try {
+        final res = await supabase
+            .from('allotments')
+            .select('''
+              id,
+              challan_id,
+              article_id,
+              lineman_id,
+              status,
+              priority,
+              mending_status,
+              target_qty,
+              mending_supervisor_id,
+              mending_supervisor_name,
+              handed_to_mending_by,
+              handed_to_mending_at,
+              mending_handover_notes,
+              created_at,
+              article:articles ( id, art_no, description ),
+              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
+              challans ( id, challan_no, brand, fabric_type )
+            ''')
+            .order('created_at', ascending: false)
+            .limit(50);
+        allotmentList = res as List<dynamic>;
+      } catch (e) {
+        debugPrint('Mending lots priority query fallback: $e');
+        final res = await supabase
+            .from('allotments')
+            .select('''
+              id,
+              challan_id,
+              article_id,
+              lineman_id,
+              status,
+              mending_status,
+              target_qty,
+              mending_supervisor_id,
+              mending_supervisor_name,
+              handed_to_mending_by,
+              handed_to_mending_at,
+              mending_handover_notes,
+              created_at,
+              article:articles ( id, art_no, description ),
+              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
+              challans ( id, challan_no, brand, fabric_type )
+            ''')
+            .order('created_at', ascending: false)
+            .limit(50);
+        allotmentList = res as List<dynamic>;
+      }
 
-      final List<dynamic> allotmentList = res as List<dynamic>;
       final List<String> lotIds = allotmentList.map((a) => a['id'].toString()).toList();
 
       // 2. Fetch variants for these allotments
@@ -237,6 +267,34 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               .order('assigned_at', ascending: false);
         } catch (e) {
           debugPrint('Mending assignments fetch error: $e');
+        }
+      }
+
+      // 4. Fetch fallback priority from allotment_materials if priority column wasn't populated
+      Map<String, String> priorityMap = {};
+      if (lotIds.isNotEmpty) {
+        try {
+          final matRes = await supabase
+              .from('allotment_materials')
+              .select('allotment_id, notes')
+              .inFilter('allotment_id', lotIds);
+          for (var row in (matRes as List<dynamic>)) {
+            final aId = row['allotment_id']?.toString() ?? '';
+            final notesRaw = row['notes'];
+            if (notesRaw is String && notesRaw.contains('"priority"')) {
+              try {
+                final parsed = jsonDecode(notesRaw);
+                if (parsed is Map && parsed['priority'] != null) {
+                  final p = parsed['priority'].toString().toUpperCase();
+                  if (p == 'CRITICAL' || p == 'RUSH' || p == 'NORMAL') {
+                    priorityMap[aId] = p;
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (e) {
+          debugPrint('Mending: Allotment materials priority fetch error: $e');
         }
       }
 
@@ -285,8 +343,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
         final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
 
+        final colPriority = (a['priority'] ?? '').toString().toUpperCase();
+        final lotPriority = (colPriority == 'CRITICAL' || colPriority == 'RUSH' || colPriority == 'NORMAL')
+            ? colPriority
+            : (priorityMap[aId] ?? 'NORMAL');
+
         lots.add({
           ...a,
+          'priority': lotPriority,
           'article': artMap,
           'challans': chalMap,
           'lineman': lineMap,
@@ -297,6 +361,22 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           'total_counted': totalCounted,
         });
       }
+
+      // Sort by production priority queue: CRITICAL (0) -> RUSH (1) -> NORMAL (2)
+      int priorityWeight(String p) {
+        if (p == 'CRITICAL') return 0;
+        if (p == 'RUSH') return 1;
+        return 2;
+      }
+
+      lots.sort((x, y) {
+        final pX = priorityWeight((x['priority'] ?? 'NORMAL').toString());
+        final pY = priorityWeight((y['priority'] ?? 'NORMAL').toString());
+        if (pX != pY) return pX.compareTo(pY);
+        final dtX = DateTime.tryParse(x['created_at']?.toString() ?? '') ?? DateTime(2000);
+        final dtY = DateTime.tryParse(y['created_at']?.toString() ?? '') ?? DateTime(2000);
+        return dtY.compareTo(dtX);
+      });
 
       if (mounted) {
         setState(() {
@@ -1307,6 +1387,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     // Top Lot Selector Carousel
                     _buildLotSelector(),
 
+                    // Priority Alert Banner (if CRITICAL or RUSH)
+                    if (_selectedLot != null &&
+                        ((_selectedLot!['priority'] ?? 'NORMAL').toString().toUpperCase() == 'CRITICAL' ||
+                         (_selectedLot!['priority'] ?? 'NORMAL').toString().toUpperCase() == 'RUSH')) ...[
+                      _buildSelectedLotPriorityBanner((_selectedLot!['priority'] ?? 'NORMAL').toString().toUpperCase()),
+                    ],
+
                     // Two Tabs (Worker Assignments vs Natural Matrix)
                     _buildTabBar(),
 
@@ -1320,6 +1407,74 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     ),
                   ],
                 ),
+    );
+  }
+
+  Widget _buildSelectedLotPriorityBanner(String priority) {
+    final isCritical = priority == 'CRITICAL';
+    final bgColor = isCritical ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB);
+    final borderColor = isCritical ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A);
+    final textColor = isCritical ? const Color(0xFF991B1B) : const Color(0xFF92400E);
+    final subtextColor = isCritical ? const Color(0xFFB91C1C) : const Color(0xFFB45309);
+    final icon = isCritical ? Icons.local_fire_department_rounded : Icons.bolt_rounded;
+    final iconColor = isCritical ? const Color(0xFFDC2626) : const Color(0xFFD97706);
+    final label = isCritical
+        ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले ठीक व गिनती करो (DO THIS FIRST)'
+        : 'RUSH ORDER PRIORITY • उच्च प्राथमिकता (HIGH URGENCY)';
+    final desc = isCritical
+        ? 'Admin/Production Manager marked this lot as Highest Priority. Complete mending & count verification first.'
+        : 'Rush production allotment. Prioritize worker assignment and counting verification.';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: borderColor),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  desc,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: subtextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1481,6 +1636,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             final target = _parseQty(lot['target_qty']);
             final counted = _parseQty(lot['total_counted']);
             final supName = lot['mending_supervisor_name']?.toString() ?? 'General Pool';
+            final lotPriority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
 
             return GestureDetector(
               onTap: () {
@@ -1506,14 +1662,74 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Art: $artNo',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : AppTheme.steel,
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Art: $artNo',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? Colors.white : AppTheme.steel,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (lotPriority == 'CRITICAL') ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.white : const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.local_fire_department_rounded, size: 10, color: isSelected ? AppTheme.red : const Color(0xFFDC2626)),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'CRITICAL',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: isSelected ? AppTheme.red : const Color(0xFFDC2626),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else if (lotPriority == 'RUSH') ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.white : const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.bolt_rounded, size: 10, color: isSelected ? const Color(0xFFD97706) : const Color(0xFFD97706)),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'RUSH',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: isSelected ? const Color(0xFFD97706) : const Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
+                        const SizedBox(width: 6),
                         Text(
                           '$counted/$target pcs',
                           style: GoogleFonts.publicSans(

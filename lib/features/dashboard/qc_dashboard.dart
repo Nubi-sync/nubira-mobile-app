@@ -254,6 +254,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               article_id,
               lineman_id,
               status,
+              priority,
               mending_status,
               qc_status,
               target_qty,
@@ -346,6 +347,29 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         } catch (e) {
           debugPrint('Mending assignments fetch error: $e');
         }
+      }
+
+      // 3b. Fetch material notes to extract priority fallback if needed
+      final Map<String, String> priorityMap = {};
+      if (lotIds.isNotEmpty) {
+        try {
+          final matsRes = await supabase
+              .from('allotment_materials')
+              .select('allotment_id, notes')
+              .inFilter('allotment_id', lotIds)
+              .timeout(const Duration(seconds: 3), onTimeout: () => []);
+          for (var m in matsRes) {
+            final aId = m['allotment_id']?.toString() ?? '';
+            if (m['notes'] != null && !priorityMap.containsKey(aId)) {
+              try {
+                final parsed = jsonDecode(m['notes'].toString());
+                if (parsed['priority'] != null && parsed['priority'].toString().isNotEmpty) {
+                  priorityMap[aId] = parsed['priority'].toString().toUpperCase();
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (_) {}
       }
 
       // 4. Fetch QC Assignments
@@ -537,8 +561,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           });
         }
 
+        String lotPriority = (a['priority'] ?? '').toString().toUpperCase();
+        if (lotPriority.isEmpty || lotPriority == 'NORMAL') {
+          if (priorityMap.containsKey(aId)) {
+            lotPriority = priorityMap[aId]!;
+          }
+        }
+        if (lotPriority.isEmpty) lotPriority = 'NORMAL';
+
         final lotData = {
           ...Map<String, dynamic>.from(a),
+          'priority': lotPriority,
           'variants': enrichedVars,
           'size_matrix': sizeMatrix,
           'admin_total_qty': adminTotal,
@@ -560,6 +593,16 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         }
         // Otherwise: Still with Lineman / in stitching / pending mending -> DO NOT show in QC!
       }
+
+      // Universal Priority Queue Sorting: CRITICAL (Rank 0) -> RUSH (Rank 1) -> NORMAL (Rank 2)
+      incoming.sort((a, b) {
+        final pA = (a['priority'] ?? 'NORMAL').toString().toUpperCase();
+        final pB = (b['priority'] ?? 'NORMAL').toString().toUpperCase();
+        int rank(String p) => p == 'CRITICAL' ? 0 : (p == 'RUSH' ? 1 : 2);
+        final comp = rank(pA).compareTo(rank(pB));
+        if (comp != 0) return comp;
+        return (b['created_at'] ?? '').toString().compareTo((a['created_at'] ?? '').toString());
+      });
 
       // If ready for challan is empty but some allotments have passed counts, populate
       if (readyForChallan.isEmpty) {
@@ -2230,6 +2273,45 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Top Priority Banner (CRITICAL / RUSH)
+                        if ((lot['priority'] ?? '') == 'CRITICAL' || (lot['priority'] ?? '') == 'RUSH') ...[
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7.5),
+                            decoration: BoxDecoration(
+                              color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFFF1F2) : const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFDA4AF) : const Color(0xFFFDE68A),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  (lot['priority'] ?? '') == 'CRITICAL' ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
+                                  size: 16,
+                                  color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFE11D48) : const Color(0xFFD97706),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    (lot['priority'] ?? '') == 'CRITICAL'
+                                        ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले चेक करो (DO THIS FIRST)'
+                                        : 'RUSH ORDER PRIORITY • HIGH URGENCY',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFBE123C) : const Color(0xFFB45309),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -2252,9 +2334,56 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Art #$artNo',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                        Row(
+                          children: [
+                            Text(
+                              'Art #$artNo',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                            ),
+                            if ((lot['priority'] ?? '') == 'CRITICAL') ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF1F2),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFFDA4AF)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFE11D48)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'CRITICAL • सबसे पहले चेक करो',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFBE123C)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else if ((lot['priority'] ?? '') == 'RUSH') ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'RUSH ORDER',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFB45309)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         if (desc.isNotEmpty) ...[
                           const SizedBox(height: 2),

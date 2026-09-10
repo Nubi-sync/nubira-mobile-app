@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -73,36 +74,103 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     }
 
     try {
-      // 1. Fetch All Active / Recent Allotments with comprehensive stage and custody columns
-      final allotmentsRes = await supabase
-          .from('allotments')
-          .select('''
-            id,
-            challan_id,
-            article_id,
-            lineman_id,
-            status,
-            target_qty,
-            mending_status,
-            mending_total_counted,
-            mending_verified_at,
-            handed_to_mending_by,
-            handed_to_mending_at,
-            qc_status,
-            qc_total_passed,
-            qc_total_alter,
-            qc_received_at,
-            qc_supervisor_name,
-            handed_to_qc_by,
-            handed_to_qc_at,
-            store_inward_status,
-            created_at,
-            article:articles ( id, art_no, description, size_rates ),
-            lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-            challan:challans ( id, challan_no, brand )
-          ''')
-          .order('created_at', ascending: false)
-          .limit(100);
+      // 1. Fetch All Active / Recent Allotments with comprehensive stage, custody, and priority columns
+      List<dynamic> rawAllotments = [];
+      try {
+        final allotmentsRes = await supabase
+            .from('allotments')
+            .select('''
+              id,
+              challan_id,
+              article_id,
+              lineman_id,
+              status,
+              priority,
+              target_qty,
+              mending_status,
+              mending_total_counted,
+              mending_verified_at,
+              handed_to_mending_by,
+              handed_to_mending_at,
+              qc_status,
+              qc_total_passed,
+              qc_total_alter,
+              qc_received_at,
+              qc_supervisor_name,
+              handed_to_qc_by,
+              handed_to_qc_at,
+              store_inward_status,
+              created_at,
+              article:articles ( id, art_no, description, size_rates ),
+              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
+              challan:challans ( id, challan_no, brand )
+            ''')
+            .order('created_at', ascending: false)
+            .limit(100);
+        rawAllotments = allotmentsRes as List<dynamic>;
+      } catch (e) {
+        debugPrint('Floor data: priority column fetch fallback: $e');
+        final allotmentsRes = await supabase
+            .from('allotments')
+            .select('''
+              id,
+              challan_id,
+              article_id,
+              lineman_id,
+              status,
+              target_qty,
+              mending_status,
+              mending_total_counted,
+              mending_verified_at,
+              handed_to_mending_by,
+              handed_to_mending_at,
+              qc_status,
+              qc_total_passed,
+              qc_total_alter,
+              qc_received_at,
+              qc_supervisor_name,
+              handed_to_qc_by,
+              handed_to_qc_at,
+              store_inward_status,
+              created_at,
+              article:articles ( id, art_no, description, size_rates ),
+              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
+              challan:challans ( id, challan_no, brand )
+            ''')
+            .order('created_at', ascending: false)
+            .limit(100);
+        rawAllotments = allotmentsRes as List<dynamic>;
+      }
+
+      final List<String> lotIds = rawAllotments.map((a) => a['id']?.toString() ?? '').where((id) => id.isNotEmpty).toList();
+
+      // Fetch fallback priority from allotment_materials if priority column wasn't populated
+      Map<String, String> priorityMap = {};
+      if (lotIds.isNotEmpty) {
+        try {
+          final matRes = await supabase
+              .from('allotment_materials')
+              .select('allotment_id, notes')
+              .inFilter('allotment_id', lotIds);
+          for (var row in (matRes as List<dynamic>)) {
+            final aId = row['allotment_id']?.toString() ?? '';
+            final notesRaw = row['notes'];
+            if (notesRaw is String && notesRaw.contains('"priority"')) {
+              try {
+                final parsed = jsonDecode(notesRaw);
+                if (parsed is Map && parsed['priority'] != null) {
+                  final p = parsed['priority'].toString().toUpperCase();
+                  if (p == 'CRITICAL' || p == 'RUSH' || p == 'NORMAL') {
+                    priorityMap[aId] = p;
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (e) {
+          debugPrint('Floor data: Allotment materials priority fetch error: $e');
+        }
+      }
 
       // 2. Fetch Allotment Variants safely
       List<dynamic> variantsRes = [];
@@ -146,12 +214,17 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
       int sumPassed = 0;
       int sumMending = 0;
 
-      for (var a in (allotmentsRes as List)) {
+      for (var a in rawAllotments) {
         final aId = a['id'];
         final aStatus = (a['status']?.toString() ?? 'PENDING').toUpperCase();
         final mendingStatus = (a['mending_status']?.toString() ?? '').toUpperCase();
         final qcStatus = (a['qc_status']?.toString() ?? '').toUpperCase();
         final storeStatus = (a['store_inward_status']?.toString() ?? '').toUpperCase();
+
+        final colPriority = (a['priority'] ?? '').toString().toUpperCase();
+        final lotPriority = (colPriority == 'CRITICAL' || colPriority == 'RUSH' || colPriority == 'NORMAL')
+            ? colPriority
+            : (priorityMap[aId?.toString() ?? ''] ?? 'NORMAL');
 
         // 1. Target pieces: prefer variants sum, fallback to allotments.target_qty
         final vars = variantsRes
@@ -238,6 +311,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
         final enriched = {
           'id': aId,
+          'priority': lotPriority,
           'challan_id': a['challan_id'],
           'challan': a['challan'] ?? {},
           'article': a['article'] ?? {},
@@ -305,6 +379,22 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           });
         }
       }
+
+      // Sort floor allotments by priority queue: CRITICAL (0) -> RUSH (1) -> NORMAL (2)
+      int priorityWeight(String p) {
+        if (p == 'CRITICAL') return 0;
+        if (p == 'RUSH') return 1;
+        return 2;
+      }
+
+      enrichedAllotments.sort((x, y) {
+        final pX = priorityWeight((x['priority'] ?? 'NORMAL').toString());
+        final pY = priorityWeight((y['priority'] ?? 'NORMAL').toString());
+        if (pX != pY) return pX.compareTo(pY);
+        final dtX = DateTime.tryParse(x['created_at']?.toString() ?? '') ?? DateTime(2000);
+        final dtY = DateTime.tryParse(y['created_at']?.toString() ?? '') ?? DateTime(2000);
+        return dtY.compareTo(dtX);
+      });
 
       final efficiency = sumTarget > 0 ? ((sumStitched / sumTarget) * 100).clamp(0.0, 100.0) : 0.0;
 
@@ -1234,33 +1324,48 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               stageLabel = 'In Counting';
             }
 
+            final priority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
+            final isCritical = priority == 'CRITICAL';
+            final isRush = priority == 'RUSH';
+
             return InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => _showChallanBreakdownModal(lot),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.card,
+                  color: isCritical ? const Color(0xFFFFF5F5) : (isRush ? const Color(0xFFFFFDF5) : AppTheme.card),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(
+                    color: isCritical ? const Color(0xFFFCA5A5) : (isRush ? const Color(0xFFFDE68A) : AppTheme.border),
+                    width: isCritical ? 1.5 : (isRush ? 1.2 : 1),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppTheme.steelMist,
+                        color: isCritical ? const Color(0xFFFEE2E2) : (isRush ? const Color(0xFFFEF3C7) : AppTheme.steelMist),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         children: [
                           Text(
                             'ART',
-                            style: GoogleFonts.publicSans(fontSize: 8.5, fontWeight: FontWeight.w700, color: AppTheme.inkFaint),
+                            style: GoogleFonts.publicSans(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                              color: isCritical ? const Color(0xFFDC2626) : (isRush ? const Color(0xFFD97706) : AppTheme.inkFaint),
+                            ),
                           ),
                           Text(
                             '$artNo',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isCritical ? const Color(0xFFDC2626) : (isRush ? const Color(0xFFD97706) : AppTheme.steel),
+                            ),
                           ),
                         ],
                       ),
@@ -1280,6 +1385,57 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                   maxLines: 1,
                                 ),
                               ),
+                              if (isCritical) ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.local_fire_department_rounded, size: 10, color: Color(0xFFDC2626)),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'CRITICAL',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFFDC2626),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else if (isRush) ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFFDE68A)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.bolt_rounded, size: 10, color: Color(0xFFD97706)),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        'RUSH',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               if (sizeRange.isNotEmpty) ...[
                                 const SizedBox(width: 6),
                                 Container(
@@ -1437,6 +1593,70 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 child: ListView(
                   padding: const EdgeInsets.all(18),
                   children: [
+                    // Top Urgency Alert if CRITICAL or RUSH
+                    if ((lot['priority'] ?? 'NORMAL').toString().toUpperCase() == 'CRITICAL' ||
+                        (lot['priority'] ?? 'NORMAL').toString().toUpperCase() == 'RUSH') ...[
+                      Builder(
+                        builder: (_) {
+                          final p = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
+                          final isCrit = p == 'CRITICAL';
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isCrit ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: isCrit ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A), width: 1.2),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: isCrit ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A)),
+                                  ),
+                                  child: Icon(
+                                    isCrit ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
+                                    size: 16,
+                                    color: isCrit ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        isCrit
+                                            ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले पूरा करो'
+                                            : 'RUSH ORDER PRIORITY • उच्च प्राथमिकता',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: isCrit ? const Color(0xFF991B1B) : const Color(0xFF92400E),
+                                        ),
+                                      ),
+                                      Text(
+                                        isCrit
+                                            ? 'Admin marked this lot as Highest Priority. Fast-track line, mending & QC.'
+                                            : 'Rush production allotment. Prioritize for immediate completion.',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 10,
+                                          color: isCrit ? const Color(0xFFB91C1C) : const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+
                     // Summary cards
                     Row(
                       children: [
