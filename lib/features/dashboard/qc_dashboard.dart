@@ -269,23 +269,53 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               created_at,
               article:articles ( id, art_no, description ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-              challans ( id, challan_no, brand, fabric_type )
+              challans ( id, challan_no, brand, fabric_type, vendor_id, vendor_name )
             ''')
             .order('created_at', ascending: false)
             .limit(60)
             .timeout(const Duration(seconds: 4), onTimeout: () => []);
         allotmentList = allotmentsRes as List<dynamic>;
       } catch (e) {
-        debugPrint('QC_DASHBOARD: Allotments join error: $e, trying simple select');
+        debugPrint('QC_DASHBOARD: Allotments join with vendor error: $e, trying standard join');
         try {
-          final simpleRes = await supabase
+          final fallbackRes = await supabase
               .from('allotments')
-              .select('*')
+              .select('''
+                id,
+                lot_no,
+                challan_id,
+                status,
+                quantity,
+                total_pcs,
+                mending_total_counted,
+                mending_verified_at,
+                qc_total_passed,
+                qc_total_alter,
+                qc_supervisor_id,
+                qc_supervisor_name,
+                handed_to_qc_by,
+                handed_to_qc_at,
+                qc_handover_notes,
+                created_at,
+                article:articles ( id, art_no, description ),
+                lineman:profiles!allotments_lineman_id_fkey ( id, username ),
+                challans ( id, challan_no, brand, fabric_type )
+              ''')
               .order('created_at', ascending: false)
               .limit(60)
-              .timeout(const Duration(seconds: 3), onTimeout: () => []);
-          allotmentList = simpleRes as List<dynamic>;
-        } catch (_) {}
+              .timeout(const Duration(seconds: 4), onTimeout: () => []);
+          allotmentList = fallbackRes as List<dynamic>;
+        } catch (_) {
+          try {
+            final simpleRes = await supabase
+                .from('allotments')
+                .select('*')
+                .order('created_at', ascending: false)
+                .limit(60)
+                .timeout(const Duration(seconds: 3), onTimeout: () => []);
+            allotmentList = simpleRes as List<dynamic>;
+          } catch (_) {}
+        }
       }
 
       final List<String> lotIds = allotmentList.map((a) => a['id'].toString()).toList();
@@ -2123,7 +2153,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
             final desc = lot['article']?['description'] ?? lot['description'] ?? '';
             final challanNo = lot['challans']?['challan_no'] ?? '-';
-            final brand = lot['challans']?['brand'] ?? 'OLLYPOP';
+            final brand = (lot['challans']?['brand'] ?? lot['brand'] ?? '').toString();
             final lineman = lot['lineman']?['username'] ?? 'Lineman';
             final handedBy = lot['handed_to_qc_by']?.toString();
             final supName = lot['qc_supervisor_name']?.toString() ?? 'General Pool';
@@ -2657,7 +2687,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '${_readyForChallanLots.length} Article(s) Cleared QC & 100% Passed. Ready to generate Ollypop Delivery Challan.',
+                  '${_readyForChallanLots.length} Article(s) Cleared QC & 100% Passed. Ready to generate Delivery Challan.',
                   style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.ink),
                 ),
               ),
@@ -2670,7 +2700,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
           final desc = lot['article']?['description'] ?? lot['description'] ?? '';
           final challanNo = lot['challans']?['challan_no'] ?? '-';
-          final brand = lot['challans']?['brand'] ?? 'OLLYPOP';
+          final brand = (lot['challans']?['brand'] ?? lot['brand'] ?? '').toString();
+          final vendorName = (lot['vendor_name'] ?? lot['challans']?['vendor_name'] ?? '').toString().trim();
           final int passedQty = parseQty(lot['qc_total_passed'], parseQty(lot['mending_received_qty']));
           final vars = parseList(lot['variants']);
 
@@ -2695,12 +2726,41 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                            child: Text(
-                              'CH-$challanNo · $brand',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                          Flexible(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
+                                  child: Text(
+                                    'CH-$challanNo · $brand',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                  ),
+                                ),
+                                if (vendorName.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAF5FF),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFE9D5FF)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.business_rounded, size: 12, color: Color(0xFF7E22CE)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          vendorName,
+                                          style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF7E22CE)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           Container(

@@ -47,6 +47,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
   // Shimmer animation controller
   late AnimationController _shimmerController;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
@@ -56,10 +57,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
     _loadPreferences();
     _fetchDashboardData();
+
+    // Auto-refresh lineman floor data every 30 seconds silently
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _fetchDashboardData(isSilent: true);
+    });
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _shimmerController.dispose();
     _liveSearchController.dispose();
     _historySearchController.dispose();
@@ -86,8 +93,10 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     }
   }
 
-    Future<void> _fetchDashboardData() async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchDashboardData({bool isSilent = false}) async {
+    if (!isSilent) {
+      setState(() => _isLoading = true);
+    }
     try {
       final user = supabase.auth.currentUser;
       if (user != null) {
@@ -291,13 +300,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !isSilent) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading data: $e'), backgroundColor: AppTheme.red),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !isSilent) setState(() => _isLoading = false);
     }
   }
 

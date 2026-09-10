@@ -56,6 +56,10 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   bool _isEditingPartyDetails = false;
   int _activePartyTab = 0; // 0: Billed To, 1: Shipping To
 
+  // Vendor Tracking
+  String? _vendorId;
+  late final TextEditingController _vendorNameController;
+
   // Controllers for Header & Logistics
   late final TextEditingController _challanNoController;
   late final TextEditingController _vehicleNoController;
@@ -64,14 +68,14 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   late final TextEditingController _spotNotesController;
 
   // Controllers for Billed To
-  final _billedToNameController = TextEditingController(text: 'OLLYPOP INDUSTRIES PRIVATE LIMITED');
-  final _billedToAddressController = TextEditingController(text: 'Rafi Ahmed Kidwai Road, Kolkata 700055');
-  final _billedToGstinController = TextEditingController(text: '19AADCO1064C1ZK');
+  late final TextEditingController _billedToNameController;
+  late final TextEditingController _billedToAddressController;
+  late final TextEditingController _billedToGstinController;
 
   // Controllers for Shipping To
-  final _shippingToNameController = TextEditingController(text: 'OLLYPOP INDUSTRIES PRIVATE LIMITED');
-  final _shippingToAddressController = TextEditingController(text: 'Srijan Logistic Park, Maheshtalla');
-  final _shippingToEmailController = TextEditingController(text: 'creationnubira@gmail.com');
+  late final TextEditingController _shippingToNameController;
+  late final TextEditingController _shippingToAddressController;
+  late final TextEditingController _shippingToEmailController;
 
   // Items list
   List<Map<String, dynamic>> _challanItems = [];
@@ -111,11 +115,24 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
     final dateStr = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
     final initialChallanNo = (widget.prefilledLot?['challans']?['challan_no'] ?? widget.prefilledLot?['challan_id'] ?? '').toString();
 
+    _vendorId = (widget.prefilledLot?['vendor_id'] ?? widget.prefilledLot?['challans']?['vendor_id'])?.toString();
+    final initialVendorName = (widget.prefilledLot?['vendor_name'] ?? widget.prefilledLot?['challans']?['vendor_name'] ?? '').toString();
+    _vendorNameController = TextEditingController(text: initialVendorName);
+
     _challanNoController = TextEditingController(text: initialChallanNo);
     _vehicleNoController = TextEditingController(text: '');
     _dateController = TextEditingController(text: dateStr);
     _totalBagsController = TextEditingController(text: '');
     _spotNotesController = TextEditingController(text: '');
+
+    final initialBrandName = (widget.prefilledLot?['challans']?['brand'] ?? widget.prefilledLot?['brand'] ?? '').toString();
+    _billedToNameController = TextEditingController(text: initialBrandName);
+    _billedToAddressController = TextEditingController(text: '');
+    _billedToGstinController = TextEditingController(text: '');
+
+    _shippingToNameController = TextEditingController(text: initialBrandName);
+    _shippingToAddressController = TextEditingController(text: '');
+    _shippingToEmailController = TextEditingController(text: '');
 
     _buildInitialItems();
     _fetchDatabaseData();
@@ -123,6 +140,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
   @override
   void dispose() {
+    _vendorNameController.dispose();
     _challanNoController.dispose();
     _vehicleNoController.dispose();
     _dateController.dispose();
@@ -257,7 +275,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
       final totalBags = int.tryParse(_totalBagsController.text.trim()) ?? 0;
 
       // 1. Create delivery_challan in status PENDING_ADMIN_APPROVAL
-      final challanInsertRes = await supabase.from('delivery_challans').insert({
+      final challanData = <String, dynamic>{
         'challan_no': challanNo,
         'vehicle_no': vehicleNo,
         'spot_notes': _spotNotesController.text.trim(),
@@ -273,7 +291,24 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
         'total_delivery_qty': _totalDeliveryQty,
         'total_balance_qty': _totalBalanceQty,
         'created_by': user?.id,
-      }).select('id').single();
+      };
+
+      if (_vendorId != null && _vendorId!.isNotEmpty) {
+        challanData['vendor_id'] = _vendorId;
+      }
+      if (_vendorNameController.text.trim().isNotEmpty) {
+        challanData['vendor_name'] = _vendorNameController.text.trim();
+      }
+
+      Map<String, dynamic> challanInsertRes;
+      try {
+        challanInsertRes = await supabase.from('delivery_challans').insert(challanData).select('id').single();
+      } catch (insertErr) {
+        debugPrint('DeliveryChallanModal: Insert with vendor failed: $insertErr, falling back without vendor fields');
+        challanData.remove('vendor_id');
+        challanData.remove('vendor_name');
+        challanInsertRes = await supabase.from('delivery_challans').insert(challanData).select('id').single();
+      }
 
       final challanId = challanInsertRes['id'].toString();
 
@@ -725,6 +760,23 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
                                   hint: 'Enter Vehicle No (e.g. WB 19 A 1234)',
                                   prefixIcon: const Icon(Icons.local_shipping_outlined, size: 20, color: AppTheme.steel),
                                   isPrimary: true,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('MANUFACTURING VENDOR / UNIT', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.steel)),
+                                  Text('Contractor Unit', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _vendorNameController,
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                decoration: _cleanInputDecoration(
+                                  hint: 'Vendor Unit (e.g. Enter Vendor / Unit Name)',
+                                  prefixIcon: const Icon(Icons.business_rounded, size: 20, color: AppTheme.steel),
                                 ),
                               ),
                             ],

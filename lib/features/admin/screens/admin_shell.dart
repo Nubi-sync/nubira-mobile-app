@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/admin_drawer.dart';
-import 'admin_dashboard_screen.dart';
+import 'plant_operations_screen.dart';
 import '../challans/challans_dashboard_screen.dart';
 import '../allotments/allotments_list_screen.dart';
 import 'inventory_screen.dart';
@@ -22,7 +22,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   @override
   Widget build(BuildContext context) {
     const screens = [
-      AdminDashboardScreen(),
+      PlantOperationsScreen(),
       ChallansDashboardScreen(),
       AllotmentsListScreen(),
       InventoryScreen(),
