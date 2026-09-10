@@ -148,6 +148,20 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           }
         }
 
+        // 3b. Fetch floor accessory re-issues for these allotments
+        List<dynamic> reissuesRes = [];
+        if (allAllotmentIds.isNotEmpty) {
+          try {
+            reissuesRes = await supabase
+                .from('floor_accessory_reissues')
+                .select('id, allotment_id, article_no, challan_no, worker_name, item_name, quantity, unit, reason, channel, issued_by, notes, created_at, entry_date')
+                .inFilter('allotment_id', allAllotmentIds)
+                .order('created_at', ascending: false);
+          } catch (e) {
+            debugPrint('Floor reissues fetch warning: $e');
+          }
+        }
+
         // 4. Fetch all worker assignments for this lineman
         final allAssignmentsRes = await supabase
             .from('worker_assignments')
@@ -226,6 +240,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           final lotAssignments = allAssignmentsRes.where((ass) => ass['allotment_id'] == aId).toList();
           final lotVariants = variantsRes.where((v) => v['allotment_id'] == aId).toList();
           final lotMaterials = materialsRes.where((m) => m['allotment_id'] == aId).toList();
+          final lotReissues = reissuesRes.where((r) => r['allotment_id']?.toString() == aId).toList();
 
           final enriched = {
             ...a,
@@ -234,6 +249,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             'variants': lotVariants,
             'materials': lotMaterials,
             'assignments': lotAssignments,
+            'reissues': lotReissues,
           };
 
           if (isCompletedInDb || isArchivedLocally) {
@@ -748,6 +764,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     );
   }
 
+
+
   // ======= MATERIAL HANDOVER VERIFICATION =======
   Future<void> _confirmMaterialReceipt(dynamic allotment) async {
     final materials = (allotment['materials'] as List<dynamic>?) ?? [];
@@ -992,6 +1010,288 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         }
       }
     }
+  }
+
+  // ======= FLOOR ACCESSORY RE-ISSUES SHEET =======
+  void _showReissuesDetailSheet(BuildContext context, List<dynamic> reissues, String artNo) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.shade300),
+                      ),
+                      child: Icon(Icons.inventory_2_rounded, color: Colors.amber.shade900, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Store Re-Issue Hisaab',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.steelDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Article #$artNo • ${reissues.length} Re-Issue Entry${reissues.length > 1 ? 's' : ''}',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.inkSoft,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 16, color: AppTheme.steel),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Store counter ne tailors ko direct replacement issue kiye hain. Ye hisaab live sync hai.',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11.5,
+                            color: AppTheme.inkSoft,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: reissues.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (ctx, i) {
+                    final item = reissues[i];
+                    final wName = item['worker_name'] ?? 'Worker';
+                    final accItem = item['item_name'] ?? 'Accessory';
+                    final qty = item['quantity'] ?? 1;
+                    final unit = item['unit'] ?? 'pcs';
+                    final reason = (item['reason'] ?? '').toString();
+                    final channel = (item['channel'] ?? 'COUNTER_WALK_IN').toString();
+                    final challan = (item['challan_no'] ?? '').toString();
+                    final issuedBy = (item['issued_by'] ?? 'Store Manager').toString();
+                    final date = (item['entry_date'] ?? item['created_at']?.toString().split('T')[0] ?? '').toString();
+
+                    final reasonMap = {
+                      'LOST': 'Worker Lost (खोगी)',
+                      'MACHINE_DAMAGE': 'Machine Damage',
+                      'DEFECTIVE_PIECE': 'Defective Piece',
+                      'SHORT_IN_LOT': 'Short In Lot',
+                    };
+                    final reasonLabel = reasonMap[reason] ?? reason.replaceAll('_', ' ');
+
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade50,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.amber.shade200),
+                                ),
+                                child: Text(
+                                  reasonLabel,
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: channel == 'VIA_LINEMAN' ? const Color(0xFFEFF6FF) : const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: channel == 'VIA_LINEMAN' ? const Color(0xFFBFDBFE) : AppTheme.border,
+                                  ),
+                                ),
+                                child: Text(
+                                  channel == 'VIA_LINEMAN' ? 'Via Lineman' : 'Counter Walk-In',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: channel == 'VIA_LINEMAN' ? const Color(0xFF1D4ED8) : AppTheme.inkSoft,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '-$qty $unit',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFFDC2626),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Icon(Icons.person_outline_rounded, size: 16, color: AppTheme.steel),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Tailor: $wName',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.ink,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_outline_rounded, size: 16, color: AppTheme.inkSoft),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Item: $accItem ${challan.isNotEmpty ? "• Challan #$challan" : ""}',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.inkSoft,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                'Note: "${item['notes']}"',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11.5,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppTheme.inkSoft,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Issued By: $issuedBy',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.inkSoft,
+                                ),
+                              ),
+                              if (date.isNotEmpty)
+                                Text(
+                                  date,
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 11,
+                                    color: AppTheme.inkSoft,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      side: const BorderSide(color: AppTheme.border),
+                    ),
+                    child: Text(
+                      'Close',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.steelDark,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ======= ASSIGN WORKER DIALOG =======
@@ -3228,6 +3528,115 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 ],
               ),
             ),
+
+          // Floor Re-Issue Alert Banner (Idea 5: Store Re-Issue & Worker Loss Transparency)
+          () {
+            final reissues = (a['reissues'] as List<dynamic>?) ?? [];
+            if (reissues.isEmpty) return const SizedBox.shrink();
+
+            final first = reissues.first;
+            final wName = first['worker_name'] ?? 'Worker';
+            final item = first['item_name'] ?? 'Accessory';
+            final qty = first['quantity'] ?? 1;
+            final unit = first['unit'] ?? 'pcs';
+            final artNo = (first['article_no'] ?? (a['articles']?['art_no'] ?? '')).toString();
+            final chNo = (first['challan_no'] ?? (a['challans']?['challan_no'] ?? '')).toString();
+            final reasonMap = {
+              'LOST': 'Worker Lost (खोगी)',
+              'MACHINE_DAMAGE': 'Machine Damage',
+              'DEFECTIVE_PIECE': 'Defective Piece',
+              'SHORT_IN_LOT': 'Short In Lot',
+            };
+            final reasonText = reasonMap[first['reason']] ?? first['reason']?.toString().replaceAll('_', ' ') ?? 'Re-Issue';
+
+            return InkWell(
+              onTap: () => _showReissuesDetailSheet(context, reissues, artNo),
+              borderRadius: BorderRadius.vertical(top: hasMaterials ? Radius.zero : const Radius.circular(16)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.vertical(top: hasMaterials ? Radius.zero : const Radius.circular(16)),
+                  border: Border(
+                    bottom: BorderSide(color: Colors.amber.shade300),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.inventory_2_outlined, color: Colors.amber.shade800, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.amber.shade300),
+                                ),
+                                child: Text(
+                                  'STORE ALERT',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${reissues.length} Re-Issue${reissues.length > 1 ? 's' : ''} on Record',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'View Hisaab ➔',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Store Alert: $qty $unit $item re-issued to $wName for Art #$artNo ${chNo.isNotEmpty ? '[$chNo]' : ''} (Reason: $reasonText)',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF78350F),
+                            ),
+                          ),
+                          if (reissues.length > 1)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '+${reissues.length - 1} more replacement(s) recorded at Store counter',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.amber.shade800,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }(),
 
           Padding(
             padding: const EdgeInsets.all(18),
