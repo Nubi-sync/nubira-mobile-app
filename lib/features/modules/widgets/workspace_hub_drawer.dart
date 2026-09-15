@@ -176,7 +176,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             // DRAWER HEADER (#FAF7F0 style)
             // ==========================================
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: Color(0x1A000000), width: 1)),
               ),
@@ -185,14 +185,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        'Zigza.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF3A3564),
-                          letterSpacing: -0.5,
-                        ),
+                      Image.asset(
+                        'assets/images/zigza_main_logo.png',
+                        height: 28,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(width: 8),
                       Container(
@@ -208,6 +204,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF3A3564),
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),

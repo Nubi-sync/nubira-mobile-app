@@ -198,68 +198,28 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
           tooltip: 'Open Menu',
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: Row(
-          children: [
-            Text(
-              'Zigza.',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: DesignTokens.brandSteel,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-              decoration: BoxDecoration(
-                color: DesignTokens.canvasCream,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: DesignTokens.standardBorder),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: DesignTokens.brandSteel,
-                ),
-              ),
-            ),
-          ],
+        title: Image.asset(
+          'assets/images/zigza_main_logo.png',
+          height: 32,
+          fit: BoxFit.contain,
         ),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
-              color: DesignTokens.badgeLiveGreenBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: DesignTokens.badgeLiveGreenBorder),
+              color: DesignTokens.canvasCream,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: DesignTokens.standardBorder),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF10B981),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Live sync',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: DesignTokens.badgeLiveGreenText,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.sync_rounded, color: Color(0xFF10B981), size: 12),
-              ],
+            child: Text(
+              'ERP MES',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: DesignTokens.brandSteel,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
