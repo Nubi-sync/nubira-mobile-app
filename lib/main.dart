@@ -9,6 +9,7 @@ import 'features/dashboard/store_dashboard.dart';
 import 'features/dashboard/dispatch_dashboard.dart';
 import 'features/dashboard/production_manager_dashboard.dart';
 import 'features/dashboard/mending_dashboard.dart';
+import 'features/design/screens/designer_dashboard_screen.dart';
 import 'features/modules/screens/enterprise_workspace_hub_screen.dart';
 import 'core/theme/app_theme.dart';
 
@@ -85,6 +86,8 @@ class AuthGate extends ConsumerWidget {
           return const QcDashboard();
         case 'MENDING':
           return const MendingDashboard();
+        case 'DESIGNER':
+          return const DesignerDashboardScreen();
         case 'LINEMAN':
         default:
           return const LinemanDashboard();
