@@ -227,22 +227,29 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     try {
       final authState = ref.read(authProvider);
       final tenant = authState.tenantProfile;
-      final companyName = tenant?.companyName;
+      final companyName = (tenant?.companyName ?? 'Nubira Creation').trim();
 
       // Query profiles table where is_head == true
-      var query = supabase
+      final res = await supabase
           .from('profiles')
           .select('id, username, role, is_head, designation, allowed_modules, phone, is_active, created_at, company_name')
-          .eq('is_head', true);
-
-      if (companyName != null && companyName.isNotEmpty && companyName.toLowerCase() != 'apparel factory') {
-        query = query.or('company_name.eq.$companyName,company_name.is.null');
-      }
-
-      final res = await query.order('created_at', ascending: false);
+          .eq('is_head', true)
+          .order('created_at', ascending: false);
 
       final List<DepartmentHeadItem> loaded = [];
       for (final row in res) {
+        final profileCompany = row['company_name']?.toString().trim();
+
+        // STRICT TENANT ISOLATION (Strictly matches Web Admin actions.ts)
+        // Only include profiles belonging to this company tenant.
+        if (companyName.isNotEmpty) {
+          if (profileCompany != null && profileCompany.isNotEmpty) {
+            if (profileCompany.toLowerCase() != companyName.toLowerCase()) {
+              continue; // Skip heads from other companies! (e.g. Aalam from Shaw Industries)
+            }
+          }
+        }
+
         final rawModules = row['allowed_modules'];
         List<String> modules = [];
         if (rawModules is List) {
@@ -457,7 +464,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     final allowedDivisions = authState.allowedDivisions;
 
     // Filter catalog to tenant's purchased divisions (Strict match with Web)
-    final subscribedCatalog = (allowedDivisions.isNotEmpty && !allowedDivisions.contains('/modules'))
+    final subscribedCatalog = (allowedDivisions.isNotEmpty)
         ? kDepartmentHeadsCatalog.where((d) => allowedDivisions.contains(d.route)).toList()
         : kDepartmentHeadsCatalog;
 

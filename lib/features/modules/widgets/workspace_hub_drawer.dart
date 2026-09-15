@@ -154,7 +154,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final adminDisplayName = tenant?.adminDisplayName ?? authState.cachedUsername ?? 'User';
 
     final allowed = authState.allowedDivisions;
-    final visibleModules = (allowed.isNotEmpty && !allowed.contains('/modules'))
+    final visibleModules = allowed.isNotEmpty
         ? allEnterpriseModules.where((m) => allowed.contains(m.route) || allowed.any((a) => a.startsWith(m.route) || m.route.startsWith(a))).toList()
         : allEnterpriseModules;
 

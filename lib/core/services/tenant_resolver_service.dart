@@ -173,6 +173,17 @@ class TenantResolverService {
         } catch (_) {}
       }
 
+      // Check profile company match
+      if (tenantRow == null && cachedProfile != null && cachedProfile['company_name'] != null) {
+        try {
+          tenantRow = await supabase
+              .from('platform_tenant_factories')
+              .select()
+              .ilike('company_name', cachedProfile['company_name'].toString().trim())
+              .maybeSingle();
+        } catch (_) {}
+      }
+
       // Keyword match fallback
       if (tenantRow == null && userEmail.contains('shaw')) {
         try {
@@ -185,7 +196,7 @@ class TenantResolverService {
         } catch (_) {}
       }
 
-      if (tenantRow == null && (userEmail.contains('nubira') || userEmail == 'team.anga9@gmail.com')) {
+      if (tenantRow == null && (userEmail.contains('nubira') || userEmail == 'team.anga9@gmail.com' || userEmail == 'creationnubira@gmail.com' || userEmail.startsWith('admin'))) {
         try {
           final res = await supabase
               .from('platform_tenant_factories')
@@ -200,7 +211,12 @@ class TenantResolverService {
         final isTenantAdmin = (tenantRow['admin_email'] != null &&
                 tenantRow['admin_email'].toString().toLowerCase() == userEmail) ||
             userEmail == 'admin@zigza.in' ||
-            userEmail == 'team.anga9@gmail.com';
+            userEmail == 'team.anga9@gmail.com' ||
+            userEmail == 'admin@nubira.local' ||
+            userEmail == 'creationnubira@gmail.com' ||
+            userEmail.startsWith('admin@') ||
+            metadata['role'] == 'ADMIN' ||
+            metadata['role'] == 'SUPERADMIN';
 
         // Check user profile for department head or custom modules
         String profileRole = '';
@@ -208,12 +224,13 @@ class TenantResolverService {
         List<String> profileAllowedModules = [];
         bool profileIsHead = false;
         String profileDesignation = '';
+        String profileCompany = '';
 
         try {
           final prof = cachedProfile ??
               await supabase
                   .from('profiles')
-                  .select('username, role, allowed_modules, is_head, designation')
+                  .select('username, role, allowed_modules, is_head, designation, company_name')
                   .eq('id', user.id)
                   .maybeSingle();
 
@@ -225,6 +242,7 @@ class TenantResolverService {
             }
             profileIsHead = prof['is_head'] == true;
             profileDesignation = (prof['designation'] ?? '').toString();
+            profileCompany = (prof['company_name'] ?? '').toString();
           }
         } catch (_) {}
 
@@ -237,25 +255,29 @@ class TenantResolverService {
         final effectiveRole = isDepartmentHead
             ? (profileDesignation.isNotEmpty
                 ? profileDesignation
-                : (metadata['designation'] ?? profileRole.isNotEmpty ? profileRole : 'DEPARTMENT_HEAD'))
+                : (metadata['designation'] ?? (profileRole.isNotEmpty ? profileRole : 'DEPARTMENT_HEAD')))
             : (isTenantAdmin ? 'SUPERADMIN' : (profileRole.isNotEmpty ? profileRole : 'STAFF')).toUpperCase();
 
         List<String> divisions;
+        final rawAllowed = tenantRow['allowed_divisions'];
+        List<String> tenantDivisions = [];
+        if (rawAllowed is List && rawAllowed.isNotEmpty) {
+          tenantDivisions = List<String>.from(rawAllowed);
+        } else {
+          tenantDivisions = ['/stitching-sewing', '/store'];
+        }
+
         if (isSuperAdmin) {
-          if (tenantRow['allowed_divisions'] is List && (tenantRow['allowed_divisions'] as List).isNotEmpty) {
-            divisions = List<String>.from(tenantRow['allowed_divisions']);
-          } else {
-            divisions = allDefaultDivisions;
-          }
+          divisions = tenantDivisions;
         } else {
           divisions = profileAllowedModules.isNotEmpty
               ? profileAllowedModules
-              : ['/stitching-sewing'];
+              : tenantDivisions;
         }
 
         final displayName = isTenantAdmin
             ? (tenantRow['admin_name'] ?? metadata['displayName'] ?? 'Plant Head')
-            : (metadata['display_name'] ?? metadata['displayName'] ?? profileUsername.isNotEmpty ? profileUsername : 'Department Head');
+            : (metadata['display_name'] ?? metadata['displayName'] ?? (profileUsername.isNotEmpty ? profileUsername : 'Department Head'));
 
         final expiresAt = tenantRow['expires_at']?.toString();
         final tenantStatus = (tenantRow['status'] ?? 'ACTIVE').toString();
@@ -268,7 +290,7 @@ class TenantResolverService {
           role: effectiveRole,
           isSuperAdmin: isSuperAdmin,
           isPlatformAdmin: false,
-          companyName: tenantRow['company_name'] ?? 'Apparel Factory',
+          companyName: tenantRow['company_name'] ?? (profileCompany.isNotEmpty ? profileCompany : 'Nubira Creation'),
           adminDisplayName: displayName,
           customUsername: metadata['username'] ?? (profileUsername.isNotEmpty ? profileUsername : userEmail.split('@').first),
           phone: isTenantAdmin ? (tenantRow['phone'] ?? '') : (metadata['phone'] ?? ''),
@@ -293,12 +315,13 @@ class TenantResolverService {
     bool profileIsHead = false;
     List<String> profileAllowedModules = [];
     String profileDesignation = '';
+    String profileCompany = '';
 
     try {
       final prof = cachedProfile ??
           await supabase
               .from('profiles')
-              .select('username, role, is_head, allowed_modules, designation')
+              .select('username, role, is_head, allowed_modules, designation, company_name')
               .eq('id', user.id)
               .maybeSingle();
 
@@ -310,6 +333,7 @@ class TenantResolverService {
           profileAllowedModules = List<String>.from(prof['allowed_modules']);
         }
         profileDesignation = (prof['designation'] ?? '').toString();
+        profileCompany = (prof['company_name'] ?? '').toString();
       }
     } catch (_) {}
 
@@ -323,14 +347,17 @@ class TenantResolverService {
     final isLegacyNubiraUser = userEmail == 'team.anga9@gmail.com' ||
         userEmail == 'admin@nubira.local' ||
         userEmail.endsWith('@nubira.local') ||
-        userEmail == 'creationnubira@gmail.com';
+        userEmail == 'creationnubira@gmail.com' ||
+        userEmail.startsWith('admin') ||
+        metadata['company'] == 'Nubira Creation' ||
+        profileCompany.toLowerCase() == 'nubira creation';
 
     if (isLegacyNubiraUser) {
       return ResolvedTenantProfile(
         userId: user.id,
         userEmail: userEmail,
         role: effectiveRole,
-        isSuperAdmin: isSuperAdmin || userEmail == 'team.anga9@gmail.com',
+        isSuperAdmin: isSuperAdmin || userEmail == 'team.anga9@gmail.com' || userEmail == 'admin@nubira.local',
         isPlatformAdmin: false,
         companyName: 'Nubira Creation',
         adminDisplayName: profileUsername.isNotEmpty ? profileUsername : 'Nubira Admin',
@@ -348,7 +375,9 @@ class TenantResolverService {
     // 5. Default Generic / Client Tenant Fallback
     final inferredCompanyName = userEmail.contains('shaw')
         ? 'Shaw Industries'
-        : '${userEmail.split('@').first.replaceAll(RegExp(r'[._-]'), ' ').split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ')} Enterprise';
+        : (profileCompany.isNotEmpty
+            ? profileCompany
+            : '${userEmail.split('@').first.replaceAll(RegExp(r'[._-]'), ' ').split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ')} Enterprise');
 
     return ResolvedTenantProfile(
       userId: user.id,

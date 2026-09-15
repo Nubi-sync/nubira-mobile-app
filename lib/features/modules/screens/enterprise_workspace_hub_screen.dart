@@ -48,7 +48,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
   String? _launchingId;
 
   bool _isModuleAllowed(String modRoute, List<String> allowedDivisions) {
-    if (allowedDivisions.isEmpty || allowedDivisions.contains('/modules')) return true;
+    if (allowedDivisions.isEmpty) return false;
     final r = modRoute.replaceAll(RegExp(r'/+$'), '');
     return allowedDivisions.any((allowed) {
       final a = allowed.replaceAll(RegExp(r'/+$'), '');
@@ -176,7 +176,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     final isSuperAdmin = tenant?.isSuperAdmin ?? false;
 
     final allowed = authState.allowedDivisions;
-    final visibleModules = (allowed.isNotEmpty && !allowed.contains('/modules'))
+    final visibleModules = allowed.isNotEmpty
         ? allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList()
         : allEnterpriseModules;
 
