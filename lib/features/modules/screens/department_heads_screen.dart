@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../main.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../widgets/workspace_hub_drawer.dart';
+import 'enterprise_workspace_hub_screen.dart';
 import 'appoint_department_head_screen.dart';
 
 // ============================================================================
@@ -206,6 +208,7 @@ class DepartmentHeadsScreen extends ConsumerStatefulWidget {
 }
 
 class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
   String? _errorMessage;
   List<DepartmentHeadItem> _heads = [];
@@ -512,7 +515,9 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     );
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppTheme.canvasCream,
+      drawer: const WorkspaceHubDrawer(activeRoute: '/department-heads'),
       appBar: AppBar(
         backgroundColor: AppTheme.cardWhite,
         elevation: 0,
@@ -521,7 +526,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
         centerTitle: true,
         leading: Center(
           child: InkWell(
-            onTap: () => Navigator.pop(context),
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
             borderRadius: BorderRadius.circular(10),
             child: Container(
               width: 38,
@@ -531,7 +536,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppTheme.standardBorder),
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: AppTheme.mutedInk, size: 20),
+              child: const Icon(Icons.menu_rounded, color: AppTheme.mutedInk, size: 20),
             ),
           ),
         ),
@@ -592,12 +597,20 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
             // ==========================================
             Row(
               children: [
-                Text(
-                  'Workspace Hub',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.mutedInk,
+                InkWell(
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                    );
+                  },
+                  child: Text(
+                    'Workspace Hub',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.mutedInk,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
