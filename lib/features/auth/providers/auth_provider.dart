@@ -128,7 +128,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final tenant = await TenantResolverService.resolveUserTenant(currentUser, res);
         final role = _determineRole(currentUser, res, savedUsername, tenant);
 
-        if (res == null && role != 'ADMIN' && !tenant.isSuperAdmin) {
+        final isDesigner = tenant.role == 'DESIGNER' || (currentUser.email ?? '').contains('@designer.');
+        if (res == null && role != 'ADMIN' && role != 'DESIGNER' && !tenant.isSuperAdmin && !isDesigner) {
           // Employee was deleted or removed by admin from Web Admin!
           await supabase.auth.signOut();
           await _storage.deleteAll();
@@ -265,8 +266,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     try {
-      final cleanEmailKey = username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_.-]'), '');
-      final email = username.contains('@') ? username.trim() : '$cleanEmailKey@nubira.local';
+      String email = '';
+
+      if (username.contains('@')) {
+        email = username.trim().toLowerCase();
+      } else {
+        final rawDigits = username.replaceAll(RegExp(r'\D'), '');
+        final phone10 = (rawDigits.length >= 10)
+            ? rawDigits.substring(rawDigits.length - 10)
+            : rawDigits;
+
+        // 1. Smart check: lookup design_team_members by phone number or username
+        try {
+          dynamic designerMatch;
+          if (phone10.isNotEmpty && phone10.length >= 8) {
+            final res = await supabase
+                .from('design_team_members')
+                .select('designer_email, phone_number, username')
+                .or('phone_number.eq.$phone10,designer_phone.eq.$phone10,phone_number.ilike.%$rawDigits%,username.ilike.${username.trim()}')
+                .limit(1);
+            if ((res as List).isNotEmpty) designerMatch = res.first;
+          } else {
+            final res = await supabase
+                .from('design_team_members')
+                .select('designer_email, phone_number, username')
+                .ilike('username', username.trim())
+                .limit(1);
+            if ((res as List).isNotEmpty) designerMatch = res.first;
+          }
+
+          if (designerMatch != null && designerMatch['designer_email'] != null) {
+            email = designerMatch['designer_email'].toString().trim().toLowerCase();
+          }
+        } catch (_) {}
+
+        // 2. Fallback email formatting
+        if (email.isEmpty) {
+          final cleanEmailKey = username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_.-]'), '');
+          email = (phone10.length >= 10)
+              ? '$phone10@designer.nubira.local'
+              : '$cleanEmailKey@nubira.local';
+        }
+      }
 
       AuthResponse authRes;
       try {
@@ -275,13 +316,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
           password: password,
         );
       } on AuthException catch (_) {
-        // Fallback: check without spaces in case an older account exists
-        if (!username.contains('@') && username.contains(' ')) {
-          final noSpaceEmail = '${username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '')}@nubira.local';
-          authRes = await supabase.auth.signInWithPassword(
-            email: noSpaceEmail.toLowerCase(),
-            password: password,
-          );
+        // Fallback: check other potential login email formats
+        if (!username.contains('@')) {
+          final rawDigits = username.replaceAll(RegExp(r'\D'), '');
+          final phone10 = (rawDigits.length >= 10) ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+          final cleanEmailKey = username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_.-]'), '');
+
+          try {
+            final fallbackEmail = email.contains('@designer.')
+                ? '$cleanEmailKey@nubira.local'
+                : (phone10.isNotEmpty ? '$phone10@designer.nubira.local' : '$cleanEmailKey@designer.nubira.local');
+            authRes = await supabase.auth.signInWithPassword(
+              email: fallbackEmail.toLowerCase(),
+              password: password,
+            );
+          } catch (_) {
+            if (username.contains(' ')) {
+              final noSpaceEmail = '${username.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '')}@nubira.local';
+              authRes = await supabase.auth.signInWithPassword(
+                email: noSpaceEmail.toLowerCase(),
+                password: password,
+              );
+            } else {
+              rethrow;
+            }
+          }
         } else {
           rethrow;
         }
@@ -301,7 +360,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final tenant = await TenantResolverService.resolveUserTenant(user, res);
         final role = _determineRole(user, res, username, tenant);
 
-        if (res == null && role != 'ADMIN' && !tenant.isSuperAdmin) {
+        final isDesigner = tenant.role == 'DESIGNER' || (user.email ?? '').contains('@designer.');
+        if (res == null && role != 'ADMIN' && role != 'DESIGNER' && !tenant.isSuperAdmin && !isDesigner) {
           await supabase.auth.signOut();
           await _storage.deleteAll();
           await prefs.remove('remembered_operator_id');
@@ -370,6 +430,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   String _determineRole(User user, Map<String, dynamic>? profileRes, [String? inputUsername, ResolvedTenantProfile? tenant]) {
     final email = (user.email ?? '').toLowerCase();
     final uname = (inputUsername ?? '').trim().toLowerCase();
+
+    // 0. Check designer role / emails
+    if (tenant?.role == 'DESIGNER' ||
+        email.contains('@designer.') ||
+        profileRes?['role']?.toString().toUpperCase() == 'DESIGNER' ||
+        user.userMetadata?['role']?.toString().toUpperCase() == 'DESIGNER') {
+      return 'DESIGNER';
+    }
 
     // 1. Check known admin identifiers and emails
     if (email == 'team.anga9@gmail.com' ||

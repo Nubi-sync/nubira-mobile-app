@@ -149,6 +149,56 @@ class TenantResolverService {
       );
     }
 
+    // 1.5. Check design_team_members for creative designers (matches web tenant-context.ts)
+    try {
+      final rawDigits = userEmail.split('@').first.replaceAll(RegExp(r'\D'), '');
+      final phone10 = (rawDigits.length >= 10) ? rawDigits.substring(rawDigits.length - 10) : rawDigits;
+
+      dynamic matchedMember;
+      if (phone10.length == 10) {
+        final res = await supabase
+            .from('design_team_members')
+            .select()
+            .or('designer_user_id.eq.${user.id},designer_email.eq.$userEmail,phone_number.eq.$phone10,designer_phone.eq.$phone10')
+            .limit(1);
+        if ((res as List).isNotEmpty) matchedMember = res.first;
+      } else {
+        final res = await supabase
+            .from('design_team_members')
+            .select()
+            .or('designer_user_id.eq.${user.id},designer_email.eq.$userEmail')
+            .limit(1);
+        if ((res as List).isNotEmpty) matchedMember = res.first;
+      }
+
+      if (matchedMember != null) {
+        final comp = (matchedMember['company_name'] ?? 'Nubira Creation').toString();
+        final dispName = (matchedMember['designer_name'] ?? 'Creative Designer').toString();
+        final uname = (matchedMember['username'] ?? userEmail.split('@').first).toString();
+        final phoneStr = (matchedMember['phone_number'] ?? matchedMember['designer_phone'] ?? '').toString();
+
+        return ResolvedTenantProfile(
+          userId: user.id,
+          userEmail: userEmail,
+          role: 'DESIGNER',
+          isSuperAdmin: false,
+          isPlatformAdmin: false,
+          companyName: comp,
+          adminDisplayName: dispName,
+          customUsername: uname,
+          phone: phoneStr,
+          cityState: 'India',
+          subscriptionTier: 'ENTERPRISE_PLAN',
+          allowedDivisions: ['/design/designer'],
+          isProvisionedTenant: true,
+          accessType: 'FULL_ACCESS',
+          isExpired: false,
+          tenantStatus: (matchedMember['status'] ?? 'ACTIVE').toString(),
+          provisionedAt: (matchedMember['created_at'] ?? '2026-09-15T00:00:00.000Z').toString(),
+        );
+      }
+    } catch (_) {}
+
     // 2. Check platform_tenant_factories in Supabase
     try {
       dynamic tenantRow;
@@ -344,13 +394,14 @@ class TenantResolverService {
         : (profileRole.isNotEmpty ? profileRole : (isSuperAdmin ? 'SUPERADMIN' : 'STAFF')).toUpperCase();
 
     // 4. Legacy Nubira User Check (matches web logic)
-    final isLegacyNubiraUser = userEmail == 'team.anga9@gmail.com' ||
+    final isLegacyNubiraUser = !userEmail.contains('@designer.') && (
+        userEmail == 'team.anga9@gmail.com' ||
         userEmail == 'admin@nubira.local' ||
         userEmail.endsWith('@nubira.local') ||
         userEmail == 'creationnubira@gmail.com' ||
         userEmail.startsWith('admin') ||
         metadata['company'] == 'Nubira Creation' ||
-        profileCompany.toLowerCase() == 'nubira creation';
+        profileCompany.toLowerCase() == 'nubira creation');
 
     if (isLegacyNubiraUser) {
       return ResolvedTenantProfile(
