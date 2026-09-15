@@ -173,7 +173,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         child: Column(
           children: [
             // ==========================================
-            // DRAWER HEADER (#FAF7F0 style)
+            // DRAWER HEADER (Matching Image 3)
             // ==========================================
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -187,40 +187,35 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                     children: [
                       Image.asset(
                         'assets/images/z_i_g_z_a.png',
-                        height: 28,
+                        height: 30,
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Image.asset(
                           'assets/images/zigza_logo.png',
-                          height: 28,
+                          height: 30,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Image.asset(
-                            'assets/images/icon.png',
-                            height: 26,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Text(
-                              'Zigza.',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF3A3564),
-                                letterSpacing: -0.5,
-                              ),
+                          errorBuilder: (_, __, ___) => Text(
+                            'Zigza.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF3A3564),
+                              letterSpacing: -0.5,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
                         child: Text(
                           'ERP MES',
                           style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF3A3564),
                             letterSpacing: 0.5,
@@ -229,12 +224,19 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Color(0xFF475569), size: 20),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: 'Close Menu',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0x1A000000)),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Color(0xFF475569), size: 18),
+                    ),
                   ),
                 ],
               ),
@@ -254,7 +256,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   _buildNavItem(
                     context: context,
                     icon: Icons.grid_view_rounded,
-                    title: 'All modules',
+                    title: 'All Modules',
                     isActive: activeRoute == '/modules',
                     onTap: () {
                       if (activeRoute == '/modules') {
@@ -270,7 +272,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                     _buildNavItem(
                       context: context,
                       icon: Icons.shield_outlined,
-                      title: 'Department heads',
+                      title: 'Department Heads',
                       isActive: activeRoute == '/access-control',
                       onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
                     ),
@@ -280,7 +282,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                     _buildNavItem(
                       context: context,
                       icon: Icons.build_outlined,
-                      title: 'Supervisor operations',
+                      title: 'Supervisor Operations',
                       isActive: activeRoute == '/supervisor-desk',
                       onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
                     ),
@@ -289,7 +291,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   _buildNavItem(
                     context: context,
                     icon: Icons.business_outlined,
-                    title: 'Company profile',
+                    title: 'Company Profile',
                     isActive: activeRoute == '/profile',
                     onTap: () => _navigateTo(context, const CompanyProfileScreen()),
                   ),
@@ -354,12 +356,12 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             ),
 
             // ==========================================
-            // PINNED FOOTER (#FAF7F0 Surface)
+            // PINNED FOOTER (#FFFFFF / #FAF7F0 Surface matching Image 3)
             // ==========================================
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Colors.white,
                 border: Border(top: BorderSide(color: Color(0x1A000000), width: 1)),
               ),
               child: Row(
@@ -401,18 +403,40 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                             color: const Color(0xFF0F172A),
                           ),
                         ),
-                        const SizedBox(height: 1),
-                        InkWell(
-                          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                          child: Text(
-                            'Company Profile',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF475569),
-                              decoration: TextDecoration.underline,
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Profile',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  const Icon(
+                                    Icons.arrow_outward_rounded,
+                                    size: 11,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -420,7 +444,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
                   // Logout Icon Button
                   IconButton(
-                    icon: const Icon(Icons.logout_rounded, color: Color(0xFFE11D48), size: 20),
+                    icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B), size: 20),
                     tooltip: 'Sign Out',
                     onPressed: () => _showSignOutDialog(context, ref),
                   ),

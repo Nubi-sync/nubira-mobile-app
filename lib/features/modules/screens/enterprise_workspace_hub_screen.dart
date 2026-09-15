@@ -193,31 +193,38 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         elevation: 0,
         scrolledUnderElevation: 1,
         titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: DesignTokens.foregroundInk, size: 24),
-          tooltip: 'Open Menu',
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        centerTitle: true,
+        leading: Center(
+          child: InkWell(
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: DesignTokens.standardBorder),
+              ),
+              child: const Icon(Icons.menu_rounded, color: DesignTokens.mutedInk, size: 20),
+            ),
+          ),
         ),
         title: Image.asset(
           'assets/images/z_i_g_z_a.png',
-          height: 32,
+          height: 34,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Image.asset(
             'assets/images/zigza_logo.png',
-            height: 32,
+            height: 34,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/icon.png',
-              height: 30,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Text(
-                'Zigza.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: DesignTokens.brandSteel,
-                  letterSpacing: -0.5,
-                ),
+            errorBuilder: (_, __, ___) => Text(
+              'Zigza.',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: DesignTokens.brandSteel,
+                letterSpacing: -0.5,
               ),
             ),
           ),
@@ -225,16 +232,16 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
               color: DesignTokens.canvasCream,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: DesignTokens.standardBorder),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x26000000)),
             ),
             child: Text(
               'ERP MES',
               style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
+                fontSize: 9.5,
                 fontWeight: FontWeight.bold,
                 color: DesignTokens.brandSteel,
                 letterSpacing: 0.5,
@@ -626,20 +633,23 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       child: Column(
                         children: mod.features.map((feat) {
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 5.0),
+                            padding: const EdgeInsets.only(bottom: 6.0),
                             child: Row(
                               children: [
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  size: 14,
-                                  color: Color(0xFF10B981),
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: const BoxDecoration(
+                                    color: DesignTokens.faintInk,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     feat,
                                     style: GoogleFonts.publicSans(
-                                      fontSize: 11.5,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: DesignTokens.foregroundInk,
                                     ),
@@ -651,59 +661,55 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                         }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
-                    // Bottom Row: Status Tag + Launch Button
-                    Container(
-                      padding: const EdgeInsets.only(top: 10),
-                      decoration: const BoxDecoration(
-                        border: Border(top: BorderSide(color: DesignTokens.subtleDivider, width: 1)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            mod.statusText,
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: DesignTokens.faintInk,
-                              letterSpacing: 0.5,
+                    // Bottom Row: Status Tag + Zigza AI Action Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        InkWell(
+                          onTap: isLaunching ? null : () => _handleLaunch(mod),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: DesignTokens.brandSteel,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x1F3A3564),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isLaunching ? 'Opening...' : 'Zigza AI',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          InkWell(
-                            onTap: isLaunching ? null : () => _handleLaunch(mod),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: DesignTokens.standardBorder),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isLaunching ? 'Opening…' : 'Launch',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: isLaunching ? Colors.white : DesignTokens.foregroundInk,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 13,
-                                    color: isLaunching ? Colors.white : DesignTokens.foregroundInk,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
