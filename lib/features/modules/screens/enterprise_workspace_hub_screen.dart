@@ -210,41 +210,46 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
             ),
           ),
         ),
-        title: Image.asset(
-          'assets/images/z_i_g_z_a.png',
-          height: 34,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
-            'assets/images/zigza_logo.png',
+        title: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.asset(
+            'assets/images/z_i_g_z_a.png',
             height: 34,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Text(
-              'Zigza.',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: DesignTokens.brandSteel,
-                letterSpacing: -0.5,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/zigza_logo.png',
+              height: 34,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Text(
+                'Zigza.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: DesignTokens.brandSteel,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
           ),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-            decoration: BoxDecoration(
-              color: DesignTokens.canvasCream,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0x26000000)),
-            ),
-            child: Text(
-              'ERP MES',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9.5,
-                fontWeight: FontWeight.bold,
-                color: DesignTokens.brandSteel,
-                letterSpacing: 0.5,
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+              decoration: BoxDecoration(
+                color: DesignTokens.canvasCream,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0x26000000)),
+              ),
+              child: Text(
+                'ERP MES',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.bold,
+                  color: DesignTokens.brandSteel,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
