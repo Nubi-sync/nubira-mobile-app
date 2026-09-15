@@ -100,11 +100,11 @@ class AppTheme {
           elevation: 0,
           backgroundColor: steel,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 44),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
           textStyle: GoogleFonts.publicSans(
             fontSize: 14,
             fontWeight: FontWeight.w600,

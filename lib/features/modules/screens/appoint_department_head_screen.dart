@@ -30,11 +30,18 @@ class AppointDepartmentHeadScreen extends ConsumerStatefulWidget {
     required String companyName,
     List<String>? allowedDivisions,
   }) {
+    final mediaQuery = MediaQuery.of(context);
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: false,
+      constraints: BoxConstraints(
+        maxWidth: mediaQuery.size.width,
+        maxHeight: mediaQuery.size.height * 0.92,
+      ),
       builder: (ctx) => AppointDepartmentHeadScreen(
         existingHead: existingHead,
         companyName: companyName,
@@ -348,492 +355,554 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
   Widget build(BuildContext context) {
     final isEditing = widget.existingHead != null;
     final available = _availableDivisions;
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final bottomInset = mediaQuery.viewInsets.bottom;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Material(
-        color: kSheetBg,
+    return PopScope(
+      canPop: !_hasUnsavedChanges || _isSaving,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context, false);
+        }
+      },
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
         child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.90,
-          width: double.infinity,
-          child: PopScope(
-            canPop: !_hasUnsavedChanges || _isSaving,
-            onPopInvokedWithResult: (didPop, result) async {
-              if (didPop) return;
-              final shouldPop = await _onWillPop();
-              if (shouldPop && context.mounted) {
-                Navigator.pop(context, false);
-              }
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ==========================================
-                // HEADER SECTION (Fixed Top)
-                // ==========================================
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 16, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0x14000000)),
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.person_add_outlined, color: kBrandIndigo, size: 20),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: kBadgeAmberBg,
-                                          borderRadius: BorderRadius.circular(5),
-                                          border: Border.all(color: const Color(0xFFFDE68A)),
-                                        ),
-                                        child: Text(
-                                          isEditing ? 'EDIT HEAD' : 'Appoint head',
-                                          style: GoogleFonts.jetBrainsMono(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                            color: kBadgeAmberText,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          '- ${widget.companyName}',
-                                          style: GoogleFonts.publicSans(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: kLabelText,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    isEditing ? 'Edit department head' : 'Appoint department head',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: kTextPrimary,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+          width: screenWidth,
+          height: screenHeight * 0.90,
+          child: Container(
+            width: screenWidth,
+            height: screenHeight * 0.90,
+            decoration: const BoxDecoration(
+              color: kSheetBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              child: Material(
+                color: kSheetBg,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Drag indicator bar
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 10, bottom: 4),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDAD9D3),
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
-                        onPressed: () async {
-                          final shouldClose = await _onWillPop();
-                          if (shouldClose && context.mounted) {
-                            Navigator.pop(context, false);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(color: Color(0x14000000), height: 1),
+                    ),
 
-                // ==========================================
-                // FORM FIELDS BODY (Scrollable & Expanded)
-                // ==========================================
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                    // Header Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Field 1: Head Full Name
-                          _buildFieldLabel('HEAD FULL NAME *'),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _nameCtrl,
-                            onChanged: _onNameChanged,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
-                            ),
-                            decoration: _buildInputDecoration(
-                              hintText: 'e.g. Mohd. Aslam',
-                              prefixIcon: Icons.person_outline_rounded,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Field 2: Login Username / ID
-                          _buildFieldLabel('LOGIN USERNAME / ID *'),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _usernameCtrl,
-                            onChanged: (val) {
-                              setState(() {});
-                              _checkUsernameAvailability(val);
-                            },
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: kTextPrimary,
-                            ),
-                            decoration: _buildInputDecoration(
-                              hintText: 'e.g. aslam_cutting',
-                              prefixIcon: Icons.alternate_email_rounded,
-                              errorText: _inlineUsernameError,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Field 3: Official Designation
-                          _buildFieldLabel('OFFICIAL DESIGNATION *'),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _designationCtrl,
-                            onChanged: (_) => setState(() {}),
-                            style: GoogleFonts.publicSans(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
-                            ),
-                            decoration: _buildInputDecoration(
-                              hintText: 'e.g. Cutting master / CAD head',
-                              prefixIcon: Icons.badge_outlined,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Field 4: Phone / WhatsApp
-                          _buildFieldLabel('PHONE / WHATSAPP (OPTIONAL)'),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _phoneCtrl,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(10),
-                            ],
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: kTextPrimary,
-                            ),
-                            decoration: _buildInputDecoration(
-                              hintText: '98765 43210',
-                              prefix: Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Text(
-                                  '+91',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: kTextPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Field 5: Initial Password
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildFieldLabel(isEditing ? 'UPDATE PASSWORD (OPTIONAL)' : 'INITIAL PASSWORD *'),
-                              InkWell(
-                                onTap: () => _generateStrongPassword(_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Factory'),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.auto_awesome_rounded, size: 13, color: kBrandIndigo),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Auto-generate strong',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: kBrandIndigo,
-                                          decoration: TextDecoration.underline,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _passwordCtrl,
-                            obscureText: _obscurePassword,
-                            onChanged: (_) => setState(() {}),
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: kTextPrimary,
-                            ),
-                            decoration: _buildInputDecoration(
-                              hintText: isEditing ? 'Leave blank to keep unchanged' : 'Min 6 characters',
-                              prefixIcon: Icons.lock_outline_rounded,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                  size: 18,
-                                  color: kLabelText,
-                                ),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-
-                          // Field 6: Department / Unit Assignment
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildFieldLabel('DEPARTMENT / UNIT ASSIGNMENT (${_selectedModules.length} SELECTED)'),
-                              if (_selectedModules.isNotEmpty)
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedModules.clear();
-                                      if (!isEditing) _designationCtrl.clear();
-                                    });
-                                  },
-                                  child: Text(
-                                    'Clear',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.mutedInk,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Select the manufacturing unit this department head will lead:',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Selectable Unit Rows
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAFAF8),
-                              borderRadius: BorderRadius.circular(16),
+                              color: const Color(0xFFFAF7F0),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0x14000000)),
                             ),
-                            child: available.isEmpty
-                                ? Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'No authorized operating units found for this tenant.',
-                                      style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.mutedInk),
-                                    ),
-                                  )
-                                : Column(
-                                    children: available.map((div) {
-                                      final isChecked = _selectedModules.contains(div.route);
-
-                                      return InkWell(
-                                        onTap: () => _toggleModuleSelection(div),
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Container(
-                                          margin: const EdgeInsets.only(bottom: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          decoration: BoxDecoration(
-                                            color: isChecked ? const Color(0xFFF9F9FB) : Colors.white,
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: isChecked ? kBrandIndigo : kInputBorder,
-                                              width: isChecked ? 1.5 : 1.0,
-                                            ),
-                                            boxShadow: isChecked
-                                                ? const [BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 1))]
-                                                : null,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              // Checkbox
-                                              Container(
-                                                width: 18,
-                                                height: 18,
-                                                decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(5),
-                                                  border: Border.all(
-                                                    color: isChecked ? kBrandIndigo : const Color(0xFFCBD5E1),
-                                                    width: 1.8,
-                                                  ),
-                                                  color: isChecked ? kBrandIndigo : Colors.white,
-                                                ),
-                                                child: isChecked
-                                                    ? const Center(
-                                                        child: Icon(Icons.check_rounded, color: Colors.white, size: 13),
-                                                      )
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 12),
-
-                                              // Unit Icon
-                                              Container(
-                                                width: 32,
-                                                height: 32,
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFFAF7F0),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: const Color(0x14000000)),
-                                                ),
-                                                child: Icon(div.icon, size: 16, color: kBrandIndigo),
-                                              ),
-                                              const SizedBox(width: 10),
-
-                                              // Unit Name & Route
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      '${div.code}. ${div.name}',
-                                                      style: GoogleFonts.publicSans(
-                                                        fontSize: 12.5,
-                                                        fontWeight: isChecked ? FontWeight.bold : FontWeight.w600,
-                                                        color: kTextPrimary,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      div.route,
-                                                      style: GoogleFonts.jetBrainsMono(
-                                                        fontSize: 10,
-                                                        color: kPlaceholderText,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // General Error Notification
-                          if (_generalError != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF1F2),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFECDD3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.error_outline_rounded, color: Color(0xFFBE123C), size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _generalError!,
-                                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF9F1239), fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            child: const Center(
+                              child: Icon(Icons.person_add_outlined, color: kBrandIndigo, size: 20),
                             ),
-                            const SizedBox(height: 14),
-                          ],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: kBadgeAmberBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0x338A6D2F)),
+                                      ),
+                                      child: Text(
+                                        isEditing ? 'EDIT HEAD' : 'Appoint head',
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: kBadgeAmberText,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        '- ${widget.companyName}',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: kLabelText,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isEditing ? 'Edit department head' : 'Appoint department head',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: kTextPrimary,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
+                            onPressed: () async {
+                              final shouldClose = await _onWillPop();
+                              if (shouldClose && context.mounted) {
+                                Navigator.pop(context, false);
+                              }
+                            },
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ),
+                    const Divider(color: Color(0x14000000), height: 1),
 
-                // ==========================================
-                // STICKY FOOTER (Cancel + Confirm Button)
-                // ==========================================
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(top: BorderSide(color: Color(0x14000000))),
-                  ),
-                  child: Row(
-                    children: [
-                      TextButton(
-                        onPressed: () async {
-                          final shouldClose = await _onWillPop();
-                          if (shouldClose && context.mounted) {
-                            Navigator.pop(context, false);
-                          }
-                        },
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.mutedInk,
+                    // Form Body
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Field 1: Head Full Name
+                              _buildFieldLabel('HEAD FULL NAME *'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _nameCtrl,
+                                onChanged: _onNameChanged,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: kTextPrimary,
+                                ),
+                                decoration: _buildInputDecoration(
+                                  hintText: 'e.g. Mohd. Aslam',
+                                  prefixIcon: Icons.person_outline_rounded,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Field 2: Login Username / ID
+                              _buildFieldLabel('LOGIN USERNAME / ID *'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _usernameCtrl,
+                                onChanged: (val) {
+                                  setState(() {});
+                                  _checkUsernameAvailability(val);
+                                },
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: kTextPrimary,
+                                ),
+                                decoration: _buildInputDecoration(
+                                  hintText: 'e.g. aslam_cutting',
+                                  prefixIcon: Icons.alternate_email_rounded,
+                                  errorText: _inlineUsernameError,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Field 3: Official Designation
+                              _buildFieldLabel('OFFICIAL DESIGNATION *'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _designationCtrl,
+                                onChanged: (_) => setState(() {}),
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: kTextPrimary,
+                                ),
+                                decoration: _buildInputDecoration(
+                                  hintText: 'e.g. Cutting master / CAD head',
+                                  prefixIcon: Icons.badge_outlined,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Field 4: Phone / WhatsApp
+                              _buildFieldLabel('PHONE / WHATSAPP (OPTIONAL)'),
+                              const SizedBox(height: 6),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Dedicated Country Code Box
+                                  Container(
+                                    height: 46,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAFAF8),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: kInputBorder),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          '🇮🇳',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          '+91',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: kTextPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Number Field
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _phoneCtrl,
+                                      keyboardType: TextInputType.phone,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(10),
+                                      ],
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: kTextPrimary,
+                                      ),
+                                      decoration: _buildInputDecoration(
+                                        hintText: '98765 43210',
+                                        prefixIcon: Icons.phone_outlined,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Field 5: Initial Password
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: _buildFieldLabel(isEditing ? 'UPDATE PASSWORD (OPTIONAL)' : 'INITIAL PASSWORD *'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  InkWell(
+                                    onTap: () => _generateStrongPassword(_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Factory'),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.auto_awesome_rounded, size: 13, color: kBrandIndigo),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Auto-generate strong',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: kBrandIndigo,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _passwordCtrl,
+                                obscureText: _obscurePassword,
+                                onChanged: (_) => setState(() {}),
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: kTextPrimary,
+                                ),
+                                decoration: _buildInputDecoration(
+                                  hintText: isEditing ? 'Leave blank to keep unchanged' : 'Min 6 characters',
+                                  prefixIcon: Icons.lock_outline_rounded,
+                                  suffixIcon: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                      size: 18,
+                                      color: kLabelText,
+                                    ),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Field 6: Department / Unit Assignment
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: _buildFieldLabel('DEPARTMENT / UNIT ASSIGNMENT (${_selectedModules.length} SELECTED)'),
+                                  ),
+                                  if (_selectedModules.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedModules.clear();
+                                          if (!isEditing) _designationCtrl.clear();
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        child: Text(
+                                          'Clear',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.mutedInk,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Select the manufacturing unit this department head will lead:',
+                                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Selectable Unit Rows
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFAFAF8),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0x14000000)),
+                                ),
+                                child: available.isEmpty
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Text(
+                                          'No authorized operating units found for this tenant.',
+                                          style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.mutedInk),
+                                        ),
+                                      )
+                                    : Column(
+                                        children: available.map((div) {
+                                          final isChecked = _selectedModules.contains(div.route);
+
+                                          return InkWell(
+                                            onTap: () => _toggleModuleSelection(div),
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Container(
+                                              margin: const EdgeInsets.only(bottom: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: isChecked ? const Color(0xFFF9F9FB) : Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: isChecked ? kBrandIndigo : kInputBorder,
+                                                  width: isChecked ? 1.5 : 1.0,
+                                                ),
+                                                boxShadow: isChecked
+                                                    ? const [BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 1))]
+                                                    : null,
+                                              ),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  // Checkbox
+                                                  Container(
+                                                    width: 18,
+                                                    height: 18,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(5),
+                                                      border: Border.all(
+                                                        color: isChecked ? kBrandIndigo : const Color(0xFFCBD5E1),
+                                                        width: 1.8,
+                                                      ),
+                                                      color: isChecked ? kBrandIndigo : Colors.white,
+                                                    ),
+                                                    child: isChecked
+                                                        ? const Center(
+                                                            child: Icon(Icons.check_rounded, color: Colors.white, size: 13),
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  const SizedBox(width: 12),
+
+                                                  // Unit Icon
+                                                  Container(
+                                                    width: 32,
+                                                    height: 32,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFFAF7F0),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      border: Border.all(color: const Color(0x14000000)),
+                                                    ),
+                                                    child: Icon(div.icon, size: 16, color: kBrandIndigo),
+                                                  ),
+                                                  const SizedBox(width: 10),
+
+                                                  // Unit Name & Route
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                          '${div.code}. ${div.name}',
+                                                          style: GoogleFonts.publicSans(
+                                                            fontSize: 12.5,
+                                                            fontWeight: isChecked ? FontWeight.bold : FontWeight.w600,
+                                                            color: kTextPrimary,
+                                                            height: 1.25,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          div.route,
+                                                          style: GoogleFonts.jetBrainsMono(
+                                                            fontSize: 10,
+                                                            color: kPlaceholderText,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // General Error Notification
+                              if (_generalError != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF1F2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFFECDD3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded, color: Color(0xFFBE123C), size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _generalError!,
+                                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF9F1239), fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kBrandIndigo,
-                          disabledBackgroundColor: kBrandIndigo.withValues(alpha: 0.35),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          elevation: 0,
-                        ),
-                        onPressed: (_isFormValid && !_isSaving) ? _handleConfirmSubmit : null,
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                            : Text(
-                                isEditing ? 'Save Head Changes' : 'Confirm & appoint head',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                    ),
+
+                    // Sticky Footer
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        border: Border(top: BorderSide(color: Color(0x14000000))),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              final shouldClose = await _onWillPop();
+                              if (shouldClose && context.mounted) {
+                                Navigator.pop(context, false);
+                              }
+                            },
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.mutedInk,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kBrandIndigo,
+                              disabledBackgroundColor: kBrandIndigo.withValues(alpha: 0.35),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 44),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              elevation: 0,
+                            ),
+                            onPressed: (_isFormValid && !_isSaving) ? _handleConfirmSubmit : null,
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Text(
+                                    isEditing ? 'Save Head Changes' : 'Confirm & appoint head',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -850,13 +919,15 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
         color: kLabelText,
         letterSpacing: 0.8,
       ),
+      overflow: TextOverflow.ellipsis,
     );
   }
 
   InputDecoration _buildInputDecoration({
     required String hintText,
     IconData? prefixIcon,
-    Widget? prefix,
+    String? prefixText,
+    TextStyle? prefixStyle,
     Widget? suffixIcon,
     String? errorText,
   }) {
@@ -866,10 +937,12 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
       errorText: errorText,
       errorStyle: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFFBE123C)),
       prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 18, color: const Color(0xFF94A3B8)) : null,
-      prefix: prefix,
+      prefixText: prefixText,
+      prefixStyle: prefixStyle,
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: Colors.white,
+      isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
