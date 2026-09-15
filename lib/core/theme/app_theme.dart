@@ -2,25 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Nubira Brand Core Design Tokens (Midnight Violet & Warm Canvas)
-  static const Color bg = Color(0xFFFAF7F0);
-  static const Color card = Color(0xFFFFFFFF);
-  static const Color ink = Color(0xFF0F172A);
-  static const Color inkSoft = Color(0xFF475569);
-  static const Color inkFaint = Color(0xFF94A3B8);
+  // Canonical Master Design Tokens (web_admin/docs_logic/design.md)
+  static const Color brandSteel = Color(0xFF3A3564);
+  static const Color brandSteelHover = Color(0xFF2A2649);
+  static const Color brandMist = Color(0xFFFAF7F0); // Warm Canvas Background
+  static const Color canvasCream = Color(0xFFFAF7F0);
+  static const Color cardWhite = Color(0xFFFFFFFF);
+  static const Color foregroundInk = Color(0xFF0F172A); // Dark Ink #0F172A / #09090B
+  static const Color mutedInk = Color(0xFF475569); // Slate-600 Body & Subtitles
+  static const Color faintInk = Color(0xFF94A3B8); // Slate-400 Labels & Breadcrumbs
+  static const Color standardBorder = Color(0x1A000000); // border-black/10
+  static const Color subtleDivider = Color(0xFFF1F5F9); // slate-100 / divide-slate-100
+
+  // Status Badges & Tint System (design.md Section 2)
+  static const Color badgeEmeraldBg = Color(0xFFECFDF5);
+  static const Color badgeEmeraldText = Color(0xFF047857);
+  static const Color badgeEmeraldBorder = Color(0xFFA7F3D0);
+
+  static const Color badgeBlueBg = Color(0xFFEFF6FF);
+  static const Color badgeBlueText = Color(0xFF1D4ED8);
+  static const Color badgeBlueBorder = Color(0xFFBFDBFE);
+
+  static const Color badgeAmberBg = Color(0xFFFEF3C7);
+  static const Color badgeAmberText = Color(0xFFB45309);
+  static const Color badgeAmberBorder = Color(0xFFFDE68A);
+
+  static const Color badgeRoseBg = Color(0xFFFFF1F2);
+  static const Color badgeRoseText = Color(0xFFBE123C);
+  static const Color badgeRoseBorder = Color(0xFFFECDD3);
+
+  static const Color badgeNeutralBg = Color(0xFFFAF7F0);
+  static const Color badgeNeutralText = Color(0xFF3A3564);
+  static const Color badgeNeutralBorder = Color(0x1A000000);
+
+  // Backward compatibility aliases
+  static const Color bg = canvasCream;
+  static const Color card = cardWhite;
+  static const Color ink = foregroundInk;
+  static const Color inkSoft = mutedInk;
+  static const Color inkFaint = faintInk;
   static const Color border = Color(0xFFE2E8F0);
-  static const Color steel = Color(0xFF3A3564);
-  static const Color steelDark = Color(0xFF2A2649);
+  static const Color steel = brandSteel;
+  static const Color steelDark = brandSteelHover;
   static const Color steelMist = Color(0xFFEDEAF6);
   static const Color steelTint = Color(0xFFE2DDF0);
   static const Color stitch = Color(0xFFC8802B);
   
-  static const Color red = Color(0xFFE11D48);
-  static const Color redMist = Color(0xFFFFF1F2);
-  static const Color green = Color(0xFF10B981);
-  static const Color greenMist = Color(0xFFECFDF5);
-  static const Color amber = Color(0xFFD97706);
-  static const Color amberMist = Color(0xFFFEF3C7);
+  static const Color red = badgeRoseText;
+  static const Color redMist = badgeRoseBg;
+  static const Color green = badgeEmeraldText;
+  static const Color greenMist = badgeEmeraldBg;
+  static const Color amber = badgeAmberText;
+  static const Color amberMist = badgeAmberBg;
 
   // Backward compatibility aliases
   static const Color primaryBlue = steel;

@@ -54,12 +54,13 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
         : allEnterpriseModules;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.canvasCream,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardWhite,
         elevation: 0,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.ink),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.foregroundInk),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -67,34 +68,41 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: AppTheme.ink,
+            color: AppTheme.foregroundInk,
           ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.steel))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.brandSteel))
           : ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardWhite,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: AppTheme.standardBorder),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x08000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 42,
-                        height: 42,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: AppTheme.bg,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppTheme.canvasCream,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.standardBorder),
                         ),
                         child: const Center(
-                          child: Icon(Icons.shield_outlined, color: AppTheme.steel, size: 20),
+                          child: Icon(Icons.shield_outlined, color: AppTheme.brandSteel, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -107,13 +115,18 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.ink,
+                                color: AppTheme.foregroundInk,
+                                letterSpacing: -0.2,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 3),
                             Text(
                               'Executive in-charges managing operating units across the apparel plant',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                              style: GoogleFonts.publicSans(
+                                fontSize: 12,
+                                color: AppTheme.mutedInk,
+                                height: 1.35,
+                              ),
                             ),
                           ],
                         ),
@@ -121,7 +134,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 ...visibleModules.map((mod) {
                   // Find profile assigned to this module
@@ -148,14 +161,14 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.cardWhite,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.border),
-                      boxShadow: [
+                      border: Border.all(color: AppTheme.standardBorder),
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
+                          color: Color(0x08000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
@@ -168,16 +181,16 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                             Row(
                               children: [
                                 Container(
-                                  width: 36,
-                                  height: 36,
+                                  width: 44,
+                                  height: 44,
                                   decoration: BoxDecoration(
-                                    color: AppTheme.bg,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppTheme.border),
+                                    color: AppTheme.canvasCream,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppTheme.standardBorder),
                                   ),
-                                  child: Icon(mod.icon, color: AppTheme.steel, size: 18),
+                                  child: Icon(mod.icon, color: AppTheme.brandSteel, size: 22),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -186,15 +199,18 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.ink,
+                                        color: AppTheme.foregroundInk,
+                                        letterSpacing: -0.2,
                                       ),
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
                                       mod.badge,
                                       style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 10,
+                                        fontSize: 9.5,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.inkFaint,
+                                        color: AppTheme.faintInk,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
                                   ],
@@ -202,12 +218,12 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: hasHead ? AppTheme.greenMist : AppTheme.bg,
+                                color: hasHead ? AppTheme.badgeEmeraldBg : AppTheme.canvasCream,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: hasHead ? AppTheme.green.withValues(alpha: 0.3) : AppTheme.border,
+                                  color: hasHead ? AppTheme.badgeEmeraldBorder : AppTheme.standardBorder,
                                 ),
                               ),
                               child: Text(
@@ -215,7 +231,8 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: hasHead ? AppTheme.green : AppTheme.inkFaint,
+                                  color: hasHead ? AppTheme.badgeEmeraldText : AppTheme.mutedInk,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -223,18 +240,18 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                           decoration: BoxDecoration(
-                            color: AppTheme.bg,
+                            color: AppTheme.canvasCream,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            border: Border.all(color: AppTheme.standardBorder),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 hasHead ? Icons.account_circle : Icons.person_add_outlined,
                                 size: 18,
-                                color: hasHead ? AppTheme.steel : AppTheme.inkFaint,
+                                color: hasHead ? AppTheme.brandSteel : AppTheme.faintInk,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -243,7 +260,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: hasHead ? AppTheme.ink : AppTheme.inkSoft,
+                                    color: hasHead ? AppTheme.foregroundInk : AppTheme.mutedInk,
                                   ),
                                 ),
                               ),

@@ -52,12 +52,13 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.canvasCream,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardWhite,
         elevation: 0,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.ink),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.foregroundInk),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -65,7 +66,7 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: AppTheme.ink,
+            color: AppTheme.foregroundInk,
           ),
         ),
       ),
@@ -75,22 +76,29 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.cardWhite,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: AppTheme.standardBorder),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x08000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppTheme.bg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppTheme.canvasCream,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.standardBorder),
                   ),
                   child: const Center(
-                    child: Icon(Icons.tune_rounded, color: AppTheme.steel, size: 20),
+                    child: Icon(Icons.tune_rounded, color: AppTheme.brandSteel, size: 22),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -101,17 +109,19 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
                       Text(
                         'Supervisor Absentee & Station Override',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.ink,
+                          color: AppTheme.foregroundInk,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         'Direct line access to operate or verify any workstation in the factory',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: AppTheme.inkSoft,
+                          color: AppTheme.mutedInk,
+                          height: 1.35,
                         ),
                       ),
                     ],
@@ -120,20 +130,20 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           ...stations.map((st) {
             return Container(
-              margin: const EdgeInsets.only(bottom: 14),
+              margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardWhite,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
-                boxShadow: [
+                border: Border.all(color: AppTheme.standardBorder),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    color: Color(0x08000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
                   ),
                 ],
               ),
@@ -154,28 +164,29 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            width: 42,
-                            height: 42,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
-                              color: AppTheme.bg,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppTheme.canvasCream,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.standardBorder),
                             ),
-                            child: Icon(st.icon, color: AppTheme.steel, size: 20),
+                            child: Icon(st.icon, color: AppTheme.brandSteel, size: 22),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppTheme.bg,
+                              color: AppTheme.canvasCream,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppTheme.border),
+                              border: Border.all(color: AppTheme.standardBorder),
                             ),
                             child: Text(
                               st.badge,
                               style: GoogleFonts.jetBrainsMono(
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.inkSoft,
+                                color: AppTheme.mutedInk,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
@@ -187,7 +198,8 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15.5,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.ink,
+                          color: AppTheme.foregroundInk,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -195,18 +207,18 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
                         st.subtitle,
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: AppTheme.inkSoft,
+                          color: AppTheme.mutedInk,
                           height: 1.35,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
-                              color: AppTheme.steel,
+                              color: AppTheme.brandSteel,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -214,13 +226,13 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
                                 Text(
                                   'Open Desk',
                                   style: GoogleFonts.publicSans(
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_rounded, size: 12, color: Colors.white),
+                                const SizedBox(width: 5),
+                                const Icon(Icons.arrow_forward_rounded, size: 13, color: Colors.white),
                               ],
                             ),
                           ),
