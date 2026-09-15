@@ -37,7 +37,7 @@ class DesignerDashboardScreen extends ConsumerWidget {
               ),
             ),
             Text(
-              authState.companyName ?? 'Nubira Creation',
+              authState.tenantProfile?.companyName ?? 'Nubira Creation',
               style: GoogleFonts.publicSans(
                 fontSize: 11,
                 color: AppTheme.mutedInk,
@@ -53,7 +53,7 @@ class DesignerDashboardScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.mutedInk),
-            onPressed: () => ref.read(authProvider.notifier).signOut(),
+            onPressed: () => ref.read(authProvider.notifier).logout(),
           ),
         ],
       ),

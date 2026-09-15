@@ -46,7 +46,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       final user = supabase.auth.currentUser;
       final userEmail = user?.email;
       final authState = _ref.read(authProvider);
-      final company = authState.companyName ?? 'Nubira Creation';
+      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
 
       var query = supabase
           .from('design_briefs')
@@ -106,7 +106,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     state = state.copyWith(isSubmitting: true);
     try {
       final authState = _ref.read(authProvider);
-      final company = authState.companyName ?? 'Nubira Creation';
+      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
 
       // 1. Insert into design_submissions
       await supabase.from('design_submissions').insert({
