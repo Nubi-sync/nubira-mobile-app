@@ -127,7 +127,8 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
       _designationCtrl.text = '';
       _phoneCtrl.text = '';
       _selectedModules = [];
-      _generateStrongPassword('Factory');
+      final num = 1000 + Random().nextInt(9000);
+      _passwordCtrl.text = '@Factory$num!';
     }
 
     _initialName = _nameCtrl.text;
@@ -151,9 +152,10 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
     final clean = prefix.replaceAll(RegExp(r'[^a-zA-Z]'), '');
     final cap = clean.isNotEmpty ? clean[0].toUpperCase() + clean.substring(1).toLowerCase() : 'Factory';
     final num = 1000 + Random().nextInt(9000);
-    setState(() {
-      _passwordCtrl.text = '@$cap$num!';
-    });
+    _passwordCtrl.text = '@$cap$num!';
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onNameChanged(String val) {
