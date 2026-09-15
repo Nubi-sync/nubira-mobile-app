@@ -1,7 +1,6 @@
 // lib/core/utils/multi_size_parser.dart
-
-/// Universal Multi-Size & Safety Buffer Parsing Utility for Flutter MES
-/// Mirroring enterprise-grade Garment MES logic for Trims, Accessories & Labels
+// Universal Multi-Size & Safety Buffer Parsing Utility for Flutter MES
+// Mirroring enterprise-grade Garment MES logic for Trims, Accessories & Labels
 
 class MultiSizeParseResult {
   final bool isMultiSize;
