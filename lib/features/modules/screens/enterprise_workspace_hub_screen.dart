@@ -47,6 +47,14 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String? _launchingId;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).refreshProfile();
+    });
+  }
+
   bool _isModuleAllowed(String modRoute, List<String> allowedDivisions) {
     if (allowedDivisions.isEmpty) return false;
     final r = modRoute.replaceAll(RegExp(r'/+$'), '');
@@ -175,10 +183,21 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     final role = authState.userRole ?? 'STAFF';
     final isSuperAdmin = tenant?.isSuperAdmin ?? false;
 
-    final allowed = authState.allowedDivisions;
-    final visibleModules = allowed.isNotEmpty
-        ? allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList()
-        : allEnterpriseModules;
+    // Strict multi-tenant division resolution
+    final rawAllowed = tenant?.allowedDivisions.isNotEmpty == true
+        ? tenant!.allowedDivisions
+        : authState.allowedDivisions;
+
+    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
+        (tenant?.isLegacyNubira == true) ||
+        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
+        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
+
+    final allowed = isNubira
+        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
+        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
+
+    final visibleModules = allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList();
 
     final operatingUnitsCount = visibleModules.length;
     final canHeads = _canAccessDepartmentHeads(role, isSuperAdmin);

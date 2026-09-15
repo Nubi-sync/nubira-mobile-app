@@ -153,10 +153,22 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final userEmail = tenant?.userEmail ?? authState.cachedUsername ?? 'staff@factory.local';
     final adminDisplayName = tenant?.adminDisplayName ?? authState.cachedUsername ?? 'User';
 
-    final allowed = authState.allowedDivisions;
-    final visibleModules = allowed.isNotEmpty
-        ? allEnterpriseModules.where((m) => allowed.contains(m.route) || allowed.any((a) => a.startsWith(m.route) || m.route.startsWith(a))).toList()
-        : allEnterpriseModules;
+    final rawAllowed = tenant?.allowedDivisions.isNotEmpty == true
+        ? tenant!.allowedDivisions
+        : authState.allowedDivisions;
+
+    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
+        (tenant?.isLegacyNubira == true) ||
+        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
+        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
+
+    final allowed = isNubira
+        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
+        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
+
+    final visibleModules = allEnterpriseModules
+        .where((m) => allowed.contains(m.route) || allowed.any((a) => a.startsWith(m.route) || m.route.startsWith(a)))
+        .toList();
 
     final canHeads = _canAccessDepartmentHeads(role, isSuperAdmin, false);
     final canSupervisor = _canAccessSupervisor(role, isSuperAdmin);

@@ -348,6 +348,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
   Widget build(BuildContext context) {
     final isEditing = widget.existingHead != null;
     final available = _availableDivisions;
+    final sheetHeight = MediaQuery.of(context).size.height * 0.92;
 
     return PopScope(
       canPop: !_hasUnsavedChanges || _isSaving,
@@ -358,134 +359,125 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
           Navigator.pop(context, false);
         }
       },
-      child: Container(
-        decoration: const BoxDecoration(
-          color: kSheetBg,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+      child: SizedBox(
+        height: sheetHeight,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: kSheetBg,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
           ),
-        ),
-        padding: EdgeInsets.only(
-          top: 16,
-          left: 18,
-          right: 18,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        ),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.94,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ==========================================
-            // HEADER SECTION
-            // ==========================================
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
+                // ==========================================
+                // HEADER SECTION (Fixed Top)
+                // ==========================================
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 16, 12),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x14000000)),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.person_add_outlined, color: kBrandIndigo, size: 22),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                                  decoration: BoxDecoration(
-                                    color: kBadgeAmberBg,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFFDE68A)),
-                                  ),
-                                  child: Text(
-                                    isEditing ? 'EDIT HEAD' : 'APPOINT HEAD',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: kBadgeAmberText,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    '- ${widget.companyName}',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: kLabelText,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAF7F0),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0x14000000)),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.person_add_outlined, color: kBrandIndigo, size: 20),
+                              ),
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              isEditing ? 'Edit Department Head' : 'Appoint Department Head',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: kTextPrimary,
-                                letterSpacing: -0.3,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: kBadgeAmberBg,
+                                          borderRadius: BorderRadius.circular(5),
+                                          border: Border.all(color: const Color(0xFFFDE68A)),
+                                        ),
+                                        child: Text(
+                                          isEditing ? 'EDIT HEAD' : 'Appoint head',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: kBadgeAmberText,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          '- ${widget.companyName}',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: kLabelText,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isEditing ? 'Edit department head' : 'Appoint department head',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: kTextPrimary,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 22),
+                        onPressed: () async {
+                          final shouldClose = await _onWillPop();
+                          if (shouldClose && context.mounted) {
+                            Navigator.pop(context, false);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: () async {
-                    final shouldClose = await _onWillPop();
-                    if (shouldClose && context.mounted) {
-                      Navigator.pop(context, false);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.close_rounded, color: AppTheme.mutedInk, size: 18),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(color: Color(0x14000000), height: 1),
-            const SizedBox(height: 14),
+                const Divider(color: Color(0x14000000), height: 1),
 
-            // ==========================================
-            // FORM FIELDS BODY (Scrollable)
-            // ==========================================
-            Flexible(
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                // ==========================================
+                // FORM FIELDS BODY (Scrollable & Expanded)
+                // ==========================================
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                       // Field 1: Head Full Name
                       _buildFieldLabel('HEAD FULL NAME *'),
                       const SizedBox(height: 6),
@@ -823,8 +815,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
             // STICKY FOOTER (Cancel + Confirm Button)
             // ==========================================
             Container(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               decoration: const BoxDecoration(
+                color: Colors.white,
                 border: Border(top: BorderSide(color: Color(0x14000000))),
               ),
               child: Row(
@@ -840,7 +833,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                       'Cancel',
                       style: GoogleFonts.publicSans(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.mutedInk,
                       ),
                     ),
@@ -851,8 +844,8 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                       backgroundColor: kBrandIndigo,
                       disabledBackgroundColor: kBrandIndigo.withValues(alpha: 0.35),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       elevation: 0,
                     ),
                     onPressed: (_isFormValid && !_isSaving) ? _handleConfirmSubmit : null,
@@ -876,8 +869,10 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildFieldLabel(String label) {
     return Text(

@@ -410,6 +410,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
+  Future<void> refreshProfile() async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser != null) {
+      try {
+        final res = await supabase
+            .from('profiles')
+            .select('id, role, username, allowed_modules, is_head, designation, company_name')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+
+        final tenant = await TenantResolverService.resolveUserTenant(currentUser, res);
+        final role = _determineRole(currentUser, res, state.cachedUsername, tenant);
+
+        state = state.copyWith(
+          userRole: role,
+          tenantProfile: tenant,
+          allowedDivisions: tenant.allowedDivisions,
+        );
+      } catch (_) {}
+    }
+  }
+
   Future<void> logout() async {
     try {
       await supabase.auth.signOut();
