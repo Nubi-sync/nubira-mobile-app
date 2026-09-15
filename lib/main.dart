@@ -10,6 +10,7 @@ import 'features/dashboard/dispatch_dashboard.dart';
 import 'features/dashboard/production_manager_dashboard.dart';
 import 'features/dashboard/mending_dashboard.dart';
 import 'features/admin/screens/admin_shell.dart';
+import 'features/modules/screens/enterprise_workspace_hub_screen.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -63,10 +64,17 @@ class AuthGate extends ConsumerWidget {
 
     if (authState.isAuthenticated && authState.userRole != null) {
       final roleUpper = authState.userRole!.toUpperCase();
+
+      // Multi-access enterprise hub for admins, company heads, and multi-division accounts
+      if (authState.isMultiDivisionUser ||
+          roleUpper == 'ADMIN' ||
+          roleUpper == 'SUPERADMIN' ||
+          roleUpper == 'PLATFORM_SUPERADMIN') {
+        return const EnterpriseWorkspaceHubScreen();
+      }
+
+      // Single-division direct routing for shop-floor operators
       switch (roleUpper) {
-        case 'ADMIN':
-        case 'SUPERADMIN':
-          return const AdminShell();
         case 'DISPATCH':
           return const DispatchDashboard();
         case 'STORE':

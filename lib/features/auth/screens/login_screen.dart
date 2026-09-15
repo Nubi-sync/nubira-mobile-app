@@ -12,6 +12,7 @@ import '../../dashboard/dispatch_dashboard.dart';
 import '../../dashboard/production_manager_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../admin/screens/admin_shell.dart';
+import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connectivity_indicator.dart';
 
@@ -183,31 +184,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next.isAuthenticated && next.userRole != null) {
         final roleUpper = next.userRole!.toUpperCase();
         Widget destination;
-        switch (roleUpper) {
-          case 'ADMIN':
-          case 'SUPERADMIN':
-            destination = const AdminShell();
-            break;
-          case 'DISPATCH':
-            destination = const DispatchDashboard();
-            break;
-          case 'STORE':
-            destination = const StoreDashboard();
-            break;
-          case 'PRODUCTION_MANAGER':
-            destination = const ProductionManagerDashboard();
-            break;
-          case 'PRODUCTION':
-          case 'QC':
-            destination = const QcDashboard();
-            break;
-          case 'MENDING':
-            destination = const MendingDashboard();
-            break;
-          case 'LINEMAN':
-          default:
-            destination = const LinemanDashboard();
-            break;
+
+        if (next.isMultiDivisionUser ||
+            roleUpper == 'ADMIN' ||
+            roleUpper == 'SUPERADMIN' ||
+            roleUpper == 'PLATFORM_SUPERADMIN') {
+          destination = const EnterpriseWorkspaceHubScreen();
+        } else {
+          switch (roleUpper) {
+            case 'DISPATCH':
+              destination = const DispatchDashboard();
+              break;
+            case 'STORE':
+              destination = const StoreDashboard();
+              break;
+            case 'PRODUCTION_MANAGER':
+              destination = const ProductionManagerDashboard();
+              break;
+            case 'PRODUCTION':
+            case 'QC':
+              destination = const QcDashboard();
+              break;
+            case 'MENDING':
+              destination = const MendingDashboard();
+              break;
+            case 'LINEMAN':
+            default:
+              destination = const LinemanDashboard();
+              break;
+          }
         }
 
         Navigator.pushReplacement(

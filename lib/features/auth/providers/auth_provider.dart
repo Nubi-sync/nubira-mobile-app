@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../main.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
@@ -19,6 +20,8 @@ class AuthState {
   final int failedAttempts;
   final DateTime? lockoutUntil;
   final bool isOfflineSession;
+  final ResolvedTenantProfile? tenantProfile;
+  final List<String> allowedDivisions;
 
   AuthState({
     this.isLoading = false,
@@ -30,6 +33,8 @@ class AuthState {
     this.failedAttempts = 0,
     this.lockoutUntil,
     this.isOfflineSession = false,
+    this.tenantProfile,
+    this.allowedDivisions = const [],
   });
 
   bool get isLockedOut {
@@ -43,6 +48,14 @@ class AuthState {
     return diff > 0 ? diff : 0;
   }
 
+  bool get isMultiDivisionUser {
+    final roleUpper = (userRole ?? '').toUpperCase();
+    if (roleUpper == 'ADMIN' || roleUpper == 'SUPERADMIN' || roleUpper == 'PLATFORM_SUPERADMIN') {
+      return true;
+    }
+    return allowedDivisions.length > 1;
+  }
+
   AuthState copyWith({
     bool? isLoading,
     String? error,
@@ -53,6 +66,8 @@ class AuthState {
     int? failedAttempts,
     DateTime? lockoutUntil,
     bool? isOfflineSession,
+    ResolvedTenantProfile? tenantProfile,
+    List<String>? allowedDivisions,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
@@ -64,6 +79,8 @@ class AuthState {
       failedAttempts: failedAttempts ?? this.failedAttempts,
       lockoutUntil: lockoutUntil ?? this.lockoutUntil,
       isOfflineSession: isOfflineSession ?? this.isOfflineSession,
+      tenantProfile: tenantProfile ?? this.tenantProfile,
+      allowedDivisions: allowedDivisions ?? this.allowedDivisions,
     );
   }
 }
@@ -104,13 +121,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         final res = await supabase
             .from('profiles')
-            .select('id, role')
+            .select('id, role, username, allowed_modules, is_head, designation')
             .eq('id', currentUser.id)
             .maybeSingle();
 
-        final role = _determineRole(currentUser, res, savedUsername);
+        final tenant = await TenantResolverService.resolveUserTenant(currentUser, res);
+        final role = _determineRole(currentUser, res, savedUsername, tenant);
 
-        if (res == null && role != 'ADMIN') {
+        if (res == null && role != 'ADMIN' && !tenant.isSuperAdmin) {
           // Employee was deleted or removed by admin from Web Admin!
           await supabase.auth.signOut();
           await _storage.deleteAll();
@@ -120,6 +138,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             isAuthenticated: false,
             userRole: null,
             cachedUsername: null,
+            tenantProfile: null,
+            allowedDivisions: [],
             error: 'This account was deleted or deactivated by admin.',
           );
           return;
@@ -133,10 +153,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userRole: role,
           failedAttempts: 0,
           lockoutUntil: null,
-          cachedUsername: savedUsername ?? currentUser.email?.split('@').first,
+          cachedUsername: savedUsername ?? tenant.adminDisplayName,
+          tenantProfile: tenant,
+          allowedDivisions: tenant.allowedDivisions,
         );
         return;
       } catch (e) {
+        final isNetwork = e.toString().contains('SocketException') || e.toString().contains('ClientException');
+        if (isNetwork) {
+          final cachedUserId = await _storage.read(key: 'cached_user_id');
+          final cachedRole = await _storage.read(key: 'cached_user_role');
+          if (cachedUserId != null && cachedRole != null) {
+            state = state.copyWith(
+              isLoading: false,
+              isAuthenticated: true,
+              userRole: cachedRole,
+              isOfflineSession: true,
+              cachedUsername: savedUsername,
+              allowedDivisions: cachedRole == 'ADMIN' ? ['/stitching-sewing', '/store'] : ['/stitching-sewing'],
+            );
+            return;
+          }
+        }
+
+        // Invalid or expired session
+        await supabase.auth.signOut();
+        await _storage.deleteAll();
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: false,
+          userRole: null,
+          cachedUsername: null,
+          tenantProfile: null,
+          allowedDivisions: [],
+        );
+        return;
+      }
+    }
         final isNetwork = e.toString().contains('SocketException') || e.toString().contains('ClientException');
         if (isNetwork) {
           final cachedUserId = await _storage.read(key: 'cached_user_id');
@@ -269,13 +322,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Validate user in profiles table
         final res = await supabase
             .from('profiles')
-            .select('id, role')
+            .select('id, role, username, allowed_modules, is_head, designation')
             .eq('id', user.id)
             .maybeSingle();
 
-        final role = _determineRole(user, res, username);
+        final tenant = await TenantResolverService.resolveUserTenant(user, res);
+        final role = _determineRole(user, res, username, tenant);
 
-        if (res == null && role != 'ADMIN') {
+        if (res == null && role != 'ADMIN' && !tenant.isSuperAdmin) {
           await supabase.auth.signOut();
           await _storage.deleteAll();
           await prefs.remove('remembered_operator_id');
@@ -284,6 +338,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             isAuthenticated: false,
             userRole: null,
             cachedUsername: null,
+            tenantProfile: null,
+            allowedDivisions: [],
             error: 'This account has been deleted by factory admin.',
           );
           return;
@@ -304,6 +360,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           failedAttempts: 0,
           lockoutUntil: null,
           cachedUsername: username.trim(),
+          tenantProfile: tenant,
+          allowedDivisions: tenant.allowedDivisions,
         );
       }
     } on AuthException catch (e) {
@@ -337,18 +395,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  String _determineRole(User user, Map<String, dynamic>? profileRes, [String? inputUsername]) {
+  String _determineRole(User user, Map<String, dynamic>? profileRes, [String? inputUsername, ResolvedTenantProfile? tenant]) {
     final email = (user.email ?? '').toLowerCase();
     final uname = (inputUsername ?? '').trim().toLowerCase();
 
     // 1. Check known admin identifiers and emails
     if (email == 'team.anga9@gmail.com' ||
         email == 'creationnubira@gmail.com' ||
+        email == 'admin@zigza.in' ||
         email.startsWith('admin') ||
         email.contains('admin') ||
         uname == 'admin' ||
         uname.startsWith('admin') ||
-        uname.contains('admin')) {
+        uname.contains('admin') ||
+        (tenant?.isSuperAdmin == true)) {
       return 'ADMIN';
     }
 

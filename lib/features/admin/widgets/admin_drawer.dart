@@ -14,6 +14,9 @@ import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
+import '../../modules/screens/enterprise_workspace_hub_screen.dart';
+import '../../modules/screens/supervisor_floor_stations_screen.dart';
+import '../../modules/screens/department_heads_screen.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
@@ -108,7 +111,23 @@ class AdminDrawer extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 children: [
-                  _buildSectionHeader('FACTORY FLOOR'),
+                  _buildSectionHeader('ENTERPRISE WORKSPACE'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.apps_outlined,
+                    activeIcon: Icons.apps_rounded,
+                    title: 'Workspace Hub (Modules)',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+                  _buildSectionHeader('STITCHING & SEWING FLOOR'),
                   _buildDrawerItem(
                     context: context,
                     icon: Icons.dashboard_outlined,
