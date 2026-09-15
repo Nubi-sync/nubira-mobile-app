@@ -14,12 +14,13 @@ class GenericDivisionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.canvasCream,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardWhite,
         elevation: 0,
+        scrolledUnderElevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.ink),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.foregroundInk),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -27,12 +28,12 @@ class GenericDivisionScreen extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: AppTheme.ink,
+            color: AppTheme.foregroundInk,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.apps_rounded, color: AppTheme.steel),
+            icon: const Icon(Icons.apps_rounded, color: AppTheme.brandSteel),
             tooltip: 'Workspace Hub',
             onPressed: () => Navigator.pop(context),
           ),
@@ -47,14 +48,14 @@ class GenericDivisionScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.border),
-                boxShadow: [
+                color: AppTheme.cardWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.standardBorder),
+                boxShadow: const [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: Color(0x08000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
                   ),
                 ],
               ),
@@ -65,39 +66,42 @@ class GenericDivisionScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: AppTheme.bg,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppTheme.canvasCream,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.standardBorder),
                         ),
-                        child: Icon(module.icon, color: AppTheme.steel, size: 24),
+                        child: Icon(module.icon, color: AppTheme.brandSteel, size: 22),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppTheme.steelMist,
+                          color: AppTheme.canvasCream,
                           borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppTheme.standardBorder),
                         ),
                         child: Text(
                           module.badge,
                           style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10.5,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.steel,
+                            color: AppTheme.brandSteel,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   Text(
                     module.title,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
+                      color: AppTheme.foregroundInk,
+                      letterSpacing: -0.3,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -105,22 +109,29 @@ class GenericDivisionScreen extends StatelessWidget {
                     module.subtitle,
                     style: GoogleFonts.publicSans(
                       fontSize: 12.5,
-                      color: AppTheme.inkSoft,
-                      height: 1.4,
+                      color: AppTheme.mutedInk,
+                      height: 1.35,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Division Active Features
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.border),
+                color: AppTheme.cardWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.standardBorder),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x08000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +141,8 @@ class GenericDivisionScreen extends StatelessWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14.5,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.ink,
+                      color: AppTheme.foregroundInk,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -139,15 +151,15 @@ class GenericDivisionScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: AppTheme.steel, size: 16),
+                          const Icon(Icons.check_circle_rounded, color: AppTheme.badgeEmeraldText, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               feat,
                               style: GoogleFonts.publicSans(
-                                fontSize: 13,
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.ink,
+                                color: AppTheme.foregroundInk,
                               ),
                             ),
                           ),
@@ -158,19 +170,19 @@ class GenericDivisionScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Live Floor Sync Status
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.greenMist,
+                color: AppTheme.badgeEmeraldBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                border: Border.all(color: AppTheme.badgeEmeraldBorder),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.cloud_done_rounded, color: AppTheme.green, size: 22),
+                  const Icon(Icons.cloud_done_rounded, color: AppTheme.badgeEmeraldText, size: 22),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -181,7 +193,7 @@ class GenericDivisionScreen extends StatelessWidget {
                           style: GoogleFonts.publicSans(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.green,
+                            color: AppTheme.badgeEmeraldText,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -189,7 +201,7 @@ class GenericDivisionScreen extends StatelessWidget {
                           'Workstation records synchronized with central MES plant inventory.',
                           style: GoogleFonts.publicSans(
                             fontSize: 11.5,
-                            color: AppTheme.inkSoft,
+                            color: AppTheme.mutedInk,
                           ),
                         ),
                       ],
