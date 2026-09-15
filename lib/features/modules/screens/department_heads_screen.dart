@@ -291,7 +291,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
   String _deriveDesignation(String role, List<String> modules) {
     if (modules.contains('/cutting')) return 'Cutting Master / CAD Head';
     if (modules.contains('/store')) return 'Central Store & Godown Manager';
-    if (modules.contains('/stitching-sewing')) return 'Production Manager / Sewing Floor Head';
+    if (modules.contains('/stitching-sewing')) return 'Production Manager / Floor Head';
     if (modules.contains('/ready-goods')) return 'Quality Assurance (QA) Head';
     if (modules.contains('/merchandising')) return 'Senior Merchandiser / Sourcing Lead';
     if (modules.contains('/design')) return 'Design Studio Head';
@@ -401,7 +401,8 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
   void _openAppointHeadModal([DepartmentHeadItem? headToEdit]) {
     final authState = ref.read(authProvider);
     final tenant = authState.tenantProfile;
-    final companyName = tenant?.companyName ?? 'Apparel Factory';
+    final companyName = tenant?.companyName ?? 'Nubira Creation';
+    final allowedDivisions = authState.allowedDivisions;
 
     showModalBottomSheet(
       context: context,
@@ -410,6 +411,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       builder: (ctx) => _AppointHeadModal(
         existingHead: headToEdit,
         companyName: companyName,
+        allowedDivisions: allowedDivisions,
         onSuccess: () {
           _fetchDepartmentHeads();
         },
@@ -443,7 +445,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     final companyName = tenant?.companyName ?? 'Nubira Creation';
     final allowedDivisions = authState.allowedDivisions;
 
-    // Filter catalog to tenant's purchased divisions
+    // Filter catalog to tenant's purchased divisions (Strict match with Web)
     final subscribedCatalog = (allowedDivisions.isNotEmpty && !allowedDivisions.contains('/modules'))
         ? kDepartmentHeadsCatalog.where((d) => allowedDivisions.contains(d.route)).toList()
         : kDepartmentHeadsCatalog;
@@ -865,7 +867,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                 ],
               ),
               content: Text(
-                'Department Heads & Incharges RBAC policy ensures strict division-level isolation across all 12 manufacturing units.',
+                'Department Heads & Incharges RBAC policy ensures strict division-level isolation across authorized manufacturing units.',
                 style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.mutedInk, height: 1.4),
               ),
               actions: [
@@ -1379,17 +1381,19 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
 }
 
 // ============================================================================
-// APPOINT / EDIT HEAD BOTTOM SHEET MODAL
+// APPOINT / EDIT HEAD BOTTOM SHEET MODAL (Filtered to tenant's purchased units)
 // ============================================================================
 
 class _AppointHeadModal extends StatefulWidget {
   final DepartmentHeadItem? existingHead;
   final String companyName;
+  final List<String>? allowedDivisions;
   final VoidCallback onSuccess;
 
   const _AppointHeadModal({
     this.existingHead,
     required this.companyName,
+    this.allowedDivisions,
     required this.onSuccess,
   });
 
@@ -1407,6 +1411,14 @@ class _AppointHeadModalState extends State<_AppointHeadModal> {
   List<String> _selectedModules = [];
   bool _isSaving = false;
   String? _error;
+
+  List<DepartmentHeadCatalogDef> get _availableDivisions {
+    final allowed = widget.allowedDivisions;
+    if (allowed == null || allowed.isEmpty || allowed.contains('/modules')) {
+      return kDepartmentHeadsCatalog;
+    }
+    return kDepartmentHeadsCatalog.where((div) => allowed.contains(div.route)).toList();
+  }
 
   @override
   void initState() {
@@ -1448,7 +1460,7 @@ class _AppointHeadModalState extends State<_AppointHeadModal> {
           _designationCtrl.text = '';
         }
       } else {
-        _selectedModules = [div.route]; // Single-head focus
+        _selectedModules = [div.route]; // Single-head primary unit focus
         if (widget.existingHead == null) {
           _designationCtrl.text = div.defaultDesignation;
           if (_nameCtrl.text.trim().isNotEmpty) {
@@ -1543,6 +1555,7 @@ class _AppointHeadModalState extends State<_AppointHeadModal> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingHead != null;
+    final available = _availableDivisions;
 
     return Container(
       decoration: const BoxDecoration(
@@ -1708,7 +1721,7 @@ class _AppointHeadModalState extends State<_AppointHeadModal> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Unit Assignment Grid
+                  // Unit Assignment Grid (Strictly filtered to tenant's purchased units)
                   Text(
                     'ASSIGN OPERATING UNIT AUTHORITY (${_selectedModules.length} SELECTED)',
                     style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.mutedInk),
@@ -1721,69 +1734,98 @@ class _AppointHeadModalState extends State<_AppointHeadModal> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0x18000000)),
                     ),
-                    child: Column(
-                      children: kDepartmentHeadsCatalog.map((div) {
-                        final isSelected = _selectedModules.contains(div.route);
+                    child: available.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              'No authorized operating units found for this tenant.',
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
+                            ),
+                          )
+                        : Column(
+                            children: available.map((div) {
+                              final isSelected = _selectedModules.contains(div.route);
 
-                        return InkWell(
-                          onTap: () => _toggleModuleSelection(div),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.canvasCream : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSelected ? AppTheme.brandSteel : const Color(0x14000000),
-                                width: isSelected ? 1.5 : 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 16,
-                                  height: 16,
+                              return InkWell(
+                                onTap: () => _toggleModuleSelection(div),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
+                                    color: isSelected ? AppTheme.canvasCream : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isSelected ? AppTheme.brandSteel : const Color(0xFFCBD5E1),
-                                      width: 2,
+                                      color: isSelected ? AppTheme.brandSteel : const Color(0x14000000),
+                                      width: isSelected ? 1.5 : 1.0,
                                     ),
-                                    color: Colors.white,
                                   ),
-                                  child: isSelected
-                                      ? Center(
-                                          child: Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: const BoxDecoration(
-                                              color: AppTheme.brandSteel,
-                                              shape: BoxShape.circle,
-                                            ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isSelected ? AppTheme.brandSteel : const Color(0xFFCBD5E1),
+                                            width: 2,
                                           ),
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(width: 10),
-                                Icon(div.icon, size: 16, color: isSelected ? AppTheme.brandSteel : AppTheme.mutedInk),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Unit ${div.code}: ${div.name}',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 12,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                      color: isSelected ? AppTheme.foregroundInk : AppTheme.mutedInk,
-                                    ),
+                                          color: Colors.white,
+                                        ),
+                                        child: isSelected
+                                            ? Center(
+                                                child: Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: const BoxDecoration(
+                                                    color: AppTheme.brandSteel,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.canvasCream,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: const Color(0x14000000)),
+                                        ),
+                                        child: Icon(div.icon, size: 16, color: AppTheme.brandSteel),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Unit ${div.code}: ${div.name}',
+                                              style: GoogleFonts.publicSans(
+                                                fontSize: 12.5,
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                                color: isSelected ? AppTheme.foregroundInk : AppTheme.mutedInk,
+                                              ),
+                                            ),
+                                            Text(
+                                              div.route,
+                                              style: GoogleFonts.jetBrainsMono(
+                                                fontSize: 10,
+                                                color: AppTheme.faintInk,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            }).toList(),
                           ),
-                        );
-                      }).toList(),
-                    ),
                   ),
                   const SizedBox(height: 12),
 
