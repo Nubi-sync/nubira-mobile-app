@@ -43,7 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/build/
 /android/build/
+.gradle/
+**/build/
+**/.gradle/
 
 # Environment variables
 .env*

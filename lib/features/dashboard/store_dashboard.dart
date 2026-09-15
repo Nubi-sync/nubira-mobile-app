@@ -8,6 +8,7 @@ import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
+import '../../core/utils/multi_size_parser.dart';
 import '../../../main.dart'; // supabase client
 
 class _AccessoryChallanItem {
@@ -83,6 +84,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   String _feedCategoryFilter = 'ALL'; // 'ALL', 'BOM', 'TRIMS', 'GARMENTS'
   String _feedSearchQuery = '';
   final Set<String> _expandedBOMKeys = {};
+
+  // Safety Buffer & Mending Quick-Claim State
+  int _safetyBufferPct = 5; // Configurable: 3%, 5%, 8%, 10%
+  final List<Map<String, dynamic>> _bufferClaims = [];
 
   @override
   void initState() {
@@ -3004,6 +3009,423 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   // ==========================================
+  // MODULE 2.5: SAFETY BUFFER REPLACEMENT QUICK-CLAIM
+  // ==========================================
+  void _showBufferReplacementClaimModal({String? preselectedArtNo, String? preselectedAllotmentId}) {
+    if (_activeAllotments.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No active floor allotments found.')),
+      );
+      return;
+    }
+
+    String selectedAllotId = preselectedAllotmentId ?? (_activeAllotments.first['id']?.toString() ?? '');
+    String selectedItem = '';
+    String customItem = '';
+    int claimQty = 1;
+    String claimReason = 'Floor Mending / Alteration';
+    final notesController = TextEditingController();
+    final customItemController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final allotment = _activeAllotments.firstWhere(
+            (a) => a['id']?.toString() == selectedAllotId,
+            orElse: () => _activeAllotments.first,
+          );
+
+          final artNo = allotment['articles']?['art_no']?.toString() ?? '-';
+          final linemanName = allotment['profiles']?['username']?.toString() ?? 'Lineman';
+          final targetQty = parseQty(allotment['target_qty']);
+          final assignedColor = allotment['assigned_color_label']?.toString() ?? '';
+
+          // Calculate Article Inwards & Buffer
+          final artInwards = _truckInwards.where((inw) {
+            final aNo = (inw['article_no'] ?? '').toString().trim().toUpperCase();
+            return aNo == artNo.toUpperCase();
+          }).toList();
+
+          int totalInwardPcs = 0;
+          for (var inw in artInwards) {
+            final items = inw['items'] ?? inw['line_items'] ?? [];
+            if (items is List) {
+              for (var it in items) {
+                totalInwardPcs += parseQty(it['quantity'] ?? it['received_qty']);
+              }
+            }
+          }
+
+          final int calculatedBuffer = ((totalInwardPcs > 0 ? totalInwardPcs : targetQty) * (_safetyBufferPct / 100)).floor();
+          final int claimedSoFar = _bufferClaims
+              .where((c) => c['art_no'] == artNo)
+              .fold(0, (sum, c) => sum + parseQty(c['qty']));
+          final int availableBuffer = (calculatedBuffer - claimedSoFar).clamp(0, 99999);
+
+          final materials = _allotmentMaterials
+              .where((m) => m['allotment_id']?.toString() == selectedAllotId)
+              .toList();
+
+          if (selectedItem.isEmpty && materials.isNotEmpty) {
+            selectedItem = materials.first['item_name']?.toString() ?? '';
+          }
+
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              top: 20,
+              left: 20,
+              right: 20,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.shield_rounded, color: Color(0xFFD97706), size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Buffer Replacement Claim',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.ink,
+                              ),
+                            ),
+                            Text(
+                              'Article #$artNo${assignedColor.isNotEmpty ? " • $assignedColor" : ""} • Buffer Reserve: $availableBuffer pcs left',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11.5,
+                                color: AppTheme.inkSoft,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 1. Select Lineman / Allotment
+                  Text(
+                    '1. SELECT FLOOR LINE / LINEMAN',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedAllotId,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        items: _activeAllotments.map<DropdownMenuItem<String>>((al) {
+                          final lName = al['profiles']?['username'] ?? 'Lineman';
+                          final aNo = al['articles']?['art_no'] ?? '-';
+                          final col = al['assigned_color_label'] ?? '';
+                          return DropdownMenuItem<String>(
+                            value: al['id'].toString(),
+                            child: Text(
+                              '$lName • Art #$aNo ${col.isNotEmpty ? "($col)" : ""}',
+                              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedAllotId = val;
+                              selectedItem = '';
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 2. Trim / Material to Replace
+                  Text(
+                    '2. TRIM / MATERIAL TO REPLACE',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                  ),
+                  const SizedBox(height: 6),
+                  if (materials.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedItem,
+                          isExpanded: true,
+                          items: [
+                            ...materials.map<DropdownMenuItem<String>>((m) {
+                              final name = m['item_name']?.toString() ?? 'Trim';
+                              final qty = m['required_qty']?.toString() ?? '';
+                              final parsedSize = MultiSizeParser.parseMultiSizeTokens(name);
+                              final sizeSuffix = parsedSize.isMultiSize ? ' [Sizes: ${parsedSize.sizes.join(",")}]' : '';
+                              return DropdownMenuItem<String>(
+                                value: name,
+                                child: Text(
+                                  '$name$sizeSuffix (Quota: $qty)',
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                            const DropdownMenuItem<String>(
+                              value: '__CUSTOM__',
+                              child: Text('➕ Other / Custom Trim Item...', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => selectedItem = val);
+                          },
+                        ),
+                      ),
+                    ),
+                    if (selectedItem == '__CUSTOM__') ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: customItemController,
+                        onChanged: (v) => customItem = v,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Size 24 Care Label, Navy Thread Cone...',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                        ),
+                      ),
+                    ],
+                  ] else ...[
+                    TextField(
+                      controller: customItemController,
+                      onChanged: (v) => customItem = v,
+                      decoration: InputDecoration(
+                        hintText: 'Enter trim/material name...',
+                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+
+                  // 3. Replacement Quantity
+                  Text(
+                    '3. REPLACEMENT QUANTITY (PCS)',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove, size: 18),
+                              onPressed: () {
+                                if (claimQty > 1) setModalState(() => claimQty--);
+                              },
+                            ),
+                            Text(
+                              '$claimQty',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add, size: 18),
+                              onPressed: () => setModalState(() => claimQty++),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ...[1, 2, 5, 10].map((n) {
+                        final isSel = claimQty == n;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: InkWell(
+                            onTap: () => setModalState(() => claimQty = n),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: isSel ? AppTheme.steel : AppTheme.bg,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: isSel ? AppTheme.steel : AppTheme.border),
+                              ),
+                              child: Text(
+                                '+$n',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel ? Colors.white : AppTheme.ink,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 4. Reason
+                  Text(
+                    '4. REASON FOR CLAIM',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      'Floor Mending / Alteration',
+                      'Damaged in Stitching',
+                      'Defective Trim / Label',
+                      'Missing in Bundle'
+                    ].map((r) {
+                      final isSel = claimReason == r;
+                      return ChoiceChip(
+                        label: Text(r, style: GoogleFonts.publicSans(fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.w500)),
+                        selected: isSel,
+                        selectedColor: const Color(0xFFFEF3C7),
+                        backgroundColor: AppTheme.bg,
+                        labelStyle: TextStyle(color: isSel ? const Color(0xFFD97706) : AppTheme.ink),
+                        onSelected: (_) => setModalState(() => claimReason = r),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 5. Remarks
+                  Text(
+                    '5. OPERATOR REMARKS (OPTIONAL)',
+                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Size M label torn during collar attachment...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                      filled: true,
+                      fillColor: AppTheme.bg,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Confirm Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.shield_rounded, size: 20),
+                      label: Text(
+                        'Deduct & Issue $claimQty pcs from Reserve',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD97706),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        final effectiveItem = selectedItem == '__CUSTOM__'
+                            ? customItem.trim()
+                            : (selectedItem.isNotEmpty ? selectedItem : customItem.trim());
+
+                        if (effectiveItem.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select or specify a material item.')),
+                          );
+                          return;
+                        }
+
+                        final newClaim = {
+                          'id': 'CLM-${DateTime.now().millisecondsSinceEpoch}',
+                          'art_no': artNo,
+                          'allotment_id': selectedAllotId,
+                          'lineman_name': linemanName,
+                          'item_name': effectiveItem,
+                          'qty': claimQty,
+                          'reason': claimReason,
+                          'notes': notesController.text.trim(),
+                          'created_at': DateTime.now().toIso8601String(),
+                        };
+
+                        setState(() {
+                          _bufferClaims.insert(0, newClaim);
+                        });
+
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Issued $claimQty pcs of "$effectiveItem" to $linemanName from Safety Buffer!'),
+                            backgroundColor: const Color(0xFF16A34A),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ==========================================
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
   void _showMaterialHandoverModal() {
@@ -4102,6 +4524,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     const SizedBox(height: 10),
 
                     _buildActionTile(
+                      title: 'Buffer Replacement Claim',
+                      subtitle: 'Issue trims/materials from Safety Buffer for floor mending & alteration',
+                      icon: Icons.shield_rounded,
+                      color: const Color(0xFFD97706),
+                      bgColor: const Color(0xFFFEF3C7),
+                      onTap: () => _showBufferReplacementClaimModal(),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _buildActionTile(
                       title: 'Production Inward',
                       subtitle: 'Receive finished goods from QC / Production',
                       icon: Icons.file_download_outlined,
@@ -4120,6 +4552,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       onTap: _showOutwardModal,
                     ),
 
+                    const SizedBox(height: 26),
+
+                    // ====== LIVE ARTICLE CONSUMPTION & SAFETY BUFFER LEDGER ======
+                    _buildArticleBufferLedgerSection(),
                     const SizedBox(height: 26),
 
                     // ====== RECENT ACCESSORY CHALLANS (GRN) FEED ======
@@ -5026,6 +5462,244 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         ),
       );
     }
+  }
+
+  Widget _buildArticleBufferLedgerSection() {
+    // 1. Group truck inwards and active allotments by Article No
+    final Map<String, Map<String, dynamic>> articleGroups = {};
+
+    for (var inw in _truckInwards) {
+      final art = (inw['article_no'] ?? '').toString().trim().toUpperCase();
+      if (art.isEmpty) continue;
+      if (!articleGroups.containsKey(art)) {
+        articleGroups[art] = {
+          'art_no': art,
+          'total_inward': 0,
+          'total_allotted': 0,
+          'allotments': <dynamic>[],
+        };
+      }
+      final items = inw['items'] ?? inw['line_items'] ?? [];
+      if (items is List) {
+        for (var it in items) {
+          articleGroups[art]!['total_inward'] = (articleGroups[art]!['total_inward'] as int) + parseQty(it['quantity'] ?? it['received_qty']);
+        }
+      }
+    }
+
+    for (var al in _activeAllotments) {
+      final art = (al['articles']?['art_no'] ?? '').toString().trim().toUpperCase();
+      if (art.isEmpty) continue;
+      if (!articleGroups.containsKey(art)) {
+        articleGroups[art] = {
+          'art_no': art,
+          'total_inward': 0,
+          'total_allotted': 0,
+          'allotments': <dynamic>[],
+        };
+      }
+      articleGroups[art]!['total_allotted'] = (articleGroups[art]!['total_allotted'] as int) + parseQty(al['target_qty']);
+      (articleGroups[art]!['allotments'] as List<dynamic>).add(al);
+    }
+
+    if (articleGroups.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Article & Safety Buffer Ledger',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.ink,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Live floor consumption & mending buffer reserve',
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            // Buffer % Selector Pills
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Row(
+                children: [3, 5, 8, 10].map((pct) {
+                  final isSel = _safetyBufferPct == pct;
+                  return InkWell(
+                    onTap: () => setState(() => _safetyBufferPct = pct),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isSel ? AppTheme.steel : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '$pct%',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: isSel ? Colors.white : AppTheme.inkSoft,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        ...articleGroups.values.map((grp) {
+          final artNo = grp['art_no'] as String;
+          final totalInward = grp['total_inward'] as int;
+          final totalAllotted = grp['total_allotted'] as int;
+          final balance = (totalInward - totalAllotted).clamp(0, 999999);
+          final buffer = ((totalInward > 0 ? totalInward : totalAllotted) * (_safetyBufferPct / 100)).floor();
+          final claimed = _bufferClaims
+              .where((c) => c['art_no'] == artNo)
+              .fold(0, (sum, c) => sum + parseQty(c['qty']));
+          final available = (buffer - claimed).clamp(0, 999999);
+          final lots = grp['allotments'] as List<dynamic>;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.border),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Art No & Quick Action
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.steelMist,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'ART #$artNo',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.steel),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${lots.length} Lines',
+                          style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.inkSoft),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.shield_rounded, size: 14),
+                      label: const Text('Claim Buffer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFEF3C7),
+                        foregroundColor: const Color(0xFFD97706),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => _showBufferReplacementClaimModal(preselectedArtNo: artNo),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Metrics Strip
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('INWARD', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.inkFaint)),
+                            const SizedBox(height: 2),
+                            Text('$totalInward', style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 26, color: AppTheme.border),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ALLOTTED', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.inkFaint)),
+                            const SizedBox(height: 2),
+                            Text('$totalAllotted', style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF16A34A))),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 26, color: AppTheme.border),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('BALANCE', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.inkFaint)),
+                            const SizedBox(height: 2),
+                            Text('$balance', style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.steel)),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 26, color: AppTheme.border),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('BUFFER', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFFD97706))),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$available${claimed > 0 ? " (-$claimed)" : ""}',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   Widget _buildTruckInwardCard(Map<String, dynamic> inward) {

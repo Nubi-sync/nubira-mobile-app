@@ -9,6 +9,11 @@ import '../screens/reports_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/security_screen.dart';
 import '../screens/dispatch_screen.dart';
+import '../../dashboard/lineman_dashboard.dart';
+import '../../dashboard/mending_dashboard.dart';
+import '../../dashboard/qc_dashboard.dart';
+import '../../dashboard/store_dashboard.dart';
+import '../../dashboard/dispatch_dashboard.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
@@ -158,6 +163,74 @@ class AdminDrawer extends ConsumerWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const DispatchScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('FLOOR SUPERVISOR STATIONS (OVERRIDE)'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.content_cut_outlined,
+                    activeIcon: Icons.content_cut,
+                    title: 'Lineman Stitching Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LinemanDashboard()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.build_outlined,
+                    activeIcon: Icons.build,
+                    title: 'Mending & Verification Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MendingDashboard()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.verified_outlined,
+                    activeIcon: Icons.verified,
+                    title: 'QC Inspection Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const QcDashboard()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.storefront_outlined,
+                    activeIcon: Icons.storefront,
+                    title: 'Store Godown Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StoreDashboard()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.local_shipping_outlined,
+                    activeIcon: Icons.local_shipping,
+                    title: 'Dispatch Gate Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DispatchDashboard()),
                       );
                     },
                   ),
