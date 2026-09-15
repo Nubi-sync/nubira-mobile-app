@@ -186,9 +186,28 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   Row(
                     children: [
                       Image.asset(
-                        'assets/images/zigza_main_logo.png',
+                        'assets/images/z_i_g_z_a.png',
                         height: 28,
                         fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/zigza_logo.png',
+                          height: 28,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/images/icon.png',
+                            height: 26,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Text(
+                              'Zigza.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF3A3564),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Container(

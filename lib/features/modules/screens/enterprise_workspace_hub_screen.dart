@@ -199,9 +199,28 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         title: Image.asset(
-          'assets/images/zigza_main_logo.png',
+          'assets/images/z_i_g_z_a.png',
           height: 32,
           fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Image.asset(
+            'assets/images/zigza_logo.png',
+            height: 32,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/icon.png',
+              height: 30,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Text(
+                'Zigza.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: DesignTokens.brandSteel,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+          ),
         ),
         actions: [
           Container(
