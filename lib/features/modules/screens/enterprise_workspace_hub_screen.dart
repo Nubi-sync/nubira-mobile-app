@@ -14,6 +14,28 @@ import 'company_profile_screen.dart';
 import 'department_heads_screen.dart';
 import 'generic_division_screen.dart';
 
+/// Design System Tokens strictly based on web_admin/docs_logic/design.md
+class DesignTokens {
+  static const Color brandSteel = Color(0xFF3A3564);
+  static const Color brandSteelHover = Color(0xFF2A2649);
+  static const Color canvasCream = Color(0xFFFAF7F0);
+  static const Color cardWhite = Color(0xFFFFFFFF);
+  static const Color foregroundInk = Color(0xFF0F172A);
+  static const Color mutedInk = Color(0xFF475569);
+  static const Color faintInk = Color(0xFF94A3B8);
+  static const Color standardBorder = Color(0x1A000000); // border-black/10
+  static const Color subtleDivider = Color(0xFFF1F5F9); // slate-100
+
+  // Badges
+  static const Color badgeExecutiveBg = Color(0xFFFEF3C7); // amber-100
+  static const Color badgeExecutiveText = Color(0xFFB45309); // amber-700
+  static const Color badgeExecutiveBorder = Color(0xFFFDE68A);
+
+  static const Color badgeLiveGreenBg = Color(0xFFECFDF5);
+  static const Color badgeLiveGreenText = Color(0xFF047857);
+  static const Color badgeLiveGreenBorder = Color(0xFFA7F3D0);
+}
+
 class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {
   const EnterpriseWorkspaceHubScreen({super.key});
 
@@ -91,21 +113,21 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        backgroundColor: DesignTokens.cardWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Sign Out',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1C1C1A),
+            color: DesignTokens.foregroundInk,
           ),
         ),
         content: Text(
           'Are you sure you want to end your current session and sign out of Zigza MES?',
           style: GoogleFonts.publicSans(
             fontSize: 13,
-            color: const Color(0xFF6B6A65),
+            color: DesignTokens.mutedInk,
             height: 1.4,
           ),
         ),
@@ -117,7 +139,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               style: GoogleFonts.publicSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B6A65),
+                color: DesignTokens.mutedInk,
               ),
             ),
           ),
@@ -125,7 +147,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE11D48),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               elevation: 0,
             ),
@@ -164,15 +186,15 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
+      backgroundColor: DesignTokens.canvasCream, // Warm Canvas Background (#FAF7F0)
       drawer: const WorkspaceHubDrawer(activeRoute: '/modules'),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: DesignTokens.cardWhite,
         elevation: 0,
         scrolledUnderElevation: 1,
         titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Color(0xFF1C1C1A), size: 24),
+          icon: const Icon(Icons.menu_rounded, color: DesignTokens.foregroundInk, size: 24),
           tooltip: 'Open Menu',
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
@@ -183,7 +205,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF332B6B),
+                color: DesignTokens.brandSteel,
                 letterSpacing: -0.5,
               ),
             ),
@@ -191,15 +213,16 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
               decoration: BoxDecoration(
-                color: const Color(0xFFF3F2EE),
+                color: DesignTokens.canvasCream,
                 borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: DesignTokens.standardBorder),
               ),
               child: Text(
                 'ERP MES',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF6B6A65),
+                  color: DesignTokens.brandSteel,
                 ),
               ),
             ),
@@ -210,9 +233,9 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
             margin: const EdgeInsets.only(right: 14),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFE9F7EE),
+              color: DesignTokens.badgeLiveGreenBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2FAE66).withValues(alpha: 0.3)),
+              border: Border.all(color: DesignTokens.badgeLiveGreenBorder),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -221,7 +244,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   width: 7,
                   height: 7,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1B7A43),
+                    color: Color(0xFF10B981),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -231,11 +254,11 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   style: GoogleFonts.publicSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1B7A43),
+                    color: DesignTokens.badgeLiveGreenText,
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.sync_rounded, color: Color(0xFF1B7A43), size: 12),
+                const Icon(Icons.sync_rounded, color: Color(0xFF10B981), size: 12),
               ],
             ),
           ),
@@ -247,14 +270,21 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ==========================================
-            // 1. TOP PROMINENT CARD (Enterprise Workspace Hub)
+            // LAYER 2: ENCAPSULATED TOP HEADER CARD
             // ==========================================
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF8),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFECECE8), width: 1),
+                color: DesignTokens.cardWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: DesignTokens.standardBorder, width: 1),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x08000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,16 +292,17 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 44x44px Icon Container with #FAF7F0 bg
                       Container(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFECECE8)),
+                          color: DesignTokens.canvasCream,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: DesignTokens.standardBorder),
                         ),
                         child: const Center(
-                          child: Icon(Icons.grid_view_rounded, color: Color(0xFF332B6B), size: 22),
+                          child: Icon(Icons.grid_view_rounded, color: DesignTokens.brandSteel, size: 22),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -280,27 +311,29 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Enterprise workspace hub',
+                              'Enterprise Workspace Hub',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1C1C1A),
+                                fontWeight: FontWeight.w800,
+                                color: DesignTokens.foregroundInk,
                                 letterSpacing: -0.3,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF3F2EE),
-                                borderRadius: BorderRadius.circular(8),
+                                color: DesignTokens.canvasCream,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: DesignTokens.standardBorder),
                               ),
                               child: Text(
-                                '$operatingUnitsCount operating units',
+                                '$operatingUnitsCount OPERATING UNITS',
                                 style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10.5,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF6B6A65),
+                                  color: DesignTokens.brandSteel,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -314,7 +347,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                     'Central manufacturing execution hub across your authorized division modules',
                     style: GoogleFonts.publicSans(
                       fontSize: 12.5,
-                      color: const Color(0xFF6B6A65),
+                      color: DesignTokens.mutedInk,
                       height: 1.35,
                     ),
                   ),
@@ -325,14 +358,14 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                     children: [
                       if (canHeads) ...[
                         Expanded(
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF332B6B),
+                              backgroundColor: DesignTokens.brandSteel,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               minimumSize: const Size(0, 38),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () {
                               Navigator.push(
@@ -340,24 +373,25 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                                 MaterialPageRoute(builder: (_) => const DepartmentHeadsScreen()),
                               );
                             },
-                            child: Text(
-                              'Department heads',
-                              style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+                            icon: const Icon(Icons.verified_user_outlined, size: 15),
+                            label: Text(
+                              'Department Heads',
+                              style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                       ],
                       Expanded(
-                        child: OutlinedButton(
+                        child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF1C1C1A),
+                            backgroundColor: DesignTokens.canvasCream,
+                            foregroundColor: DesignTokens.brandSteel,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             minimumSize: const Size(0, 38),
-                            side: const BorderSide(color: Color(0xFFECECE8)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            side: const BorderSide(color: DesignTokens.standardBorder),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () {
                             Navigator.push(
@@ -365,9 +399,10 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                               MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
                             );
                           },
-                          child: Text(
-                            'Company profile',
-                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+                          icon: const Icon(Icons.business_outlined, size: 15),
+                          label: Text(
+                            'Company Profile',
+                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -376,37 +411,45 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   const SizedBox(height: 8),
 
                   // Full-width muted-outline button: Sign out
-                  OutlinedButton(
+                  OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF6B6A65),
+                      backgroundColor: DesignTokens.cardWhite,
+                      foregroundColor: DesignTokens.mutedInk,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
                       minimumSize: const Size.fromHeight(38),
-                      side: const BorderSide(color: Color(0xFFECECE8)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: const BorderSide(color: DesignTokens.standardBorder),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: _showSignOutConfirmDialog,
-                    child: Text(
-                      'Sign out',
-                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    icon: const Icon(Icons.logout_rounded, size: 15, color: Color(0xFFE11D48)),
+                    label: Text(
+                      'Sign Out',
+                      style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE11D48)),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // ==========================================
-            // 2. FLOOR SUPERVISOR OPERATIONS HUB CARD (Role-Gated)
+            // LAYER 3: FLOOR SUPERVISOR OPERATIONS HUB CARD (Role-Gated)
             // ==========================================
             if (canSupervisor) ...[
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECECE8), width: 1),
+                  color: DesignTokens.cardWhite,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: DesignTokens.standardBorder, width: 1),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x08000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,12 +461,12 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAF8),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFECECE8)),
+                            color: DesignTokens.canvasCream,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: DesignTokens.standardBorder),
                           ),
                           child: const Center(
-                            child: Icon(Icons.build_rounded, color: Color(0xFF332B6B), size: 20),
+                            child: Icon(Icons.build_rounded, color: DesignTokens.brandSteel, size: 20),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -434,25 +477,27 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                               Text(
                                 'Floor Supervisor Operations & Absentee Override Hub',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15.5,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: DesignTokens.foregroundInk,
                                   letterSpacing: -0.2,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFDF0DC), // Amber badge bg
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: DesignTokens.badgeExecutiveBg, // Amber badge
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: DesignTokens.badgeExecutiveBorder),
                                 ),
                                 child: Text(
-                                  'Executive control',
+                                  'EXECUTIVE CONTROL',
                                   style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF8A6D2F), // Amber text
+                                    color: DesignTokens.badgeExecutiveText,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
@@ -466,19 +511,19 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       'Direct access to Lineman lines, Mending verification, QC inspection, Store issuance, and Dispatch gates.',
                       style: GoogleFonts.publicSans(
                         fontSize: 12,
-                        color: const Color(0xFF6B6A65),
+                        color: DesignTokens.mutedInk,
                         height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 14),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
+                        backgroundColor: DesignTokens.brandSteel,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -490,38 +535,48 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Open floor stations',
+                            'Open Floor Stations',
                             style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 6),
-                          const Icon(Icons.arrow_forward_rounded, size: 16),
+                          const Icon(Icons.arrow_forward_rounded, size: 15),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
             ],
 
             // ==========================================
-            // 3. EQUALIZED MODULAR DIVISION CARDS
+            // LAYER 4: EQUALIZED MODULAR DIVISION CARDS
             // ==========================================
             ...visibleModules.map((mod) {
               final isLaunching = _launchingId == mod.id;
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFECECE8), width: 1),
+                  color: isLaunching ? DesignTokens.canvasCream : DesignTokens.cardWhite,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isLaunching ? DesignTokens.brandSteel : DesignTokens.standardBorder,
+                    width: isLaunching ? 1.8 : 1.0,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x08000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Row: Module Icon (left) + Category Badge (right, neutral gray)
+                    // Top Row: Module Icon (left) + Category Badge (right)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -529,28 +584,30 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFECECE8)),
+                            color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: DesignTokens.standardBorder),
                           ),
                           child: Icon(
                             mod.icon,
-                            color: const Color(0xFF332B6B),
+                            color: isLaunching ? Colors.white : DesignTokens.brandSteel,
                             size: 22,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF3F2EE), // Neutral gray badge
-                            borderRadius: BorderRadius.circular(8),
+                            color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: DesignTokens.standardBorder),
                           ),
                           child: Text(
-                            mod.badge,
+                            isLaunching ? 'OPENING...' : mod.badge,
                             style: GoogleFonts.jetBrainsMono(
-                              fontSize: 10,
+                              fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B6A65),
+                              color: isLaunching ? Colors.white : DesignTokens.mutedInk,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -564,7 +621,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: isLaunching ? DesignTokens.brandSteel : DesignTokens.foregroundInk,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -575,86 +632,99 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       mod.subtitle,
                       style: GoogleFonts.publicSans(
                         fontSize: 12,
-                        color: const Color(0xFF6B6A65),
+                        color: DesignTokens.mutedInk,
                         height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // 2-3 Bullet Highlights (Small dot + Short label)
-                    Column(
-                      children: mod.features.map((feat) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 5.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 4.5,
-                                height: 4.5,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF9B9A94),
-                                  shape: BoxShape.circle,
+                    // 2-3 Bullet Highlights
+                    Container(
+                      padding: const EdgeInsets.only(top: 10),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: DesignTokens.subtleDivider, width: 1)),
+                      ),
+                      child: Column(
+                        children: mod.features.map((feat) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 5.0),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 14,
+                                  color: Color(0xFF10B981),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  feat,
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF6B6A65),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    feat,
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: DesignTokens.foregroundInk,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 14),
 
-                    // Full-width Primary Button: "Launch ->"
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        minimumSize: const Size.fromHeight(42),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    // Bottom Row: Status Tag + Launch Button
+                    Container(
+                      padding: const EdgeInsets.only(top: 10),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: DesignTokens.subtleDivider, width: 1)),
                       ),
-                      onPressed: isLaunching ? null : () => _handleLaunch(mod),
-                      child: isLaunching
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Opening…',
-                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Launch',
-                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.arrow_forward_rounded, size: 15),
-                              ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            mod.statusText,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: DesignTokens.faintInk,
+                              letterSpacing: 0.5,
                             ),
+                          ),
+                          InkWell(
+                            onTap: isLaunching ? null : () => _handleLaunch(mod),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: DesignTokens.standardBorder),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    isLaunching ? 'Opening…' : 'Launch',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isLaunching ? Colors.white : DesignTokens.foregroundInk,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 13,
+                                    color: isLaunching ? Colors.white : DesignTokens.foregroundInk,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
