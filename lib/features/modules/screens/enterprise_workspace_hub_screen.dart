@@ -322,7 +322,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Central manufacturing execution hub across your authorized division modules',
+                    'Central manufacturing execution hub across $companyName authorized divisions',
                     style: GoogleFonts.publicSans(
                       fontSize: 12.5,
                       color: AppTheme.inkSoft,

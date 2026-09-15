@@ -11,7 +11,6 @@ import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../dashboard/production_manager_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
-import '../../admin/screens/admin_shell.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connectivity_indicator.dart';

@@ -9,7 +9,6 @@ import 'features/dashboard/store_dashboard.dart';
 import 'features/dashboard/dispatch_dashboard.dart';
 import 'features/dashboard/production_manager_dashboard.dart';
 import 'features/dashboard/mending_dashboard.dart';
-import 'features/admin/screens/admin_shell.dart';
 import 'features/modules/screens/enterprise_workspace_hub_screen.dart';
 import 'core/theme/app_theme.dart';
 

@@ -190,34 +190,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
     }
-        final isNetwork = e.toString().contains('SocketException') || e.toString().contains('ClientException');
-        if (isNetwork) {
-          final cachedUserId = await _storage.read(key: 'cached_user_id');
-          final cachedRole = await _storage.read(key: 'cached_user_role');
-          if (cachedUserId != null && cachedRole != null) {
-            state = state.copyWith(
-              isLoading: false,
-              isAuthenticated: true,
-              userRole: cachedRole,
-              isOfflineSession: true,
-              cachedUsername: savedUsername,
-            );
-            return;
-          }
-        }
-
-        // Invalid or expired session
-        await supabase.auth.signOut();
-        await _storage.deleteAll();
-        state = state.copyWith(
-          isLoading: false,
-          isAuthenticated: false,
-          userRole: null,
-          cachedUsername: null,
-        );
-        return;
-      }
-    }
 
     // 2. Check offline cached session
     final cachedUserId = await _storage.read(key: 'cached_user_id');
@@ -446,6 +418,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: false,
         userRole: null,
         isOfflineSession: false,
+        tenantProfile: null,
+        allowedDivisions: [],
       );
     } catch (_) {}
   }

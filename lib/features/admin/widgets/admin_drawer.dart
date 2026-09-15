@@ -15,8 +15,6 @@ import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
-import '../../modules/screens/supervisor_floor_stations_screen.dart';
-import '../../modules/screens/department_heads_screen.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;

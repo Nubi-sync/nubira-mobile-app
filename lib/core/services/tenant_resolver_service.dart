@@ -181,7 +181,7 @@ class TenantResolverService {
               .select()
               .or('plant_slug.ilike.%shaw%,company_name.ilike.%shaw%')
               .limit(1);
-          if (res is List && res.isNotEmpty) tenantRow = res.first;
+          if ((res as List).isNotEmpty) tenantRow = res.first;
         } catch (_) {}
       }
 
@@ -192,7 +192,7 @@ class TenantResolverService {
               .select()
               .or('plant_slug.ilike.%nubira%,company_name.ilike.%nubira%')
               .limit(1);
-          if (res is List && res.isNotEmpty) tenantRow = res.first;
+          if ((res as List).isNotEmpty) tenantRow = res.first;
         } catch (_) {}
       }
 
