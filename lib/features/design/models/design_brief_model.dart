@@ -73,7 +73,9 @@ class DesignBriefModel {
   final String? designerEmail;
   final String garmentType;
   final String category;
+  final int targetDesigns;
   final int maxColors;
+  final List<String> targetColors;
   final String? instructions;
   final String status; // 'ALLOCATED' | 'SUBMITTED' | 'PH_APPROVED' | 'PH_REJECTED' | 'SA_APPROVED' | 'SA_SAVED_FOR_LATER' | 'TECH_PACK_CREATED'
   final String companyName;
@@ -89,7 +91,9 @@ class DesignBriefModel {
     this.designerEmail,
     required this.garmentType,
     required this.category,
+    this.targetDesigns = 1,
     required this.maxColors,
+    this.targetColors = const [],
     this.instructions,
     required this.status,
     required this.companyName,
@@ -111,6 +115,13 @@ class DesignBriefModel {
 
     final teamMember = json['design_team_members'] as Map<String, dynamic>?;
 
+    List<String> colorsList = [];
+    if (json['target_colors'] != null) {
+      if (json['target_colors'] is List) {
+        colorsList = (json['target_colors'] as List).map((e) => e.toString()).toList();
+      }
+    }
+
     return DesignBriefModel(
       id: json['id'] as String,
       phUserId: json['ph_user_id'] as String? ?? '',
@@ -119,7 +130,9 @@ class DesignBriefModel {
       designerEmail: teamMember?['designer_email'] as String? ?? json['designer_email'] as String?,
       garmentType: json['garment_type'] as String? ?? 'T-Shirt',
       category: json['category'] as String? ?? 'Casual',
+      targetDesigns: json['target_designs'] as int? ?? 1,
       maxColors: json['max_colors'] as int? ?? 3,
+      targetColors: colorsList,
       instructions: json['instructions'] as String?,
       status: json['status'] as String? ?? 'ALLOCATED',
       companyName: json['company_name'] as String? ?? 'Nubira Creation',

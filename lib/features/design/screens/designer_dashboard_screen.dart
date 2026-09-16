@@ -79,22 +79,33 @@ class WavingHandOutlinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class DesignerDashboardScreen extends ConsumerWidget {
+class DesignerDashboardScreen extends ConsumerStatefulWidget {
   const DesignerDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DesignerDashboardScreen> createState() => _DesignerDashboardScreenState();
+}
+
+class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScreen> {
+  int _selectedTab = 0; // 0: Active Assignments, 1: Submission History
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(designerProvider);
     final authState = ref.watch(authProvider);
 
     final briefs = state.briefs;
-    final activeCount = briefs.where((b) => b.status == 'ALLOCATED' || b.status == 'PH_REJECTED').length;
-    final reviewCount = briefs.where((b) => b.status == 'SUBMITTED' || b.status == 'PH_APPROVED').length;
-    final approvedCount = briefs.where((b) => b.status == 'SA_APPROVED' || b.status == 'TECH_PACK_CREATED').length;
+    
+    // Active briefs to do: ALLOCATED or PH_REJECTED
+    final activeBriefs = briefs.where((b) => b.status == 'ALLOCATED' || b.status == 'PH_REJECTED').toList();
+    // History briefs: SUBMITTED, PH_APPROVED, SA_APPROVED, SA_SAVED_FOR_LATER, TECH_PACK_CREATED
+    final historyBriefs = briefs.where((b) => b.status != 'ALLOCATED').toList();
 
     final displayName = authState.tenantProfile?.adminDisplayName ?? 
       authState.cachedUsername ?? 
       'Designer';
+
+    final displayedBriefs = _selectedTab == 0 ? activeBriefs : historyBriefs;
 
     return Scaffold(
       backgroundColor: AppTheme.canvasCream,
@@ -173,11 +184,11 @@ class DesignerDashboardScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Your assigned design briefs & submissions',
+                                  '${activeBriefs.length} Active Assignments To Do',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: AppTheme.mutedInk,
-                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.brandSteel,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
@@ -188,39 +199,74 @@ class DesignerDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // Concise KPI Summary Cards
-                    Row(
-                      children: [
-                        _buildKpiCard(
-                          title: 'Allocations',
-                          count: '$activeCount',
-                          subtitle: 'To submit',
-                          color: AppTheme.brandSteel,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildKpiCard(
-                          title: 'In Review',
-                          count: '$reviewCount',
-                          subtitle: 'Under review',
-                          color: AppTheme.amber,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildKpiCard(
-                          title: 'Approved',
-                          count: '$approvedCount',
-                          subtitle: 'Greenlit',
-                          color: AppTheme.green,
-                        ),
-                      ],
+                    // Tab Switcher: Active Assignments vs Submission History
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.canvasCream,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppTheme.standardBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _selectedTab = 0),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _selectedTab == 0 ? AppTheme.brandSteel : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Active (${activeBriefs.length})',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _selectedTab == 0 ? Colors.white : AppTheme.mutedInk,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _selectedTab = 1),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _selectedTab == 1 ? AppTheme.brandSteel : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'History (${historyBriefs.length})',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _selectedTab == 1 ? Colors.white : AppTheme.mutedInk,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
                     // Section Heading
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Allocated Work (${briefs.length})',
+                          _selectedTab == 0 ? 'Assigned Work to Complete' : 'Review & Decision History',
                           style: GoogleFonts.jetBrainsMono(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -228,7 +274,7 @@ class DesignerDashboardScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Tap to open assignment',
+                          '${displayedBriefs.length} items',
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
                             color: AppTheme.faintInk,
@@ -239,7 +285,7 @@ class DesignerDashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    if (briefs.isEmpty)
+                    if (displayedBriefs.isEmpty)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
@@ -250,10 +296,14 @@ class DesignerDashboardScreen extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.palette_outlined, size: 40, color: AppTheme.faintInk),
+                            Icon(
+                              _selectedTab == 0 ? Icons.check_circle_outline : Icons.history,
+                              size: 40,
+                              color: AppTheme.faintInk,
+                            ),
                             const SizedBox(height: 10),
                             Text(
-                              'No Design Briefs Assigned',
+                              _selectedTab == 0 ? 'All caught up!' : 'No submission history yet',
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -262,7 +312,9 @@ class DesignerDashboardScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Your Provisional Head has not assigned any briefs yet. Pull down to refresh.',
+                              _selectedTab == 0
+                                  ? 'You have completed all active brief allotments.'
+                                  : 'Completed submissions and approvals will appear here.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
                             ),
@@ -273,10 +325,10 @@ class DesignerDashboardScreen extends ConsumerWidget {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: briefs.length,
+                        itemCount: displayedBriefs.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
-                          final brief = briefs[index];
+                          final brief = displayedBriefs[index];
                           return _buildBriefCard(context, brief);
                         },
                       ),
@@ -287,71 +339,30 @@ class DesignerDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildKpiCard({
-    required String title,
-    required String count,
-    required String subtitle,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.standardBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9.5,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.mutedInk,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              count,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: GoogleFonts.publicSans(
-                fontSize: 9.5,
-                color: AppTheme.faintInk,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildBriefCard(BuildContext context, DesignBriefModel brief) {
     Color badgeBg = AppTheme.badgeNeutralBg;
     Color badgeText = AppTheme.brandSteel;
     Color badgeBorder = AppTheme.badgeNeutralBorder;
+    String statusLabel = brief.status.replaceAll('_', ' ');
+
+    final isRejected = brief.status == 'PH_REJECTED';
+    final isApproved = brief.status == 'PH_APPROVED' || brief.status == 'SA_APPROVED' || brief.status == 'TECH_PACK_CREATED';
 
     if (brief.status == 'SUBMITTED') {
       badgeBg = AppTheme.badgeAmberBg;
       badgeText = AppTheme.badgeAmberText;
       badgeBorder = AppTheme.badgeAmberBorder;
-    } else if (brief.status == 'PH_APPROVED' || brief.status == 'SA_APPROVED') {
+      statusLabel = 'In Review';
+    } else if (isApproved) {
       badgeBg = AppTheme.badgeEmeraldBg;
       badgeText = AppTheme.badgeEmeraldText;
       badgeBorder = AppTheme.badgeEmeraldBorder;
-    } else if (brief.status == 'PH_REJECTED') {
+      statusLabel = 'Approved';
+    } else if (isRejected) {
       badgeBg = AppTheme.badgeRoseBg;
       badgeText = AppTheme.badgeRoseText;
       badgeBorder = AppTheme.badgeRoseBorder;
+      statusLabel = 'Revisions Needed';
     }
 
     return InkWell(
@@ -369,7 +380,10 @@ class DesignerDashboardScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.standardBorder),
+          border: Border.all(
+            color: isRejected ? const Color(0xFFFECDD3) : AppTheme.standardBorder,
+            width: isRejected ? 1.5 : 1.0,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,9 +409,9 @@ class DesignerDashboardScreen extends ConsumerWidget {
                     border: Border.all(color: badgeBorder),
                   ),
                   child: Text(
-                    brief.status.replaceAll('_', ' '),
+                    statusLabel.toUpperCase(),
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.bold,
                       color: badgeText,
                     ),
@@ -418,7 +432,7 @@ class DesignerDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '•  Max ${brief.maxColors} Colors',
+                  '•  ${brief.targetDesigns} Designs  •  ${brief.maxColors} Colors',
                   style: GoogleFonts.publicSans(
                     fontSize: 12,
                     color: AppTheme.mutedInk,
@@ -457,16 +471,40 @@ class DesignerDashboardScreen extends ConsumerWidget {
                   ),
                   Row(
                     children: [
-                      Text(
-                        'Open Assignment',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.brandSteel,
+                      if (isRejected) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE11D48),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.refresh, size: 12, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Redo Assignment',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.brandSteel),
+                      ] else ...[
+                        Text(
+                          'Open Assignment',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.brandSteel,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.brandSteel),
+                      ],
                     ],
                   ),
                 ],
