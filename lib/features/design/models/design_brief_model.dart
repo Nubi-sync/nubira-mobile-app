@@ -569,19 +569,41 @@ class TechPackSummaryModel {
       cutDate = created.add(const Duration(days: 14)).toIso8601String().split('T').first;
     }
 
-    final cat = json['category'] as String? ?? 'T-Shirt';
+    String mapCategoryToUI(String cat) {
+      final norm = cat.toUpperCase();
+      if (norm.contains('HOODIE')) return 'Hoodie';
+      if (norm.contains('TSHIRT') || norm.contains('T-SHIRT') || norm.contains('TEE')) return 'T-Shirt';
+      if (norm.contains('POLO')) return 'Polo';
+      if (norm.contains('JOGGER')) return 'Jogger';
+      if (norm.contains('JACKET')) return 'Jacket';
+      if (norm.contains('ROMPER')) return 'Kids Romper';
+      if (norm.contains('SUIT')) return 'Suit';
+      if (norm.contains('PANT')) return 'Pant';
+      if (norm.contains('ETHNIC')) return 'Ethnic';
+      if (norm.isNotEmpty) {
+        return norm.substring(0, 1) + norm.substring(1).toLowerCase();
+      }
+      return 'T-Shirt';
+    }
+
+    final rawCat = json['category'] as String? ?? 'T-Shirt';
+    final uiCategory = mapCategoryToUI(rawCat);
     final stNo = json['style_number'] as String? ?? 'ST-101';
     final rawName = json['style_name'] as String?;
     final resolvedName = (rawName != null && rawName.isNotEmpty)
         ? rawName
-        : '$cat Style $stNo';
+        : '${rawCat.toUpperCase()} Style $stNo';
+
+    final brandVal = (json['brands'] is Map && json['brands']['brand_name'] != null)
+        ? json['brands']['brand_name'].toString()
+        : (json['brand_name'] as String? ?? 'Inhouse');
 
     return TechPackSummaryModel(
       id: json['id'] as String? ?? '',
       styleNumber: stNo,
       styleName: resolvedName,
-      category: cat,
-      brandName: (json['brands'] is Map ? json['brands']['brand_name'] : null) ?? json['brand_name'] as String? ?? 'Inhouse',
+      category: uiCategory,
+      brandName: brandVal,
       baseSize: json['base_size'] as String? ?? 'M',
       sizeSystem: json['size_system'] as String? ?? 'ALPHA_ADULT',
       fabricComposition: rawFab,

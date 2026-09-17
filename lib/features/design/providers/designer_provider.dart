@@ -129,17 +129,27 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       try {
         dynamic tpResp;
         if (!isLegacy && company.isNotEmpty) {
-          tpResp = await supabase
-              .from('design_tech_packs')
-              .select('*')
-              .eq('company_name', company)
-              .order('created_at', ascending: false);
+          try {
+            tpResp = await supabase
+                .from('design_tech_packs')
+                .select('*, brands(*)')
+                .eq('company_name', company)
+                .order('created_at', ascending: false);
+          } catch (_) {}
         }
         if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
-          tpResp = await supabase
-              .from('design_tech_packs')
-              .select('*')
-              .order('created_at', ascending: false);
+          try {
+            tpResp = await supabase
+                .from('design_tech_packs')
+                .select('*, brands(*)')
+                .order('created_at', ascending: false);
+          } catch (_) {
+            // Fallback without join
+            tpResp = await supabase
+                .from('design_tech_packs')
+                .select('*')
+                .order('created_at', ascending: false);
+          }
         }
         if (tpResp is List) {
           tpList = tpResp
@@ -392,7 +402,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     String? cadBackUrl,
     String? instructions,
     List<TechPackBomItemModel> bomItems = const [],
-    String status = 'DRAFT',
+    String status = 'APPROVED_BULK',
   }) async {
     state = state.copyWith(isSubmitting: true);
     try {

@@ -44,18 +44,18 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
 
     // Filter tech-packs
     final filteredTechPacks = techPacks.where((tp) {
+      final st = tp.status.toUpperCase();
+      final isFitRevision = st == 'REVISE_FIT' || st == 'REVISE';
+      final isSampleDev = st == 'SAMPLE_DEV' || st == 'PPS_SUBMITTED' || st == 'PPS_REVIEW';
+      final isReady = !isFitRevision && !isSampleDev;
+
       if (_selectedStatusTab != 'ALL') {
-        final st = tp.status.toUpperCase();
         if (_selectedStatusTab == 'APPROVED_BULK') {
-          if (st != 'APPROVED_BULK' && st != 'PPS_APPROVED' && st != 'PRODUCTION_READY') return false;
-        } else if (_selectedStatusTab == 'PPS_APPROVED') {
-          if (st != 'PPS_APPROVED') return false;
-        } else if (_selectedStatusTab == 'PPS_SUBMITTED') {
-          if (st != 'PPS_SUBMITTED' && st != 'PPS_REVIEW') return false;
+          if (!isReady) return false;
         } else if (_selectedStatusTab == 'SAMPLE_DEV') {
-          if (st != 'SAMPLE_DEV') return false;
+          if (!isSampleDev) return false;
         } else if (_selectedStatusTab == 'REVISE_FIT') {
-          if (st != 'REVISE_FIT') return false;
+          if (!isFitRevision) return false;
         } else if (_selectedStatusTab == 'DRAFT') {
           if (st != 'DRAFT') return false;
         }
@@ -78,7 +78,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
     final totalSpecs = techPacks.length;
     final bulkApprovedCount = techPacks.where((p) {
       final st = p.status.toUpperCase();
-      return st == 'APPROVED_BULK' || st == 'PPS_APPROVED' || st == 'PRODUCTION_READY';
+      return st != 'REVISE_FIT' && st != 'SAMPLE_DEV' && st != 'PPS_SUBMITTED' && st != 'PPS_REVIEW';
     }).length;
     final samplingCount = techPacks.where((p) {
       final st = p.status.toUpperCase();
@@ -86,7 +86,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
     }).length;
     final draftsCount = techPacks.where((p) {
       final st = p.status.toUpperCase();
-      return st == 'DRAFT' || st == 'REVISE_FIT';
+      return st == 'REVISE_FIT' || st == 'REVISE';
     }).length;
 
     return Scaffold(
@@ -625,43 +625,63 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
   }
 
   // ==========================================
-  // DETAILED TECH-PACK CARD (Matching Web)
+  // EMBELLISHMENT FLOW HELPER
+  // ==========================================
+  String _formatEmbellishmentFlow(String seq) {
+    final s = seq.trim().toUpperCase();
+    if (s == 'PRINT_THEN_EMB' || (s.contains('PRINT') && s.contains('EMB') && s.indexOf('PRINT') < s.indexOf('EMB'))) {
+      return 'Printing First, Then Embroidery';
+    }
+    if (s == 'EMB_THEN_PRINT' || (s.contains('PRINT') && s.contains('EMB') && s.indexOf('EMB') < s.indexOf('PRINT'))) {
+      return 'Embroidery First, Then Printing';
+    }
+    if (s == 'PRINT_ONLY' || s == 'PRINTING ONLY') {
+      return 'Printing Only';
+    }
+    if (s == 'EMB_ONLY' || s == 'EMBROIDERY ONLY') {
+      return 'Embroidery Only';
+    }
+    if (s == 'NONE' || s.isEmpty) {
+      return 'Plain Cut Assembly';
+    }
+    return seq.replaceAll('_', ' ').split(' ').map((word) {
+      if (word.isEmpty) return '';
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
+  // ==========================================
+  // DETAILED TECH-PACK CARD (Pixel-Perfect to Web)
   // ==========================================
   Widget _buildDetailedSpecCard(TechPackSummaryModel pack) {
     final status = pack.status.toUpperCase();
-    final isReady = status == 'APPROVED_BULK' || status == 'PPS_APPROVED' || status == 'PRODUCTION_READY';
-    final isDraft = status == 'DRAFT';
-    final isDev = status == 'SAMPLE_DEV' || status == 'PPS_SUBMITTED';
+    final bool isFitRevision = status == 'REVISE_FIT' || status == 'REVISE';
+    final bool isSampleDev = status == 'SAMPLE_DEV' || status == 'PPS_SUBMITTED' || status == 'PPS_REVIEW';
+    final bool isReady = !isFitRevision && !isSampleDev;
 
-    final badgeBg = isReady
+    final Color badgeBg = isReady
         ? const Color(0xFFE9F7EE)
-        : (isDraft
-            ? const Color(0xFFFEF3C7)
-            : (isDev ? const Color(0xFFFAF7F0) : const Color(0xFFFEE2E2)));
-    final badgeText = isReady
-        ? const Color(0xFF1B7A43)
-        : (isDraft
-            ? const Color(0xFFB45309)
-            : (isDev ? const Color(0xFF332B6B) : const Color(0xFF991B1B)));
-    final badgeBorder = isReady
+        : (isSampleDev ? const Color(0xFFFAF7F0) : const Color(0xFFFEE2E2));
+    final Color badgeText = isReady
+        ? const Color(0xFF16A34A)
+        : (isSampleDev ? const Color(0xFF332B6B) : const Color(0xFF991B1B));
+    final Color badgeBorder = isReady
         ? const Color(0xFFA7F3D0)
-        : (isDraft
-            ? const Color(0xFFFDE68A)
-            : (isDev ? const Color(0x26000000) : const Color(0xFFFECACA)));
+        : (isSampleDev ? const Color(0xFFE2E8F0) : const Color(0xFFFECACA));
 
-    final statusLabel = isReady
-        ? 'Ready for merchandising'
-        : (isDraft ? 'Draft Spec' : (isDev ? 'Sampling in progress' : 'Fit Revision'));
+    final String statusLabel = isReady
+        ? 'Ready for Merchandising'
+        : (isSampleDev ? 'Sample Dev' : 'Fit Revision');
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFECECE8)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 8,
+            color: Color(0x05000000),
+            blurRadius: 10,
             offset: Offset(0, 2),
           ),
         ],
@@ -670,68 +690,64 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(19)),
-              border: Border(bottom: BorderSide(color: Color(0x0F000000))),
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0x26000000)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Text(
                         pack.styleNumber,
-                        style: GoogleFonts.jetBrainsMono(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF332B6B),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF334155),
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: badgeBg,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: badgeBorder),
                       ),
                       child: Text(
                         statusLabel,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
                           color: badgeText,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   pack.styleName,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF0F172A),
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   'Brand: ${pack.brandName} • Category: ${pack.category}',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 12,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF64748B),
                   ),
@@ -740,9 +756,11 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
             ),
           ),
 
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
           // Specs Body
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -751,28 +769,28 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x12000000)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'BASE SIZE',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF94A3B8),
+                              'Base Size',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               pack.baseSize,
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 13,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF0F172A),
                               ),
@@ -784,28 +802,28 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x12000000)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'TARGET WEIGHT',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF94A3B8),
+                              'Target Weight',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               '${pack.targetGsm} GSM',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 13,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF0F172A),
                               ),
@@ -816,111 +834,77 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
                 // Fabric Composition
                 Text(
-                  'FABRIC COMPOSITION',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF94A3B8),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  pack.cleanFabricComposition.isNotEmpty ? pack.cleanFabricComposition : '100% Cotton Single Jersey',
-                  style: GoogleFonts.publicSans(
+                  'Fabric Composition',
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Embellishment Flow
-                Text(
-                  'EMBELLISHMENT FLOW',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
                   ),
                 ),
                 const SizedBox(height: 4),
+                Text(
+                  pack.cleanFabricComposition.isNotEmpty ? pack.cleanFabricComposition : '98% Cotton 2% Elastane Twill',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Embellishment Flow
+                Text(
+                  'Embellishment Flow',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    color: const Color(0xFFFEF9EE),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
                   ),
                   child: Text(
-                    pack.embellishmentSequence == 'NONE'
-                        ? 'Plain Cut Assembly'
-                        : pack.embellishmentSequence.replaceAll('_', ' '),
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF332B6B),
+                    _formatEmbellishmentFlow(pack.embellishmentSequence),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF334155),
                     ),
                   ),
                 ),
-
-                // BOM preview if present
-                if (pack.bomItems.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'BILL OF MATERIALS (${pack.bomItems.length} ITEMS)',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF94A3B8),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: pack.bomItems.take(3).map((b) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0x12000000)),
-                        ),
-                        child: Text(
-                          '${b.componentType}: ${b.itemName}',
-                          style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
               ],
             ),
           ),
 
           // Footer Action Row
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAFAF8),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(19)),
-              border: Border(top: BorderSide(color: Color(0x0F000000))),
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+              border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF94A3B8)),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.access_time_rounded, size: 16, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
                     Text(
-                      'Cut: ${pack.targetCutDate ?? "14 Days"}',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
+                      'Cut: ${pack.targetCutDate ?? "2026-09-30"}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
                         color: const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
@@ -932,51 +916,57 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                     // Edit button
                     InkWell(
                       onTap: () => _openEditTechPackModal(context, pack),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       child: Container(
-                        padding: const EdgeInsets.all(7),
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF332B6B)),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-
-                    // Delete button (Red tinted #FBE4E4 / #C23838)
-                    InkWell(
-                      onTap: () => _confirmDeleteTechPack(context, pack),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFBE4E4),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFFECACA)),
-                        ),
-                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFC23838)),
+                        child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF334155)),
                       ),
                     ),
                     const SizedBox(width: 8),
 
+                    // Delete button (Red tinted #FEE2E2 / #DC2626)
+                    InkWell(
+                      onTap: () => _confirmDeleteTechPack(context, pack),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
                     // Diff / Compare button
                     InkWell(
                       onTap: () => _showDiffModal(context, pack),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.compare_arrows_rounded, size: 14, color: Color(0xFF332B6B)),
-                          const SizedBox(width: 2),
-                          Text(
-                            'Diff',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF332B6B),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.compare_arrows_rounded, size: 16, color: Color(0xFF334155)),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Diff',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF334155),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -994,31 +984,38 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
   // ==========================================
   Widget _buildCompactSpecCard(TechPackSummaryModel pack) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFECECE8)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0x1A000000)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Text(
               pack.styleNumber,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF332B6B),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF334155),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,25 +1025,51 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '${pack.category} • ${pack.baseSize} • ${pack.targetGsm} GSM',
-                  style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF332B6B)),
-            onPressed: () => _openEditTechPackModal(context, pack),
+          InkWell(
+            onTap: () => _openEditTechPackModal(context, pack),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Icon(Icons.edit_outlined, size: 15, color: Color(0xFF334155)),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFC23838)),
-            onPressed: () => _confirmDeleteTechPack(context, pack),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () => _confirmDeleteTechPack(context, pack),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, size: 15, color: Color(0xFFDC2626)),
+            ),
           ),
         ],
       ),
@@ -1268,7 +1291,7 @@ class _TechPackFormModalState extends ConsumerState<_TechPackFormModal> {
   String _selectedSizeSystem = 'ALPHA_ADULT';
   String _selectedEmbellishment = 'NONE';
   String _selectedSeamClass = 'ISO 4915 Class 401 (Chainstitch)';
-  String _selectedStatus = 'DRAFT';
+  String _selectedStatus = 'APPROVED_BULK';
 
   List<TechPackBomItemModel> _bomItems = [];
 
