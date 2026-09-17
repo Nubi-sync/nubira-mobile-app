@@ -17,10 +17,16 @@ import '../../dashboard/dispatch_dashboard.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
+  final VoidCallback? onOpenTechPacks;
+  final VoidCallback? onOpenTeam;
+  final VoidCallback? onOpenSettings;
 
   const WorkspaceHubDrawer({
     super.key,
     this.activeRoute = '/modules',
+    this.onOpenTechPacks,
+    this.onOpenTeam,
+    this.onOpenSettings,
   });
 
   bool _canAccessDepartmentHeads(String role, bool isSuperAdmin, bool isHead) {
@@ -145,6 +151,174 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     );
   }
 
+  Widget _buildDrawerHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0x1A000000), width: 1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/images/z_i_g_z_a.png',
+                  height: 30,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Image.asset(
+                    'assets/images/zigza_logo.png',
+                    height: 30,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Text(
+                      'Zigza.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF3A3564),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0x26000000)),
+                ),
+                child: Text(
+                  'ERP MES',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF3A3564),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0x1A000000)),
+              ),
+              child: const Icon(Icons.close_rounded, color: Color(0xFF475569), size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerFooter(BuildContext context, WidgetRef ref, String initials, String userEmail, bool isSuperAdmin, String role) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0x1A000000), width: 1)),
+      ),
+      child: Row(
+        children: [
+          // User Avatar Circle
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Color(0xFF3A3564),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // User Info & Profile Link
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  userEmail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Profile',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(
+                            Icons.arrow_outward_rounded,
+                            size: 11,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Logout Icon Button
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B), size: 20),
+            tooltip: 'Sign Out',
+            onPressed: () => _showSignOutDialog(context, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
@@ -179,292 +353,221 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         ? adminDisplayName.trim().split(' ').map((s) => s.isNotEmpty ? s[0].toUpperCase() : '').take(2).join()
         : 'Z';
 
+    // Check if inside Design Studio
+    final isDesignStudio = activeRoute.startsWith('/design');
+
     return Drawer(
       backgroundColor: Colors.white,
       width: MediaQuery.of(context).size.width * 0.82,
       child: SafeArea(
         child: Column(
           children: [
-            // ==========================================
-            // DRAWER HEADER (Matching Image 3)
-            // ==========================================
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0x1A000000), width: 1)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.asset(
-                          'assets/images/z_i_g_z_a.png',
-                          height: 30,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Image.asset(
-                            'assets/images/zigza_logo.png',
-                            height: 30,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Text(
-                              'Zigza.',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF3A3564),
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x26000000)),
-                        ),
-                        child: Text(
-                          'ERP MES',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF3A3564),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0x1A000000)),
-                      ),
-                      child: const Icon(Icons.close_rounded, color: Color(0xFF475569), size: 18),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildDrawerHeader(context),
 
-            // ==========================================
             // DRAWER NAVIGATION LIST
-            // ==========================================
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                children: [
-                  _buildSectionLabel('WORKSPACE HUB'),
-                  const SizedBox(height: 4),
-
-                  // All Modules (Hub Home)
-                  _buildNavItem(
-                    context: context,
-                    icon: Icons.grid_view_rounded,
-                    title: 'All Modules',
-                    isActive: activeRoute == '/modules',
-                    onTap: () {
-                      if (activeRoute == '/modules') {
-                        Navigator.pop(context);
-                      } else {
-                        _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                      }
-                    },
-                  ),
-
-                  // Department Heads (Role-Gated)
-                  if (canHeads)
-                    _buildNavItem(
-                      context: context,
-                      icon: Icons.shield_outlined,
-                      title: 'Department Heads',
-                      isActive: activeRoute == '/access-control',
-                      onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
-                    ),
-
-                  // Supervisor Operations (Role-Gated)
-                  if (canSupervisor)
-                    _buildNavItem(
-                      context: context,
-                      icon: Icons.build_outlined,
-                      title: 'Supervisor Operations',
-                      isActive: activeRoute == '/supervisor-desk',
-                      onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
-                    ),
-
-                  // Company Profile
-                  _buildNavItem(
-                    context: context,
-                    icon: Icons.business_outlined,
-                    title: 'Company Profile',
-                    isActive: activeRoute == '/profile',
-                    onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                  ),
-
-                  // Zigza AI
-                  _buildNavItem(
-                    context: context,
-                    icon: Icons.smart_toy_outlined,
-                    title: 'Zigza AI',
-                    isActive: false,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showAiAssistantDialog(context);
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-                  _buildSectionLabel('AUTHORIZED OPERATING UNITS'),
-                  const SizedBox(height: 4),
-
-                  // Dynamic list of authorized division cards
-                  ...visibleModules.map((mod) {
-                    final isCurrentMod = activeRoute == mod.route;
-                    return _buildNavItem(
-                      context: context,
-                      icon: mod.icon,
-                      title: mod.title,
-                      isActive: isCurrentMod,
-                      onTap: () {
-                        Widget dest;
-                        switch (mod.id) {
-                          case 'design':
-                            dest = const DesignStudioScreen();
-                            break;
-                          case 'stitching-sewing':
-                            dest = const AdminShell();
-                            break;
-                          case 'store':
-                            dest = const StoreDashboard();
-                            break;
-                          case 'alter':
-                            dest = const MendingDashboard();
-                            break;
-                          case 'ready-goods':
-                            dest = const QcDashboard();
-                            break;
-                          case 'dispatch':
-                            dest = const DispatchDashboard();
-                            break;
-                          default:
-                            dest = GenericDivisionScreen(module: mod);
-                            break;
-                        }
-                        _navigateTo(context, dest);
-                      },
-                    );
-                  }),
-                ],
-              ),
-            ),
-
-            // ==========================================
-            // PINNED FOOTER (#FFFFFF / #FAF7F0 Surface matching Image 3)
-            // ==========================================
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0x1A000000), width: 1)),
-              ),
-              child: Row(
-                children: [
-                  // User Avatar Circle
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF3A3564),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                children: isDesignStudio
+                    ? [
+                        // ==========================================
+                        // 1. DESIGN STUDIO CONTEXTUAL NAVIGATION (Matching Image 1)
+                        // ==========================================
+                        _buildSectionLabel('WORKSPACE HUB'),
+                        const SizedBox(height: 4),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.grid_view_rounded,
+                          title: 'All Modules',
+                          isActive: false,
+                          onTap: () {
+                            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+                          },
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
 
-                  // User Info & Profile Link
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          userEmail,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                        const SizedBox(height: 16),
+                        _buildSectionLabel('1. DESIGN STUDIO'),
+                        const SizedBox(height: 4),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.palette_outlined,
+                          title: 'Studio Dashboard',
+                          isActive: activeRoute == '/design',
+                          onTap: () {
+                            if (activeRoute == '/design') {
+                              Navigator.pop(context);
+                            } else {
+                              _navigateTo(context, const DesignStudioScreen());
+                            }
+                          },
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.description_outlined,
+                          title: 'Tech-Pack Catalog',
+                          isActive: activeRoute == '/design/tech-packs',
+                          onTap: () {
+                            Navigator.pop(context);
+                            if (onOpenTechPacks != null) {
+                              onOpenTechPacks!();
+                            }
+                          },
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.people_outline_rounded,
+                          title: 'Team Management',
+                          isActive: activeRoute == '/design/team',
+                          onTap: () {
+                            Navigator.pop(context);
+                            if (onOpenTeam != null) {
+                              onOpenTeam!();
+                            }
+                          },
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.settings_outlined,
+                          title: 'PH Settings',
+                          isActive: activeRoute == '/design/settings',
+                          onTap: () {
+                            Navigator.pop(context);
+                            if (onOpenSettings != null) {
+                              onOpenSettings!();
+                            }
+                          },
+                        ),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.smart_toy_outlined,
+                          title: 'Zigza AI',
+                          isActive: activeRoute == '/design/zigza-ai',
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showAiAssistantDialog(context);
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+                        _buildSectionLabel('ACCOUNT'),
+                        const SizedBox(height: 4),
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.person_outline_rounded,
+                          title: 'Studio Profile',
+                          isActive: activeRoute == '/design/profile',
+                          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                        ),
+                      ]
+                    : [
+                        // ==========================================
+                        // ROOT WORKSPACE HUB NAVIGATION (Matching Image 2)
+                        // ==========================================
+                        _buildSectionLabel('WORKSPACE HUB'),
+                        const SizedBox(height: 4),
+
+                        // All Modules (Hub Home)
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.grid_view_rounded,
+                          title: 'All Modules',
+                          isActive: activeRoute == '/modules',
+                          onTap: () {
+                            if (activeRoute == '/modules') {
+                              Navigator.pop(context);
+                            } else {
+                              _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+                            }
+                          },
+                        ),
+
+                        // Department Heads (Role-Gated)
+                        if (canHeads)
+                          _buildNavItem(
+                            context: context,
+                            icon: Icons.shield_outlined,
+                            title: 'Department Heads',
+                            isActive: activeRoute == '/access-control' || activeRoute == '/department-heads',
+                            onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
-                              style: GoogleFonts.publicSans(
-                                fontSize: 11,
-                                color: const Color(0xFF64748B),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Profile',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  const Icon(
-                                    Icons.arrow_outward_rounded,
-                                    size: 11,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  // Logout Icon Button
-                  IconButton(
-                    icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B), size: 20),
-                    tooltip: 'Sign Out',
-                    onPressed: () => _showSignOutDialog(context, ref),
-                  ),
-                ],
+                        // Supervisor Operations (Role-Gated)
+                        if (canSupervisor)
+                          _buildNavItem(
+                            context: context,
+                            icon: Icons.build_outlined,
+                            title: 'Supervisor Operations',
+                            isActive: activeRoute == '/supervisor-desk' || activeRoute == '/supervisor-hub',
+                            onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
+                          ),
+
+                        // Company Profile
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.business_outlined,
+                          title: 'Company Profile',
+                          isActive: activeRoute == '/profile' || activeRoute == '/company-profile',
+                          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                        ),
+
+                        // Zigza AI
+                        _buildNavItem(
+                          context: context,
+                          icon: Icons.smart_toy_outlined,
+                          title: 'Zigza AI',
+                          isActive: false,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showAiAssistantDialog(context);
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+                        _buildSectionLabel('AUTHORIZED OPERATING UNITS'),
+                        const SizedBox(height: 4),
+
+                        // Dynamic list of authorized division cards
+                        ...visibleModules.map((mod) {
+                          final isCurrentMod = activeRoute == mod.route;
+                          return _buildNavItem(
+                            context: context,
+                            icon: mod.icon,
+                            title: mod.title,
+                            isActive: isCurrentMod,
+                            onTap: () {
+                              Widget dest;
+                              switch (mod.id) {
+                                case 'design':
+                                  dest = const DesignStudioScreen();
+                                  break;
+                                case 'stitching-sewing':
+                                  dest = const AdminShell();
+                                  break;
+                                case 'store':
+                                  dest = const StoreDashboard();
+                                  break;
+                                case 'alter':
+                                  dest = const MendingDashboard();
+                                  break;
+                                case 'ready-goods':
+                                  dest = const QcDashboard();
+                                  break;
+                                case 'dispatch':
+                                  dest = const DispatchDashboard();
+                                  break;
+                                default:
+                                  dest = GenericDivisionScreen(module: mod);
+                                  break;
+                              }
+                              _navigateTo(context, dest);
+                            },
+                          );
+                        }),
+                      ],
               ),
             ),
+
+            _buildDrawerFooter(context, ref, initials, userEmail, isSuperAdmin, role),
           ],
         ),
       ),

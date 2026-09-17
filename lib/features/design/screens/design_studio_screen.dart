@@ -162,7 +162,12 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFFAFAF8),
-      drawer: const WorkspaceHubDrawer(activeRoute: '/design'),
+      drawer: WorkspaceHubDrawer(
+        activeRoute: '/design',
+        onOpenTechPacks: () => _openTechPacksModal(context, techPacks),
+        onOpenTeam: () => _openTeamModal(context, teamMembers),
+        onOpenSettings: () => _openSettingsModal(context),
+      ),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
