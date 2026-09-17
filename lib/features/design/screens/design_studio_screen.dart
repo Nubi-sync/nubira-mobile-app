@@ -7,6 +7,7 @@ import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
+import 'tech_pack_catalog_screen.dart';
 
 class ConceptCardData {
   final String rowKey;
@@ -963,13 +964,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
     );
   }
 
-  // 3. TECH-PACKS CATALOG MODAL
+  // 3. TECH-PACKS MASTER CATALOG (Full Screen Navigation)
   void _openTechPacksModal(BuildContext context, List<TechPackSummaryModel> techPacks) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _TechPacksCatalogSheet(techPacks: techPacks),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TechPackCatalogScreen()),
     );
   }
 
@@ -1973,115 +1972,6 @@ class _NewBriefCreationSheetState extends ConsumerState<_NewBriefCreationSheet> 
   }
 }
 
-// ============================================================================
-// SHEET 3: TECH-PACKS CATALOG
-// ============================================================================
-
-class _TechPacksCatalogSheet extends StatelessWidget {
-  final List<TechPackSummaryModel> techPacks;
-
-  const _TechPacksCatalogSheet({required this.techPacks});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFCBD5E1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.assignment_turned_in_outlined, color: AppTheme.brandSteel, size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Tech-Packs Ready (${techPacks.length})',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800),
-                    ),
-                  ],
-                ),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-          Expanded(
-            child: techPacks.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.layers_clear_outlined, size: 40, color: Color(0xFF94A3B8)),
-                        const SizedBox(height: 10),
-                        Text('No tech-packs generated yet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: techPacks.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (ctx, i) {
-                      final tp = techPacks[i];
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAF8),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tp.techPackCode,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.brandSteel),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Status: ${tp.status}',
-                                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF059669), fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD1FAE5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('PRODUCTION READY', style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFF065F46))),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ============================================================================
 // SHEET 4: TEAM MANAGEMENT & ONBOARDING

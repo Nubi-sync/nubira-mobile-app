@@ -375,6 +375,155 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       return false;
     }
   }
+
+  Future<bool> createTechPack({
+    required String styleNumber,
+    String? styleName,
+    String? brandName,
+    required String category,
+    String sizeSystem = 'ALPHA_ADULT',
+    required String baseSize,
+    required String fabricComposition,
+    required int targetGsm,
+    String embellishmentSequence = 'NONE',
+    int spi = 12,
+    String seamClass = 'ISO 4915 Class 401 (Chainstitch)',
+    String? cadFrontUrl,
+    String? cadBackUrl,
+    String? instructions,
+    List<TechPackBomItemModel> bomItems = const [],
+    String status = 'DRAFT',
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final user = supabase.auth.currentUser;
+      final authState = _ref.read(authProvider);
+      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
+
+      String fullFabric = fabricComposition.trim();
+      if (bomItems.isNotEmpty) {
+        final bomsJson = jsonEncode(bomItems.map((b) => b.toJson()).toList());
+        fullFabric = '[BOM_JSON: $bomsJson] $fullFabric';
+      }
+      if (instructions != null && instructions.trim().isNotEmpty) {
+        fullFabric = '$fullFabric [INSTRUCTIONS: ${instructions.trim()}]';
+      }
+
+      final categoryDB = category.toUpperCase().replaceAll(RegExp(r'\s+'), '_').replaceAll('-', '');
+
+      // Resolve brand id if possible
+      String? brandId;
+      try {
+        final brandFind = (brandName != null && brandName.trim().isNotEmpty) ? brandName.trim() : 'Inhouse';
+        final brandResp = await supabase
+            .from('brands')
+            .select('id')
+            .ilike('brand_name', brandFind)
+            .maybeSingle();
+        if (brandResp != null && brandResp['id'] != null) {
+          brandId = brandResp['id'].toString();
+        }
+      } catch (_) {}
+
+      await supabase.from('design_tech_packs').insert({
+        'style_number': styleNumber.trim(),
+        if (brandId != null) 'brand_id': brandId,
+        'category': categoryDB,
+        'size_system': sizeSystem,
+        'base_size': baseSize.trim(),
+        'fabric_composition': fullFabric,
+        'target_gsm': targetGsm,
+        'embellishment_sequence': embellishmentSequence,
+        'spi': spi,
+        'seam_class': seamClass,
+        'cad_front_url': cadFrontUrl,
+        'cad_back_url': cadBackUrl,
+        'created_by_ph': user?.id,
+        'approved_by_sa': true,
+        'sa_verdict': 'APPROVED',
+        'status': status,
+        'version': 1,
+        'company_name': company,
+      });
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> updateTechPack({
+    required String id,
+    required String styleNumber,
+    required String category,
+    required String baseSize,
+    required String fabricComposition,
+    required int targetGsm,
+    String? sizeSystem,
+    String? embellishmentSequence,
+    int? spi,
+    String? seamClass,
+    String? cadFrontUrl,
+    String? cadBackUrl,
+    String? status,
+    String? instructions,
+    List<TechPackBomItemModel> bomItems = const [],
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      String fullFabric = fabricComposition.trim();
+      if (bomItems.isNotEmpty) {
+        final bomsJson = jsonEncode(bomItems.map((b) => b.toJson()).toList());
+        fullFabric = '[BOM_JSON: $bomsJson] $fullFabric';
+      }
+      if (instructions != null && instructions.trim().isNotEmpty) {
+        fullFabric = '$fullFabric [INSTRUCTIONS: ${instructions.trim()}]';
+      }
+
+      final categoryDB = category.toUpperCase().replaceAll(RegExp(r'\s+'), '_').replaceAll('-', '');
+
+      final Map<String, dynamic> updateData = {
+        'style_number': styleNumber.trim(),
+        'category': categoryDB,
+        'base_size': baseSize.trim(),
+        'fabric_composition': fullFabric,
+        'target_gsm': targetGsm,
+        if (sizeSystem != null) 'size_system': sizeSystem,
+        if (embellishmentSequence != null) 'embellishment_sequence': embellishmentSequence,
+        if (spi != null) 'spi': spi,
+        if (seamClass != null) 'seam_class': seamClass,
+        if (cadFrontUrl != null) 'cad_front_url': cadFrontUrl,
+        if (cadBackUrl != null) 'cad_back_url': cadBackUrl,
+        if (status != null) 'status': status,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await supabase.from('design_tech_packs').update(updateData).eq('id', id);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteTechPack(String techPackId) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await supabase.from('design_tech_packs').delete().eq('id', techPackId);
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
 }
 
 final designerProvider = StateNotifierProvider<DesignerNotifier, DesignerState>((ref) {

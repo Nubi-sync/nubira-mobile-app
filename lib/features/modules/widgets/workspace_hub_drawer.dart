@@ -14,6 +14,7 @@ import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
+import '../../design/screens/tech_pack_catalog_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -407,9 +408,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           title: 'Tech-Pack Catalog',
                           isActive: activeRoute == '/design/tech-packs',
                           onTap: () {
-                            Navigator.pop(context);
-                            if (onOpenTechPacks != null) {
-                              onOpenTechPacks!();
+                            if (activeRoute == '/design/tech-packs') {
+                              Navigator.pop(context);
+                            } else {
+                              _navigateTo(context, const TechPackCatalogScreen());
                             }
                           },
                         ),

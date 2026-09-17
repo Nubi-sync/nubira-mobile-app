@@ -442,6 +442,44 @@ class DesignTeamMemberModel {
   }
 }
 
+class TechPackBomItemModel {
+  final String id;
+  final String componentType;
+  final String itemName;
+  final String specification;
+  final String consumption;
+  final String placement;
+
+  const TechPackBomItemModel({
+    required this.id,
+    required this.componentType,
+    required this.itemName,
+    this.specification = '',
+    this.consumption = '1',
+    this.placement = '',
+  });
+
+  factory TechPackBomItemModel.fromJson(Map<String, dynamic> json) {
+    return TechPackBomItemModel(
+      id: json['id']?.toString() ?? '',
+      componentType: json['component_type']?.toString() ?? 'TRIM',
+      itemName: json['item_name']?.toString() ?? '',
+      specification: json['specification']?.toString() ?? '',
+      consumption: json['consumption']?.toString() ?? '1',
+      placement: json['placement']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'component_type': componentType,
+    'item_name': itemName,
+    'specification': specification,
+    'consumption': consumption,
+    'placement': placement,
+  };
+}
+
 class TechPackSummaryModel {
   final String id;
   final String styleNumber;
@@ -449,14 +487,38 @@ class TechPackSummaryModel {
   final String category;
   final String brandName;
   final String baseSize;
+  final String sizeSystem;
   final String fabricComposition;
   final int targetGsm;
+  final String embellishmentSequence;
   final int spi;
   final String seamClass;
+  final String? cadFrontUrl;
+  final String? cadBackUrl;
   final String status;
+  final int version;
+  final String? targetCutDate;
+  final String saVerdict;
+  final String companyName;
   final String createdAt;
+  final List<TechPackBomItemModel> bomItems;
 
   String get techPackCode => styleNumber;
+
+  String get cleanFabricComposition {
+    return fabricComposition
+        .replaceAll(RegExp(r'\[BOM_JSON:\s*\[[\s\S]*?\]\]\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\[INSTRUCTIONS:\s*[\s\S]*?\]\s*', caseSensitive: false), '')
+        .trim();
+  }
+
+  String get cleanInstructions {
+    final match = RegExp(r'\[INSTRUCTIONS:\s*([\s\S]*?)\]', caseSensitive: false).firstMatch(fabricComposition);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+    return '';
+  }
 
   const TechPackSummaryModel({
     required this.id,
@@ -465,28 +527,77 @@ class TechPackSummaryModel {
     required this.category,
     required this.brandName,
     required this.baseSize,
+    this.sizeSystem = 'ALPHA_ADULT',
     required this.fabricComposition,
     required this.targetGsm,
+    this.embellishmentSequence = 'NONE',
     required this.spi,
     required this.seamClass,
+    this.cadFrontUrl,
+    this.cadBackUrl,
     required this.status,
+    this.version = 1,
+    this.targetCutDate,
+    this.saVerdict = 'APPROVED',
+    this.companyName = 'Nubira Creation',
     required this.createdAt,
+    this.bomItems = const [],
   });
 
   factory TechPackSummaryModel.fromJson(Map<String, dynamic> json) {
+    final rawFab = json['fabric_composition'] as String? ?? '100% Cotton';
+    List<TechPackBomItemModel> parsedBoms = [];
+
+    if (rawFab.contains('[BOM_JSON:')) {
+      try {
+        final match = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(rawFab);
+        if (match != null && match.group(1) != null) {
+          final dynamic decoded = jsonDecode(match.group(1)!);
+          if (decoded is List) {
+            parsedBoms = decoded
+                .whereType<Map>()
+                .map((m) => TechPackBomItemModel.fromJson(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+        }
+      } catch (_) {}
+    }
+
+    String cutDate = json['target_cut_date'] as String? ?? '';
+    if (cutDate.isEmpty) {
+      final created = DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now();
+      cutDate = created.add(const Duration(days: 14)).toIso8601String().split('T').first;
+    }
+
+    final cat = json['category'] as String? ?? 'T-Shirt';
+    final stNo = json['style_number'] as String? ?? 'ST-101';
+    final rawName = json['style_name'] as String?;
+    final resolvedName = (rawName != null && rawName.isNotEmpty)
+        ? rawName
+        : '$cat Style $stNo';
+
     return TechPackSummaryModel(
       id: json['id'] as String? ?? '',
-      styleNumber: json['style_number'] as String? ?? 'ST-101',
-      styleName: json['style_name'] as String? ?? (json['category'] != null ? '${json['category']} Spec' : 'Industrial Spec'),
-      category: json['category'] as String? ?? 'T-Shirt',
+      styleNumber: stNo,
+      styleName: resolvedName,
+      category: cat,
       brandName: (json['brands'] is Map ? json['brands']['brand_name'] : null) ?? json['brand_name'] as String? ?? 'Inhouse',
       baseSize: json['base_size'] as String? ?? 'M',
-      fabricComposition: json['fabric_composition'] as String? ?? '100% Cotton',
+      sizeSystem: json['size_system'] as String? ?? 'ALPHA_ADULT',
+      fabricComposition: rawFab,
       targetGsm: (json['target_gsm'] is int ? json['target_gsm'] : int.tryParse(json['target_gsm']?.toString() ?? '')) ?? 240,
+      embellishmentSequence: json['embellishment_sequence'] as String? ?? 'NONE',
       spi: (json['spi'] is int ? json['spi'] : int.tryParse(json['spi']?.toString() ?? '')) ?? 12,
-      seamClass: json['seam_class'] as String? ?? 'ISO 504 (Overlock)',
-      status: json['status'] as String? ?? 'PRODUCTION_READY',
+      seamClass: json['seam_class'] as String? ?? 'ISO 4915 Class 401 (Chainstitch)',
+      cadFrontUrl: json['cad_front_url'] as String?,
+      cadBackUrl: json['cad_back_url'] as String?,
+      status: json['status'] as String? ?? 'DRAFT',
+      version: (json['version'] is int ? json['version'] : int.tryParse(json['version']?.toString() ?? '')) ?? 1,
+      targetCutDate: cutDate,
+      saVerdict: json['sa_verdict'] as String? ?? 'APPROVED',
+      companyName: json['company_name'] as String? ?? 'Nubira Creation',
       createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      bomItems: parsedBoms,
     );
   }
 }
