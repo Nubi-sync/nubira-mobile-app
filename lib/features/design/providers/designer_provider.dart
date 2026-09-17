@@ -10,12 +10,16 @@ class DesignerState {
   final bool isLoading;
   final String? error;
   final List<DesignBriefModel> briefs;
+  final List<DesignTeamMemberModel> teamMembers;
+  final List<TechPackSummaryModel> techPacks;
   final bool isSubmitting;
 
   const DesignerState({
     this.isLoading = false,
     this.error,
     this.briefs = const [],
+    this.teamMembers = const [],
+    this.techPacks = const [],
     this.isSubmitting = false,
   });
 
@@ -23,12 +27,16 @@ class DesignerState {
     bool? isLoading,
     String? error,
     List<DesignBriefModel>? briefs,
+    List<DesignTeamMemberModel>? teamMembers,
+    List<TechPackSummaryModel>? techPacks,
     bool? isSubmitting,
   }) {
     return DesignerState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       briefs: briefs ?? this.briefs,
+      teamMembers: teamMembers ?? this.teamMembers,
+      techPacks: techPacks ?? this.techPacks,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }
@@ -38,44 +46,67 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
   final Ref _ref;
 
   DesignerNotifier(this._ref) : super(const DesignerState()) {
-    fetchAllocatedBriefs();
+    fetchStudioData();
   }
 
-  Future<void> fetchAllocatedBriefs() async {
+  Future<void> fetchStudioData() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = supabase.auth.currentUser;
-      final userEmail = user?.email;
       final authState = _ref.read(authProvider);
       final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
 
-      var query = supabase
+      // 1. Fetch briefs with joined submissions and team member info
+      var briefQuery = supabase
           .from('design_briefs')
           .select('*, design_team_members(*), design_submissions(*)')
           .eq('company_name', company)
           .order('created_at', ascending: false);
 
-      final response = await query;
-      final rawList = response as List;
+      final briefsResp = await briefQuery;
+      final rawBriefs = briefsResp as List;
 
-      // Filter to this designer's email if designer role
-      List<DesignBriefModel> list = [];
-      for (final item in rawList) {
+      List<DesignBriefModel> briefList = [];
+      for (final item in rawBriefs) {
         final brief = DesignBriefModel.fromJson(item as Map<String, dynamic>);
-        if (userEmail == null ||
-            brief.designerEmail == null ||
-            brief.designerEmail!.toLowerCase() == userEmail.toLowerCase() ||
-            authState.userRole?.toUpperCase() == 'ADMIN' ||
-            authState.userRole?.toUpperCase() == 'SUPERADMIN') {
-          list.add(brief);
-        }
+        briefList.add(brief);
       }
 
-      state = state.copyWith(isLoading: false, briefs: list);
+      // 2. Fetch team members
+      List<DesignTeamMemberModel> teamList = [];
+      try {
+        final teamResp = await supabase
+            .from('design_team_members')
+            .select('*')
+            .eq('company_name', company)
+            .order('designer_name', ascending: true);
+        final rawTeam = teamResp as List;
+        teamList = rawTeam.map((m) => DesignTeamMemberModel.fromJson(m as Map<String, dynamic>)).toList();
+      } catch (_) {}
+
+      // 3. Fetch tech packs
+      List<TechPackSummaryModel> tpList = [];
+      try {
+        final tpResp = await supabase
+            .from('design_tech_packs')
+            .select('*')
+            .eq('company_name', company)
+            .order('created_at', ascending: false);
+        final rawTp = tpResp as List;
+        tpList = rawTp.map((t) => TechPackSummaryModel.fromJson(t as Map<String, dynamic>)).toList();
+      } catch (_) {}
+
+      state = state.copyWith(
+        isLoading: false,
+        briefs: briefList,
+        teamMembers: teamList,
+        techPacks: tpList,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
+
+  Future<void> fetchAllocatedBriefs() => fetchStudioData();
 
   Future<String?> uploadPhotoFile(File file) async {
     try {
@@ -105,6 +136,135 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     }
   }
 
+  Future<bool> createDesignBrief({
+    required String garmentType,
+    required String category,
+    required int targetDesigns,
+    required int maxColors,
+    required List<String> targetColors,
+    String? designerMemberId,
+    String? instructions,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final user = supabase.auth.currentUser;
+      final authState = _ref.read(authProvider);
+      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
+
+      String rawInstructions = instructions?.trim() ?? '';
+      if (targetColors.isNotEmpty && !rawInstructions.contains('[COLORS:')) {
+        rawInstructions = '[COLORS: ${targetColors.join(', ')}] $rawInstructions'.trim();
+      }
+      if (targetDesigns > 1 && !rawInstructions.contains('[TARGET:')) {
+        rawInstructions = '[TARGET: $targetDesigns Designs] $rawInstructions'.trim();
+      }
+
+      await supabase.from('design_briefs').insert({
+        'ph_user_id': user?.id ?? '',
+        'designer_member_id': designerMemberId,
+        'garment_type': garmentType.trim(),
+        'category': category.trim(),
+        'target_designs': targetDesigns,
+        'max_colors': maxColors,
+        'instructions': rawInstructions.isNotEmpty ? rawInstructions : null,
+        'status': 'ALLOCATED',
+        'company_name': company,
+      });
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> reviewBriefVerdict({
+    required String briefId,
+    required String submissionId,
+    required String verdict, // 'APPROVED' or 'REJECTED'
+    String? feedback,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final isApprove = verdict == 'APPROVED';
+      final newStatus = isApprove ? 'PH_APPROVED' : 'PH_REJECTED';
+
+      // 1. Update submission verdict
+      if (submissionId.isNotEmpty) {
+        await supabase.from('design_submissions').update({
+          'ph_verdict': isApprove ? 'APPROVED' : 'REJECTED',
+          'ph_feedback': feedback,
+          'reviewed_at': DateTime.now().toIso8601String(),
+        }).eq('id', submissionId);
+      }
+
+      // 2. Update brief status
+      await supabase.from('design_briefs').update({
+        'status': newStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', briefId);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteBrief(String briefId) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      // 1. Delete associated submissions
+      try {
+        await supabase.from('design_submissions').delete().eq('brief_id', briefId);
+      } catch (_) {}
+
+      // 2. Delete the brief
+      await supabase.from('design_briefs').delete().eq('id', briefId);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> onboardDesigner({
+    required String name,
+    required String emailOrPhone,
+    required String password,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final authState = _ref.read(authProvider);
+      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
+
+      final isEmail = emailOrPhone.contains('@');
+
+      await supabase.from('design_team_members').insert({
+        'designer_name': name.trim(),
+        'designer_email': isEmail ? emailOrPhone.trim().toLowerCase() : null,
+        'phone_number': !isEmail ? emailOrPhone.trim() : null,
+        'designer_password': password.trim(),
+        'status': 'ACTIVE',
+        'company_name': company,
+      });
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
   Future<bool> submitDesignConcepts({
     required String briefId,
     String? designerMemberId,
@@ -119,7 +279,6 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       String firstPhotoFront = '';
       String? firstPhotoBack;
 
-      // Extract first front and back photos for legacy/summary columns
       for (final c in concepts) {
         for (final cw in c.safeColorways) {
           if (firstPhotoFront.isEmpty && cw.photoFront != null && cw.photoFront!.trim().isNotEmpty) {
@@ -133,14 +292,12 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
         if (firstPhotoFront.isNotEmpty && firstPhotoBack != null) break;
       }
 
-      // Serialize concepts to JSON
       final conceptsJson = concepts.map((c) => c.toJson()).toList();
       final encodedConcepts = jsonEncode(conceptsJson);
       final combinedNotes = generalNotes != null && generalNotes.trim().isNotEmpty
           ? '${generalNotes.trim()}\n\n[CONCEPTS_JSON: $encodedConcepts]'
           : '[CONCEPTS_JSON: $encodedConcepts]';
 
-      // 1. Insert into design_submissions
       await supabase.from('design_submissions').insert({
         'brief_id': briefId,
         if (designerMemberId != null) 'designer_member_id': designerMemberId,
@@ -151,49 +308,12 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
         'company_name': company,
       });
 
-      // 2. Update brief status to SUBMITTED
       await supabase.from('design_briefs').update({
         'status': 'SUBMITTED',
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', briefId);
 
-      await fetchAllocatedBriefs();
-      state = state.copyWith(isSubmitting: false);
-      return true;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
-  }
-
-  Future<bool> submitDesignPhotos({
-    required String briefId,
-    required String photoUrl1,
-    String? photoUrl2,
-    String? designerNotes,
-  }) async {
-    state = state.copyWith(isSubmitting: true);
-    try {
-      final authState = _ref.read(authProvider);
-      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
-
-      // 1. Insert into design_submissions
-      await supabase.from('design_submissions').insert({
-        'brief_id': briefId,
-        'photo_url_1': photoUrl1,
-        'photo_url_2': photoUrl2,
-        'designer_notes': designerNotes,
-        'ph_verdict': 'PENDING',
-        'company_name': company,
-      });
-
-      // 2. Update brief status to SUBMITTED
-      await supabase.from('design_briefs').update({
-        'status': 'SUBMITTED',
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', briefId);
-
-      await fetchAllocatedBriefs();
+      await fetchStudioData();
       state = state.copyWith(isSubmitting: false);
       return true;
     } catch (e) {

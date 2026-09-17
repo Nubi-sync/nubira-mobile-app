@@ -9,6 +9,7 @@ import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
 import '../screens/generic_division_screen.dart';
 import '../../admin/screens/admin_shell.dart';
+import '../../design/screens/design_studio_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
@@ -336,13 +337,11 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       title: mod.title,
                       isActive: isCurrentMod,
                       onTap: () {
-                        if (isCurrentMod) {
-                          Navigator.pop(context);
-                          return;
-                        }
-
                         Widget dest;
                         switch (mod.id) {
+                          case 'design':
+                            dest = const DesignStudioScreen();
+                            break;
                           case 'stitching-sewing':
                             dest = const AdminShell();
                             break;

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../admin/screens/admin_shell.dart';
+import '../../design/screens/design_studio_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
@@ -87,6 +89,9 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
 
     Widget destination;
     switch (mod.id) {
+      case 'design':
+        destination = const DesignStudioScreen();
+        break;
       case 'stitching-sewing':
         destination = const AdminShell();
         break;
@@ -207,72 +212,8 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
       key: _scaffoldKey,
       backgroundColor: DesignTokens.canvasCream, // Warm Canvas Background (#FAF7F0)
       drawer: const WorkspaceHubDrawer(activeRoute: '/modules'),
-      appBar: AppBar(
-        backgroundColor: DesignTokens.cardWhite,
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        titleSpacing: 0,
-        centerTitle: true,
-        leading: Center(
-          child: InkWell(
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: DesignTokens.standardBorder),
-              ),
-              child: const Icon(Icons.menu_rounded, color: DesignTokens.mutedInk, size: 20),
-            ),
-          ),
-        ),
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.asset(
-            'assets/images/z_i_g_z_a.png',
-            height: 34,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_logo.png',
-              height: 34,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Text(
-                'Zigza.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: DesignTokens.brandSteel,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-              decoration: BoxDecoration(
-                color: DesignTokens.canvasCream,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x26000000)),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: DesignTokens.brandSteel,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-        ],
+      appBar: ZigzaAppBar(
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

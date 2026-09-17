@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_app_bar.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import '../../dashboard/lineman_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
@@ -57,72 +58,8 @@ class SupervisorFloorStationsScreen extends ConsumerWidget {
       key: scaffoldKey,
       backgroundColor: AppTheme.canvasCream,
       drawer: const WorkspaceHubDrawer(activeRoute: '/supervisor-hub'),
-      appBar: AppBar(
-        backgroundColor: AppTheme.cardWhite,
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        titleSpacing: 0,
-        centerTitle: true,
-        leading: Center(
-          child: InkWell(
-            onTap: () => scaffoldKey.currentState?.openDrawer(),
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.standardBorder),
-              ),
-              child: const Icon(Icons.menu_rounded, color: AppTheme.mutedInk, size: 20),
-            ),
-          ),
-        ),
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.asset(
-            'assets/images/z_i_g_z_a.png',
-            height: 34,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_logo.png',
-              height: 34,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Text(
-                'Zigza.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.brandSteel,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-              decoration: BoxDecoration(
-                color: AppTheme.canvasCream,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x26000000)),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.brandSteel,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-        ],
+      appBar: ZigzaAppBar(
+        onMenuPressed: () => scaffoldKey.currentState?.openDrawer(),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),

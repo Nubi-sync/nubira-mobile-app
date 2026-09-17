@@ -5,6 +5,8 @@ class ConceptColorwayModel {
   final String? photoFront;
   final String? photoBack;
 
+  String get colorwayName => colorName;
+
   const ConceptColorwayModel({
     required this.colorName,
     this.photoFront,
@@ -216,6 +218,34 @@ class DesignBriefModel {
   int get safeTargetDesigns => (targetDesigns != null && targetDesigns! > 0) ? targetDesigns! : 1;
   int get safeMaxColors => (maxColors != null && maxColors! > 0) ? maxColors! : 3;
 
+  String get briefCode {
+    if (id.isEmpty) return 'BRF-NEW';
+    final cleanId = id.replaceAll('-', '');
+    final suffix = cleanId.length >= 6 ? cleanId.substring(0, 6).toUpperCase() : cleanId.toUpperCase();
+    return 'BRF-$suffix';
+  }
+
+  List<String> get safeColorways {
+    if (targetColors.isNotEmpty) return targetColors;
+    if (instructions != null && instructions!.contains('[COLORS:')) {
+      final match = RegExp(r'\[COLORS:\s*(.*?)\]').firstMatch(instructions!);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      }
+    }
+    return const [];
+  }
+
+  String get cleanInstructions {
+    if (instructions == null) return '';
+    return instructions!
+        .replaceAll(RegExp(r'\[COLORS:\s*.*?\]'), '')
+        .replaceAll(RegExp(r'\[TARGET:\s*.*?\]'), '')
+        .trim();
+  }
+
+  List<DesignSubmissionModel> get submissions => latestSubmission != null ? [latestSubmission!] : const [];
+
   const DesignBriefModel({
     required this.id,
     required this.phUserId,
@@ -278,6 +308,87 @@ class DesignBriefModel {
       createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
       updatedAt: json['updated_at'] as String? ?? DateTime.now().toIso8601String(),
       latestSubmission: sub,
+    );
+  }
+}
+
+class DesignTeamMemberModel {
+  final String id;
+  final String designerName;
+  final String? designerEmail;
+  final String? phoneNumber;
+  final String? status;
+  final String? companyName;
+  final String createdAt;
+
+  const DesignTeamMemberModel({
+    required this.id,
+    required this.designerName,
+    this.designerEmail,
+    this.phoneNumber,
+    this.status = 'ACTIVE',
+    this.companyName,
+    required this.createdAt,
+  });
+
+  factory DesignTeamMemberModel.fromJson(Map<String, dynamic> json) {
+    return DesignTeamMemberModel(
+      id: json['id'] as String? ?? '',
+      designerName: json['designer_name'] as String? ?? 'Designer',
+      designerEmail: json['designer_email'] as String?,
+      phoneNumber: json['phone_number'] as String?,
+      status: json['status'] as String? ?? 'ACTIVE',
+      companyName: json['company_name'] as String?,
+      createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+    );
+  }
+}
+
+class TechPackSummaryModel {
+  final String id;
+  final String styleNumber;
+  final String styleName;
+  final String category;
+  final String brandName;
+  final String baseSize;
+  final String fabricComposition;
+  final int targetGsm;
+  final int spi;
+  final String seamClass;
+  final String status;
+  final String createdAt;
+
+  String get techPackCode => styleNumber;
+
+  const TechPackSummaryModel({
+    required this.id,
+    required this.styleNumber,
+    required this.styleName,
+    required this.category,
+    required this.brandName,
+    required this.baseSize,
+    required this.fabricComposition,
+    required this.targetGsm,
+    required this.spi,
+    required this.seamClass,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory TechPackSummaryModel.fromJson(Map<String, dynamic> json) {
+    return TechPackSummaryModel(
+      id: json['id'] as String? ?? '',
+      styleNumber: json['style_number'] as String? ?? 'ST-101',
+      styleName: json['style_name'] as String? ?? (json['category'] != null ? '${json['category']} Spec' : 'Industrial Spec'),
+      category: json['category'] as String? ?? 'T-Shirt',
+      brandName: (json['brands'] is Map ? json['brands']['brand_name'] : null) ?? json['brand_name'] as String? ?? 'Inhouse',
+      baseSize: json['base_size'] as String? ?? 'M',
+      fabricComposition: json['fabric_composition'] as String? ?? '100% Cotton',
+      targetGsm: (json['target_gsm'] is int ? json['target_gsm'] : int.tryParse(json['target_gsm']?.toString() ?? '')) ?? 240,
+      spi: (json['spi'] is int ? json['spi'] : int.tryParse(json['spi']?.toString() ?? '')) ?? 12,
+      seamClass: json['seam_class'] as String? ?? 'ISO 504 (Overlock)',
+      status: json['status'] as String? ?? 'PRODUCTION_READY',
+      createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
     );
   }
 }
