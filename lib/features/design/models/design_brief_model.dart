@@ -506,10 +506,12 @@ class TechPackSummaryModel {
   String get techPackCode => styleNumber;
 
   String get cleanFabricComposition {
-    return fabricComposition
+    final cleaned = fabricComposition
         .replaceAll(RegExp(r'\[BOM_JSON:\s*\[[\s\S]*?\]\]\s*', caseSensitive: false), '')
         .replaceAll(RegExp(r'\[INSTRUCTIONS:\s*[\s\S]*?\]\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\[TARGET_CUT_DATE:\s*[\s\S]*?\]\s*', caseSensitive: false), '')
         .trim();
+    return cleaned.isNotEmpty ? cleaned : '100% Cotton';
   }
 
   String get cleanInstructions {
@@ -564,6 +566,12 @@ class TechPackSummaryModel {
     }
 
     String cutDate = json['target_cut_date'] as String? ?? '';
+    if (cutDate.isEmpty && rawFab.contains('[TARGET_CUT_DATE:')) {
+      final cutMatch = RegExp(r'\[TARGET_CUT_DATE:\s*([\s\S]*?)\]', caseSensitive: false).firstMatch(rawFab);
+      if (cutMatch != null && cutMatch.group(1) != null) {
+        cutDate = cutMatch.group(1)!.trim();
+      }
+    }
     if (cutDate.isEmpty) {
       final created = DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now();
       cutDate = created.add(const Duration(days: 14)).toIso8601String().split('T').first;

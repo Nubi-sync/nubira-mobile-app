@@ -6,6 +6,7 @@ import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
+import 'create_production_tech_pack_wizard.dart';
 
 class TechPackCatalogScreen extends ConsumerStatefulWidget {
   const TechPackCatalogScreen({super.key});
@@ -52,8 +53,12 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
       if (_selectedStatusTab != 'ALL') {
         if (_selectedStatusTab == 'APPROVED_BULK') {
           if (!isReady) return false;
+        } else if (_selectedStatusTab == 'PPS_APPROVED') {
+          if (st != 'PPS_APPROVED' && st != 'APPROVED_BULK') return false;
+        } else if (_selectedStatusTab == 'PPS_SUBMITTED') {
+          if (st != 'PPS_SUBMITTED') return false;
         } else if (_selectedStatusTab == 'SAMPLE_DEV') {
-          if (!isSampleDev) return false;
+          if (!isSampleDev && st != 'SAMPLE_DEV') return false;
         } else if (_selectedStatusTab == 'REVISE_FIT') {
           if (!isFitRevision) return false;
         } else if (_selectedStatusTab == 'DRAFT') {
@@ -66,7 +71,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
         final matchStyleName = tp.styleName.toLowerCase().contains(query);
         final matchBrand = tp.brandName.toLowerCase().contains(query);
         final matchCat = tp.category.toLowerCase().contains(query);
-        final matchFab = tp.fabricComposition.toLowerCase().contains(query);
+        final matchFab = tp.cleanFabricComposition.toLowerCase().contains(query);
         if (!matchStyleNo && !matchStyleName && !matchBrand && !matchCat && !matchFab) {
           return false;
         }
@@ -408,7 +413,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                   onChanged: (_) => setState(() {}),
                   style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    hintText: 'Search style or brand...',
+                    hintText: 'Search style or article #...',
                     hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                     prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF94A3B8)),
                     border: InputBorder.none,
@@ -434,15 +439,19 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildStatusChip('ALL', 'All Specs ($totalSpecs)'),
+                    _buildStatusChip('ALL', 'All Specs'),
                     const SizedBox(width: 6),
-                    _buildStatusChip('APPROVED_BULK', 'Ready for Merchandising ($bulkApprovedCount)'),
+                    _buildStatusChip('APPROVED_BULK', 'Ready for Merchandising'),
                     const SizedBox(width: 6),
-                    _buildStatusChip('SAMPLE_DEV', 'Sample Dev ($samplingCount)'),
+                    _buildStatusChip('PPS_APPROVED', 'PPS Approved'),
                     const SizedBox(width: 6),
-                    _buildStatusChip('DRAFT', 'Drafts ($draftsCount)'),
+                    _buildStatusChip('PPS_SUBMITTED', 'PPS Submitted'),
+                    const SizedBox(width: 6),
+                    _buildStatusChip('SAMPLE_DEV', 'Sample Dev'),
                     const SizedBox(width: 6),
                     _buildStatusChip('REVISE_FIT', 'Fit Revisions'),
+                    const SizedBox(width: 6),
+                    _buildStatusChip('DRAFT', 'Draft Spec'),
                   ],
                 ),
               ),
@@ -523,14 +532,14 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFFAFAF8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x04000000),
             blurRadius: 6,
-            offset: Offset(0, 2),
+            offset: Offset(0, 1),
           ),
         ],
       ),
@@ -541,52 +550,52 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0x1A000000)),
                 ),
                 child: Text(
                   stage,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF332B6B),
                     letterSpacing: 0.5,
                   ),
                 ),
               ),
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0x1A000000)),
                 ),
-                child: Icon(icon, size: 16, color: const Color(0xFF332B6B)),
+                child: Icon(icon, size: 14, color: accentColor),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            count.toString(),
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
             title,
             style: GoogleFonts.jetBrainsMono(
-              fontSize: 9.5,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF64748B),
-              letterSpacing: 0.2,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$count',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+              letterSpacing: -0.5,
             ),
           ),
         ],
@@ -595,7 +604,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
   }
 
   // ==========================================
-  // STATUS CHIP BUILDER
+  // STATUS FILTER CHIP
   // ==========================================
   Widget _buildStatusChip(String value, String label) {
     final isSel = _selectedStatusTab == value;
@@ -629,20 +638,27 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
   // ==========================================
   String _formatEmbellishmentFlow(String seq) {
     final s = seq.trim().toUpperCase();
-    if (s == 'PRINT_THEN_EMB' || (s.contains('PRINT') && s.contains('EMB') && s.indexOf('PRINT') < s.indexOf('EMB'))) {
-      return 'Printing First, Then Embroidery';
+    if (s == 'NONE' || s.isEmpty || s == 'NO_EMBELLISHMENT') {
+      return 'No Embroidery, No Printing';
     }
-    if (s == 'EMB_THEN_PRINT' || (s.contains('PRINT') && s.contains('EMB') && s.indexOf('EMB') < s.indexOf('PRINT'))) {
+    if (s == 'ONLY_PRINTING' || s == 'PRINT_ONLY' || s == 'PRINTING_ONLY') {
+      return 'Only Printing';
+    }
+    if (s == 'ONLY_EMBROIDERY' || s == 'EMB_ONLY' || s == 'EMBROIDERY_ONLY') {
+      return 'Only Embroidery';
+    }
+    if (s == 'EMBROIDERY_FIRST_THEN_PRINT' || s == 'EMB_FIRST_THEN_PRINT' || s == 'EMB_THEN_PRINT') {
       return 'Embroidery First, Then Printing';
     }
-    if (s == 'PRINT_ONLY' || s == 'PRINTING ONLY') {
-      return 'Printing Only';
+    if (s == 'PRINT_FIRST_THEN_EMBROIDERY' || s == 'PRINTING_FIRST' || s == 'PRINT_THEN_EMB') {
+      return 'Printing First, Then Embroidery';
     }
-    if (s == 'EMB_ONLY' || s == 'EMBROIDERY ONLY') {
-      return 'Embroidery Only';
-    }
-    if (s == 'NONE' || s.isEmpty) {
-      return 'Plain Cut Assembly';
+    if (s.contains('PRINT') && s.contains('EMB')) {
+      if (s.indexOf('PRINT') < s.indexOf('EMB')) {
+        return 'Printing First, Then Embroidery';
+      } else {
+        return 'Embroidery First, Then Printing';
+      }
     }
     return seq.replaceAll('_', ' ').split(' ').map((word) {
       if (word.isEmpty) return '';
@@ -745,7 +761,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Brand: ${pack.brandName} • Category: ${pack.category}',
+                  'Category: ${pack.category}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -1077,27 +1093,44 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
   }
 
   // ==========================================
-  // CREATE TECH-PACK MODAL
+  // CREATE TECH-PACK MODAL (2-STEP WIZARD)
   // ==========================================
-  void _openCreateTechPackModal(BuildContext context) {
-    showModalBottomSheet(
+  void _openCreateTechPackModal(BuildContext context) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => const _TechPackFormModal(isEditing: false),
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => const CreateProductionTechPackWizard(isEditing: false),
     );
+    if (result == true && mounted) {
+      ref.read(designerProvider.notifier).fetchStudioData();
+    }
   }
 
   // ==========================================
-  // EDIT TECH-PACK MODAL
+  // EDIT TECH-PACK MODAL (2-STEP WIZARD)
   // ==========================================
-  void _openEditTechPackModal(BuildContext context, TechPackSummaryModel pack) {
-    showModalBottomSheet(
+  void _openEditTechPackModal(BuildContext context, TechPackSummaryModel pack) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _TechPackFormModal(isEditing: true, initialPack: pack),
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => CreateProductionTechPackWizard(
+        isEditing: true,
+        initialPack: pack,
+      ),
     );
+    if (result == true && mounted) {
+      ref.read(designerProvider.notifier).fetchStudioData();
+    }
   }
 
   // ==========================================
@@ -1255,557 +1288,6 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// =============================================================================
-// TECH-PACK FORM MODAL (CREATE & EDIT)
-// =============================================================================
-class _TechPackFormModal extends ConsumerStatefulWidget {
-  final bool isEditing;
-  final TechPackSummaryModel? initialPack;
-
-  const _TechPackFormModal({
-    required this.isEditing,
-    this.initialPack,
-  });
-
-  @override
-  ConsumerState<_TechPackFormModal> createState() => _TechPackFormModalState();
-}
-
-class _TechPackFormModalState extends ConsumerState<_TechPackFormModal> {
-  final _formKey = GlobalKey<FormState>();
-
-  late TextEditingController _styleNumberController;
-  late TextEditingController _styleNameController;
-  late TextEditingController _brandController;
-  late TextEditingController _baseSizeController;
-  late TextEditingController _fabricController;
-  late TextEditingController _gsmController;
-  late TextEditingController _spiController;
-  late TextEditingController _instructionsController;
-
-  String _selectedCategory = 'T-Shirt';
-  String _selectedSizeSystem = 'ALPHA_ADULT';
-  String _selectedEmbellishment = 'NONE';
-  String _selectedSeamClass = 'ISO 4915 Class 401 (Chainstitch)';
-  String _selectedStatus = 'APPROVED_BULK';
-
-  List<TechPackBomItemModel> _bomItems = [];
-
-  final List<String> _categories = [
-    'T-Shirt',
-    'Hoodie',
-    'Polo',
-    'Pant',
-    'Suit',
-    'Jogger',
-    'Jacket',
-    'Kids Romper',
-    'Ethnic',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.initialPack;
-    _styleNumberController = TextEditingController(text: p?.styleNumber ?? '');
-    _styleNameController = TextEditingController(text: p?.styleName ?? '');
-    _brandController = TextEditingController(text: p?.brandName ?? 'DIRECT CLIENT');
-    _baseSizeController = TextEditingController(text: p?.baseSize ?? 'M');
-    _fabricController = TextEditingController(text: p?.cleanFabricComposition ?? '100% Combed Cotton Single Jersey');
-    _gsmController = TextEditingController(text: (p?.targetGsm ?? 180).toString());
-    _spiController = TextEditingController(text: (p?.spi ?? 12).toString());
-    _instructionsController = TextEditingController(text: p?.cleanInstructions ?? '');
-
-    if (p != null) {
-      _selectedCategory = p.category;
-      _selectedSizeSystem = p.sizeSystem;
-      _selectedEmbellishment = p.embellishmentSequence;
-      _selectedSeamClass = p.seamClass;
-      _selectedStatus = p.status;
-      _bomItems = List.from(p.bomItems);
-    }
-  }
-
-  @override
-  void dispose() {
-    _styleNumberController.dispose();
-    _styleNameController.dispose();
-    _brandController.dispose();
-    _baseSizeController.dispose();
-    _fabricController.dispose();
-    _gsmController.dispose();
-    _spiController.dispose();
-    _instructionsController.dispose();
-    super.dispose();
-  }
-
-  void _onCategoryChanged(String cat) {
-    setState(() {
-      _selectedCategory = cat;
-      if (cat == 'T-Shirt') {
-        _fabricController.text = '100% Combed Cotton Single Jersey';
-        _gsmController.text = '180';
-        _baseSizeController.text = 'M';
-      } else if (cat == 'Hoodie') {
-        _fabricController.text = '3-End French Terry 360 GSM Brushed Inside';
-        _gsmController.text = '360';
-        _baseSizeController.text = 'M';
-      } else if (cat == 'Pant') {
-        _fabricController.text = '98% Cotton 2% Elastane Twill';
-        _gsmController.text = '280';
-        _selectedSizeSystem = 'NUMERIC_WAIST';
-        _baseSizeController.text = '32';
-      } else if (cat == 'Polo') {
-        _fabricController.text = '100% Cotton Pique Double Knit';
-        _gsmController.text = '220';
-        _baseSizeController.text = 'M';
-      } else if (cat == 'Suit') {
-        _fabricController.text = 'Super 120s Wool Worsted';
-        _gsmController.text = '260';
-        _baseSizeController.text = 'M';
-      }
-    });
-  }
-
-  void _addBomItem() {
-    setState(() {
-      _bomItems.add(TechPackBomItemModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        componentType: 'TRIM',
-        itemName: 'Button',
-        specification: 'Standard',
-        consumption: '1',
-        placement: 'Main',
-      ));
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(designerProvider);
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.90,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0x1A000000))),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF332B6B), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      widget.isEditing ? 'Edit Tech-Pack' : 'Create Tech-Pack Spec',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-
-          // Body Form
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  // Style Number & Brand
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'STYLE NUMBER *',
-                          controller: _styleNumberController,
-                          hint: 'e.g. DEMO-103',
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'BRAND NAME',
-                          controller: _brandController,
-                          hint: 'DIRECT CLIENT',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Category Dropdown
-                  Text(
-                    'GARMENT CATEGORY *',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF475569),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedCategory,
-                        isExpanded: true,
-                        items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                        onChanged: (v) {
-                          if (v != null) _onCategoryChanged(v);
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Base Size & Target GSM
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'BASE SIZE *',
-                          controller: _baseSizeController,
-                          hint: 'M / 32 / 4T',
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'TARGET GSM *',
-                          controller: _gsmController,
-                          hint: '240',
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Fabric Composition
-                  _buildFormField(
-                    label: 'FABRIC COMPOSITION *',
-                    controller: _fabricController,
-                    hint: '100% Combed Cotton Single Jersey',
-                    maxLines: 2,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 14),
-
-                  // SPI & Seam Class
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'SPI (STITCHES/INCH)',
-                          controller: _spiController,
-                          hint: '12',
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'SEAM CLASS',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF475569),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedSeamClass,
-                                  isExpanded: true,
-                                  items: [
-                                    'ISO 4915 Class 401 (Chainstitch)',
-                                    'ISO 4915 Class 504 (Overlock)',
-                                    'ISO 4915 Class 607 (Flatlock)',
-                                  ].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 11)))).toList(),
-                                  onChanged: (v) {
-                                    if (v != null) setState(() => _selectedSeamClass = v);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Embellishment Sequence
-                  Text(
-                    'EMBELLISHMENT SEQUENCE',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF475569),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedEmbellishment,
-                        isExpanded: true,
-                        items: [
-                          DropdownMenuItem(value: 'NONE', child: Text('No Embellishment (Plain Cut)', style: GoogleFonts.publicSans(fontSize: 12))),
-                          DropdownMenuItem(value: 'PRINT_FIRST_THEN_EMBROIDERY', child: Text('Print First, Then Embroidery', style: GoogleFonts.publicSans(fontSize: 12))),
-                          DropdownMenuItem(value: 'EMBROIDERY_FIRST_THEN_PRINT', child: Text('Embroidery First, Then Print', style: GoogleFonts.publicSans(fontSize: 12))),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) setState(() => _selectedEmbellishment = v);
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Bill of Materials Builder
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'BILL OF MATERIALS (BOM)',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
-                      ),
-                      InkWell(
-                        onTap: _addBomItem,
-                        child: Row(
-                          children: [
-                            const Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF332B6B)),
-                            const SizedBox(width: 4),
-                            Text('Add Item', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (_bomItems.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x12000000)),
-                      ),
-                      child: Text('No BOM components added. Tap "+ Add Item" above.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8))),
-                    )
-                  else
-                    ..._bomItems.asMap().entries.map((entry) {
-                      final idx = entry.key;
-                      final item = entry.value;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0x1A000000)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(item.componentType, style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(item.itemName, style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFC23838)),
-                              onPressed: () {
-                                setState(() {
-                                  _bomItems.removeAt(idx);
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-
-          // Footer Submit
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0x1A000000))),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF332B6B),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                onPressed: state.isSubmitting
-                    ? null
-                    : () async {
-                        if (!_formKey.currentState!.validate()) return;
-                        final stNo = _styleNumberController.text.trim();
-                        final gsm = int.tryParse(_gsmController.text.trim()) ?? 240;
-                        final spi = int.tryParse(_spiController.text.trim()) ?? 12;
-
-                        final nav = Navigator.of(context);
-                        final messenger = ScaffoldMessenger.of(context);
-
-                        bool ok;
-                        if (widget.isEditing && widget.initialPack != null) {
-                          ok = await ref.read(designerProvider.notifier).updateTechPack(
-                            id: widget.initialPack!.id,
-                            styleNumber: stNo,
-                            category: _selectedCategory,
-                            baseSize: _baseSizeController.text.trim(),
-                            fabricComposition: _fabricController.text.trim(),
-                            targetGsm: gsm,
-                            sizeSystem: _selectedSizeSystem,
-                            embellishmentSequence: _selectedEmbellishment,
-                            spi: spi,
-                            seamClass: _selectedSeamClass,
-                            status: _selectedStatus,
-                            instructions: _instructionsController.text.trim(),
-                            bomItems: _bomItems,
-                          );
-                        } else {
-                          ok = await ref.read(designerProvider.notifier).createTechPack(
-                            styleNumber: stNo,
-                            brandName: _brandController.text.trim(),
-                            category: _selectedCategory,
-                            baseSize: _baseSizeController.text.trim(),
-                            fabricComposition: _fabricController.text.trim(),
-                            targetGsm: gsm,
-                            sizeSystem: _selectedSizeSystem,
-                            embellishmentSequence: _selectedEmbellishment,
-                            spi: spi,
-                            seamClass: _selectedSeamClass,
-                            instructions: _instructionsController.text.trim(),
-                            bomItems: _bomItems,
-                            status: _selectedStatus,
-                          );
-                        }
-
-                        nav.pop();
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(ok ? 'Tech-Pack saved successfully!' : 'Failed to save tech-pack.'),
-                            backgroundColor: ok ? const Color(0xFF047857) : const Color(0xFFDC2626),
-                          ),
-                        );
-                      },
-                child: state.isSubmitting
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(widget.isEditing ? 'Update Specification' : 'Save & Publish Tech-Pack', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFormField({
-    required String label,
-    required TextEditingController controller,
-    String? hint,
-    int maxLines = 1,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF475569),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          ),
-        ),
-      ],
     );
   }
 }
