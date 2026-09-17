@@ -8,6 +8,28 @@ import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
 
+class ConceptCardData {
+  final String rowKey;
+  final DesignBriefModel brief;
+  final int conceptNumber;
+  final String artNumber;
+  final String garmentType;
+  final String categoryStyle;
+  final List<String> colors;
+  final String status;
+
+  const ConceptCardData({
+    required this.rowKey,
+    required this.brief,
+    required this.conceptNumber,
+    required this.artNumber,
+    required this.garmentType,
+    required this.categoryStyle,
+    required this.colors,
+    required this.status,
+  });
+}
+
 class DesignStudioScreen extends ConsumerStatefulWidget {
   const DesignStudioScreen({super.key});
 
@@ -42,49 +64,99 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
     final teamMembers = state.teamMembers;
     final techPacks = state.techPacks;
 
-    // Filter briefs based on tab & search
-    final filteredBriefs = briefs.where((b) {
-      if (_activeTab == 'IN_REVIEW') {
-        final st = b.status.toUpperCase();
+    // Flatten briefs into concept rows (identical to web Admin DesignDashboardClient lines 473-539 & 661-719)
+    final List<ConceptCardData> allConceptRows = [];
+    for (final brief in briefs) {
+      if (brief.safeDesignConceptsBrief.isNotEmpty) {
+        for (final req in brief.safeDesignConceptsBrief) {
+          final artNo = req.artNumber?.trim().isNotEmpty == true
+              ? req.artNumber!.trim()
+              : (req.notes != null && RegExp(r'Art No:\s*([^|]+)', caseSensitive: false).hasMatch(req.notes!)
+                  ? RegExp(r'Art No:\s*([^|]+)', caseSensitive: false).firstMatch(req.notes!)!.group(1)!.trim()
+                  : '#${brief.id.replaceAll('-', '').substring(0, 6).toUpperCase()}-${req.conceptNumber}');
+
+          final garment = (req.notes != null && RegExp(r'Garment:\s*([^|]+)', caseSensitive: false).hasMatch(req.notes!)
+              ? RegExp(r'Garment:\s*([^|]+)', caseSensitive: false).firstMatch(req.notes!)!.group(1)!.trim()
+              : brief.garmentType);
+
+          final cat = req.categoryStyle?.trim().isNotEmpty == true ? req.categoryStyle!.trim() : brief.category;
+          final cols = req.colors.isNotEmpty ? req.colors : brief.safeColorways;
+
+          allConceptRows.add(ConceptCardData(
+            rowKey: '${brief.id}-${req.conceptNumber}',
+            brief: brief,
+            conceptNumber: req.conceptNumber,
+            artNumber: artNo,
+            garmentType: garment,
+            categoryStyle: cat,
+            colors: cols,
+            status: brief.status,
+          ));
+        }
+      } else {
+        final artNo = '#${brief.id.replaceAll('-', '').substring(0, 6).toUpperCase()}';
+        allConceptRows.add(ConceptCardData(
+          rowKey: brief.id,
+          brief: brief,
+          conceptNumber: 1,
+          artNumber: artNo,
+          garmentType: brief.garmentType,
+          categoryStyle: brief.category,
+          colors: brief.safeColorways,
+          status: brief.status,
+        ));
+      }
+    }
+
+    // Filter concept rows based on tab & search
+    final filteredConceptRows = allConceptRows.where((row) {
+      if (_activeTab == 'SUBMITTED') {
+        final st = row.status.toUpperCase();
         if (st != 'SUBMITTED' && st != 'IN_REVIEW' && st != 'PENDING_REVIEW') return false;
       } else if (_activeTab == 'PH_APPROVED') {
-        final st = b.status.toUpperCase();
-        if (st != 'PH_APPROVED' && st != 'APPROVED_BY_PH' && st != 'PENDING_SA') return false;
+        final st = row.status.toUpperCase();
+        if (st != 'PH_APPROVED' && st != 'APPROVED_BY_PH' && st != 'SA_APPROVED' && st != 'SA_SAVED_FOR_LATER' && st != 'PENDING_SA') return false;
       } else if (_activeTab == 'ALLOCATED') {
-        final st = b.status.toUpperCase();
+        final st = row.status.toUpperCase();
         if (st != 'ALLOCATED' && st != 'DRAFT') return false;
-      } else if (_activeTab == 'REVISIONS') {
-        final st = b.status.toUpperCase();
+      } else if (_activeTab == 'PH_REJECTED') {
+        final st = row.status.toUpperCase();
         if (!st.contains('REVIS') && !st.contains('REJECT')) return false;
-      } else if (_activeTab == 'TECHPACK_CREATED') {
-        final st = b.status.toUpperCase();
-        if (!st.contains('TECHPACK') && !st.contains('COMPLETED')) return false;
+      } else if (_activeTab == 'TECH_PACK_CREATED') {
+        final st = row.status.toUpperCase();
+        if (!st.contains('TECHPACK') && !st.contains('TECH_PACK') && !st.contains('COMPLETED')) return false;
       }
 
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.toLowerCase().trim();
-        final matchGarment = b.garmentType.toLowerCase().contains(q);
-        final matchCategory = b.category.toLowerCase().contains(q);
-        final matchDesigner = (b.designerName ?? '').toLowerCase().contains(q);
-        final matchInstructions = (b.instructions ?? '').toLowerCase().contains(q);
-        final matchCode = b.briefCode.toLowerCase().contains(q);
-        if (!matchGarment && !matchCategory && !matchDesigner && !matchInstructions && !matchCode) {
+        final matchGarment = row.garmentType.toLowerCase().contains(q);
+        final matchCat = row.categoryStyle.toLowerCase().contains(q);
+        final matchArt = row.artNumber.toLowerCase().contains(q);
+        final matchDesigner = (row.brief.designerName ?? '').toLowerCase().contains(q);
+        final matchInst = (row.brief.instructions ?? '').toLowerCase().contains(q);
+        if (!matchGarment && !matchCat && !matchArt && !matchDesigner && !matchInst) {
           return false;
         }
       }
       return true;
     }).toList();
 
-    // Stats calculations
-    final activeBriefsCount = briefs.where((b) => !b.status.toUpperCase().contains('COMPLETED') && !b.status.toUpperCase().contains('CANCELLED')).length;
+    // Stats calculations strictly matching web metrics
+    final activeBriefsCount = briefs.where((b) {
+      final st = b.status.toUpperCase();
+      return st == 'ALLOCATED' || st == 'SUBMITTED';
+    }).length;
+
     final pendingPhReviewCount = briefs.where((b) {
       final st = b.status.toUpperCase();
       return st == 'SUBMITTED' || st == 'IN_REVIEW' || st == 'PENDING_REVIEW';
     }).length;
+
     final forwardedSaCount = briefs.where((b) {
       final st = b.status.toUpperCase();
       return st == 'PH_APPROVED' || st == 'PENDING_SA' || st == 'APPROVED_BY_PH';
     }).length;
+
     final techPacksCount = techPacks.length;
 
     return Scaffold(
@@ -111,7 +183,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               Row(
                 children: [
                   Text(
-                    'Design studio',
+                    'Design Studio',
                     style: GoogleFonts.publicSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -133,11 +205,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                   const Text('/', style: TextStyle(fontSize: 11, color: Color(0xFFCBD5E1))),
                   const SizedBox(width: 4),
                   Text(
-                    'Provisional head desk',
+                    'Provisional Head Desk',
                     style: GoogleFonts.publicSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.brandSteel,
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
                 ],
@@ -152,12 +224,12 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: const Color(0x1A000000)),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 3),
+                      color: Color(0x04000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
@@ -168,14 +240,14 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 46,
-                          height: 46,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0x18000000)),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0x1A000000)),
                           ),
-                          child: const Icon(Icons.palette_rounded, color: AppTheme.brandSteel, size: 24),
+                          child: const Icon(Icons.palette_outlined, color: AppTheme.brandSteel, size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -197,8 +269,8 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFAF7F0),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0x14000000)),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
                                 child: Text(
                                   '$activeBriefsCount ACTIVE BRIEFS',
@@ -217,7 +289,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Provisional Head desk — Review concepts, allocate briefs, create tech-packs & route to SA.',
+                      'Creative pipeline, multi-concept studio deck, and tech-pack generation',
                       style: GoogleFonts.publicSans(
                         fontSize: 12.5,
                         color: const Color(0xFF64748B),
@@ -231,9 +303,8 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                       children: [
                         Expanded(
                           child: _buildHeaderActionButton(
-                            icon: Icons.inventory_2_outlined,
-                            label: 'Tech-packs',
-                            count: techPacksCount > 0 ? '$techPacksCount' : null,
+                            icon: Icons.assignment_turned_in_outlined,
+                            label: 'Tech-Packs',
                             onTap: () => _openTechPacksModal(context, techPacks),
                           ),
                         ),
@@ -242,7 +313,6 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                           child: _buildHeaderActionButton(
                             icon: Icons.group_outlined,
                             label: 'Team',
-                            count: teamMembers.isNotEmpty ? '${teamMembers.length}' : null,
                             onTap: () => _openTeamModal(context, teamMembers),
                           ),
                         ),
@@ -254,7 +324,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                         Expanded(
                           child: _buildHeaderActionButton(
                             icon: Icons.tune_rounded,
-                            label: 'PH settings',
+                            label: 'PH Settings',
                             onTap: () => _openSettingsModal(context),
                           ),
                         ),
@@ -264,14 +334,14 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                             onTap: () => _openNewBriefModal(context, teamMembers),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              height: 42,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: AppTheme.brandSteel,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color(0x2A3A3564),
-                                    blurRadius: 6,
+                                    blurRadius: 4,
                                     offset: Offset(0, 2),
                                   ),
                                 ],
@@ -282,9 +352,9 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                                   const Icon(Icons.add_rounded, color: Colors.white, size: 18),
                                   const SizedBox(width: 6),
                                   Text(
-                                    '+ New brief',
+                                    'New Brief',
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 13,
+                                      fontSize: 12.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
                                     ),
@@ -302,27 +372,25 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               const SizedBox(height: 16),
 
               // ==========================================
-              // 3. 2x2 STATS KPI GRID
+              // 3. 2x2 STATS KPI GRID (Exact Match to Image 4 on Web)
               // ==========================================
               Row(
                 children: [
                   Expanded(
-                    child: _buildKpiCard(
-                      tag: 'Stage 01',
-                      title: 'Active briefs',
+                    child: _buildWebKpiCard(
+                      tag: 'STAGE 01',
+                      title: 'ACTIVE BRIEFS',
                       value: '$activeBriefsCount',
-                      icon: Icons.pending_actions_rounded,
-                      accentColor: const Color(0xFF3B82F6),
+                      icon: Icons.assignment_outlined,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _buildKpiCard(
-                      tag: 'Stage 02',
-                      title: 'Pending PH review',
+                    child: _buildWebKpiCard(
+                      tag: 'STAGE 02',
+                      title: 'PENDING PH REVIEW',
                       value: '$pendingPhReviewCount',
-                      icon: Icons.rate_review_outlined,
-                      accentColor: const Color(0xFFF59E0B),
+                      icon: Icons.schedule_rounded,
                     ),
                   ),
                 ],
@@ -331,22 +399,20 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildKpiCard(
-                      tag: 'Stage 03',
-                      title: 'Forwarded to SA',
+                    child: _buildWebKpiCard(
+                      tag: 'STAGE 03',
+                      title: 'FORWARDED TO SA',
                       value: '$forwardedSaCount',
-                      icon: Icons.send_rounded,
-                      accentColor: const Color(0xFF8B5CF6),
+                      icon: Icons.shield_outlined,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _buildKpiCard(
-                      tag: 'Catalog',
-                      title: 'Tech-packs ready',
+                    child: _buildWebKpiCard(
+                      tag: 'CATALOG',
+                      title: 'TECH-PACKS READY',
                       value: '$techPacksCount',
-                      icon: Icons.check_circle_outline_rounded,
-                      accentColor: const Color(0xFF10B981),
+                      icon: Icons.description_outlined,
                     ),
                   ),
                 ],
@@ -354,94 +420,109 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               const SizedBox(height: 18),
 
               // ==========================================
-              // 4. HORIZONTAL QUEUE FILTER TABS
-              // ==========================================
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildQueueTab('ALL', 'All queue', briefs.length),
-                    _buildQueueTab('IN_REVIEW', 'In review', pendingPhReviewCount),
-                    _buildQueueTab('PH_APPROVED', 'PH approved', forwardedSaCount),
-                    _buildQueueTab(
-                      'ALLOCATED',
-                      'Allocated',
-                      briefs.where((b) => b.status.toUpperCase() == 'ALLOCATED').length,
-                    ),
-                    _buildQueueTab(
-                      'REVISIONS',
-                      'Revisions needed',
-                      briefs.where((b) => b.status.toUpperCase().contains('REVIS')).length,
-                    ),
-                    _buildQueueTab('TECHPACK_CREATED', 'Tech-pack created', techPacksCount),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // ==========================================
-              // 5. SEARCH FIELD
+              // 4. QUEUE SECTION CONTAINER WITH TABS & SEARCH
               // ==========================================
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0x1A000000)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                  style: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF0F172A)),
-                  decoration: InputDecoration(
-                    hintText: 'Search concepts or designers...',
-                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF94A3B8)),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Filter Tabs Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            _buildQueueTab('ALL', 'All Queue'),
+                            _buildQueueTab('SUBMITTED', 'In Review'),
+                            _buildQueueTab('PH_APPROVED', 'PH Approved'),
+                            _buildQueueTab('ALLOCATED', 'Allocated'),
+                            _buildQueueTab('PH_REJECTED', 'Revisions Needed'),
+                            _buildQueueTab('TECH_PACK_CREATED', 'Tech-Pack Created'),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Search Field
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) {
+                            setState(() {
+                              _searchQuery = val;
+                            });
+                          },
+                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                          decoration: InputDecoration(
+                            hintText: 'Search concepts or designers...',
+                            hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 19),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 16, color: Color(0xFF94A3B8)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+                    // Card List
+                    if (state.isLoading && briefs.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: CircularProgressIndicator(color: AppTheme.brandSteel),
+                        ),
+                      )
+                    else if (filteredConceptRows.isEmpty)
+                      _buildEmptyState()
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(14),
+                        itemCount: filteredConceptRows.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (ctx, index) {
+                          final row = filteredConceptRows[index];
+                          return _buildWebConceptCard(row);
+                        },
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // ==========================================
-              // 6. BRIEFS QUEUE LIST
-              // ==========================================
-              if (state.isLoading && briefs.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: CircularProgressIndicator(color: AppTheme.brandSteel),
-                  ),
-                )
-              else if (filteredBriefs.isEmpty)
-                _buildEmptyState()
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredBriefs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, index) {
-                    final brief = filteredBriefs[index];
-                    return _buildBriefCard(brief);
-                  },
-                ),
               const SizedBox(height: 30),
             ],
           ),
@@ -457,73 +538,54 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
   Widget _buildHeaderActionButton({
     required IconData icon,
     required String label,
-    String? count,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 42,
+        height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAF8),
+          color: const Color(0xFFFAF7F0),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: const Color(0x1A000000)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF475569), size: 17),
+            Icon(icon, color: AppTheme.brandSteel, size: 16),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
                 color: const Color(0xFF1E293B),
               ),
             ),
-            if (count != null) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  count,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF475569),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildKpiCard({
+  // Exact Match to Web KPI Cards in Image 4
+  Widget _buildWebKpiCard({
     required String tag,
     required String title,
     required String value,
     required IconData icon,
-    required Color accentColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x04000000),
+            color: Color(0x03000000),
             blurRadius: 6,
             offset: Offset(0, 2),
           ),
@@ -535,286 +597,298 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                tag.toUpperCase(),
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: accentColor,
-                  letterSpacing: 0.5,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: const Color(0x14000000)),
+                ),
+                child: Text(
+                  tag,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF64748B),
+                    letterSpacing: 0.6,
+                  ),
                 ),
               ),
-              Icon(icon, color: accentColor.withValues(alpha: 0.8), size: 18),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0x14000000)),
+                ),
+                child: Icon(icon, color: AppTheme.brandSteel, size: 16),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+              letterSpacing: 0.5,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 22,
+              fontSize: 26,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF0F172A),
               letterSpacing: -0.5,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: GoogleFonts.publicSans(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQueueTab(String tabKey, String label, int count) {
+  Widget _buildQueueTab(String tabKey, String label) {
     final isSelected = _activeTab == tabKey;
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
+      padding: const EdgeInsets.only(right: 6.0),
       child: InkWell(
         onTap: () {
           setState(() {
             _activeTab = tabKey;
           });
         },
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.brandSteel : Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            color: isSelected ? AppTheme.brandSteel : const Color(0xFFFAF7F0),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? AppTheme.brandSteel : const Color(0xFFE2E8F0),
+              color: isSelected ? AppTheme.brandSteel : const Color(0x1A000000),
             ),
             boxShadow: isSelected
                 ? const [
                     BoxShadow(
-                      color: Color(0x223A3564),
+                      color: Color(0x1E3A3564),
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: Offset(0, 1),
                     ),
                   ]
                 : null,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? Colors.white : const Color(0xFF475569),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withValues(alpha: 0.25) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.white : const Color(0xFF64748B),
-                  ),
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF334155),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBriefCard(DesignBriefModel brief) {
-    final statusBg = _getStatusBg(brief.status);
-    final statusFg = _getStatusFg(brief.status);
-    final colors = brief.safeColorways;
+  // Exact Match to Web Concept Cards in Image 1
+  Widget _buildWebConceptCard(ConceptCardData row) {
+    final stInfo = _getStatusBadgeInfo(row.status);
+    final brief = row.brief;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: Color(0x03000000),
+            blurRadius: 6,
+            offset: Offset(0, 1),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Brief ID Chip & Status Badge
+          // 1. Top Row: Article Number on Left + Status Badge on Right
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0x18000000)),
-                    ),
-                    child: Text(
-                      brief.briefCode,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.brandSteel,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${brief.safeTargetDesigns} Concept${brief.safeTargetDesigns > 1 ? 's' : ''}',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+              Text(
+                row.artNumber,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(8),
+                  color: stInfo.bg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: stInfo.border),
                 ),
                 child: Text(
-                  _formatStatus(brief.status),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: statusFg,
+                  stInfo.label,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: stInfo.fg,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
 
-          // Title & Category
+          // 2. Garment Title
           Text(
-            '${brief.garmentType} • ${brief.category}',
+            row.garmentType,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
               color: const Color(0xFF0F172A),
             ),
           ),
-          if (brief.instructions != null && brief.instructions!.trim().isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              brief.cleanInstructions,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.publicSans(
-                fontSize: 12.5,
-                color: const Color(0xFF64748B),
-                height: 1.35,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 2),
 
-          // Detail Strip: Designer left, Color dots right
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: const Color(0xFFFAF7F0),
-                    child: Text(
-                      (brief.designerName?.isNotEmpty == true ? brief.designerName![0] : 'D').toUpperCase(),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
+          // 3. Subtitle (Category Style • #1 • #24f895)
+          Text(
+            '${row.categoryStyle} Style • #${row.conceptNumber} • #${brief.id.replaceAll('-', '').substring(0, 6).toLowerCase()}',
+            style: GoogleFonts.publicSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 4. Beige Stats Box: DESIGNER | COLORS Selected (Exact Match to Web)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF7F0),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x12000000)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DESIGNER',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w800,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      brief.designerName ?? 'Unassigned',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'COLORS',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${row.colors.length} Selected',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
                         color: AppTheme.brandSteel,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    brief.designerName ?? 'Unassigned',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF334155),
-                    ),
-                  ),
-                ],
-              ),
-              if (colors.isNotEmpty)
-                Row(
-                  children: colors.take(5).map((c) {
-                    final hex = _parseColor(c);
-                    return Container(
-                      margin: const EdgeInsets.only(left: 4),
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: hex,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x33000000), width: 0.5),
-                      ),
-                    );
-                  }).toList(),
+                  ],
                 ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Action Row: View & Review + Delete
+          // 5. Action Row: View & Review (DEMO-101) > + Trash Button
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _openReviewModal(context, brief),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: Text('View & review (${brief.briefCode})'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandSteel,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    textStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
+                child: InkWell(
+                  onTap: () => _openReviewModal(context, brief, row.conceptNumber),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.brandSteel,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1F3A3564),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.visibility_outlined, color: Colors.white, size: 16),
+                        const SizedBox(width: 7),
+                        Text(
+                          'View & Review (${row.artNumber})',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 16),
+                      ],
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => _confirmDeleteBrief(context, brief),
-                icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 20),
-                tooltip: 'Delete brief',
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFFFEF2F2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              InkWell(
+                onTap: () => _confirmDeleteBrief(context, brief),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded, color: Color(0xFF94A3B8), size: 18),
                 ),
               ),
             ],
@@ -825,40 +899,35 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF7F0),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.inventory_2_outlined, color: AppTheme.brandSteel, size: 28),
+            child: const Icon(Icons.palette_outlined, color: AppTheme.brandSteel, size: 24),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
-            'No design briefs found',
+            _searchQuery.isNotEmpty ? 'No matching concepts' : 'No active design concepts',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             _searchQuery.isNotEmpty
-                ? 'Try adjusting your search keywords'
-                : 'Create your first design brief using the "+ New brief" button above.',
+                ? 'Adjust your filter tabs or search query.'
+                : 'Allocate your first design brief using "+ New Brief" above.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF64748B)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
           ),
         ],
       ),
@@ -870,12 +939,12 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
   // ==========================================================================
 
   // 1. CONCEPT REVIEW MODAL (Tabbed artwork viewer + Verdicts)
-  void _openReviewModal(BuildContext context, DesignBriefModel brief) {
+  void _openReviewModal(BuildContext context, DesignBriefModel brief, int initialTab) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _ConceptReviewSheet(brief: brief),
+      builder: (ctx) => _ConceptReviewSheet(brief: brief, initialTab: initialTab),
     );
   }
 
@@ -1013,136 +1082,85 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
   }
 
   // ==========================================================================
-  // HELPERS
+  // STATUS BADGE CONFIGURATION (Matching Web STATUS_CONFIG)
   // ==========================================================================
 
-  Color _getStatusBg(String status) {
+  _StatusBadgeInfo _getStatusBadgeInfo(String status) {
     switch (status.toUpperCase()) {
+      case 'SA_APPROVED':
+        return const _StatusBadgeInfo(
+          label: 'SA GREENLIT',
+          bg: Color(0xFFECFDF5),
+          fg: Color(0xFF047857),
+          border: Color(0xFFA7F3D0),
+        );
       case 'SUBMITTED':
       case 'IN_REVIEW':
       case 'PENDING_REVIEW':
-        return const Color(0xFFFEF3C7);
+        return const _StatusBadgeInfo(
+          label: 'IN REVIEW',
+          bg: Color(0xFFFEF3C7),
+          fg: Color(0xFFB45309),
+          border: Color(0xFFFDE68A),
+        );
       case 'PH_APPROVED':
       case 'APPROVED_BY_PH':
+      case 'SA_SAVED_FOR_LATER':
       case 'PENDING_SA':
-        return const Color(0xFFEDE9FE);
+        return const _StatusBadgeInfo(
+          label: 'PH APPROVED',
+          bg: Color(0xFFF0F9FF),
+          fg: Color(0xFF0369A1),
+          border: Color(0xFFBAE6FD),
+        );
       case 'ALLOCATED':
-        return const Color(0xFFE0F2FE);
-      case 'TECHPACK_CREATED':
-      case 'COMPLETED':
-        return const Color(0xFFD1FAE5);
+      case 'DRAFT':
+        return const _StatusBadgeInfo(
+          label: 'ALLOCATED',
+          bg: Color(0xFFF1F5F9),
+          fg: Color(0xFF334155),
+          border: Color(0xFFE2E8F0),
+        );
+      case 'PH_REJECTED':
       case 'REVISION_REQUESTED':
       case 'REJECTED':
-      case 'PH_REJECTED':
-        return const Color(0xFFFEE2E2);
-      default:
-        return const Color(0xFFF1F5F9);
-    }
-  }
-
-  Color _getStatusFg(String status) {
-    switch (status.toUpperCase()) {
-      case 'SUBMITTED':
-      case 'IN_REVIEW':
-      case 'PENDING_REVIEW':
-        return const Color(0xFFD97706);
-      case 'PH_APPROVED':
-      case 'APPROVED_BY_PH':
-      case 'PENDING_SA':
-        return const Color(0xFF7C3AED);
-      case 'ALLOCATED':
-        return const Color(0xFF0284C7);
-      case 'TECHPACK_CREATED':
+        return const _StatusBadgeInfo(
+          label: 'REVISIONS NEEDED',
+          bg: Color(0xFFFFF1F2),
+          fg: Color(0xFFBE123C),
+          border: Color(0xFFFECDD3),
+        );
+      case 'TECH_PACK_CREATED':
       case 'COMPLETED':
-        return const Color(0xFF059669);
-      case 'REVISION_REQUESTED':
-      case 'REJECTED':
-      case 'PH_REJECTED':
-        return const Color(0xFFDC2626);
+        return const _StatusBadgeInfo(
+          label: 'TECH-PACK CREATED',
+          bg: Color(0xFFFAF7F0),
+          fg: Color(0xFF0F172A),
+          border: Color(0x26000000),
+        );
       default:
-        return const Color(0xFF475569);
+        return _StatusBadgeInfo(
+          label: status.replaceAll('_', ' ').toUpperCase(),
+          bg: const Color(0xFFF1F5F9),
+          fg: const Color(0xFF475569),
+          border: const Color(0xFFE2E8F0),
+        );
     }
   }
+}
 
-  String _formatStatus(String status) {
-    switch (status.toUpperCase()) {
-      case 'SUBMITTED':
-        return 'Pending PH';
-      case 'IN_REVIEW':
-        return 'In Review';
-      case 'PH_APPROVED':
-        return 'PH Approved';
-      case 'ALLOCATED':
-        return 'Allocated';
-      case 'TECHPACK_CREATED':
-        return 'Tech-Pack Ready';
-      case 'REVISION_REQUESTED':
-        return 'Revisions';
-      case 'PH_REJECTED':
-        return 'Rejected';
-      default:
-        return status.replaceAll('_', ' ');
-    }
-  }
+class _StatusBadgeInfo {
+  final String label;
+  final Color bg;
+  final Color fg;
+  final Color border;
 
-  Color _parseColor(String colorStr) {
-    final clean = colorStr.trim().toLowerCase();
-    switch (clean) {
-      case 'black':
-      case '#000000':
-        return Colors.black;
-      case 'white':
-      case '#ffffff':
-        return Colors.white;
-      case 'navy':
-      case '#000080':
-        return const Color(0xFF000080);
-      case 'royal blue':
-      case '#4169e1':
-        return const Color(0xFF4169E1);
-      case 'red':
-      case '#ff0000':
-        return Colors.red;
-      case 'maroon':
-      case '#800000':
-        return const Color(0xFF800000);
-      case 'bottle green':
-      case '#006a4e':
-        return const Color(0xFF006A4E);
-      case 'olive':
-      case '#808000':
-        return const Color(0xFF808000);
-      case 'grey':
-      case 'gray':
-      case '#808080':
-        return Colors.grey;
-      case 'charcoal':
-      case '#36454f':
-        return const Color(0xFF36454F);
-      case 'beige':
-      case '#f5f5dc':
-        return const Color(0xFFF5F5DC);
-      case 'yellow':
-      case '#ffff00':
-        return Colors.yellow;
-      case 'orange':
-      case '#ffa500':
-        return Colors.orange;
-      case 'pink':
-      case '#ffc0cb':
-        return Colors.pink;
-      case 'purple':
-      case '#800080':
-        return Colors.purple;
-      default:
-        if (clean.startsWith('#') && clean.length == 7) {
-          try {
-            return Color(int.parse('0xFF${clean.substring(1)}'));
-          } catch (_) {}
-        }
-        return const Color(0xFF94A3B8);
-    }
-  }
+  const _StatusBadgeInfo({
+    required this.label,
+    required this.bg,
+    required this.fg,
+    required this.border,
+  });
 }
 
 // ============================================================================
@@ -1151,16 +1169,26 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
 
 class _ConceptReviewSheet extends ConsumerStatefulWidget {
   final DesignBriefModel brief;
+  final int initialTab;
 
-  const _ConceptReviewSheet({required this.brief});
+  const _ConceptReviewSheet({
+    required this.brief,
+    this.initialTab = 1,
+  });
 
   @override
   ConsumerState<_ConceptReviewSheet> createState() => _ConceptReviewSheetState();
 }
 
 class _ConceptReviewSheetState extends ConsumerState<_ConceptReviewSheet> {
-  int _selectedConceptIndex = 0;
+  late int _selectedConceptIndex;
   final TextEditingController _feedbackController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedConceptIndex = (widget.initialTab > 0) ? widget.initialTab - 1 : 0;
+  }
 
   @override
   void dispose() {
@@ -1171,12 +1199,15 @@ class _ConceptReviewSheetState extends ConsumerState<_ConceptReviewSheet> {
   @override
   Widget build(BuildContext context) {
     final brief = widget.brief;
-    final submissions = brief.submissions;
-    final latestSubmission = submissions.isNotEmpty ? submissions.first : null;
+    final latestSubmission = brief.latestSubmission;
     final concepts = latestSubmission?.safeConcepts ?? [];
 
     final targetDesigns = brief.safeTargetDesigns;
     final totalTabs = concepts.isNotEmpty ? concepts.length : (targetDesigns > 0 ? targetDesigns : 1);
+
+    if (_selectedConceptIndex >= totalTabs) {
+      _selectedConceptIndex = 0;
+    }
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
@@ -1328,7 +1359,7 @@ class _ConceptReviewSheetState extends ConsumerState<_ConceptReviewSheet> {
                   const SizedBox(height: 20),
 
                   // Instructions Recap
-                  if (brief.instructions != null && brief.instructions!.isNotEmpty) ...[
+                  if (brief.instructions != null && brief.cleanInstructions.isNotEmpty) ...[
                     Text(
                       'Brief Instructions',
                       style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
@@ -1367,7 +1398,7 @@ class _ConceptReviewSheetState extends ConsumerState<_ConceptReviewSheet> {
                   child: OutlinedButton.icon(
                     onPressed: () => _openRevisionsDialog(context, brief, latestSubmission?.id ?? ''),
                     icon: const Icon(Icons.edit_note_rounded, size: 18),
-                    label: const Text('Request revisions'),
+                    label: const Text('Request Revisions'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFDC2626),
                       side: const BorderSide(color: Color(0xFFDC2626)),
@@ -1972,7 +2003,7 @@ class _TechPacksCatalogSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.inventory_2_outlined, color: AppTheme.brandSteel, size: 22),
+                    const Icon(Icons.assignment_turned_in_outlined, color: AppTheme.brandSteel, size: 22),
                     const SizedBox(width: 8),
                     Text(
                       'Tech-Packs Ready (${techPacks.length})',

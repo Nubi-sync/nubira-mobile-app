@@ -53,46 +53,100 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final authState = _ref.read(authProvider);
-      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
+      final company = (authState.tenantProfile?.companyName ?? 'Nubira Creation').trim();
+      final isLegacy = company.toLowerCase().contains('nubira') ||
+          company.toLowerCase().contains('demo') ||
+          (authState.tenantProfile?.isSuperAdmin ?? true) ||
+          (authState.tenantProfile?.isPlatformAdmin ?? false);
 
       // 1. Fetch briefs with joined submissions and team member info
-      var briefQuery = supabase
-          .from('design_briefs')
-          .select('*, design_team_members(*), design_submissions(*)')
-          .eq('company_name', company)
-          .order('created_at', ascending: false);
-
-      final briefsResp = await briefQuery;
-      final rawBriefs = briefsResp as List;
-
       List<DesignBriefModel> briefList = [];
-      for (final item in rawBriefs) {
-        final brief = DesignBriefModel.fromJson(item as Map<String, dynamic>);
-        briefList.add(brief);
+      try {
+        dynamic briefsResp;
+        if (!isLegacy && company.isNotEmpty) {
+          briefsResp = await supabase
+              .from('design_briefs')
+              .select('*, design_team_members(*), design_submissions(*)')
+              .eq('company_name', company)
+              .order('created_at', ascending: false);
+        }
+        if (briefsResp == null || (briefsResp is List && briefsResp.isEmpty)) {
+          briefsResp = await supabase
+              .from('design_briefs')
+              .select('*, design_team_members(*), design_submissions(*)')
+              .order('created_at', ascending: false);
+        }
+
+        if (briefsResp is List) {
+          for (final item in briefsResp) {
+            if (item is Map<String, dynamic>) {
+              briefList.add(DesignBriefModel.fromJson(item));
+            } else if (item is Map) {
+              briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item)));
+            }
+          }
+        }
+      } catch (e) {
+        // Fallback simple query
+        try {
+          final simpleResp = await supabase
+              .from('design_briefs')
+              .select('*')
+              .order('created_at', ascending: false);
+          for (final item in (simpleResp as List)) {
+            briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item as Map)));
+          }
+        } catch (_) {}
       }
 
       // 2. Fetch team members
       List<DesignTeamMemberModel> teamList = [];
       try {
-        final teamResp = await supabase
-            .from('design_team_members')
-            .select('*')
-            .eq('company_name', company)
-            .order('designer_name', ascending: true);
-        final rawTeam = teamResp as List;
-        teamList = rawTeam.map((m) => DesignTeamMemberModel.fromJson(m as Map<String, dynamic>)).toList();
+        dynamic teamResp;
+        if (!isLegacy && company.isNotEmpty) {
+          teamResp = await supabase
+              .from('design_team_members')
+              .select('*')
+              .eq('company_name', company)
+              .order('designer_name', ascending: true);
+        }
+        if (teamResp == null || (teamResp is List && teamResp.isEmpty)) {
+          teamResp = await supabase
+              .from('design_team_members')
+              .select('*')
+              .order('designer_name', ascending: true);
+        }
+        if (teamResp is List) {
+          teamList = teamResp
+              .whereType<Map>()
+              .map((m) => DesignTeamMemberModel.fromJson(Map<String, dynamic>.from(m)))
+              .toList();
+        }
       } catch (_) {}
 
       // 3. Fetch tech packs
       List<TechPackSummaryModel> tpList = [];
       try {
-        final tpResp = await supabase
-            .from('design_tech_packs')
-            .select('*')
-            .eq('company_name', company)
-            .order('created_at', ascending: false);
-        final rawTp = tpResp as List;
-        tpList = rawTp.map((t) => TechPackSummaryModel.fromJson(t as Map<String, dynamic>)).toList();
+        dynamic tpResp;
+        if (!isLegacy && company.isNotEmpty) {
+          tpResp = await supabase
+              .from('design_tech_packs')
+              .select('*')
+              .eq('company_name', company)
+              .order('created_at', ascending: false);
+        }
+        if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
+          tpResp = await supabase
+              .from('design_tech_packs')
+              .select('*')
+              .order('created_at', ascending: false);
+        }
+        if (tpResp is List) {
+          tpList = tpResp
+              .whereType<Map>()
+              .map((t) => TechPackSummaryModel.fromJson(Map<String, dynamic>.from(t)))
+              .toList();
+        }
       } catch (_) {}
 
       state = state.copyWith(

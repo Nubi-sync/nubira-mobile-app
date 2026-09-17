@@ -197,25 +197,71 @@ class DesignSubmissionModel {
   }
 }
 
+class BriefDesignConceptRequirementModel {
+  final int conceptNumber;
+  final String? artNumber;
+  final String? categoryStyle;
+  final List<String> colors;
+  final String? notes;
+
+  const BriefDesignConceptRequirementModel({
+    required this.conceptNumber,
+    this.artNumber,
+    this.categoryStyle,
+    this.colors = const [],
+    this.notes,
+  });
+
+  factory BriefDesignConceptRequirementModel.fromJson(Map<String, dynamic> json) {
+    List<String> cols = [];
+    if (json['colors'] != null && json['colors'] is List) {
+      cols = (json['colors'] as List).map((c) => c.toString()).toList();
+    }
+    final cnRaw = json['concept_number'];
+    final cn = cnRaw is int ? cnRaw : (int.tryParse(cnRaw?.toString() ?? '') ?? 1);
+    return BriefDesignConceptRequirementModel(
+      conceptNumber: cn,
+      artNumber: json['art_number'] as String?,
+      categoryStyle: json['category_style'] as String?,
+      colors: cols,
+      notes: json['notes'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'concept_number': conceptNumber,
+      if (artNumber != null) 'art_number': artNumber,
+      if (categoryStyle != null) 'category_style': categoryStyle,
+      'colors': colors,
+      if (notes != null) 'notes': notes,
+    };
+  }
+}
+
 class DesignBriefModel {
   final String id;
   final String phUserId;
   final String? designerMemberId;
   final String? designerName;
   final String? designerEmail;
+  final String? designerPhone;
   final String garmentType;
   final String category;
   final int? targetDesigns;
   final int? maxColors;
   final List<String> targetColors;
   final String? instructions;
+  final List<BriefDesignConceptRequirementModel>? designConceptsBrief;
   final String status; // 'ALLOCATED' | 'SUBMITTED' | 'PH_APPROVED' | 'PH_REJECTED' | 'SA_APPROVED' | 'SA_SAVED_FOR_LATER' | 'TECH_PACK_CREATED'
   final String companyName;
   final String createdAt;
   final String updatedAt;
   final DesignSubmissionModel? latestSubmission;
 
-  int get safeTargetDesigns => (targetDesigns != null && targetDesigns! > 0) ? targetDesigns! : 1;
+  List<BriefDesignConceptRequirementModel> get safeDesignConceptsBrief => designConceptsBrief ?? const <BriefDesignConceptRequirementModel>[];
+
+  int get safeTargetDesigns => (targetDesigns != null && targetDesigns! > 0) ? targetDesigns! : (safeDesignConceptsBrief.isNotEmpty ? safeDesignConceptsBrief.length : 1);
   int get safeMaxColors => (maxColors != null && maxColors! > 0) ? maxColors! : 3;
 
   String get briefCode {
@@ -227,6 +273,15 @@ class DesignBriefModel {
 
   List<String> get safeColorways {
     if (targetColors.isNotEmpty) return targetColors;
+    if (safeDesignConceptsBrief.isNotEmpty) {
+      final set = <String>{};
+      for (final c in safeDesignConceptsBrief) {
+        for (final col in c.colors) {
+          if (col.trim().isNotEmpty) set.add(col.trim());
+        }
+      }
+      if (set.isNotEmpty) return set.toList();
+    }
     if (instructions != null && instructions!.contains('[COLORS:')) {
       final match = RegExp(r'\[COLORS:\s*(.*?)\]').firstMatch(instructions!);
       if (match != null && match.group(1) != null) {
@@ -239,8 +294,9 @@ class DesignBriefModel {
   String get cleanInstructions {
     if (instructions == null) return '';
     return instructions!
-        .replaceAll(RegExp(r'\[COLORS:\s*.*?\]'), '')
-        .replaceAll(RegExp(r'\[TARGET:\s*.*?\]'), '')
+        .replaceAll(RegExp(r'\[CONCEPTS_BRIEF:\s*\[[\s\S]*?\]\]\s*', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\[COLORS:\s*.*?\]', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\[TARGET:\s*.*?\]', caseSensitive: false), '')
         .trim();
   }
 
@@ -252,12 +308,14 @@ class DesignBriefModel {
     this.designerMemberId,
     this.designerName,
     this.designerEmail,
+    this.designerPhone,
     required this.garmentType,
     required this.category,
     this.targetDesigns = 1,
     this.maxColors = 3,
     this.targetColors = const [],
     this.instructions,
+    this.designConceptsBrief = const [],
     required this.status,
     required this.companyName,
     required this.createdAt,
@@ -280,16 +338,54 @@ class DesignBriefModel {
 
     final teamMember = json['design_team_members'] is Map ? json['design_team_members'] as Map : null;
 
+    final rawInst = json['instructions'] as String?;
+    List<BriefDesignConceptRequirementModel> conceptsBrief = [];
+    if (rawInst != null && rawInst.contains('[CONCEPTS_BRIEF:')) {
+      try {
+        final match = RegExp(r'\[CONCEPTS_BRIEF:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(rawInst);
+        if (match != null && match.group(1) != null) {
+          final dynamic decoded = jsonDecode(match.group(1)!);
+          if (decoded is List) {
+            conceptsBrief = decoded
+                .whereType<Map>()
+                .map((m) => BriefDesignConceptRequirementModel.fromJson(Map<String, dynamic>.from(m)))
+                .toList();
+          }
+        }
+      } catch (_) {}
+    }
+
     List<String> colorsList = [];
     if (json['target_colors'] != null && json['target_colors'] is List) {
       colorsList = (json['target_colors'] as List).map((e) => e.toString()).toList();
+    } else if (conceptsBrief.isNotEmpty) {
+      final set = <String>{};
+      for (final c in conceptsBrief) {
+        for (final col in c.colors) {
+          if (col.trim().isNotEmpty) set.add(col.trim());
+        }
+      }
+      colorsList = set.toList();
+    } else if (rawInst != null && rawInst.contains('[COLORS:')) {
+      final match = RegExp(r'\[COLORS:\s*(.*?)\]').firstMatch(rawInst);
+      if (match != null && match.group(1) != null) {
+        colorsList = match.group(1)!.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      }
     }
 
-    final tdRaw = json['target_designs'];
-    final td = tdRaw is int ? tdRaw : (int.tryParse(tdRaw?.toString() ?? '') ?? 1);
+    int td = conceptsBrief.isNotEmpty ? conceptsBrief.length : 1;
+    final tdRaw = json['target_designs'] ?? json['num_designs'];
+    if (tdRaw != null) {
+      td = tdRaw is int ? tdRaw : (int.tryParse(tdRaw.toString()) ?? td);
+    } else if (rawInst != null && rawInst.contains('[TARGET:')) {
+      final match = RegExp(r'\[TARGET:\s*(\d+)\s*(?:Designs)?\]', caseSensitive: false).firstMatch(rawInst);
+      if (match != null && match.group(1) != null) {
+        td = int.tryParse(match.group(1)!) ?? td;
+      }
+    }
 
     final mcRaw = json['max_colors'];
-    final mc = mcRaw is int ? mcRaw : (int.tryParse(mcRaw?.toString() ?? '') ?? 3);
+    final mc = mcRaw is int ? mcRaw : (int.tryParse(mcRaw?.toString() ?? '') ?? (colorsList.isNotEmpty ? colorsList.length : 3));
 
     return DesignBriefModel(
       id: json['id'] as String? ?? '',
@@ -297,12 +393,14 @@ class DesignBriefModel {
       designerMemberId: json['designer_member_id'] as String?,
       designerName: teamMember?['designer_name'] as String? ?? json['designer_name'] as String?,
       designerEmail: teamMember?['designer_email'] as String? ?? json['designer_email'] as String?,
+      designerPhone: teamMember?['phone_number'] as String? ?? teamMember?['designer_phone'] as String? ?? json['designer_phone'] as String?,
       garmentType: json['garment_type'] as String? ?? 'T-Shirt',
       category: json['category'] as String? ?? 'Casual',
       targetDesigns: td,
       maxColors: mc,
       targetColors: colorsList,
-      instructions: json['instructions'] as String?,
+      instructions: rawInst,
+      designConceptsBrief: conceptsBrief,
       status: json['status'] as String? ?? 'ALLOCATED',
       companyName: json['company_name'] as String? ?? 'Nubira Creation',
       createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
