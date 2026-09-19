@@ -373,6 +373,132 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     }
   }
 
+  Future<bool> saReviewDesignSubmission({
+    required String submissionId,
+    required String briefId,
+    int? conceptNumber,
+    String? colorwayName,
+    required String saVerdict, // 'APPROVED' | 'SAVED_FOR_LATER' | 'REJECTED'
+    String? saNotes,
+    Map<String, String>? colorwayVerdicts,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final subData = await supabase
+          .from('design_submissions')
+          .select('id, brief_id, designer_notes, sa_verdict')
+          .eq('id', submissionId)
+          .single();
+
+      final rawNotes = subData['designer_notes'] as String?;
+      String cleanNotes = rawNotes ?? '';
+      List<Map<String, dynamic>> updatedConcepts = [];
+
+      if (rawNotes != null && rawNotes.contains('[CONCEPTS_JSON:')) {
+        final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawNotes);
+        if (match != null && match.group(1) != null) {
+          final decoded = jsonDecode(match.group(1)!);
+          if (decoded is List) {
+            updatedConcepts = decoded.map((c) => Map<String, dynamic>.from(c as Map)).toList();
+          }
+          cleanNotes = rawNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
+        }
+      }
+
+      if (conceptNumber != null && updatedConcepts.isNotEmpty) {
+        updatedConcepts = updatedConcepts.map((c) {
+          if (c['concept_number'] == conceptNumber) {
+            List<Map<String, dynamic>> cws = [];
+            if (c['colorways'] is List) {
+              cws = (c['colorways'] as List).map((cw) {
+                final cwMap = Map<String, dynamic>.from(cw as Map);
+                final colName = cwMap['color_name']?.toString() ?? '';
+
+                String cwSaVerdict = cwMap['sa_verdict']?.toString() ?? '';
+                if (colorwayName != null && colName == colorwayName) {
+                  cwSaVerdict = saVerdict;
+                } else if (colorwayVerdicts != null && colorwayVerdicts.containsKey(colName)) {
+                  cwSaVerdict = colorwayVerdicts[colName]!;
+                } else if (colorwayName == null && colorwayVerdicts == null) {
+                  cwSaVerdict = saVerdict;
+                }
+
+                cwMap['sa_verdict'] = cwSaVerdict;
+                if ((colorwayName != null && colName == colorwayName) || colorwayName == null) {
+                  if (saNotes != null && saNotes.trim().isNotEmpty) {
+                    cwMap['sa_notes'] = saNotes.trim();
+                  }
+                }
+                return cwMap;
+              }).toList();
+            }
+
+            final hasAnyApproved = cws.any((cw) => cw['sa_verdict'] == 'APPROVED');
+            final hasAnySaved = cws.any((cw) => cw['sa_verdict'] == 'SAVED_FOR_LATER');
+            final allRejected = cws.isNotEmpty && cws.every((cw) => cw['sa_verdict'] == 'REJECTED');
+
+            final conceptSaVerdict = hasAnyApproved
+                ? 'APPROVED'
+                : hasAnySaved
+                    ? 'SAVED_FOR_LATER'
+                    : allRejected
+                        ? 'REJECTED'
+                        : saVerdict;
+
+            final conceptStatus = conceptSaVerdict == 'APPROVED'
+                ? 'SA_APPROVED'
+                : conceptSaVerdict == 'SAVED_FOR_LATER'
+                    ? 'SA_SAVED_FOR_LATER'
+                    : conceptSaVerdict == 'REJECTED'
+                        ? 'PH_REJECTED'
+                        : (c['status'] ?? 'PH_APPROVED');
+
+            c['sa_verdict'] = conceptSaVerdict;
+            if (saNotes != null && saNotes.trim().isNotEmpty) {
+              c['sa_notes'] = saNotes.trim();
+            }
+            c['status'] = conceptStatus;
+            c['colorways'] = cws;
+          }
+          return c;
+        }).toList();
+      }
+
+      String finalNotes = cleanNotes;
+      if (updatedConcepts.isNotEmpty) {
+        finalNotes = '[CONCEPTS_JSON: ${jsonEncode(updatedConcepts)}] $cleanNotes'.trim();
+      }
+
+      // Update submission
+      await supabase.from('design_submissions').update({
+        'designer_notes': finalNotes.isNotEmpty ? finalNotes : null,
+        'sa_verdict': saVerdict,
+        'sa_notes': saNotes != null && saNotes.trim().isNotEmpty ? saNotes.trim() : null,
+        'reviewed_at': DateTime.now().toIso8601String(),
+      }).eq('id', submissionId);
+
+      // Update brief status
+      String briefStatus = 'SA_APPROVED';
+      if (saVerdict == 'SAVED_FOR_LATER') {
+        briefStatus = 'SA_SAVED_FOR_LATER';
+      } else if (saVerdict == 'REJECTED') {
+        briefStatus = 'PH_REJECTED';
+      }
+
+      await supabase.from('design_briefs').update({
+        'status': briefStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', briefId);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
   Future<bool> deleteBrief(String briefId, {int? conceptNumber}) async {
     state = state.copyWith(isSubmitting: true);
     try {

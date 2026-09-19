@@ -8,6 +8,7 @@ import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
 import 'concept_review_screen.dart';
 import 'design_team_management_screen.dart';
+import 'ph_settings_screen.dart';
 import 'tech_pack_catalog_screen.dart';
 
 class ConceptCardData {
@@ -984,60 +985,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
     );
   }
 
-  // 5. PH SETTINGS MODAL
+  // 5. PH SETTINGS (Full Screen Navigation)
   void _openSettingsModal(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.tune_rounded, color: AppTheme.brandSteel, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              'PH Studio Settings',
-              style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Workflow Configuration',
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: true,
-              onChanged: (_) {},
-              activeColor: AppTheme.brandSteel,
-              title: Text('Auto-notify designers on assignment', style: GoogleFonts.publicSans(fontSize: 12.5)),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: true,
-              onChanged: (_) {},
-              activeColor: AppTheme.brandSteel,
-              title: Text('Require both Front & Back views', style: GoogleFonts.publicSans(fontSize: 12.5)),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Max active concepts per designer: 10',
-              style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Done', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: AppTheme.brandSteel)),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PHSettingsScreen()),
     );
   }
 

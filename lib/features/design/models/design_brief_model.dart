@@ -5,6 +5,8 @@ class ConceptColorwayModel {
   final String? photoFront;
   final String? photoBack;
   final String? status; // 'APPROVED' | 'REJECTED' | 'PENDING'
+  final String? saVerdict; // 'APPROVED' | 'SAVED_FOR_LATER' | 'REJECTED' | 'PENDING'
+  final String? saNotes;
 
   String get colorwayName => colorName;
 
@@ -13,6 +15,8 @@ class ConceptColorwayModel {
     this.photoFront,
     this.photoBack,
     this.status,
+    this.saVerdict,
+    this.saNotes,
   });
 
   ConceptColorwayModel copyWith({
@@ -20,12 +24,16 @@ class ConceptColorwayModel {
     String? photoFront,
     String? photoBack,
     String? status,
+    String? saVerdict,
+    String? saNotes,
   }) {
     return ConceptColorwayModel(
       colorName: colorName ?? this.colorName,
       photoFront: photoFront ?? this.photoFront,
       photoBack: photoBack ?? this.photoBack,
       status: status ?? this.status,
+      saVerdict: saVerdict ?? this.saVerdict,
+      saNotes: saNotes ?? this.saNotes,
     );
   }
 
@@ -35,6 +43,8 @@ class ConceptColorwayModel {
       photoFront: json['photo_front'] as String?,
       photoBack: json['photo_back'] as String?,
       status: json['status'] as String?,
+      saVerdict: json['sa_verdict'] as String?,
+      saNotes: json['sa_notes'] as String?,
     );
   }
 
@@ -44,6 +54,8 @@ class ConceptColorwayModel {
       if (photoFront != null) 'photo_front': photoFront,
       if (photoBack != null) 'photo_back': photoBack,
       if (status != null) 'status': status,
+      if (saVerdict != null) 'sa_verdict': saVerdict,
+      if (saNotes != null) 'sa_notes': saNotes,
     };
   }
 }
@@ -56,6 +68,8 @@ class DesignConceptItemModel {
   final String? status;
   final String? phVerdict;
   final String? phFeedback;
+  final String? saVerdict;
+  final String? saNotes;
   final List<ConceptColorwayModel>? colorways;
 
   int get safeConceptNumber => conceptNumber ?? 1;
@@ -69,6 +83,8 @@ class DesignConceptItemModel {
     this.status,
     this.phVerdict,
     this.phFeedback,
+    this.saVerdict,
+    this.saNotes,
     this.colorways = const [],
   });
 
@@ -91,6 +107,8 @@ class DesignConceptItemModel {
       status: json['status'] as String?,
       phVerdict: json['ph_verdict'] as String?,
       phFeedback: json['ph_feedback'] as String?,
+      saVerdict: json['sa_verdict'] as String?,
+      saNotes: json['sa_notes'] as String?,
       colorways: cws,
     );
   }
@@ -104,6 +122,8 @@ class DesignConceptItemModel {
       if (status != null) 'status': status,
       if (phVerdict != null) 'ph_verdict': phVerdict,
       if (phFeedback != null) 'ph_feedback': phFeedback,
+      if (saVerdict != null) 'sa_verdict': saVerdict,
+      if (saNotes != null) 'sa_notes': saNotes,
       'colorways': safeColorways.map((cw) => cw.toJson()).toList(),
     };
   }

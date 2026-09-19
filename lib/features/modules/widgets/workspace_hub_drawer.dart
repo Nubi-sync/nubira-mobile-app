@@ -2,20 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../models/module_card_model.dart';
 import '../screens/enterprise_workspace_hub_screen.dart';
 import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
-import '../screens/generic_division_screen.dart';
-import '../../admin/screens/admin_shell.dart';
 import '../../design/screens/design_studio_screen.dart';
-import '../../dashboard/store_dashboard.dart';
-import '../../dashboard/mending_dashboard.dart';
-import '../../dashboard/qc_dashboard.dart';
-import '../../dashboard/dispatch_dashboard.dart';
 import '../../design/screens/design_team_management_screen.dart';
+import '../../design/screens/ph_settings_screen.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
+import '../../design/screens/sa_design_approvals_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -39,6 +34,11 @@ class WorkspaceHubDrawer extends ConsumerWidget {
   bool _canAccessSupervisor(String role, bool isSuperAdmin) {
     final r = role.toUpperCase();
     return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PRODUCTION_MANAGER' || r == 'SUPERVISOR' || r == 'PLATFORM_SUPERADMIN';
+  }
+
+  bool _canAccessSAApprovals(String role, bool isSuperAdmin) {
+    final r = role.toUpperCase();
+    return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PLATFORM_SUPERADMIN';
   }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
@@ -100,51 +100,6 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     );
   }
 
-  void _showAiAssistantDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0x1A000000)),
-              ),
-              child: const Icon(Icons.smart_toy_rounded, color: Color(0xFF3A3564), size: 20),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Zigza AI Copilot',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Active Plant Intelligence is monitoring shop-floor execution throughput and trims consumption across authorized divisions.',
-          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF475569), height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Close',
-              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _navigateTo(BuildContext context, Widget screen) {
     Navigator.pop(context); // Close Drawer
     Navigator.push(
@@ -179,7 +134,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF3A3564),
+                        color: const Color(0xFF332B6B),
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -190,7 +145,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFFAF6E9),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0x26000000)),
                 ),
@@ -199,7 +154,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF332B6B),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -239,7 +194,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             width: 38,
             height: 38,
             decoration: const BoxDecoration(
-              color: Color(0xFF3A3564),
+              color: Color(0xFF332B6B),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -278,7 +233,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
                       style: GoogleFonts.publicSans(
                         fontSize: 11,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF6B6A65),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -292,14 +247,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                             style: GoogleFonts.publicSans(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF332B6B),
                             ),
                           ),
                           const SizedBox(width: 2),
                           const Icon(
                             Icons.arrow_outward_rounded,
                             size: 11,
-                            color: Color(0xFF0F172A),
+                            color: Color(0xFF332B6B),
                           ),
                         ],
                       ),
@@ -312,7 +267,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
           // Logout Icon Button
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFF64748B), size: 20),
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFF6B6A65), size: 20),
             tooltip: 'Sign Out',
             onPressed: () => _showSignOutDialog(context, ref),
           ),
@@ -330,25 +285,9 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final userEmail = tenant?.userEmail ?? authState.cachedUsername ?? 'staff@factory.local';
     final adminDisplayName = tenant?.adminDisplayName ?? authState.cachedUsername ?? 'User';
 
-    final rawAllowed = tenant?.allowedDivisions.isNotEmpty == true
-        ? tenant!.allowedDivisions
-        : authState.allowedDivisions;
-
-    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
-        (tenant?.isLegacyNubira == true) ||
-        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
-        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
-
-    final allowed = isNubira
-        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
-        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
-
-    final visibleModules = allEnterpriseModules
-        .where((m) => allowed.contains(m.route) || allowed.any((a) => a.startsWith(m.route) || m.route.startsWith(a)))
-        .toList();
-
     final canHeads = _canAccessDepartmentHeads(role, isSuperAdmin, false);
     final canSupervisor = _canAccessSupervisor(role, isSuperAdmin);
+    final canSAApprovals = _canAccessSAApprovals(role, isSuperAdmin);
 
     // User Initials
     final initials = adminDisplayName.trim().isNotEmpty
@@ -356,7 +295,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         : 'Z';
 
     // Check if inside Design Studio
-    final isDesignStudio = activeRoute.startsWith('/design');
+    final isDesignStudio = activeRoute.startsWith('/design') && activeRoute != '/design/sa-approvals';
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -373,7 +312,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                 children: isDesignStudio
                     ? [
                         // ==========================================
-                        // 1. DESIGN STUDIO CONTEXTUAL NAVIGATION (Matching Image 1)
+                        // 1. DESIGN STUDIO CONTEXTUAL NAVIGATION
                         // ==========================================
                         _buildSectionLabel('WORKSPACE HUB'),
                         const SizedBox(height: 4),
@@ -435,20 +374,11 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           title: 'PH Settings',
                           isActive: activeRoute == '/design/settings',
                           onTap: () {
-                            Navigator.pop(context);
-                            if (onOpenSettings != null) {
-                              onOpenSettings!();
+                            if (activeRoute == '/design/settings') {
+                              Navigator.pop(context);
+                            } else {
+                              _navigateTo(context, const PHSettingsScreen());
                             }
-                          },
-                        ),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.smart_toy_outlined,
-                          title: 'Zigza AI',
-                          isActive: activeRoute == '/design/zigza-ai',
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showAiAssistantDialog(context);
                           },
                         ),
 
@@ -465,19 +395,19 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       ]
                     : [
                         // ==========================================
-                        // ROOT WORKSPACE HUB NAVIGATION (Matching Image 2)
+                        // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
                         // ==========================================
                         _buildSectionLabel('WORKSPACE HUB'),
                         const SizedBox(height: 4),
 
-                        // All Modules (Hub Home)
+                        // 1. All Modules (Hub Home)
                         _buildNavItem(
                           context: context,
                           icon: Icons.grid_view_rounded,
                           title: 'All Modules',
-                          isActive: activeRoute == '/modules',
+                          isActive: activeRoute == '/modules' || activeRoute == '/workspace-hub',
                           onTap: () {
-                            if (activeRoute == '/modules') {
+                            if (activeRoute == '/modules' || activeRoute == '/workspace-hub') {
                               Navigator.pop(context);
                             } else {
                               _navigateTo(context, const EnterpriseWorkspaceHubScreen());
@@ -485,88 +415,50 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           },
                         ),
 
-                        // Department Heads (Role-Gated)
+                        // 2. Department Heads (Role-Gated)
                         if (canHeads)
                           _buildNavItem(
                             context: context,
                             icon: Icons.shield_outlined,
                             title: 'Department Heads',
-                            isActive: activeRoute == '/access-control' || activeRoute == '/department-heads',
+                            isActive: activeRoute == '/access-control' ||
+                                activeRoute == '/department-heads' ||
+                                activeRoute == '/modules/access-control',
                             onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
                           ),
 
-                        // Supervisor Operations (Role-Gated)
+                        // 3. Supervisor Operations (Role-Gated)
                         if (canSupervisor)
                           _buildNavItem(
                             context: context,
                             icon: Icons.build_outlined,
                             title: 'Supervisor Operations',
-                            isActive: activeRoute == '/supervisor-desk' || activeRoute == '/supervisor-hub',
+                            isActive: activeRoute == '/supervisor-desk' ||
+                                activeRoute == '/supervisor-hub' ||
+                                activeRoute == '/modules/supervisor-desk',
                             onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
                           ),
 
-                        // Company Profile
+                        // 4. SA Design Approvals (Role-Gated, matches Web order & icon)
+                        if (canSAApprovals)
+                          _buildNavItem(
+                            context: context,
+                            icon: Icons.verified_user_outlined,
+                            title: 'SA Design Approvals',
+                            isActive: activeRoute == '/design/sa-approvals' || activeRoute == '/sa-approvals',
+                            onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
+                          ),
+
+                        // 5. Company Profile
                         _buildNavItem(
                           context: context,
                           icon: Icons.business_outlined,
                           title: 'Company Profile',
-                          isActive: activeRoute == '/profile' || activeRoute == '/company-profile',
+                          isActive: activeRoute == '/profile' ||
+                              activeRoute == '/company-profile' ||
+                              activeRoute == '/modules/profile',
                           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
                         ),
-
-                        // Zigza AI
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.smart_toy_outlined,
-                          title: 'Zigza AI',
-                          isActive: false,
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showAiAssistantDialog(context);
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-                        _buildSectionLabel('AUTHORIZED OPERATING UNITS'),
-                        const SizedBox(height: 4),
-
-                        // Dynamic list of authorized division cards
-                        ...visibleModules.map((mod) {
-                          final isCurrentMod = activeRoute == mod.route;
-                          return _buildNavItem(
-                            context: context,
-                            icon: mod.icon,
-                            title: mod.title,
-                            isActive: isCurrentMod,
-                            onTap: () {
-                              Widget dest;
-                              switch (mod.id) {
-                                case 'design':
-                                  dest = const DesignStudioScreen();
-                                  break;
-                                case 'stitching-sewing':
-                                  dest = const AdminShell();
-                                  break;
-                                case 'store':
-                                  dest = const StoreDashboard();
-                                  break;
-                                case 'alter':
-                                  dest = const MendingDashboard();
-                                  break;
-                                case 'ready-goods':
-                                  dest = const QcDashboard();
-                                  break;
-                                case 'dispatch':
-                                  dest = const DispatchDashboard();
-                                  break;
-                                default:
-                                  dest = GenericDivisionScreen(module: mod);
-                                  break;
-                              }
-                              _navigateTo(context, dest);
-                            },
-                          );
-                        }),
                       ],
               ),
             ),
@@ -603,7 +495,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 3),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFAF7F0) : Colors.transparent,
+        color: isActive ? const Color(0xFFFAF6E9) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: InkWell(
@@ -613,14 +505,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             border: isActive
-                ? const Border(left: BorderSide(color: Color(0xFF3A3564), width: 3.5))
+                ? const Border(left: BorderSide(color: Color(0xFF332B6B), width: 3.0))
                 : null,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isActive ? const Color(0xFF3A3564) : const Color(0xFF475569),
+                color: isActive ? const Color(0xFF332B6B) : const Color(0xFF6B6A65),
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -630,7 +522,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   style: GoogleFonts.publicSans(
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                    color: isActive ? const Color(0xFF3A3564) : const Color(0xFF0F172A),
+                    color: isActive ? const Color(0xFF332B6B) : const Color(0xFF3C3A35),
                   ),
                 ),
               ),
