@@ -148,6 +148,17 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
     }
   }
 
+  String _cleanFabricComposition(String? raw) {
+    if (raw == null || raw.isEmpty) return '100% Combed Cotton Single Jersey';
+    String s = raw;
+    s = s.replaceAll(RegExp(r'\[BOM_JSON:\s*\[[\s\S]*?\]\]', caseSensitive: false), '');
+    s = s.replaceAll(RegExp(r'\[TARGET_CUT_DATE:[^\]]*\]', caseSensitive: false), '');
+    s = s.replaceAll(RegExp(r'\[INSTRUCTIONS:[^\]]*\]', caseSensitive: false), '');
+    s = s.replaceAll(RegExp(r'\[[A-Z_]+:[^\]]*\]', caseSensitive: false), '');
+    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return s.isEmpty ? '100% Combed Cotton Single Jersey' : s;
+  }
+
   void _handleSelectOption(String key, List<ActiveBuyer> buyers, List<TechPackArticleItem> techPacks) {
     setState(() {
       _selectedOptionKey = key;
@@ -194,7 +205,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           _selectedTechPack = tp;
           _styleNameController.text = '${tp.category} Style ${tp.styleNumber} (${tp.fabricComposition}, ${tp.targetGsm} GSM)';
           _embellishmentSeq = tp.embellishmentSequence;
-          _fabricComposition = tp.fabricComposition;
+          _fabricComposition = _cleanFabricComposition(tp.fabricComposition);
           _targetGsm = tp.targetGsm;
           _cadFrontUrl = tp.cadFrontUrl;
           _cadBackUrl = tp.cadBackUrl;
@@ -220,7 +231,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         _styleRefController.text = tp.styleNumber;
         _styleNameController.text = '${tp.category} Style ${tp.styleNumber} (${tp.fabricComposition}, ${tp.targetGsm} GSM)';
         _embellishmentSeq = tp.embellishmentSequence;
-        _fabricComposition = tp.fabricComposition;
+        _fabricComposition = _cleanFabricComposition(tp.fabricComposition);
         _targetGsm = tp.targetGsm;
         _cadFrontUrl = tp.cadFrontUrl;
         _cadBackUrl = tp.cadBackUrl;
@@ -794,8 +805,15 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('BUYER PO NUMBER *', style: _labelStyle),
-                      Text('Auto-Generated', style: GoogleFonts.jetBrainsMono(fontSize: 8.5, color: const Color(0xFF9B9A94))),
+                      Expanded(
+                        child: Text(
+                          'BUYER PO NUMBER *',
+                          style: _labelStyle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 8.5, color: const Color(0xFF9B9A94))),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -1140,7 +1158,12 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('TOTAL ORDER QUANTITY (PCS) *', style: _labelStyle),
+                  Text(
+                    'TOTAL ORDER QUANTITY (PCS) *',
+                    style: _labelStyle,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   const SizedBox(height: 4),
                   SizedBox(
                     height: 42,
