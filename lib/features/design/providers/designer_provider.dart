@@ -440,35 +440,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     }
   }
 
-  Future<bool> onboardDesigner({
-    required String name,
-    required String emailOrPhone,
-    required String password,
-  }) async {
-    state = state.copyWith(isSubmitting: true);
-    try {
-      final authState = _ref.read(authProvider);
-      final company = authState.tenantProfile?.companyName ?? 'Nubira Creation';
 
-      final isEmail = emailOrPhone.contains('@');
-
-      await supabase.from('design_team_members').insert({
-        'designer_name': name.trim(),
-        'designer_email': isEmail ? emailOrPhone.trim().toLowerCase() : null,
-        'phone_number': !isEmail ? emailOrPhone.trim() : null,
-        'designer_password': password.trim(),
-        'status': 'ACTIVE',
-        'company_name': company,
-      });
-
-      await fetchStudioData();
-      state = state.copyWith(isSubmitting: false);
-      return true;
-    } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: e.toString());
-      return false;
-    }
-  }
 
   Future<bool> submitDesignConcepts({
     required String briefId,
@@ -667,6 +639,158 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     state = state.copyWith(isSubmitting: true);
     try {
       await supabase.from('design_tech_packs').delete().eq('id', techPackId);
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // TEAM MANAGEMENT METHODS (PH adds/manages designers)
+  // ============================================================================
+
+  Future<({bool success, String? error, DesignTeamMemberModel? data})> onboardDesigner({
+    required String designerName,
+    required String phoneNumber,
+    String? password,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final rawPhone = phoneNumber.replaceAll(RegExp(r'\D'), '');
+      final phone10 = rawPhone.length >= 10 ? rawPhone.substring(rawPhone.length - 10) : rawPhone;
+      if (phone10.length != 10) {
+        state = state.copyWith(isSubmitting: false);
+        return (success: false, error: 'Please enter a valid 10-digit mobile number.', data: null);
+      }
+
+      final nameClean = designerName.trim();
+      final authState = _ref.read(authProvider);
+      final company = authState.tenantProfile?.companyName.trim() ?? 'Nubira Creation';
+      final currentUserId = authState.tenantProfile?.userId ?? authState.cachedUsername ?? 'admin';
+      final internalEmail = '$phone10@designer.nubira.local';
+
+      final nameSlug = nameClean.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_').split('_').first;
+      final companySlug = company.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_').split('_').first;
+      final baseUsername = '${nameSlug}_$companySlug';
+
+      // Check existing usernames for counter
+      final existingUsers = await supabase
+          .from('design_team_members')
+          .select('username')
+          .ilike('username', '$baseUsername%');
+
+      String finalUsername = baseUsername;
+      if (existingUsers.isNotEmpty) {
+        final existingSet = existingUsers
+            .whereType<Map>()
+            .map((m) => (m['username'] as String?)?.toLowerCase())
+            .toSet();
+        if (existingSet.contains(finalUsername.toLowerCase())) {
+          int counter = 2;
+          while (existingSet.contains('${baseUsername}_$counter'.toLowerCase())) {
+            counter++;
+          }
+          finalUsername = '${baseUsername}_$counter';
+        }
+      }
+
+      // Check if phone or email already exists in this company
+      final existingPhone = await supabase
+          .from('design_team_members')
+          .select('*')
+          .eq('company_name', company)
+          .or('phone_number.eq.$phone10,designer_phone.eq.$phone10,designer_email.eq.$internalEmail')
+          .maybeSingle();
+
+      if (existingPhone != null) {
+        final status = (existingPhone['status'] as String?)?.toUpperCase();
+        if (status == 'REMOVED') {
+          final revived = await supabase
+              .from('design_team_members')
+              .update({
+                'status': 'ACTIVE',
+                'designer_name': nameClean,
+                'phone_number': phone10,
+                'designer_phone': phone10,
+                'username': finalUsername,
+                'designer_email': internalEmail,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', existingPhone['id'])
+              .select('*')
+              .single();
+
+          await fetchStudioData();
+          state = state.copyWith(isSubmitting: false);
+          return (
+            success: true,
+            error: null,
+            data: DesignTeamMemberModel.fromJson(Map<String, dynamic>.from(revived))
+          );
+        }
+        state = state.copyWith(isSubmitting: false);
+        return (
+          success: false,
+          error: 'A team member with mobile number $phone10 is already registered in this company.',
+          data: null
+        );
+      }
+
+      // Insert new record
+      final insertData = {
+        'ph_user_id': currentUserId,
+        'designer_name': nameClean,
+        'phone_number': phone10,
+        'designer_phone': phone10,
+        'username': finalUsername,
+        'designer_email': internalEmail,
+        'company_name': company,
+        'status': 'ACTIVE',
+      };
+
+      final inserted = await supabase
+          .from('design_team_members')
+          .insert(insertData)
+          .select('*')
+          .single();
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return (
+        success: true,
+        error: null,
+        data: DesignTeamMemberModel.fromJson(Map<String, dynamic>.from(inserted))
+      );
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return (success: false, error: e.toString(), data: null);
+    }
+  }
+
+  Future<bool> updateDesignerStatus(String memberId, String newStatus) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await supabase.from('design_team_members').update({
+        'status': newStatus.toUpperCase(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', memberId);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteDesigner(String memberId) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await supabase.from('design_team_members').delete().eq('id', memberId);
       await fetchStudioData();
       state = state.copyWith(isSubmitting: false);
       return true;

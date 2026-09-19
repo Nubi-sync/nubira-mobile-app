@@ -14,6 +14,7 @@ import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
+import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
@@ -421,9 +422,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           title: 'Team Management',
                           isActive: activeRoute == '/design/team',
                           onTap: () {
-                            Navigator.pop(context);
-                            if (onOpenTeam != null) {
-                              onOpenTeam!();
+                            if (activeRoute == '/design/team') {
+                              Navigator.pop(context);
+                            } else {
+                              _navigateTo(context, const DesignTeamManagementScreen());
                             }
                           },
                         ),

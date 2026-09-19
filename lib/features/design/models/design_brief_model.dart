@@ -446,32 +446,140 @@ class DesignBriefModel {
 
 class DesignTeamMemberModel {
   final String id;
+  final String? phUserId;
+  final String? designerUserId;
   final String designerName;
   final String? designerEmail;
   final String? phoneNumber;
-  final String? status;
+  final String? designerPhone;
+  final String? username;
+  final String status;
   final String? companyName;
   final String createdAt;
+  final String? updatedAt;
 
   const DesignTeamMemberModel({
     required this.id,
+    this.phUserId,
+    this.designerUserId,
     required this.designerName,
     this.designerEmail,
     this.phoneNumber,
+    this.designerPhone,
+    this.username,
     this.status = 'ACTIVE',
     this.companyName,
     required this.createdAt,
+    this.updatedAt,
   });
 
+  bool get isActive => status.toUpperCase() == 'ACTIVE';
+
+  String get safeUsername {
+    if (username != null && username!.trim().isNotEmpty) {
+      return username!.trim();
+    }
+    final nameSlug = designerName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_').split('_').first;
+    final compSlug = (companyName ?? 'nubira').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_').split('_').first;
+    return '${nameSlug}_$compSlug';
+  }
+
+  String get safePhone {
+    if (phoneNumber != null && phoneNumber!.trim().isNotEmpty) {
+      return phoneNumber!.trim();
+    }
+    if (designerPhone != null && designerPhone!.trim().isNotEmpty) {
+      return designerPhone!.trim();
+    }
+    if (designerEmail != null && designerEmail!.contains('@designer.nubira.local')) {
+      final p = designerEmail!.split('@')[0];
+      if (RegExp(r'^\d{10}$').hasMatch(p)) return p;
+    }
+    return '—';
+  }
+
+  String get initials {
+    final clean = designerName.trim();
+    if (clean.isEmpty) return 'D';
+    final parts = clean.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.length == 1) {
+      final str = parts.first;
+      return (str.length >= 2 ? str.substring(0, 2) : str).toUpperCase();
+    }
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
   factory DesignTeamMemberModel.fromJson(Map<String, dynamic> json) {
+    final rawPhone = json['phone_number'] as String? ?? json['designer_phone'] as String?;
+    final email = json['designer_email'] as String?;
+    String? phone = rawPhone;
+    if ((phone == null || phone.isEmpty) && email != null && email.contains('@designer.nubira.local')) {
+      final p = email.split('@')[0];
+      if (RegExp(r'^\d{10}$').hasMatch(p)) {
+        phone = p;
+      }
+    }
+
     return DesignTeamMemberModel(
       id: json['id'] as String? ?? '',
+      phUserId: json['ph_user_id'] as String?,
+      designerUserId: json['designer_user_id'] as String?,
       designerName: json['designer_name'] as String? ?? 'Designer',
-      designerEmail: json['designer_email'] as String?,
-      phoneNumber: json['phone_number'] as String?,
-      status: json['status'] as String? ?? 'ACTIVE',
+      designerEmail: email,
+      phoneNumber: phone,
+      designerPhone: rawPhone,
+      username: json['username'] as String?,
+      status: (json['status'] as String?)?.toUpperCase() ?? 'ACTIVE',
       companyName: json['company_name'] as String?,
       createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      updatedAt: json['updated_at'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ph_user_id': phUserId,
+      'designer_user_id': designerUserId,
+      'designer_name': designerName,
+      'designer_email': designerEmail,
+      'phone_number': phoneNumber,
+      'designer_phone': designerPhone,
+      'username': username,
+      'status': status,
+      'company_name': companyName,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+
+  DesignTeamMemberModel copyWith({
+    String? id,
+    String? phUserId,
+    String? designerUserId,
+    String? designerName,
+    String? designerEmail,
+    String? phoneNumber,
+    String? designerPhone,
+    String? username,
+    String? status,
+    String? companyName,
+    String? createdAt,
+    String? updatedAt,
+  }) {
+    return DesignTeamMemberModel(
+      id: id ?? this.id,
+      phUserId: phUserId ?? this.phUserId,
+      designerUserId: designerUserId ?? this.designerUserId,
+      designerName: designerName ?? this.designerName,
+      designerEmail: designerEmail ?? this.designerEmail,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      designerPhone: designerPhone ?? this.designerPhone,
+      username: username ?? this.username,
+      status: status ?? this.status,
+      companyName: companyName ?? this.companyName,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
