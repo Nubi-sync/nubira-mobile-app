@@ -11,6 +11,8 @@ import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/ph_settings_screen.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
 import '../../design/screens/sa_design_approvals_screen.dart';
+import '../../merchandising/screens/merchandising_dashboard_screen.dart';
+import '../../merchandising/screens/active_buyers_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -294,8 +296,9 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         ? adminDisplayName.trim().split(' ').map((s) => s.isNotEmpty ? s[0].toUpperCase() : '').take(2).join()
         : 'Z';
 
-    // Check if inside Design Studio
+    // Check if inside Design Studio or Merchandising
     final isDesignStudio = activeRoute.startsWith('/design') && activeRoute != '/design/sa-approvals';
+    final isMerchandising = activeRoute.startsWith('/merchandising');
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -393,12 +396,108 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
                         ),
                       ]
-                    : [
-                        // ==========================================
-                        // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
-                        // ==========================================
-                        _buildSectionLabel('WORKSPACE HUB'),
-                        const SizedBox(height: 4),
+                    : (isMerchandising
+                        ? [
+                            // ==========================================
+                            // 2. MERCHANDISING CONTEXTUAL NAVIGATION (Matching Web Exactly)
+                            // ==========================================
+                            _buildSectionLabel('WORKSPACE HUB'),
+                            const SizedBox(height: 4),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.grid_view_rounded,
+                              title: 'All Modules',
+                              isActive: false,
+                              onTap: () {
+                                _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildSectionLabel('2. MERCHANDISING'),
+                            const SizedBox(height: 4),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.business_center_outlined,
+                              title: 'Desk Dashboard',
+                              isActive: activeRoute == '/merchandising',
+                              onTap: () {
+                                if (activeRoute == '/merchandising') {
+                                  Navigator.pop(context);
+                                } else {
+                                  _navigateTo(context, const MerchandisingDashboardScreen());
+                                }
+                              },
+                            ),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.people_outline_rounded,
+                              title: 'Active Buyers',
+                              isActive: activeRoute == '/merchandising/buyers',
+                              onTap: () {
+                                if (activeRoute == '/merchandising/buyers') {
+                                  Navigator.pop(context);
+                                } else {
+                                  _navigateTo(context, const ActiveBuyersScreen());
+                                }
+                              },
+                            ),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.fact_check_outlined,
+                              title: 'Buyer Purchase Orders',
+                              isActive: activeRoute == '/merchandising/orders',
+                              onTap: () {
+                                if (activeRoute == '/merchandising') {
+                                  Navigator.pop(context);
+                                } else {
+                                  _navigateTo(context, const MerchandisingDashboardScreen());
+                                }
+                              },
+                            ),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.calendar_month_outlined,
+                              title: 'Time & Action (T&A) Planner',
+                              isActive: activeRoute == '/merchandising/tna-calendar',
+                              onTap: () {
+                                if (activeRoute == '/merchandising') {
+                                  Navigator.pop(context);
+                                } else {
+                                  _navigateTo(context, const MerchandisingDashboardScreen());
+                                }
+                              },
+                            ),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.smart_toy_outlined,
+                              title: 'Zigza AI',
+                              isActive: activeRoute == '/merchandising/zigza-ai',
+                              onTap: () {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Zigza AI Merchandising Assistant active on desk')),
+                                );
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+                            _buildSectionLabel('ACCOUNT'),
+                            const SizedBox(height: 4),
+                            _buildNavItem(
+                              context: context,
+                              icon: Icons.person_outline_rounded,
+                              title: 'Desk Profile',
+                              isActive: activeRoute == '/merchandising/profile',
+                              onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                            ),
+                          ]
+                        : [
+                            // ==========================================
+                            // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
+                            // ==========================================
+                            _buildSectionLabel('WORKSPACE HUB'),
+                            const SizedBox(height: 4),
 
                         // 1. All Modules (Hub Home)
                         _buildNavItem(
@@ -449,17 +548,16 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                             onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
                           ),
 
-                        // 5. Company Profile
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.business_outlined,
-                          title: 'Company Profile',
-                          isActive: activeRoute == '/profile' ||
-                              activeRoute == '/company-profile' ||
-                              activeRoute == '/modules/profile',
-                          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                        ),
-                      ],
+                          _buildNavItem(
+                            context: context,
+                            icon: Icons.business_outlined,
+                            title: 'Company Profile',
+                            isActive: activeRoute == '/profile' ||
+                                activeRoute == '/company-profile' ||
+                                activeRoute == '/modules/profile',
+                            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                          ),
+                        ]),
               ),
             ),
 
