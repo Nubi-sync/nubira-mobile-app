@@ -279,15 +279,156 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     }
   }
 
-  Future<bool> deleteBrief(String briefId) async {
+  Future<bool> reviewSubmissionColorways({
+    required String submissionId,
+    required String briefId,
+    int? conceptNumber,
+    required String phVerdict, // 'APPROVED' or 'REJECTED'
+    String? phFeedback,
+    required Map<String, String> colorwayVerdicts, // color_name -> 'APPROVED' | 'REJECTED'
+  }) async {
     state = state.copyWith(isSubmitting: true);
     try {
-      // 1. Delete associated submissions
+      // 1. Fetch current submission
+      final subData = await supabase
+          .from('design_submissions')
+          .select('id, brief_id, designer_notes, ph_verdict')
+          .eq('id', submissionId)
+          .single();
+
+      final rawNotes = subData['designer_notes'] as String?;
+      String cleanNotes = rawNotes ?? '';
+      List<Map<String, dynamic>> updatedConcepts = [];
+
+      if (rawNotes != null && rawNotes.contains('[CONCEPTS_JSON:')) {
+        final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawNotes);
+        if (match != null && match.group(1) != null) {
+          final decoded = jsonDecode(match.group(1)!);
+          if (decoded is List) {
+            updatedConcepts = decoded.map((c) => Map<String, dynamic>.from(c as Map)).toList();
+          }
+          cleanNotes = rawNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
+        }
+      }
+
+      if (conceptNumber != null && updatedConcepts.isNotEmpty) {
+        updatedConcepts = updatedConcepts.map((c) {
+          if (c['concept_number'] == conceptNumber) {
+            List<Map<String, dynamic>> cws = [];
+            if (c['colorways'] is List) {
+              cws = (c['colorways'] as List).map((cw) {
+                final cwMap = Map<String, dynamic>.from(cw as Map);
+                final colName = cwMap['color_name']?.toString() ?? '';
+                final cwVerdict = colorwayVerdicts[colName] ?? phVerdict;
+                cwMap['status'] = cwVerdict;
+                return cwMap;
+              }).toList();
+            }
+            final allCwRejected = cws.isNotEmpty && cws.every((cw) => cw['status'] == 'REJECTED');
+            final anyCwApproved = cws.isNotEmpty && cws.any((cw) => cw['status'] == 'APPROVED');
+            final conceptVerdict = allCwRejected ? 'REJECTED' : (anyCwApproved ? 'APPROVED' : phVerdict);
+            c['ph_verdict'] = conceptVerdict;
+            if (phFeedback != null && phFeedback.trim().isNotEmpty) {
+              c['ph_feedback'] = phFeedback.trim();
+            }
+            c['status'] = conceptVerdict == 'APPROVED' ? 'PH_APPROVED' : 'PH_REJECTED';
+            c['colorways'] = cws;
+          }
+          return c;
+        }).toList();
+      }
+
+      String finalNotes = cleanNotes;
+      if (updatedConcepts.isNotEmpty) {
+        finalNotes = '[CONCEPTS_JSON: ${jsonEncode(updatedConcepts)}] $cleanNotes'.trim();
+      }
+
+      final hasAnyConceptApproved = updatedConcepts.isNotEmpty
+          ? updatedConcepts.any((c) => c['ph_verdict'] == 'APPROVED' || c['status'] == 'PH_APPROVED')
+          : (phVerdict == 'APPROVED' || colorwayVerdicts.values.any((v) => v == 'APPROVED'));
+
+      final overallVerdict = (phVerdict == 'APPROVED' || hasAnyConceptApproved) ? 'APPROVED' : 'REJECTED';
+      final briefStatus = overallVerdict == 'APPROVED' ? 'PH_APPROVED' : 'PH_REJECTED';
+
+      // 2. Update submission
+      await supabase.from('design_submissions').update({
+        'designer_notes': finalNotes.isNotEmpty ? finalNotes : null,
+        'ph_verdict': overallVerdict,
+        'ph_feedback': (phFeedback != null && phFeedback.trim().isNotEmpty) ? phFeedback.trim() : null,
+        'reviewed_at': DateTime.now().toIso8601String(),
+      }).eq('id', submissionId);
+
+      // 3. Update brief status
+      await supabase.from('design_briefs').update({
+        'status': briefStatus,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', briefId);
+
+      await fetchStudioData();
+      state = state.copyWith(isSubmitting: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteBrief(String briefId, {int? conceptNumber}) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      if (conceptNumber != null) {
+        // Fetch brief to check concepts
+        final briefData = await supabase.from('design_briefs').select('*, design_submissions(*)').eq('id', briefId).single();
+        final rawInstructions = briefData['instructions'] as String? ?? '';
+        final subs = briefData['design_submissions'] as List? ?? [];
+        final latestSub = subs.isNotEmpty ? subs.last as Map : null;
+
+        // If instructions have CONCEPTS_JSON
+        if (rawInstructions.contains('[CONCEPTS_JSON:')) {
+          final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawInstructions);
+          if (match != null && match.group(1) != null) {
+            final decoded = jsonDecode(match.group(1)!);
+            if (decoded is List) {
+              final rem = decoded.where((c) => (c is Map && c['concept_number'] != conceptNumber)).toList();
+              if (rem.isNotEmpty) {
+                final renumbered = rem.asMap().entries.map((e) {
+                  final m = Map<String, dynamic>.from(e.value as Map);
+                  m['concept_number'] = e.key + 1;
+                  return m;
+                }).toList();
+                final cleanInst = rawInstructions.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
+                final newInst = '[CONCEPTS_JSON: ${jsonEncode(renumbered)}] $cleanInst'.trim();
+                await supabase.from('design_briefs').update({
+                  'instructions': newInst,
+                  'target_designs': renumbered.length,
+                }).eq('id', briefId);
+
+                // Also update submission if present
+                if (latestSub != null && latestSub['id'] != null) {
+                  final subNotes = latestSub['designer_notes'] as String? ?? '';
+                  if (subNotes.contains('[CONCEPTS_JSON:')) {
+                    final subCleanNotes = subNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
+                    final newSubNotes = '[CONCEPTS_JSON: ${jsonEncode(renumbered)}] $subCleanNotes'.trim();
+                    await supabase.from('design_submissions').update({
+                      'designer_notes': newSubNotes,
+                    }).eq('id', latestSub['id']);
+                  }
+                }
+
+                await fetchStudioData();
+                state = state.copyWith(isSubmitting: false);
+                return true;
+              }
+            }
+          }
+        }
+      }
+
+      // Delete full brief
       try {
         await supabase.from('design_submissions').delete().eq('brief_id', briefId);
       } catch (_) {}
 
-      // 2. Delete the brief
       await supabase.from('design_briefs').delete().eq('id', briefId);
 
       await fetchStudioData();

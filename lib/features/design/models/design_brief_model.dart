@@ -4,6 +4,7 @@ class ConceptColorwayModel {
   final String colorName;
   final String? photoFront;
   final String? photoBack;
+  final String? status; // 'APPROVED' | 'REJECTED' | 'PENDING'
 
   String get colorwayName => colorName;
 
@@ -11,13 +12,29 @@ class ConceptColorwayModel {
     required this.colorName,
     this.photoFront,
     this.photoBack,
+    this.status,
   });
+
+  ConceptColorwayModel copyWith({
+    String? colorName,
+    String? photoFront,
+    String? photoBack,
+    String? status,
+  }) {
+    return ConceptColorwayModel(
+      colorName: colorName ?? this.colorName,
+      photoFront: photoFront ?? this.photoFront,
+      photoBack: photoBack ?? this.photoBack,
+      status: status ?? this.status,
+    );
+  }
 
   factory ConceptColorwayModel.fromJson(Map<String, dynamic> json) {
     return ConceptColorwayModel(
       colorName: json['color_name'] as String? ?? 'Color',
       photoFront: json['photo_front'] as String?,
       photoBack: json['photo_back'] as String?,
+      status: json['status'] as String?,
     );
   }
 
@@ -26,6 +43,7 @@ class ConceptColorwayModel {
       'color_name': colorName,
       if (photoFront != null) 'photo_front': photoFront,
       if (photoBack != null) 'photo_back': photoBack,
+      if (status != null) 'status': status,
     };
   }
 }
@@ -34,6 +52,10 @@ class DesignConceptItemModel {
   final int? conceptNumber;
   final String title;
   final String? notes;
+  final String? artNumber;
+  final String? status;
+  final String? phVerdict;
+  final String? phFeedback;
   final List<ConceptColorwayModel>? colorways;
 
   int get safeConceptNumber => conceptNumber ?? 1;
@@ -43,6 +65,10 @@ class DesignConceptItemModel {
     this.conceptNumber = 1,
     required this.title,
     this.notes,
+    this.artNumber,
+    this.status,
+    this.phVerdict,
+    this.phFeedback,
     this.colorways = const [],
   });
 
@@ -61,6 +87,10 @@ class DesignConceptItemModel {
       conceptNumber: cn,
       title: json['title'] as String? ?? 'Concept',
       notes: json['notes'] as String?,
+      artNumber: json['art_number'] as String?,
+      status: json['status'] as String?,
+      phVerdict: json['ph_verdict'] as String?,
+      phFeedback: json['ph_feedback'] as String?,
       colorways: cws,
     );
   }
@@ -70,6 +100,10 @@ class DesignConceptItemModel {
       'concept_number': safeConceptNumber,
       'title': title,
       if (notes != null) 'notes': notes,
+      if (artNumber != null) 'art_number': artNumber,
+      if (status != null) 'status': status,
+      if (phVerdict != null) 'ph_verdict': phVerdict,
+      if (phFeedback != null) 'ph_feedback': phFeedback,
       'colorways': safeColorways.map((cw) => cw.toJson()).toList(),
     };
   }
