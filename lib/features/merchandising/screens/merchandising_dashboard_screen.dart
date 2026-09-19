@@ -7,7 +7,7 @@ import '../../design/screens/tech_pack_catalog_screen.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
 import '../widgets/create_order_modal.dart';
-import '../widgets/active_buyers_modal.dart';
+import 'active_buyers_screen.dart';
 import 'buyer_po_specification_screen.dart';
 
 class MerchandisingDashboardScreen extends ConsumerStatefulWidget {
@@ -37,12 +37,10 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
     );
   }
 
-  void _openActiveBuyersModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const ActiveBuyersModal(),
+  void _openActiveBuyersScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ActiveBuyersScreen()),
     );
   }
 
@@ -284,7 +282,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 11),
                             ),
-                            onPressed: _openActiveBuyersModal,
+                            onPressed: _openActiveBuyersScreen,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -535,7 +533,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     title: 'In order',
                     value: state.totalInOrderPieces.toString(),
                     icon: Icons.inventory_2_outlined,
-                    onTap: _openActiveBuyersModal,
+                    onTap: _openActiveBuyersScreen,
                   ),
 
                   // Stat 4: Critical path SLA

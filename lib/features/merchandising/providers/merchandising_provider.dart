@@ -608,6 +608,113 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
       return false;
     }
   }
+
+  Future<bool> createActiveBuyer(ActiveBuyer buyer) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      final client = Supabase.instance.client;
+      try {
+        await client.from('merchandising_active_buyers').upsert(buyer.toJson());
+      } catch (dbErr) {
+        debugPrint('[MerchandisingNotifier] Supabase active_buyers write warning: $dbErr');
+      }
+
+      // Update state locally immediately
+      final updatedBuyers = [buyer, ...state.buyers.where((b) => b.id != buyer.id)];
+      state = state.copyWith(
+        buyers: updatedBuyers,
+        selectedBuyerId: buyer.id,
+        isSubmitting: false,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[MerchandisingNotifier] Error creating buyer: $e');
+      state = state.copyWith(isSubmitting: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteActiveBuyer(String buyerId) async {
+    try {
+      final client = Supabase.instance.client;
+      try {
+        await client.from('merchandising_active_buyers').delete().eq('id', buyerId);
+      } catch (_) {}
+
+      final updatedBuyers = state.buyers.where((b) => b.id != buyerId).toList();
+      String nextSelected = state.selectedBuyerId;
+      if (nextSelected == buyerId) {
+        nextSelected = updatedBuyers.isNotEmpty ? updatedBuyers.first.id : '';
+      }
+      state = state.copyWith(
+        buyers: updatedBuyers,
+        selectedBuyerId: nextSelected,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[MerchandisingNotifier] Error deleting buyer: $e');
+      return false;
+    }
+  }
+
+  Future<bool> linkArticleToBuyer({
+    required String buyerId,
+    required String articleNumber,
+    String? techPackId,
+    String? articleName,
+  }) async {
+    try {
+      final target = state.buyers.where((b) => b.id == buyerId).firstOrNull;
+      if (target == null) return false;
+
+      final updated = target.copyWith(
+        linkedArticleNumber: articleNumber,
+        linkedArticleId: techPackId ?? target.linkedArticleId,
+        linkedArticleName: articleName ?? target.linkedArticleName ?? 'Article $articleNumber',
+        status: 'CONTRACTED',
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+
+      final client = Supabase.instance.client;
+      try {
+        await client.from('merchandising_active_buyers').upsert(updated.toJson());
+      } catch (_) {}
+
+      final updatedBuyers = state.buyers.map((b) => b.id == buyerId ? updated : b).toList();
+      state = state.copyWith(buyers: updatedBuyers);
+      return true;
+    } catch (e) {
+      debugPrint('[MerchandisingNotifier] Error linking article: $e');
+      return false;
+    }
+  }
+
+  Future<bool> unlinkArticleFromBuyer(String buyerId) async {
+    try {
+      final target = state.buyers.where((b) => b.id == buyerId).firstOrNull;
+      if (target == null) return false;
+
+      final updated = target.copyWith(
+        linkedArticleNumber: null,
+        linkedArticleId: null,
+        linkedArticleName: null,
+        status: 'PENDING_LINK',
+        updatedAt: DateTime.now().toIso8601String(),
+      );
+
+      final client = Supabase.instance.client;
+      try {
+        await client.from('merchandising_active_buyers').upsert(updated.toJson());
+      } catch (_) {}
+
+      final updatedBuyers = state.buyers.map((b) => b.id == buyerId ? updated : b).toList();
+      state = state.copyWith(buyers: updatedBuyers);
+      return true;
+    } catch (e) {
+      debugPrint('[MerchandisingNotifier] Error unlinking article: $e');
+      return false;
+    }
+  }
 }
 
 final merchandisingProvider = StateNotifierProvider<MerchandisingNotifier, MerchandisingState>((ref) {

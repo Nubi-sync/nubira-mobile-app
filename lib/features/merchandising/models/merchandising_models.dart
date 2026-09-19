@@ -143,6 +143,10 @@ class ActiveBuyer {
   final String status;
   final String? createdAt;
 
+  final String? targetSeason;
+  final String? notes;
+  final String? updatedAt;
+
   const ActiveBuyer({
     required this.id,
     required this.buyerName,
@@ -154,12 +158,57 @@ class ActiveBuyer {
     this.pricePerPiece = 12.5,
     this.totalContractValue = 0,
     this.currency = 'INR',
+    this.targetSeason,
     this.linkedArticleId,
     this.linkedArticleNumber,
     this.linkedArticleName,
     this.status = 'ACTIVE',
+    this.notes,
     this.createdAt,
+    this.updatedAt,
   });
+
+  ActiveBuyer copyWith({
+    String? id,
+    String? buyerName,
+    String? buyerCode,
+    String? brandName,
+    String? contactPerson,
+    String? contactEmail,
+    int? contractedVolume,
+    double? pricePerPiece,
+    double? totalContractValue,
+    String? currency,
+    String? targetSeason,
+    String? linkedArticleId,
+    String? linkedArticleNumber,
+    String? linkedArticleName,
+    String? status,
+    String? notes,
+    String? createdAt,
+    String? updatedAt,
+  }) {
+    return ActiveBuyer(
+      id: id ?? this.id,
+      buyerName: buyerName ?? this.buyerName,
+      buyerCode: buyerCode ?? this.buyerCode,
+      brandName: brandName ?? this.brandName,
+      contactPerson: contactPerson ?? this.contactPerson,
+      contactEmail: contactEmail ?? this.contactEmail,
+      contractedVolume: contractedVolume ?? this.contractedVolume,
+      pricePerPiece: pricePerPiece ?? this.pricePerPiece,
+      totalContractValue: totalContractValue ?? this.totalContractValue,
+      currency: currency ?? this.currency,
+      targetSeason: targetSeason ?? this.targetSeason,
+      linkedArticleId: linkedArticleId ?? this.linkedArticleId,
+      linkedArticleNumber: linkedArticleNumber ?? this.linkedArticleNumber,
+      linkedArticleName: linkedArticleName ?? this.linkedArticleName,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 
   factory ActiveBuyer.fromJson(Map<String, dynamic> json) {
     final vol = (json['contracted_volume'] as num?)?.toInt() ?? 0;
@@ -175,12 +224,38 @@ class ActiveBuyer {
       pricePerPiece: price,
       totalContractValue: (json['total_contract_value'] as num?)?.toDouble() ?? (vol * price),
       currency: json['currency'] as String? ?? 'INR',
+      targetSeason: json['target_season'] as String?,
       linkedArticleId: json['linked_article_id']?.toString(),
       linkedArticleNumber: json['linked_article_number'] as String?,
       linkedArticleName: json['linked_article_name'] as String?,
       status: json['status'] as String? ?? 'ACTIVE',
+      notes: json['notes'] as String?,
       createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'buyer_name': buyerName,
+      'buyer_code': buyerCode,
+      if (brandName != null) 'brand_name': brandName,
+      if (contactPerson != null) 'contact_person': contactPerson,
+      if (contactEmail != null) 'contact_email': contactEmail,
+      'contracted_volume': contractedVolume,
+      'price_per_piece': pricePerPiece,
+      'total_contract_value': totalContractValue,
+      'currency': currency,
+      if (targetSeason != null) 'target_season': targetSeason,
+      if (linkedArticleId != null) 'linked_article_id': linkedArticleId,
+      if (linkedArticleNumber != null) 'linked_article_number': linkedArticleNumber,
+      if (linkedArticleName != null) 'linked_article_name': linkedArticleName,
+      'status': status,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    };
   }
 }
 
