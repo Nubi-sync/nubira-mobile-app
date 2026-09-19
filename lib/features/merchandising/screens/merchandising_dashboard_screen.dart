@@ -7,8 +7,8 @@ import '../../design/screens/tech_pack_catalog_screen.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
 import '../widgets/create_order_modal.dart';
-import '../widgets/view_order_modal.dart';
 import '../widgets/active_buyers_modal.dart';
+import 'buyer_po_specification_screen.dart';
 
 class MerchandisingDashboardScreen extends ConsumerStatefulWidget {
   const MerchandisingDashboardScreen({super.key});
@@ -47,11 +47,9 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
   }
 
   void _openViewOrderModal(MerchandisingOrder order) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ViewOrderModal(order: order),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => BuyerPOSpecificationScreen(order: order)),
     );
   }
 
