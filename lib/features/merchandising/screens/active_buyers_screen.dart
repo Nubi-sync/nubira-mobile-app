@@ -121,7 +121,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFFFFFFF),
-      drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising'),
+      drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising/buyers'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),

@@ -104,7 +104,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
   void _navigateTo(BuildContext context, Widget screen) {
     Navigator.pop(context); // Close Drawer
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
