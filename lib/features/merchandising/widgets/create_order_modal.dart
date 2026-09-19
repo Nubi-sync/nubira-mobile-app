@@ -663,14 +663,18 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
   // STEP 1 WIDGETS
   // ==========================================================================
   Widget _buildStep1(List<ActiveBuyer> linkedBuyers, List<TechPackArticleItem> techPacks, String curSym, double revenue) {
+    final isLockedToBuyer = _selectedBuyerRef != null;
+    final isLockedToTechPack = _selectedTechPack != null && _selectedOptionKey != '__CUSTOM__';
+    final isReadOnlyArticle = isLockedToBuyer || isLockedToTechPack;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Contract Dropdown Card
+        // 1. Contract Dropdown Card (Web Style: bg-[#FAF7F0] border border-black/10)
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFFAF7F0),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0x1A000000)),
           ),
@@ -703,7 +707,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedOptionKey.isNotEmpty ? _selectedOptionKey : null,
                 isExpanded: true,
@@ -746,37 +750,41 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             ],
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // 2. PO Number & Brand
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // PO Number (Auto-Generated Read-only)
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('BUYER PO NUMBER *', style: _labelStyle),
-                        Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF9B9A94))),
-                      ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('BUYER PO NUMBER *', style: _labelStyle),
+                      Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF9B9A94))),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
                             _poController.text,
                             style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF241D52),
                             ),
@@ -788,47 +796,43 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                               _poController.text = _generateAutoPoNumber(_selectedBuyerRef?.buyerCode);
                             });
                           },
-                          child: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF332B6B)),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF332B6B)),
+                          ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
+            // Brand / Principal Buyer
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('BRAND / PRINCIPAL BUYER *', style: _labelStyle),
-                    const SizedBox(height: 4),
-                    TextFormField(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('BRAND / PRINCIPAL BUYER *', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 42,
+                    child: TextFormField(
                       controller: _brandController,
-                      readOnly: _selectedBuyerRef != null,
-                      style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                        hintText: 'e.g. Hollypop',
-                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFFB6B4AC)),
+                      readOnly: isReadOnlyArticle,
+                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      decoration: _inputDecoration(
+                        hint: 'e.g. Hollypop',
+                        isReadOnly: isReadOnlyArticle,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // 3. CAD Visual Tiles (Front & Back)
         if (_cadFrontUrl != null || _cadBackUrl != null || _selectedTechPack != null) ...[
@@ -839,7 +843,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   height: 95,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFFAF7F0),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0x1A000000)),
                   ),
@@ -868,7 +872,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   height: 95,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFFAF7F0),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0x1A000000)),
                   ),
@@ -893,71 +897,65 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
         ],
 
         // 4. Style Reference & Ex-Factory Date
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('ARTICLE / STYLE REF *', style: _labelStyle),
-                    const SizedBox(height: 4),
-                    TextFormField(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('ARTICLE / STYLE REF *', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 42,
+                    child: TextFormField(
                       controller: _styleRefController,
-                      readOnly: _selectedBuyerRef != null,
-                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                        hintText: 'e.g. ART-101',
-                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFFB6B4AC)),
+                      readOnly: isReadOnlyArticle,
+                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      decoration: _inputDecoration(
+                        hint: 'e.g. ART-101',
+                        isReadOnly: isReadOnlyArticle,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _exFactoryDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _exFactoryDate = picked;
-                      _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
-                    });
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x1A000000)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('TARGET EX-FACTORY DATE *', style: _labelStyle),
-                      const SizedBox(height: 4),
-                      Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('TARGET EX-FACTORY DATE *', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _exFactoryDate,
+                        firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _exFactoryDate = picked;
+                          _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                        });
+                      }
+                    },
+                    child: Container(
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0x26000000)),
+                      ),
+                      child: Row(
                         children: [
                           const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF332B6B)),
                           const SizedBox(width: 6),
@@ -967,21 +965,21 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // 5. Read-only Info Chips: Embellishment Routing & Fabric Weight
         Row(
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
                   borderRadius: BorderRadius.circular(10),
@@ -991,7 +989,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('EMBELLISHMENT ROUTING', style: _chipLabelStyle),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       _embellishmentSeq == 'NONE'
                           ? 'Cut & Sew'
@@ -1000,7 +998,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                               : (_embellishmentSeq == 'ONLY_EMBROIDERY'
                                   ? 'Only Embroidery'
                                   : 'Printing & Embroidery')),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
                     ),
                   ],
                 ),
@@ -1009,7 +1007,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             const SizedBox(width: 8),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
                   borderRadius: BorderRadius.circular(10),
@@ -1019,10 +1017,10 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('FABRIC & WEIGHT', style: _chipLabelStyle),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       '$_fabricComposition • $_targetGsm GSM',
-                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1032,109 +1030,96 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // 6. Currency, FOB Rate, Total Quantity
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Currency
             Expanded(
               flex: 2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('CURRENCY', style: _labelStyle),
-                    const SizedBox(height: 2),
-                    DropdownButtonHideUnderline(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('CURRENCY', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: isLockedToBuyer ? const Color(0xFFFAF7F0) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0x26000000)),
+                    ),
+                    child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _currency,
                         isDense: true,
                         isExpanded: true,
-                        style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                         items: const [
                           DropdownMenuItem(value: 'INR', child: Text('INR (₹)')),
                           DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
                           DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
                           DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
                         ],
-                        onChanged: (v) => setState(() => _currency = v ?? 'INR'),
+                        onChanged: isLockedToBuyer ? null : (v) => setState(() => _currency = v ?? 'INR'),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 8),
+            // Unit FOB Price
             Expanded(
               flex: 3,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('UNIT FOB ($curSym) *', style: _labelStyle),
-                    const SizedBox(height: 2),
-                    TextFormField(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('UNIT FOB ($curSym) *', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 42,
+                    child: TextFormField(
                       controller: _priceController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                      ),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      decoration: _inputDecoration(hint: '1450.00'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 8),
+            // Order Quantity
             Expanded(
               flex: 3,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('ORDER QTY (PCS) *', style: _labelStyle),
-                    const SizedBox(height: 2),
-                    TextFormField(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('ORDER QTY (PCS) *', style: _labelStyle),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 42,
+                    child: TextFormField(
                       controller: _quantityController,
                       keyboardType: TextInputType.number,
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        border: InputBorder.none,
-                      ),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                      decoration: _inputDecoration(hint: '1000'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
-        // 7. Estimated Revenue Summary Box
+        // 7. Estimated Revenue Summary Box (Clean Pill Banner)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -1439,16 +1424,28 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
   TextStyle get _labelStyle => GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF9B9A94), letterSpacing: 0.3);
   TextStyle get _chipLabelStyle => GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF9B9A94), letterSpacing: 0.3);
 
-  InputDecoration _inputDecoration({String hint = ''}) {
+  InputDecoration _inputDecoration({String hint = '', bool isReadOnly = false}) {
     return InputDecoration(
       hintText: hint,
       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFB6B4AC)),
       filled: true,
-      fillColor: const Color(0xFFFAFAF8),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x1A000000))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x1A000000))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+      fillColor: isReadOnly ? const Color(0xFFFAF7F0) : Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0x26000000)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(
+          color: isReadOnly ? const Color(0x1A000000) : const Color(0x26000000),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+      ),
     );
   }
 }
