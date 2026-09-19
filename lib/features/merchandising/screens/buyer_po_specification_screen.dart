@@ -22,7 +22,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
   }
 
   Map<String, dynamic> _parseTechPackMetadata(String? rawFabric) {
-    if (rawFabric == null || rawFabric.isEmpty) {
+    if (rawFabric == null || rawFabric.trim().isEmpty) {
       return {'fabric': '100% Combed Cotton Single Jersey', 'materials': []};
     }
     String cleanFabric = rawFabric;
@@ -31,16 +31,22 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
     final bomMatch = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(cleanFabric);
     if (bomMatch != null && bomMatch.group(1) != null) {
       try {
-        materials = jsonDecode(bomMatch.group(1)!);
-        cleanFabric = cleanFabric.replaceAll(RegExp(r'\[BOM_JSON:\s*\[[\s\S]*?\]\]\s*', caseSensitive: false), '');
+        materials = (jsonDecode(bomMatch.group(1)!) as List<dynamic>);
       } catch (_) {}
+      cleanFabric = cleanFabric.replaceAll(bomMatch.group(0)!, '');
     }
 
-    cleanFabric = cleanFabric.replaceAll(RegExp(r'\[TARGET_CUT_DATE:\s*[\s\S]*?\]\s*', caseSensitive: false), '');
-    cleanFabric = cleanFabric.replaceAll(RegExp(r'\[INSTRUCTIONS:\s*[\s\S]*?\]\s*$', caseSensitive: false), '');
+    cleanFabric = cleanFabric.replaceAll(RegExp(r'\[TARGET_CUT_DATE:[^\]]*\]', caseSensitive: false), '');
+    cleanFabric = cleanFabric.replaceAll(RegExp(r'\[INSTRUCTIONS:[^\]]*\]', caseSensitive: false), '');
+    cleanFabric = cleanFabric.replaceAll(RegExp(r'\[[A-Z_]+:[^\]]*\]', caseSensitive: false), '');
+    cleanFabric = cleanFabric.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    if (cleanFabric.isEmpty) {
+      cleanFabric = '100% Combed Cotton Single Jersey';
+    }
 
     return {
-      'fabric': cleanFabric.trim().isNotEmpty ? cleanFabric.trim() : '100% Combed Cotton Single Jersey',
+      'fabric': cleanFabric,
       'materials': materials,
     };
   }
@@ -91,7 +97,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
     return [
       {
         'component_type': 'Shell Fabric',
-        'item_name': ord.fabricComposition.isNotEmpty ? ord.fabricComposition : '100% Combed Cotton Single Jersey',
+        'item_name': '100% Combed Cotton Single Jersey',
         'consumption': '1.45 MTR/pc',
         'placement': 'Front, Back Body & Sleeves',
       },
@@ -126,9 +132,13 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
 
     final effectiveCadFront = order.cadFrontUrl ?? matchedTp?.cadFrontUrl;
     final effectiveCadBack = order.cadBackUrl ?? matchedTp?.cadBackUrl;
-    final effectiveFabric = order.fabricComposition.isNotEmpty
-        ? order.fabricComposition
-        : (matchedTp?.fabricComposition ?? '100% Combed Cotton Single Jersey');
+    
+    final parsedFabricMeta = _parseTechPackMetadata(
+      order.fabricComposition.isNotEmpty
+          ? order.fabricComposition
+          : matchedTp?.fabricComposition,
+    );
+    final effectiveFabric = parsedFabricMeta['fabric'] as String;
     final effectiveGsm = order.targetGsm > 0 ? order.targetGsm : (matchedTp?.targetGsm ?? 180);
     final effectiveSeq = order.embellishmentSequence.isNotEmpty && order.embellishmentSequence != 'NONE'
         ? order.embellishmentSequence
@@ -539,7 +549,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0x1A000000)),
               ),
               child: Column(
@@ -547,111 +557,114 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.straighten_outlined, size: 17, color: Color(0xFF332B6B)),
+                      const Icon(Icons.checkroom_outlined, size: 18, color: Color(0xFF332B6B)),
                       const SizedBox(width: 8),
                       Text(
                         'GARMENT BLUEPRINT & PRODUCTION ROUTING',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1A),
-                          letterSpacing: 0.3,
+                          color: const Color(0xFF1E293B),
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
 
-                  // Style description container
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'STYLE DESCRIPTION',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF9B9A94),
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          order.styleName.isNotEmpty ? order.styleName : '${order.styleRef} Apparel Edition',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C1A),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$effectiveFabric • $effectiveGsm GSM',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11.5,
-                            color: const Color(0xFF6B6A65),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Embellishment flow container
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'EMBELLISHMENT FLOW',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF9B9A94),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Style Description (Left Column)
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAEEDA), // Light Amber BG
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE8D5B5)),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.auto_awesome_rounded, size: 13, color: Color(0xFF8B5A1A)),
-                              const SizedBox(width: 6),
-                              Flexible(
+                              Text(
+                                'STYLE DESCRIPTION',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF94A3B8),
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                order.styleName.isNotEmpty ? order.styleName : '${order.styleRef} Apparel',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0F172A),
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '$effectiveFabric${effectiveGsm > 0 ? ' • $effectiveGsm GSM' : ''}',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF475569),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Embellishment Flow (Right Column)
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EMBELLISHMENT FLOW',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF94A3B8),
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFAF7F0),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0x1A000000)),
+                                ),
                                 child: Text(
                                   _formatEmbellishmentSequence(effectiveSeq),
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF8B5A1A), // Amber Dark Text
+                                    color: const Color(0xFF332B6B),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),

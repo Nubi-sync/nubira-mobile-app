@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -243,6 +244,24 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
           final totalQty = (row['total_quantity'] as num?)?.toInt() ?? 0;
           final fobPrice = (row['fob_price_per_piece'] as num?)?.toDouble() ?? 0.0;
 
+          // Parse metadata out of fabric_composition
+          String cleanFabric = tp?['fabric_composition']?.toString() ?? '100% Combed Cotton Single Jersey';
+          List<dynamic> parsedMaterials = [];
+          final bomMatch = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(cleanFabric);
+          if (bomMatch != null && bomMatch.group(1) != null) {
+            try {
+              parsedMaterials = (jsonDecode(bomMatch.group(1)!) as List<dynamic>);
+            } catch (_) {}
+            cleanFabric = cleanFabric.replaceAll(bomMatch.group(0)!, '');
+          }
+          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[TARGET_CUT_DATE:[^\]]*\]', caseSensitive: false), '');
+          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[INSTRUCTIONS:[^\]]*\]', caseSensitive: false), '');
+          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[[A-Z_]+:[^\]]*\]', caseSensitive: false), '');
+          cleanFabric = cleanFabric.replaceAll(RegExp(r'\s+'), ' ').trim();
+          if (cleanFabric.isEmpty) {
+            cleanFabric = '100% Combed Cotton Single Jersey';
+          }
+
           return MerchandisingOrder(
             id: row['id']?.toString() ?? '',
             poNumber: row['order_number']?.toString() ?? 'PO',
@@ -257,7 +276,8 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             exFactoryDate: row['ex_factory_date']?.toString() ?? '',
             status: row['status']?.toString() ?? 'IN_CUTTING',
             embellishmentSequence: tp?['embellishment_sequence']?.toString() ?? 'NONE',
-            fabricComposition: tp?['fabric_composition']?.toString() ?? '100% Combed Cotton',
+            fabricComposition: cleanFabric,
+            bomMaterials: parsedMaterials,
             targetGsm: (tp?['target_gsm'] as num?)?.toInt() ?? 180,
             cadFrontUrl: tp?['cad_front_url']?.toString(),
             cadBackUrl: tp?['cad_back_url']?.toString(),
