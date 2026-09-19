@@ -680,19 +680,23 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'SELECT CONTRACTED BUYER & LINKED ARTICLE *',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6B6A65),
-                      letterSpacing: 0.3,
+                  Expanded(
+                    child: Text(
+                      'SELECT CONTRACTED BUYER & LINKED ARTICLE *',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6B6A65),
+                        letterSpacing: 0.2,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 6),
                   Text(
                     '${linkedBuyers.length} Contract(s)',
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF332B6B),
                     ),
@@ -810,7 +814,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       controller: _brandController,
                       readOnly: _selectedBuyerRef != null,
                       style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                        hintText: 'e.g. Hollypop',
+                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFFB6B4AC)),
+                      ),
                     ),
                   ],
                 ),
@@ -906,7 +916,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       controller: _styleRefController,
                       readOnly: _selectedBuyerRef != null,
                       style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                        hintText: 'e.g. ART-101',
+                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFFB6B4AC)),
+                      ),
                     ),
                   ],
                 ),
@@ -1024,22 +1040,33 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             Expanded(
               flex: 2,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0x1A000000)),
                 ),
-                child: DropdownButtonFormField<String>(
-                  value: _currency,
-                  decoration: const InputDecoration(labelText: 'CURRENCY', labelStyle: TextStyle(fontSize: 10), border: InputBorder.none),
-                  items: const [
-                    DropdownMenuItem(value: 'INR', child: Text('INR (₹)')),
-                    DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
-                    DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
-                    DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('CURRENCY', style: _labelStyle),
+                    const SizedBox(height: 2),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _currency,
+                        isDense: true,
+                        isExpanded: true,
+                        style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                        items: const [
+                          DropdownMenuItem(value: 'INR', child: Text('INR (₹)')),
+                          DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
+                          DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
+                          DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
+                        ],
+                        onChanged: (v) => setState(() => _currency = v ?? 'INR'),
+                      ),
+                    ),
                   ],
-                  onChanged: (v) => setState(() => _currency = v ?? 'INR'),
                 ),
               ),
             ),
@@ -1047,18 +1074,29 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             Expanded(
               flex: 3,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0x1A000000)),
                 ),
-                child: TextFormField(
-                  controller: _priceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(labelText: 'UNIT FOB ($curSym) *', labelStyle: const TextStyle(fontSize: 10), border: InputBorder.none),
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('UNIT FOB ($curSym) *', style: _labelStyle),
+                    const SizedBox(height: 2),
+                    TextFormField(
+                      controller: _priceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1066,23 +1104,35 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             Expanded(
               flex: 3,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0x1A000000)),
                 ),
-                child: TextFormField(
-                  controller: _quantityController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'ORDER QTY (PCS) *', labelStyle: TextStyle(fontSize: 10), border: InputBorder.none),
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ORDER QTY (PCS) *', style: _labelStyle),
+                    const SizedBox(height: 2),
+                    TextFormField(
+                      controller: _quantityController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 10),
         const SizedBox(height: 10),
 
         // 7. Estimated Revenue Summary Box
