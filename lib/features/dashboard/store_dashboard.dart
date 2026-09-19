@@ -5773,28 +5773,71 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Text(
-                'Challan: ${challanNo.isNotEmpty ? challanNo : "Direct"} • $inwardDate',
-                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+              Expanded(
+                child: Text(
+                  'Challan: ${challanNo.isNotEmpty ? challanNo : "Direct"} • $inwardDate',
+                  style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
-              if (photoUrl != null && photoUrl.isNotEmpty)
+              const SizedBox(width: 8),
+              if (photoUrl != null && photoUrl.isNotEmpty) ...[
                 InkWell(
                   onTap: () => _showPhotoViewerModal(photoUrl, '$partyName (Challan #$challanNo)'),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppTheme.bg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.border),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.photo_rounded, size: 13, color: AppTheme.steel),
                         const SizedBox(width: 4),
                         Text(
                           'View Slip',
                           style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: () => _showAttachChallanPhotoModal(inward),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.steelMist,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.steelTint),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, size: 13, color: AppTheme.steel),
+                  ),
+                ),
+              ] else
+                InkWell(
+                  onTap: () => _showAttachChallanPhotoModal(inward),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF3A3564).withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.camera_alt_outlined, size: 13, color: Color(0xFF3A3564)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Attach Slip Photo',
+                          style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w800, color: const Color(0xFF3A3564)),
                         ),
                       ],
                     ),
@@ -5810,6 +5853,437 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _showAttachChallanPhotoModal(Map<String, dynamic> inward) {
+    File? selectedImage;
+    String? existingPhotoUrl = inward['challan_photo_url'] as String?;
+    bool isSubmitting = false;
+
+    final grnNo = inward['grn_no'] ?? 'GRN';
+    final partyName = inward['party_name'] ?? 'Supplier';
+    final challanNo = inward['challan_no'] ?? '';
+    final articleNo = inward['article_no'] ?? '';
+    final totalItems = inward['total_items'] ?? 0;
+    final inwardId = inward['id'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final mediaQuery = MediaQuery.of(context);
+          final picker = ImagePicker();
+
+          Future<void> pickImage(ImageSource source) async {
+            try {
+              final picked = await picker.pickImage(source: source, imageQuality: 80, maxWidth: 1600);
+              if (picked != null) {
+                setModalState(() {
+                  selectedImage = File(picked.path);
+                });
+              }
+            } catch (e) {
+              debugPrint('Image pick error: $e');
+            }
+          }
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: mediaQuery.size.height * 0.85,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: mediaQuery.viewInsets.bottom,
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top Drag Handle & Fixed Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 38,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppTheme.border,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.steelMist,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.camera_alt_rounded, color: AppTheme.steel, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Attach Paper Slip Photo',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16.5,
+                                      color: AppTheme.ink,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Upload physical supplier delivery challan for audit',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppTheme.inkSoft,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(height: 1, color: AppTheme.border),
+
+                  // Middle Scrollable Body
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // READ-ONLY IMMUTABLE STRIP
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.steelMist,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        grnNo,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.steel,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: AppTheme.border),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.lock_outline_rounded, size: 12, color: AppTheme.inkSoft),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Items & Qty Locked',
+                                            style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppTheme.inkSoft),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  partyName + (articleNo.toString().isNotEmpty ? ' • Art $articleNo' : ''),
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Challan: ${challanNo.toString().isNotEmpty ? challanNo : "Direct"} • $totalItems items in GRN',
+                                  style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // PHOTO UPLOADER & PREVIEW
+                          Text(
+                            'Challan Paper Slip Photo *',
+                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                          ),
+                          const SizedBox(height: 8),
+
+                          if (selectedImage != null)
+                            Stack(
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  height: 220,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: AppTheme.steel, width: 1.5),
+                                    image: DecorationImage(
+                                      image: FileImage(selectedImage!),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: InkWell(
+                                    onTap: () => setModalState(() => selectedImage = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent.withValues(alpha: 0.9),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text('Remove', style: GoogleFonts.publicSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (existingPhotoUrl != null && existingPhotoUrl.isNotEmpty)
+                            Stack(
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: AppTheme.border),
+                                    image: DecorationImage(
+                                      image: NetworkImage(existingPhotoUrl),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 10,
+                                  right: 10,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.75),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text('Current Uploaded Slip', style: GoogleFonts.publicSans(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.bg,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.add_a_photo_outlined, size: 36, color: AppTheme.inkSoft.withValues(alpha: 0.6)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No paper challan photo attached yet',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Take photo from camera or pick from gallery below',
+                                    style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          const SizedBox(height: 14),
+
+                          // Camera & Gallery Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () => pickImage(ImageSource.camera),
+                                  icon: const Icon(Icons.camera_alt_rounded, size: 16),
+                                  label: Text(
+                                    selectedImage != null || (existingPhotoUrl != null && existingPhotoUrl.isNotEmpty) ? 'Retake Photo' : 'Take Camera Photo',
+                                    style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.steel,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => pickImage(ImageSource.gallery),
+                                  icon: const Icon(Icons.photo_library_rounded, size: 16, color: AppTheme.steel),
+                                  label: Text(
+                                    'Pick Gallery',
+                                    style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.steel),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    side: const BorderSide(color: AppTheme.border),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Fixed Bottom Action Bar
+                  Container(height: 1, color: AppTheme.border),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 88,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: const BorderSide(color: AppTheme.border),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.inkSoft),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: (selectedImage == null || isSubmitting)
+                                  ? null
+                                  : () async {
+                                      setModalState(() => isSubmitting = true);
+                                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                      final nav = Navigator.of(ctx);
+
+                                      try {
+                                        String? photoUrl;
+                                        final bytes = await selectedImage!.readAsBytes();
+                                        final fileName = 'challan_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                                        try {
+                                          await supabase.storage.from('challans').uploadBinary(fileName, bytes);
+                                          photoUrl = supabase.storage.from('challans').getPublicUrl(fileName);
+                                        } catch (_) {
+                                          photoUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                                        }
+
+                                        await supabase.from('truck_inwards').update({
+                                          'challan_photo_url': photoUrl,
+                                        }).eq('id', inwardId);
+
+                                        nav.pop();
+                                        scaffoldMessenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text('Paper slip photo attached successfully to $grnNo!'),
+                                            backgroundColor: AppTheme.steel,
+                                          ),
+                                        );
+                                        _fetchStoreData();
+                                      } catch (e) {
+                                        setModalState(() => isSubmitting = false);
+                                        scaffoldMessenger.showSnackBar(
+                                          SnackBar(content: Text('Error saving photo: $e'), backgroundColor: Colors.redAccent),
+                                        );
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.steel,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                disabledBackgroundColor: AppTheme.steel.withValues(alpha: 0.3),
+                              ),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    )
+                                  : Text(
+                                      'Save & Attach Photo',
+                                      style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
