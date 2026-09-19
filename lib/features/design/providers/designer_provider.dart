@@ -128,6 +128,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       List<TechPackSummaryModel> tpList = [];
       try {
         dynamic tpResp;
+        // Priority 1: Query with company filter if not legacy
         if (!isLegacy && company.isNotEmpty) {
           try {
             tpResp = await supabase
@@ -137,25 +138,38 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
                 .order('created_at', ascending: false);
           } catch (_) {}
         }
+
+        // Priority 2: Query all with brands join
         if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
           try {
             tpResp = await supabase
                 .from('design_tech_packs')
                 .select('*, brands(*)')
                 .order('created_at', ascending: false);
-          } catch (_) {
-            // Fallback without join
+          } catch (_) {}
+        }
+
+        // Priority 3: Query plain table without join (bypasses any foreign key / RLS join issues)
+        if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
+          try {
             tpResp = await supabase
                 .from('design_tech_packs')
                 .select('*')
                 .order('created_at', ascending: false);
-          }
+          } catch (_) {}
         }
+
         if (tpResp is List) {
-          tpList = tpResp
-              .whereType<Map>()
-              .map((t) => TechPackSummaryModel.fromJson(Map<String, dynamic>.from(t)))
-              .toList();
+          for (final raw in tpResp) {
+            if (raw is Map) {
+              try {
+                final pack = TechPackSummaryModel.fromJson(Map<String, dynamic>.from(raw));
+                tpList.add(pack);
+              } catch (parseErr) {
+                // Log and continue to next item so one bad item never fails the whole list
+              }
+            }
+          }
         }
       } catch (_) {}
 

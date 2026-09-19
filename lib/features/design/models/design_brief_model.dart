@@ -718,10 +718,13 @@ class TechPackSummaryModel {
         if (match != null && match.group(1) != null) {
           final dynamic decoded = jsonDecode(match.group(1)!);
           if (decoded is List) {
-            parsedBoms = decoded
-                .whereType<Map>()
-                .map((m) => TechPackBomItemModel.fromJson(Map<String, dynamic>.from(m)))
-                .toList();
+            for (final m in decoded) {
+              if (m is Map) {
+                try {
+                  parsedBoms.add(TechPackBomItemModel.fromJson(Map<String, dynamic>.from(m)));
+                } catch (_) {}
+              }
+            }
           }
         }
       } catch (_) {}
@@ -764,9 +767,32 @@ class TechPackSummaryModel {
         ? rawName
         : '${rawCat.toUpperCase()} Style $stNo';
 
-    final brandVal = (json['brands'] is Map && json['brands']['brand_name'] != null)
-        ? json['brands']['brand_name'].toString()
-        : (json['brand_name'] as String? ?? 'Inhouse');
+    String brandVal = 'Inhouse';
+    if (json['brands'] is Map && json['brands']['brand_name'] != null) {
+      brandVal = json['brands']['brand_name'].toString();
+    } else if (json['brands'] is List && (json['brands'] as List).isNotEmpty) {
+      final first = (json['brands'] as List).first;
+      if (first is Map && first['brand_name'] != null) {
+        brandVal = first['brand_name'].toString();
+      }
+    } else if (json['brand_name'] != null && json['brand_name'].toString().isNotEmpty) {
+      brandVal = json['brand_name'].toString();
+    }
+
+    int parseNum(dynamic v, int fallback) {
+      if (v == null) return fallback;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) {
+        return int.tryParse(v) ?? (double.tryParse(v)?.toInt() ?? fallback);
+      }
+      return fallback;
+    }
+
+    final rawStatus = json['status'] as String?;
+    final resolvedStatus = (rawStatus == null || rawStatus == 'DRAFT' || rawStatus.isEmpty)
+        ? 'APPROVED_BULK'
+        : rawStatus;
 
     return TechPackSummaryModel(
       id: json['id'] as String? ?? '',
@@ -777,14 +803,14 @@ class TechPackSummaryModel {
       baseSize: json['base_size'] as String? ?? 'M',
       sizeSystem: json['size_system'] as String? ?? 'ALPHA_ADULT',
       fabricComposition: rawFab,
-      targetGsm: (json['target_gsm'] is int ? json['target_gsm'] : int.tryParse(json['target_gsm']?.toString() ?? '')) ?? 240,
+      targetGsm: parseNum(json['target_gsm'], 240),
       embellishmentSequence: json['embellishment_sequence'] as String? ?? 'NONE',
-      spi: (json['spi'] is int ? json['spi'] : int.tryParse(json['spi']?.toString() ?? '')) ?? 12,
+      spi: parseNum(json['spi'], 12),
       seamClass: json['seam_class'] as String? ?? 'ISO 4915 Class 401 (Chainstitch)',
       cadFrontUrl: json['cad_front_url'] as String?,
       cadBackUrl: json['cad_back_url'] as String?,
-      status: json['status'] as String? ?? 'DRAFT',
-      version: (json['version'] is int ? json['version'] : int.tryParse(json['version']?.toString() ?? '')) ?? 1,
+      status: resolvedStatus,
+      version: parseNum(json['version'], 1),
       targetCutDate: cutDate,
       saVerdict: json['sa_verdict'] as String? ?? 'APPROVED',
       companyName: json['company_name'] as String? ?? 'Nubira Creation',
