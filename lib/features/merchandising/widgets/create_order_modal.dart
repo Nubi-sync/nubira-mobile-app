@@ -1133,7 +1133,6 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           ],
         ),
         const SizedBox(height: 10),
-        const SizedBox(height: 10),
 
         // 7. Estimated Revenue Summary Box
         Container(
