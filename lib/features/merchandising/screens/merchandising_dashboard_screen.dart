@@ -1130,6 +1130,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             children: [
               // Left: PO & Buyer
               Expanded(
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1140,6 +1141,8 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF332B6B),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1149,13 +1152,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF1C1C1A),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               // Right: Style Ref & Style Name
               Expanded(
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -1166,6 +1172,9 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF1C1C1A),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1190,56 +1199,73 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
           // Volume, FOB & Contract Value, Route, Status
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Volume & FOB / Value
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${ord.totalQuantity} Pcs',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1A),
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${ord.currency == 'INR' ? '₹' : '\$'}${ord.unitFobPrice.toStringAsFixed(0)} • ${ord.currency == 'INR' ? '₹' : '\$'}${(ord.totalContractValue >= 100000 ? '${(ord.totalContractValue / 100000).toStringAsFixed(1)}L' : '${(ord.totalContractValue / 1000).toStringAsFixed(0)}k')}',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        color: const Color(0xFF6B6A65),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Route & Status Pills
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'VOLUME',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF9B9A94), fontWeight: FontWeight.bold),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAF8),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0x1A000000)),
+                    ),
+                    child: Text(
+                      ord.routeLabel,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF332B6B),
+                      ),
+                    ),
                   ),
-                  Text(
-                    '${ord.totalQuantity} Pcs',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9F7EE),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0x331B7A43)),
+                    ),
+                    child: Text(
+                      ord.statusLabel,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1B7A43),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'FOB / VALUE',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF9B9A94), fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '${ord.currency == 'INR' ? '₹' : '\$'}${ord.unitFobPrice.toStringAsFixed(0)} • ${ord.currency == 'INR' ? '₹' : '\$'}${(ord.totalContractValue / 1000).toStringAsFixed(0)}k',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: Text(
-                  ord.routeLabel,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9F7EE),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0x331B7A43)),
-                ),
-                child: Text(
-                  ord.statusLabel,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1B7A43)),
-                ),
               ),
             ],
           ),
