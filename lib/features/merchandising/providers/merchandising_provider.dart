@@ -4,6 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/merchandising_models.dart';
 
+String _cleanFabricComposition(String? raw) {
+  if (raw == null || raw.isEmpty) return '100% Combed Cotton Single Jersey';
+  String s = raw;
+  s = s.replaceAll(RegExp(r'\[BOM_JSON:\s*\[[\s\S]*?\]\]', caseSensitive: false), '');
+  s = s.replaceAll(RegExp(r'\[TARGET_CUT_DATE:[^\]]*\]', caseSensitive: false), '');
+  s = s.replaceAll(RegExp(r'\[INSTRUCTIONS:[^\]]*\]', caseSensitive: false), '');
+  s = s.replaceAll(RegExp(r'\[[A-Z_]+:[^\]]*\]', caseSensitive: false), '');
+  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return s.isEmpty ? '100% Combed Cotton Single Jersey' : s;
+}
+
 class MerchandisingState {
   final bool isLoading;
   final bool isSyncing;
@@ -245,21 +256,14 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
           final fobPrice = (row['fob_price_per_piece'] as num?)?.toDouble() ?? 0.0;
 
           // Parse metadata out of fabric_composition
-          String cleanFabric = tp?['fabric_composition']?.toString() ?? '100% Combed Cotton Single Jersey';
+          String cleanFabric = _cleanFabricComposition(tp?['fabric_composition']?.toString());
           List<dynamic> parsedMaterials = [];
-          final bomMatch = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(cleanFabric);
+          final rawFabric = tp?['fabric_composition']?.toString() ?? '';
+          final bomMatch = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(rawFabric);
           if (bomMatch != null && bomMatch.group(1) != null) {
             try {
               parsedMaterials = (jsonDecode(bomMatch.group(1)!) as List<dynamic>);
             } catch (_) {}
-            cleanFabric = cleanFabric.replaceAll(bomMatch.group(0)!, '');
-          }
-          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[TARGET_CUT_DATE:[^\]]*\]', caseSensitive: false), '');
-          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[INSTRUCTIONS:[^\]]*\]', caseSensitive: false), '');
-          cleanFabric = cleanFabric.replaceAll(RegExp(r'\[[A-Z_]+:[^\]]*\]', caseSensitive: false), '');
-          cleanFabric = cleanFabric.replaceAll(RegExp(r'\s+'), ' ').trim();
-          if (cleanFabric.isEmpty) {
-            cleanFabric = '100% Combed Cotton Single Jersey';
           }
 
           return MerchandisingOrder(
@@ -299,7 +303,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
         debugPrint('[MerchandisingNotifier] Error loading orders: $e');
       }
 
-      // 2. Fetch Active Buyers
+      // 2. Fetch Active Buyers from database
       List<ActiveBuyer> buyersList = [];
       try {
         final bRes = await client.from('merchandising_active_buyers').select('*').order('created_at', ascending: false);
@@ -309,42 +313,65 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
         }
       } catch (_) {}
 
-      // If active buyers table is empty, generate from orders & brands
-      if (buyersList.isEmpty) {
-        final buyerMap = <String, ActiveBuyer>{};
+      // 2b. Merge live BPO orders into buyersList (Exact parity with Web actions.ts fetchActiveBuyersAction)
+      if (fetchedOrders.isNotEmpty) {
+        final orderBuyersMap = <String, ActiveBuyer>{};
         for (final ord in fetchedOrders) {
           final bName = ord.brandName.trim();
           final bKey = bName.toUpperCase();
-          if (!buyerMap.containsKey(bKey)) {
-            buyerMap[bKey] = ActiveBuyer(
+          final qty = ord.totalQuantity;
+          final price = ord.unitFobPrice > 0 ? ord.unitFobPrice : 12.5;
+
+          if (!orderBuyersMap.containsKey(bKey)) {
+            orderBuyersMap[bKey] = ActiveBuyer(
               id: ord.buyerId ?? ord.id,
               buyerName: bName,
               buyerCode: ord.buyerCode ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
               brandName: bName,
-              contractedVolume: ord.totalQuantity,
-              pricePerPiece: ord.unitFobPrice > 0 ? ord.unitFobPrice : 12.5,
-              totalContractValue: ord.totalContractValue,
+              contactPerson: 'Procurement Lead',
+              contactEmail: 'buyer@${bName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '')}.com',
+              contractedVolume: qty,
+              pricePerPiece: price,
+              totalContractValue: qty * price,
+              currency: ord.currency,
+              linkedArticleId: ord.techPackId,
               linkedArticleNumber: ord.styleRef,
               linkedArticleName: ord.styleName,
               status: 'LINKED',
+              createdAt: ord.createdAt,
             );
           } else {
-            final prev = buyerMap[bKey]!;
-            buyerMap[bKey] = ActiveBuyer(
-              id: prev.id,
-              buyerName: prev.buyerName,
-              buyerCode: prev.buyerCode,
-              brandName: prev.brandName,
-              contractedVolume: prev.contractedVolume + ord.totalQuantity,
-              pricePerPiece: prev.pricePerPiece,
-              totalContractValue: prev.totalContractValue + ord.totalContractValue,
+            final prev = orderBuyersMap[bKey]!;
+            orderBuyersMap[bKey] = prev.copyWith(
+              contractedVolume: prev.contractedVolume + qty,
+              totalContractValue: prev.totalContractValue + (qty * price),
+              pricePerPiece: price > 0 ? price : prev.pricePerPiece,
               linkedArticleNumber: prev.linkedArticleNumber ?? ord.styleRef,
               linkedArticleName: prev.linkedArticleName ?? ord.styleName,
               status: 'LINKED',
             );
           }
         }
-        buyersList = buyerMap.values.toList();
+
+        // Merge order-derived buyers into buyersList
+        orderBuyersMap.forEach((key, ordBuyer) {
+          final idx = buyersList.indexWhere((b) => b.buyerName.trim().toUpperCase() == key);
+          if (idx >= 0) {
+            final existing = buyersList[idx];
+            if (ordBuyer.contractedVolume > existing.contractedVolume || existing.contractedVolume == 0) {
+              buyersList[idx] = existing.copyWith(
+                contractedVolume: ordBuyer.contractedVolume,
+                totalContractValue: ordBuyer.totalContractValue,
+                pricePerPiece: ordBuyer.pricePerPiece > 0 ? ordBuyer.pricePerPiece : existing.pricePerPiece,
+                linkedArticleNumber: existing.linkedArticleNumber ?? ordBuyer.linkedArticleNumber,
+                linkedArticleName: existing.linkedArticleName ?? ordBuyer.linkedArticleName,
+                status: 'LINKED',
+              );
+            }
+          } else {
+            buyersList.add(ordBuyer);
+          }
+        });
       }
 
       // Fallback: Query brands table if still empty
@@ -384,7 +411,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             brandName: brand?['brand_name']?.toString(),
             brandId: tp['brand_id']?.toString(),
             embellishmentSequence: tp['embellishment_sequence']?.toString() ?? 'NONE',
-            fabricComposition: tp['fabric_composition']?.toString() ?? '100% Cotton',
+            fabricComposition: _cleanFabricComposition(tp['fabric_composition']?.toString()),
             targetGsm: (tp['target_gsm'] as num?)?.toInt() ?? 180,
             cadFrontUrl: tp['cad_front_url']?.toString(),
             cadBackUrl: tp['cad_back_url']?.toString(),

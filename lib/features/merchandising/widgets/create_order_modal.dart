@@ -54,7 +54,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
   @override
   void initState() {
     super.initState();
-    _poController = TextEditingController();
+    _poController = TextEditingController(text: _generateAutoPoNumber());
     _brandController = TextEditingController();
     _styleRefController = TextEditingController();
     _styleNameController = TextEditingController();
@@ -80,6 +80,31 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
     _dateController.dispose();
     _newColorController.dispose();
     super.dispose();
+  }
+
+  String _generateAutoPoNumber([String? buyerCode]) {
+    final yr = DateTime.now().year;
+    final rand = 1000 + Random().nextInt(9000);
+    final cleanCode = (buyerCode ?? '').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    final prefix = cleanCode.isNotEmpty ? (cleanCode.length >= 4 ? cleanCode.substring(0, 4) : cleanCode) : 'PO';
+    return '$prefix-$yr-$rand';
+  }
+
+  String get _embellishmentDisplayText {
+    switch (_embellishmentSeq) {
+      case 'NONE':
+        return 'No Embroidery, No Printing (Cut & Sew)';
+      case 'ONLY_PRINTING':
+        return 'Only Printing';
+      case 'ONLY_EMBROIDERY':
+        return 'Only Embroidery';
+      case 'PRINT_FIRST_THEN_EMBROIDERY':
+        return 'Printing First, Then Embroidery';
+      case 'EMBROIDERY_FIRST_THEN_PRINT':
+        return 'Embroidery First, Then Printing';
+      default:
+        return _embellishmentSeq.replaceAll('_', ' ');
+    }
   }
 
   Map<String, int> _distributeQuantity(int amount, List<String> sizes) {
@@ -135,7 +160,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         _styleRefController.clear();
         _styleNameController.clear();
         _embellishmentSeq = 'NONE';
-        _fabricComposition = '100% Cotton';
+        _fabricComposition = '100% Combed Cotton Single Jersey';
         _targetGsm = 180;
         _cadFrontUrl = null;
         _cadBackUrl = null;
@@ -155,8 +180,12 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         final qty = b.contractedVolume > 0 ? b.contractedVolume : 1000;
         _quantityController.text = qty.toString();
 
-        final price = b.pricePerPiece > 0 ? b.pricePerPiece : 1450.0;
+        final price = b.pricePerPiece > 0 ? b.pricePerPiece : 650.0;
         _priceController.text = price.toStringAsFixed(2);
+
+        if (_poController.text.isEmpty || _poController.text.startsWith('PO-')) {
+          _poController.text = _generateAutoPoNumber(b.buyerCode);
+        }
 
         final artClean = (b.linkedArticleNumber ?? '').trim().toUpperCase();
         final tp = techPacks.where((t) => t.styleNumber.trim().toUpperCase() == artClean).firstOrNull;
@@ -675,20 +704,28 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(
-                      'SELECT CONTRACTED BUYER & LINKED ARTICLE *',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF6B6A65),
-                        letterSpacing: 0.2,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.business_outlined, size: 13, color: Color(0xFF332B6B)),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            'SELECT CONTRACTED BUYER & LINKED ARTICLE *',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF6B6A65),
+                              letterSpacing: 0.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '${linkedBuyers.length} Contract(s)',
+                    '${linkedBuyers.length} Linked Buyer Contract${linkedBuyers.length == 1 ? '' : 's'}',
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 9.5,
                       fontWeight: FontWeight.bold,
@@ -705,10 +742,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 items: [
                   if (linkedBuyers.isNotEmpty)
                     ...linkedBuyers.map((b) {
+                      final priceStr = b.pricePerPiece > 0
+                          ? (b.pricePerPiece % 1 == 0 ? b.pricePerPiece.toInt().toString() : b.pricePerPiece.toStringAsFixed(2))
+                          : '650';
                       return DropdownMenuItem(
                         value: 'buyer_${b.id}',
                         child: Text(
-                          '${b.buyerName} — Art #${b.linkedArticleNumber} (${NumberFormat.decimalPattern('en_IN').format(b.contractedVolume)} Pcs)',
+                          '${b.buyerName} — Art #${b.linkedArticleNumber} (${NumberFormat.decimalPattern('en_IN').format(b.contractedVolume)} Pcs @ ₹$priceStr)',
                           style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -746,25 +786,52 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // PO Number (Manual Entry)
+            // PO Number (Auto-Generated with Refresh)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('BUYER PO NUMBER *', style: _labelStyle),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('BUYER PO NUMBER *', style: _labelStyle),
+                      Text('Auto-Generated', style: GoogleFonts.jetBrainsMono(fontSize: 8.5, color: const Color(0xFF9B9A94))),
+                    ],
+                  ),
                   const SizedBox(height: 4),
-                  SizedBox(
+                  Container(
                     height: 42,
-                    child: TextFormField(
-                      controller: _poController,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
-                      ),
-                      decoration: _inputDecoration(
-                        hint: 'e.g. PO-2026-001',
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0x1A000000)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _poController.text.isNotEmpty ? _poController.text : _generateAutoPoNumber(_selectedBuyerRef?.buyerCode),
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF241D52),
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _poController.text = _generateAutoPoNumber(_selectedBuyerRef?.buyerCode);
+                            });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF332B6B)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -778,17 +845,25 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 children: [
                   Text('BRAND / PRINCIPAL BUYER *', style: _labelStyle),
                   const SizedBox(height: 4),
-                  SizedBox(
+                  Container(
                     height: 42,
-                    child: TextFormField(
-                      controller: _brandController,
-                      readOnly: isReadOnlyArticle,
-                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: _inputDecoration(
-                        hint: 'e.g. Hollypop',
-                        isReadOnly: isReadOnlyArticle,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: isReadOnlyArticle ? const Color(0xFFFAF7F0) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0x1A000000)),
                     ),
+                    alignment: Alignment.centerLeft,
+                    child: isReadOnlyArticle
+                        ? Text(
+                            _brandController.text.isNotEmpty ? _brandController.text : 'Hollypop',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                          )
+                        : TextFormField(
+                            controller: _brandController,
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                            decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none, hintText: 'e.g. Hollypop'),
+                          ),
                   ),
                 ],
               ),
@@ -871,19 +946,27 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ARTICLE / STYLE REF *', style: _labelStyle),
+                  Text('ARTICLE / STYLE REFERENCE *', style: _labelStyle),
                   const SizedBox(height: 4),
-                  SizedBox(
+                  Container(
                     height: 42,
-                    child: TextFormField(
-                      controller: _styleRefController,
-                      readOnly: isReadOnlyArticle,
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: _inputDecoration(
-                        hint: 'e.g. ART-101',
-                        isReadOnly: isReadOnlyArticle,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: isReadOnlyArticle ? const Color(0xFFFAF7F0) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0x1A000000)),
                     ),
+                    alignment: Alignment.centerLeft,
+                    child: isReadOnlyArticle
+                        ? Text(
+                            _styleRefController.text.isNotEmpty ? _styleRefController.text : 'DEMO-101-03',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C1A)),
+                          )
+                        : TextFormField(
+                            controller: _styleRefController,
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C1A)),
+                            decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none, hintText: 'e.g. DEMO-101-03'),
+                          ),
                   ),
                 ],
               ),
@@ -919,13 +1002,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         border: Border.all(color: const Color(0x26000000)),
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF332B6B)),
-                          const SizedBox(width: 6),
                           Text(
-                            _dateController.text,
+                            DateFormat('MM/dd/yyyy').format(_exFactoryDate),
                             style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                           ),
+                          const Icon(Icons.calendar_today_outlined, size: 15, color: Color(0xFF6B6A65)),
                         ],
                       ),
                     ),
@@ -954,14 +1037,8 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     Text('EMBELLISHMENT ROUTING', style: _chipLabelStyle),
                     const SizedBox(height: 2),
                     Text(
-                      _embellishmentSeq == 'NONE'
-                          ? 'Cut & Sew'
-                          : (_embellishmentSeq == 'ONLY_PRINTING'
-                              ? 'Only Printing'
-                              : (_embellishmentSeq == 'ONLY_EMBROIDERY'
-                                  ? 'Only Embroidery'
-                                  : 'Printing & Embroidery')),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                      _embellishmentDisplayText,
+                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
                     ),
                   ],
                 ),
@@ -1041,7 +1118,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('UNIT FOB ($curSym) *', style: _labelStyle),
+                  Text('UNIT FOB PRICE ($curSym) *', style: _labelStyle),
                   const SizedBox(height: 4),
                   SizedBox(
                     height: 42,
@@ -1050,20 +1127,20 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (_) => setState(() {}),
                       style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: _inputDecoration(hint: '1450.00'),
+                      decoration: _inputDecoration(hint: '650.00'),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Order Quantity
+            // Total Order Quantity
             Expanded(
               flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ORDER QTY (PCS) *', style: _labelStyle),
+                  Text('TOTAL ORDER QUANTITY (PCS) *', style: _labelStyle),
                   const SizedBox(height: 4),
                   SizedBox(
                     height: 42,
@@ -1072,7 +1149,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       keyboardType: TextInputType.number,
                       onChanged: (_) => setState(() {}),
                       style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
-                      decoration: _inputDecoration(hint: '1000'),
+                      decoration: _inputDecoration(hint: '6000'),
                     ),
                   ),
                 ],
@@ -1084,7 +1161,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
         // 7. Estimated Revenue Summary Box (Clean Pill Banner)
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFFFAF7F0),
             borderRadius: BorderRadius.circular(12),
@@ -1098,11 +1175,11 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF6B6A65)),
               ),
               Text(
-                '$curSym${NumberFormat.decimalPattern('en_IN').format(revenue.round())}',
+                '$curSym${NumberFormat.currency(symbol: '', decimalDigits: 2, locale: 'en_IN').format(revenue).trim()}',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF332B6B),
+                  color: const Color(0xFF1C1C1A),
                 ),
               ),
             ],
