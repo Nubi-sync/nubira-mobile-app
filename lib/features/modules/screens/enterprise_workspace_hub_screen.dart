@@ -5,6 +5,7 @@ import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../design/screens/design_studio_screen.dart';
+import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
@@ -91,6 +92,9 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     switch (mod.id) {
       case 'design':
         destination = const DesignStudioScreen();
+        break;
+      case 'merchandising':
+        destination = const MerchandisingDashboardScreen();
         break;
       case 'stitching-sewing':
         destination = const AdminShell();
