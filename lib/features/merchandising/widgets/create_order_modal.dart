@@ -54,7 +54,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
   @override
   void initState() {
     super.initState();
-    _poController = TextEditingController(text: _generateAutoPoNumber());
+    _poController = TextEditingController();
     _brandController = TextEditingController();
     _styleRefController = TextEditingController();
     _styleNameController = TextEditingController();
@@ -80,14 +80,6 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
     _dateController.dispose();
     _newColorController.dispose();
     super.dispose();
-  }
-
-  String _generateAutoPoNumber([String? buyerCode]) {
-    final yr = DateTime.now().year;
-    final rand = 1000 + Random().nextInt(9000);
-    final cleanCode = (buyerCode ?? '').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
-    final prefix = cleanCode.isNotEmpty ? (cleanCode.length >= 4 ? cleanCode.substring(0, 4) : cleanCode) : 'PO';
-    return '$prefix-$yr-$rand';
   }
 
   Map<String, int> _distributeQuantity(int amount, List<String> sizes) {
@@ -165,8 +157,6 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
         final price = b.pricePerPiece > 0 ? b.pricePerPiece : 1450.0;
         _priceController.text = price.toStringAsFixed(2);
-
-        _poController.text = _generateAutoPoNumber(b.buyerCode);
 
         final artClean = (b.linkedArticleNumber ?? '').trim().toUpperCase();
         final tp = techPacks.where((t) => t.styleNumber.trim().toUpperCase() == artClean).firstOrNull;
@@ -756,52 +746,25 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // PO Number (Auto-Generated Read-only)
+            // PO Number (Manual Entry)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('BUYER PO NUMBER *', style: _labelStyle),
-                      Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF9B9A94))),
-                    ],
-                  ),
+                  Text('BUYER PO NUMBER *', style: _labelStyle),
                   const SizedBox(height: 4),
-                  Container(
+                  SizedBox(
                     height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x26000000)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _poController.text,
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF241D52),
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              _poController.text = _generateAutoPoNumber(_selectedBuyerRef?.buyerCode);
-                            });
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
-                            child: Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF332B6B)),
-                          ),
-                        ),
-                      ],
+                    child: TextFormField(
+                      controller: _poController,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1A),
+                      ),
+                      decoration: _inputDecoration(
+                        hint: 'e.g. PO-2026-001',
+                      ),
                     ),
                   ),
                 ],
