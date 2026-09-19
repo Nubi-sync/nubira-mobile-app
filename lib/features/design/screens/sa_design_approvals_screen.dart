@@ -6,6 +6,7 @@ import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
 import 'create_production_tech_pack_wizard.dart';
+import 'design_studio_screen.dart';
 
 class SARowItem {
   final String key;
@@ -1070,6 +1071,50 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                                 fontSize: 11.5,
                                 color: const Color(0xFF64748B),
                                 height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const DesignStudioScreen()),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(9),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(9),
+                                  border: Border.all(color: const Color(0xFFDAD9D3)),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x08000000),
+                                      blurRadius: 2,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.palette_outlined,
+                                      color: Color(0xFF332B6B),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Design studio',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF332B6B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
