@@ -677,7 +677,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                     const SizedBox(height: 5),
                     _buildTextInput(
                       controller: _challanNoController,
-                      placeholder: 'e.g. JOB-457',
+                      placeholder: 'Enter Challan No.',
                       onChanged: (val) => _markDirty(),
                     ),
                   ],
@@ -744,7 +744,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                     const SizedBox(height: 5),
                     _buildTextInput(
                       controller: _fabricTypeController,
-                      placeholder: 'e.g. PRINTED SINKER',
+                      placeholder: 'Enter Fabric Type',
                       onChanged: (val) => _markDirty(),
                     ),
                   ],
@@ -805,8 +805,20 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
             borderRadius: BorderRadius.circular(8),
             child: Row(
               children: [
-                _buildCustomCheckbox(isChecked: _sampleGiven),
-                const SizedBox(width: 10),
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _sampleGiven,
+                    activeColor: brandIndigo,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    onChanged: (v) {
+                      _markDirty();
+                      setState(() => _sampleGiven = v ?? false);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Ready sample given (approved by buyer)',
@@ -831,7 +843,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
               const SizedBox(height: 5),
               _buildTextInput(
                 controller: _notesController,
-                placeholder: 'e.g. Body+Rib N.P, Ext=3x27, 2=18, 1=9...',
+                placeholder: 'Enter special instructions or remarks...',
                 maxLines: 2,
                 onChanged: (val) => _markDirty(),
               ),
@@ -849,128 +861,120 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Marker + Live Count
+        // Section Header Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
                 Container(
-                  width: 7,
-                  height: 7,
+                  width: 8,
+                  height: 8,
                   decoration: const BoxDecoration(
                     color: brandIndigo,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 7),
                 Text(
-                  '2. ARTICLE LINES MATRIX (${_articleLines.length} LINES)',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
+                  '2. ARTICLE LINES (${_articleLines.length})',
+                  style: GoogleFonts.publicSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.7,
                     color: const Color(0xFF334155),
-                    letterSpacing: 0.8,
                   ),
                 ),
               ],
             ),
-            // Expand all / collapse all button
-            if (_articleLines.length > 1)
-              InkWell(
-                onTap: () {
-                  final allExp = _articleLines.every((l) => l.isExpanded);
-                  setState(() {
-                    for (var l in _articleLines) {
-                      l.isExpanded = !allExp;
-                    }
-                  });
-                },
-                child: Text(
-                  _articleLines.every((l) => l.isExpanded) ? 'Collapse all' : 'Expand all',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: brandIndigo,
-                  ),
+            // Add Line Button
+            InkWell(
+              onTap: () => _addBlankArticleLine(),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: cardBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded, size: 15, color: brandIndigo),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add Line',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: brandIndigo,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
 
         const SizedBox(height: 10),
 
-        // Horizontal Quick-Size chips
+        // Quick Sizes Buttons
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
           child: Row(
             children: [
               Text(
-                'Quick sizes:',
-                style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: labelColor,
-                ),
+                'Quick sizes: ',
+                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8), fontWeight: FontWeight.w500),
               ),
-              const SizedBox(width: 8),
-              ..._quickSizes.map((sz) {
-                return Padding(
+              const SizedBox(width: 4),
+              for (final sz in _quickSizes)
+                Padding(
                   padding: const EdgeInsets.only(right: 6),
-                  child: ActionChip(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: cardBorder, width: 0.8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    label: Text(
-                      '+ $sz',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF334155),
+                  child: InkWell(
+                    onTap: () => _addBlankArticleLine(sz),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: cardBorder),
+                      ),
+                      child: Text(
+                        '+ $sz',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF475569),
+                        ),
                       ),
                     ),
-                    onPressed: () {
-                      _addBlankArticleLine(sz);
-                    },
                   ),
-                );
-              }),
+                ),
             ],
           ),
         ),
 
         const SizedBox(height: 12),
 
-        // List of Article Line Cards
+        // Article Lines List
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _articleLines.length,
-          separatorBuilder: (ctx, i) => const SizedBox(height: 10),
-          itemBuilder: (ctx, idx) {
-            return _buildArticleLineCard(idx, _articleLines[idx], linemen, masterArticleCodes);
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            return _buildArticleLineCard(index, _articleLines[index], linemen, masterArticleCodes);
           },
-        ),
-
-        const SizedBox(height: 10),
-
-        // Dashed "+ Add article line" button
-        _buildDashedAddButton(
-          label: '+ Add article line',
-          onTap: () => _addBlankArticleLine(),
         ),
       ],
     );
   }
 
-  Widget _buildArticleLineCard(
-    int index,
-    _ArticleLineItem line,
-    List<dynamic> linemen,
-    List<String> masterArticleCodes,
-  ) {
+  Widget _buildArticleLineCard(int index, _ArticleLineItem line, List<dynamic> linemen, List<String> masterArticleCodes) {
     final artNoDisplay = line.artNoController.text.trim();
     final colorDisplay = line.colorController.text.trim();
     final sizeDisplay = line.sizeRangeController.text.trim();
@@ -1104,7 +1108,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.artNoController,
-                              placeholder: 'e.g. 9437',
+                              placeholder: 'Art No',
                               onChanged: (val) {
                                 _markDirty();
                                 setState(() {});
@@ -1122,7 +1126,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.colorController,
-                              placeholder: 'e.g. ROBIN BLUE',
+                              placeholder: 'Colour / Shade',
                               onChanged: (val) {
                                 _markDirty();
                                 setState(() {});
@@ -1148,7 +1152,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.categoryController,
-                              placeholder: 'e.g. Suit',
+                              placeholder: 'Category',
                               onChanged: (val) => _markDirty(),
                             ),
                           ],
@@ -1163,7 +1167,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.productController,
-                              placeholder: 'e.g. Pant',
+                              placeholder: 'Product / Pattern',
                               onChanged: (val) => _markDirty(),
                             ),
                           ],
@@ -1186,7 +1190,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.sizeRangeController,
-                              placeholder: 'e.g. XS-XXL, 22',
+                              placeholder: 'Size (e.g. L, 32)',
                               onChanged: (val) {
                                 _markDirty();
                                 setState(() {});
@@ -1204,7 +1208,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.orderQtyController,
-                              placeholder: 'e.g. 384',
+                              placeholder: '0',
                               keyboardType: TextInputType.number,
                               onChanged: (val) {
                                 _markDirty();
@@ -1234,7 +1238,7 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
                             const SizedBox(height: 5),
                             _buildTextInput(
                               controller: line.challanQtyController,
-                              placeholder: 'e.g. 392',
+                              placeholder: '0',
                               keyboardType: TextInputType.number,
                               onChanged: (val) {
                                 _markDirty();
@@ -1689,20 +1693,6 @@ class _CreateJobWorkChallanSheetState extends ConsumerState<CreateJobWorkChallan
     );
   }
 
-  Widget _buildCustomCheckbox({required bool isChecked}) {
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: isChecked ? brandIndigo : Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: isChecked ? brandIndigo : const Color(0xFFCBD5E1), width: 1.2),
-      ),
-      child: isChecked
-          ? const Icon(Icons.check, size: 13, color: Colors.white)
-          : null,
-    );
-  }
 
   Widget _buildDashedAddButton({required String label, required VoidCallback onTap}) {
     return InkWell(
