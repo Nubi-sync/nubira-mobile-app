@@ -5508,27 +5508,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Article & Safety Buffer Ledger',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.ink,
-                    letterSpacing: -0.3,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Article & Safety Buffer Ledger',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Live floor consumption & mending buffer reserve',
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    'Live floor consumption & mending buffer reserve',
+                    style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             // Buffer % Selector Pills
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
@@ -5538,6 +5541,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 border: Border.all(color: AppTheme.border),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [3, 5, 8, 10].map((pct) {
                   final isSel = _safetyBufferPct == pct;
                   return InkWell(
@@ -5552,7 +5556,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       child: Text(
                         '$pct%',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: isSel ? Colors.white : AppTheme.inkSoft,
                         ),
