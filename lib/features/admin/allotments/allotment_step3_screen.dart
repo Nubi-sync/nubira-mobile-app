@@ -18,12 +18,6 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final form = ref.read(allotmentFormProvider);
-      if (form.materials.isEmpty) {
-        ref.read(allotmentFormProvider.notifier).autoGenerateBom();
-      }
-    });
   }
 
   void _showAddOrEditCustomItemModal([BomItem? existingItem]) {
@@ -539,17 +533,39 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
                 // 3. Materials List Cards
                 if (filteredMaterials.isEmpty)
                   Container(
-                    padding: const EdgeInsets.all(28),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: const Color(0xFFFAFAF8),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: const Color(0xFFDAD9D3)),
                     ),
-                    child: const Text(
-                      'No items in this filter.\nTap Auto-calculate or add a custom item.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF6B6A65), fontSize: 13),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFDAD9D3)),
+                          ),
+                          child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF6B6A65), size: 24),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No Inwarded Materials Found in Store',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Color(0xFF1C1C1A), fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Physical raw materials or trims have not been inwarded in Store for this order yet.\nTap "Auto-calculate" below if you wish to generate standard estimates.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Color(0xFF6B6A65), fontSize: 12, height: 1.4),
+                        ),
+                      ],
                     ),
                   )
                 else

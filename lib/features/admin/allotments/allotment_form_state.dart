@@ -549,55 +549,8 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
       )
     ];
 
-    // Auto-generate BOM matching Web Admin
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final totalPcs = colorGroup.totalPcs;
-    final threadCones = totalPcs > 0 ? (totalPcs / 250).ceil() : 4;
-    final minThread = threadCones < 4 ? 4 : threadCones;
-    final sizesStr = allIndividualSizes.join(', ');
-    final fabricLabel = (challan.fabricType != null && challan.fabricType!.isNotEmpty)
-        ? challan.fabricType!
-        : 'Sinker';
-
-    state.materials = [
-      BomItem(
-        id: 'mat_fab_$now',
-        itemName:
-            '${colorGroup.colorName} Fabric Lot ($fabricLabel)',
-        requiredQty: 'As per roll marker',
-        adminIssued: true,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_thread_$now',
-        itemName: 'Matching Sewing Thread (${colorGroup.colorName})',
-        requiredQty: '$minThread Cones',
-        adminIssued: true,
-        source: 'FACTORY_STORE',
-      ),
-      BomItem(
-        id: 'mat_neck_$now',
-        itemName:
-            '${challan.brand.isNotEmpty ? challan.brand : "Brand"} Main Neck Labels',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_size_$now',
-        itemName: 'Size Labels ($sizesStr)',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_poly_$now',
-        itemName: 'Master Polybags',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-    ];
+    // Real Inward Store Materials (Only populate if physically inwarded in Store)
+    state.materials = [];
 
     _notify();
   }
@@ -683,55 +636,8 @@ class AllotmentFormNotifier extends StateNotifier<AllotmentFormData> {
             )
           ];
 
-    // Auto-generate BOM
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final totalPcs = challan.totalPcs;
-    final threadCones = totalPcs > 0 ? (totalPcs / 250).ceil() : 4;
-    final minThread = threadCones < 4 ? 4 : threadCones;
-    final sizesStr = state.selectedSizes.join(', ');
-    final fabricLabel = (challan.fabricType != null && challan.fabricType!.isNotEmpty)
-        ? challan.fabricType!
-        : 'Sinker';
-
-    state.materials = [
-      BomItem(
-        id: 'mat_fab_$now',
-        itemName:
-            'Fabric Lots ($fabricLabel) - Multi Color',
-        requiredQty: 'As per roll marker',
-        adminIssued: true,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_thread_$now',
-        itemName: 'Matching Sewing Thread Cones',
-        requiredQty: '$minThread Cones',
-        adminIssued: true,
-        source: 'FACTORY_STORE',
-      ),
-      BomItem(
-        id: 'mat_neck_$now',
-        itemName:
-            '${challan.brand.isNotEmpty ? challan.brand : "Brand"} Main Neck Labels',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_size_$now',
-        itemName: 'Size Labels ($sizesStr)',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-      BomItem(
-        id: 'mat_poly_$now',
-        itemName: 'Master Polybags',
-        requiredQty: '$totalPcs pcs',
-        adminIssued: false,
-        source: 'CLIENT',
-      ),
-    ];
+    // Real Inward Store Materials (Only populate if physically inwarded in Store)
+    state.materials = [];
 
     _notify();
   }
