@@ -65,33 +65,43 @@ class AuthGate extends ConsumerWidget {
     if (authState.isAuthenticated && authState.userRole != null) {
       final roleUpper = authState.userRole!.toUpperCase();
 
-      // Multi-access enterprise hub for admins, company heads, and multi-division accounts
-      if (authState.isMultiDivisionUser ||
-          roleUpper == 'ADMIN' ||
-          roleUpper == 'SUPERADMIN' ||
-          roleUpper == 'PLATFORM_SUPERADMIN') {
-        return const EnterpriseWorkspaceHubScreen();
-      }
-
-      // Single-division direct routing for shop-floor operators
+      // Direct routing for specialized shop-floor operators and department roles
       switch (roleUpper) {
-        case 'DISPATCH':
-          return const DispatchDashboard();
         case 'STORE':
+        case 'STORE_SUPERVISOR':
+        case 'GODOWN':
           return const StoreDashboard();
+        case 'DISPATCH':
+        case 'LOGISTICS':
+          return const DispatchDashboard();
         case 'PRODUCTION_MANAGER':
           return const ProductionManagerDashboard();
         case 'PRODUCTION':
         case 'QC':
+        case 'AQL_INSPECTOR':
           return const QcDashboard();
         case 'MENDING':
+        case 'ALTERATION':
+        case 'REPAIR_TAILOR':
           return const MendingDashboard();
         case 'DESIGNER':
           return const DesignerDashboardScreen();
         case 'LINEMAN':
-        default:
+        case 'STITCHING_SUPERVISOR':
+        case 'STITCHING':
           return const LinemanDashboard();
       }
+
+      // Multi-access enterprise hub for admins, company heads, and multi-division management
+      if (authState.isMultiDivisionUser ||
+          roleUpper == 'ADMIN' ||
+          roleUpper == 'SUPERADMIN' ||
+          roleUpper == 'PLATFORM_SUPERADMIN' ||
+          roleUpper == 'DEPARTMENT_HEAD') {
+        return const EnterpriseWorkspaceHubScreen();
+      }
+
+      return const LinemanDashboard();
     }
 
     return const LoginScreen();

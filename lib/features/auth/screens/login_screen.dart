@@ -11,6 +11,7 @@ import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../dashboard/production_manager_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
+import '../../design/screens/designer_dashboard_screen.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connectivity_indicator.dart';
@@ -184,34 +185,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final roleUpper = next.userRole!.toUpperCase();
         Widget destination;
 
-        if (next.isMultiDivisionUser ||
-            roleUpper == 'ADMIN' ||
-            roleUpper == 'SUPERADMIN' ||
-            roleUpper == 'PLATFORM_SUPERADMIN') {
-          destination = const EnterpriseWorkspaceHubScreen();
-        } else {
-          switch (roleUpper) {
-            case 'DISPATCH':
-              destination = const DispatchDashboard();
-              break;
-            case 'STORE':
-              destination = const StoreDashboard();
-              break;
-            case 'PRODUCTION_MANAGER':
-              destination = const ProductionManagerDashboard();
-              break;
-            case 'PRODUCTION':
-            case 'QC':
-              destination = const QcDashboard();
-              break;
-            case 'MENDING':
-              destination = const MendingDashboard();
-              break;
-            case 'LINEMAN':
-            default:
+        switch (roleUpper) {
+          case 'STORE':
+          case 'STORE_SUPERVISOR':
+          case 'GODOWN':
+            destination = const StoreDashboard();
+            break;
+          case 'DISPATCH':
+          case 'LOGISTICS':
+            destination = const DispatchDashboard();
+            break;
+          case 'PRODUCTION_MANAGER':
+            destination = const ProductionManagerDashboard();
+            break;
+          case 'PRODUCTION':
+          case 'QC':
+          case 'AQL_INSPECTOR':
+            destination = const QcDashboard();
+            break;
+          case 'MENDING':
+          case 'ALTERATION':
+          case 'REPAIR_TAILOR':
+            destination = const MendingDashboard();
+            break;
+          case 'DESIGNER':
+            destination = const DesignerDashboardScreen();
+            break;
+          case 'LINEMAN':
+          case 'STITCHING_SUPERVISOR':
+          case 'STITCHING':
+            destination = const LinemanDashboard();
+            break;
+          default:
+            if (next.isMultiDivisionUser ||
+                roleUpper == 'ADMIN' ||
+                roleUpper == 'SUPERADMIN' ||
+                roleUpper == 'PLATFORM_SUPERADMIN' ||
+                roleUpper == 'DEPARTMENT_HEAD') {
+              destination = const EnterpriseWorkspaceHubScreen();
+            } else {
               destination = const LinemanDashboard();
-              break;
-          }
+            }
+            break;
         }
 
         Navigator.pushReplacement(

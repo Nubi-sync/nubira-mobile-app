@@ -53,6 +53,27 @@ class AuthState {
     if (roleUpper == 'ADMIN' || roleUpper == 'SUPERADMIN' || roleUpper == 'PLATFORM_SUPERADMIN') {
       return true;
     }
+    const floorRoles = {
+      'STORE',
+      'STORE_SUPERVISOR',
+      'GODOWN',
+      'DISPATCH',
+      'LOGISTICS',
+      'PRODUCTION_MANAGER',
+      'QC',
+      'PRODUCTION',
+      'AQL_INSPECTOR',
+      'MENDING',
+      'ALTERATION',
+      'REPAIR_TAILOR',
+      'DESIGNER',
+      'LINEMAN',
+      'STITCHING_SUPERVISOR',
+      'STITCHING'
+    };
+    if (floorRoles.contains(roleUpper)) {
+      return false;
+    }
     return allowedDivisions.length > 1;
   }
 
