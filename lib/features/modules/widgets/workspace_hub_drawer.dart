@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/login_screen.dart';
 import '../screens/enterprise_workspace_hub_screen.dart';
 import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
@@ -88,6 +89,12 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
             child: Text(
               'Sign Out',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/login_screen.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
@@ -169,8 +170,15 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               elevation: 0,
             ),
             onPressed: () async {
+              final nav = Navigator.of(context);
               Navigator.pop(ctx);
               await ref.read(authProvider.notifier).logout();
+              if (mounted) {
+                nav.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
             child: Text(
               'Sign Out',

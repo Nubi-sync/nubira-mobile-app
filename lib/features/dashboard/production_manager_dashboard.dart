@@ -535,8 +535,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               final nav = Navigator.of(context);
               await ref.read(authProvider.notifier).logout();
               if (mounted) {
-                nav.pushReplacement(
+                nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
                 );
               }
             }

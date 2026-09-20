@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../main.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/login_screen.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
 import 'design_brief_detail_screen.dart';
@@ -161,7 +162,15 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.mutedInk),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
         ],
       ),

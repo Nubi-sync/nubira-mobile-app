@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/login_screen.dart';
 import '../screens/employees_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
@@ -336,6 +337,12 @@ class AdminDrawer extends ConsumerWidget {
               child: InkWell(
                 onTap: () async {
                   await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
