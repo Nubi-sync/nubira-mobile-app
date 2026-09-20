@@ -3621,7 +3621,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                     ),
                                   ),
                                   Text(
-                                    'Inspect raw materials & issue to Lineman',
+                                    'Issue BOM materials to Lineman',
                                     style: GoogleFonts.publicSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
@@ -3828,12 +3828,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
                           const SizedBox(height: 16),
 
-                          // 4. Checklist of Items
+                          // 4. BOM Items Issue List
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'BOM Physical Inspection Checklist',
+                                'BOM Materials for Floor Issue',
                                 style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
                               ),
                               Container(
@@ -3863,220 +3863,125 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             ...materials.map((mat) {
                               final mId = mat['id'].toString();
                               final state = inspectionState[mId] ?? {};
-                              final status = state['status'] ?? 'VERIFIED';
                               final receivedCtrl = state['receivedQtyCtrl'] as TextEditingController?;
-                              final shortageCtrl = state['shortageCtrl'] as TextEditingController?;
                               final remarksCtrl = state['remarksCtrl'] as TextEditingController?;
-
-                              final isShortage = status == 'SHORTAGE';
-                              final isDefective = status == 'DEFECTIVE';
+                              final itemName = (mat['item_name'] ?? 'Material Item').toString();
+                              final reqQty = (mat['required_qty'] ?? '-').toString();
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 10),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: isShortage
-                                        ? AppTheme.amber.withValues(alpha: 0.6)
-                                        : (isDefective ? AppTheme.red.withValues(alpha: 0.6) : AppTheme.border),
-                                    width: isShortage || isDefective ? 1.5 : 1,
-                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.border),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
-                                          child: Text(
-                                            mat['item_name'] ?? 'Material Item',
-                                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.ink),
-                                          ),
-                                        ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                                          child: Text(
-                                            'Req: ${mat['required_qty']}',
-                                            style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 11, color: AppTheme.steel),
+                                          padding: const EdgeInsets.all(7),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.bg,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            itemName.toLowerCase().contains('fabric')
+                                                ? Icons.texture_rounded
+                                                : (itemName.toLowerCase().contains('thread')
+                                                    ? Icons.gesture_rounded
+                                                    : Icons.sell_outlined),
+                                            size: 16,
+                                            color: AppTheme.steel,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-
-                                    // Inspection Status Selector Chips (Harmonized with GRN theme)
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'VERIFIED'),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
-                                              decoration: BoxDecoration(
-                                                color: status == 'VERIFIED' ? AppTheme.steel : AppTheme.bg,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: status == 'VERIFIED' ? AppTheme.steel : AppTheme.border),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.check_circle_rounded,
-                                                    size: 13,
-                                                    color: status == 'VERIFIED' ? Colors.white : AppTheme.steel,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Verified',
-                                                    style: GoogleFonts.publicSans(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: status == 'VERIFIED' ? Colors.white : AppTheme.inkSoft,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'SHORTAGE'),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
-                                              decoration: BoxDecoration(
-                                                color: isShortage ? AppTheme.amberMist : AppTheme.bg,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: isShortage ? AppTheme.amber : AppTheme.border),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.warning_amber_rounded,
-                                                    size: 13,
-                                                    color: isShortage ? AppTheme.amber : AppTheme.inkSoft,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Shortage',
-                                                    style: GoogleFonts.publicSans(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: isShortage ? AppTheme.amber : AppTheme.inkSoft,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () => setModalState(() => inspectionState[mId]?['status'] = 'DEFECTIVE'),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 6.5),
-                                              decoration: BoxDecoration(
-                                                color: isDefective ? AppTheme.redMist : AppTheme.bg,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: isDefective ? AppTheme.red : AppTheme.border),
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.cancel_outlined,
-                                                    size: 13,
-                                                    color: isDefective ? AppTheme.red : AppTheme.inkSoft,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Defective',
-                                                    style: GoogleFonts.publicSans(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: isDefective ? AppTheme.red : AppTheme.inkSoft,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 10),
-
-                                    // Physical Received Qty Input & Shortage details
-                                    Row(
-                                      children: [
+                                        const SizedBox(width: 10),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text('Physical Received Count', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
-                                              const SizedBox(height: 4),
-                                              TextField(
-                                                controller: receivedCtrl,
-                                                style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                                                decoration: InputDecoration(
-                                                  hintText: 'Enter physical count',
-                                                  hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkFaint),
-                                                  filled: true,
-                                                  fillColor: AppTheme.bg,
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
-                                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
-                                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.steel, width: 1.5)),
+                                              Text(
+                                                itemName,
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 13,
+                                                  color: AppTheme.ink,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Required: $reqQty',
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.inkSoft,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        if (isShortage) ...[
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text('Shortage Diff', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.amber)),
-                                                const SizedBox(height: 4),
-                                                TextField(
-                                                  controller: shortageCtrl,
-                                                  style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.amber),
-                                                  decoration: InputDecoration(
-                                                    hintText: 'e.g. -4 Cones',
-                                                    filled: true,
-                                                    fillColor: AppTheme.bg,
-                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.amber)),
-                                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.amber)),
+                                        const SizedBox(width: 8),
+                                        // Issued Quantity Field
+                                        SizedBox(
+                                          width: 130,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                'Issue Qty',
+                                                style: GoogleFonts.publicSans(
+                                                  fontSize: 10.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.inkSoft,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 3),
+                                              TextField(
+                                                controller: receivedCtrl,
+                                                textAlign: TextAlign.end,
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTheme.ink,
+                                                ),
+                                                decoration: InputDecoration(
+                                                  isDense: true,
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                                                  filled: true,
+                                                  fillColor: AppTheme.bg,
+                                                  border: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderSide: const BorderSide(color: AppTheme.border),
+                                                  ),
+                                                  enabledBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderSide: const BorderSide(color: AppTheme.border),
+                                                  ),
+                                                  focusedBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderSide: const BorderSide(color: AppTheme.steel, width: 1.5),
                                                   ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                        ),
                                       ],
                                     ),
-                                    // Remarks input for Shortage or Defective
-                                    if (isShortage || isDefective) ...[
+                                    if (remarksCtrl != null && remarksCtrl.text.isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       TextField(
                                         controller: remarksCtrl,
                                         style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.ink),
                                         decoration: InputDecoration(
-                                          hintText: isShortage ? 'Reason for shortage / supplier note...' : 'Defect details (wrong shade, damaged)...',
+                                          hintText: 'Notes / Remarks...',
+                                          isDense: true,
                                           filled: true,
                                           fillColor: AppTheme.bg,
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
                                         ),
