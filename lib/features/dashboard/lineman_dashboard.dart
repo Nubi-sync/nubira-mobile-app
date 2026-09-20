@@ -2498,6 +2498,65 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     }
   }
 
+  String _formatAllotmentArticleSubtitle({
+    required dynamic article,
+    required Map<dynamic, dynamic> colorGroups,
+    required List<dynamic> variants,
+    dynamic targetQty,
+  }) {
+    final artNo = (article?['art_no'] ?? '').toString().trim();
+    String rawDesc = (article?['description'] ?? '').toString().trim();
+
+    // 1. Strip leading art_no (e.g. "4225 - " or "Art #4225 : ")
+    if (artNo.isNotEmpty) {
+      rawDesc = rawDesc.replaceFirst(RegExp('^${RegExp.escape(artNo)}\\s*[-–—:]*\\s*', caseSensitive: false), '').trim();
+      rawDesc = rawDesc.replaceFirst(RegExp('^Art\\s*#?\\s*${RegExp.escape(artNo)}\\s*[-–—:]*\\s*', caseSensitive: false), '').trim();
+    }
+
+    // 2. Extract actual assigned colors for this allotment
+    final assignedColors = colorGroups.keys
+        .map((c) => c.trim().toUpperCase())
+        .where((c) => c.isNotEmpty && c != 'STANDARD')
+        .toList();
+
+    // 3. Extract actual assigned sizes for this allotment
+    final assignedSizes = variants
+        .map((v) => (v['size'] ?? '').toString().trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList();
+
+    const sizeOrder = {'2XS': 1, 'XXS': 1, 'XS': 2, 'S': 3, 'M': 4, 'L': 5, 'XL': 6, '2XL': 7, 'XXL': 7, '3XL': 8, 'FREE': 9};
+    assignedSizes.sort((a, b) => (sizeOrder[a] ?? 99).compareTo(sizeOrder[b] ?? 99));
+
+    // 4. Check if rawDesc contains all-colors slash list (e.g. "blue/pink/white (L/XL/XXL)")
+    String cleanStyle = rawDesc;
+    if (cleanStyle.contains('/') || cleanStyle.contains('(')) {
+      final withoutBrackets = cleanStyle.replaceAll(RegExp(r'\(.*?\)'), '').trim();
+      final parts = withoutBrackets.split(RegExp(r'[/,]')).map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+      if (parts.length > 1 && parts.every((p) => p.length <= 18)) {
+        cleanStyle = ''; // This was just a concatenated list of all master colors!
+      }
+    }
+    cleanStyle = cleanStyle.replaceAll(RegExp(r'\s*\[.*?\]'), '').replaceAll(RegExp(r'\s*\(.*?\)'), '').trim();
+
+    if (assignedColors.isNotEmpty) {
+      final colorText = assignedColors.join(', ');
+      final sizeText = assignedSizes.isNotEmpty ? ' (${assignedSizes.join('/')})' : '';
+      if (cleanStyle.isNotEmpty && !cleanStyle.toLowerCase().contains(colorText.toLowerCase())) {
+        return '$cleanStyle • Color: $colorText$sizeText';
+      } else {
+        return 'Color: $colorText$sizeText';
+      }
+    }
+
+    if (cleanStyle.isNotEmpty) {
+      return cleanStyle;
+    }
+
+    return rawDesc.isNotEmpty ? rawDesc : 'Garment Style';
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
@@ -3059,10 +3118,23 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        art?['description'] ?? 'Garment Style',
-                        style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                      ),
+                      () {
+                        final variants = (lot['variants'] as List<dynamic>?) ?? [];
+                        final Map<String, List<dynamic>> colorGroups = {};
+                        for (var v in variants) {
+                          final col = (v['color'] ?? 'Standard').toString().trim();
+                          colorGroups.putIfAbsent(col, () => []).add(v);
+                        }
+                        return Text(
+                          _formatAllotmentArticleSubtitle(
+                            article: art,
+                            colorGroups: colorGroups,
+                            variants: variants,
+                            targetQty: target,
+                          ),
+                          style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft, fontWeight: FontWeight.w500),
+                        );
+                      }(),
                     ],
                   ),
                 ),
@@ -3879,10 +3951,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            art?['description'] ?? 'Garment Style',
-                            style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w500, color: AppTheme.inkSoft),
-                          ),
+                          () {
+                            final subtitle = _formatAllotmentArticleSubtitle(
+                              article: art,
+                              colorGroups: colorGroups,
+                              variants: variants,
+                              targetQty: a['target_qty'],
+                            );
+                            return Text(
+                              subtitle,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.steelDark,
+                              ),
+                            );
+                          }(),
                         ],
                       ),
                     ),

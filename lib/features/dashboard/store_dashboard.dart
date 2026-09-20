@@ -3507,6 +3507,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
     String selectedAllotmentId = pendingAllotments.first['id'];
     final challanController = TextEditingController();
+    bool isSubmitting = false;
 
     // Map to hold inspection state per material item id
     // { id: { 'receivedQtyCtrl': TextEditingController, 'status': 'VERIFIED' | 'SHORTAGE' | 'DEFECTIVE', 'shortageCtrl': TextEditingController, 'remarksCtrl': TextEditingController } }
@@ -3524,7 +3525,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             orElse: () => pendingAllotments.first,
           );
 
-          final materials = _allotmentMaterials.where((m) => m['allotment_id'] == selectedAllotmentId).toList();
+          final materials = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == selectedAllotmentId.toString()).toList();
           final linemanName = allotment['profiles']?['username'] ?? 'Lineman';
           final artNo = allotment['articles']?['art_no'] ?? '-';
           final artDesc = _getCleanArticleDescription(allotment['articles']?['description']);
@@ -3534,23 +3535,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             final mId = mat['id'].toString();
             if (!inspectionState.containsKey(mId)) {
               // Parse existing inspection notes if any
-              String existingReceived = mat['required_qty'] ?? '';
+              String existingReceived = mat['required_qty']?.toString() ?? '';
               String existingStatus = 'VERIFIED';
               String existingShortage = '';
               String existingRemarks = '';
 
               if (mat['notes'] != null) {
                 try {
-                  // Simple manual JSON parse
-                  final notesStr = mat['notes'].toString();
-                  if (notesStr.contains('status')) {
-                    if (notesStr.contains('"status":"SHORTAGE"')) existingStatus = 'SHORTAGE';
-                    if (notesStr.contains('"status":"DEFECTIVE"')) existingStatus = 'DEFECTIVE';
-                  }
-                  if (notesStr.contains('supplier_challan_no') && challanController.text.isEmpty) {
-                    final match = RegExp(r'"supplier_challan_no":"(.*?)"').firstMatch(notesStr);
-                    if (match != null && match.group(1) != null) {
-                      challanController.text = match.group(1)!;
+                  final notesRaw = mat['notes'];
+                  if (notesRaw is Map) {
+                    if (notesRaw['status'] != null) existingStatus = notesRaw['status'].toString();
+                    if (notesRaw['supplier_challan_no'] != null && challanController.text.isEmpty) {
+                      challanController.text = notesRaw['supplier_challan_no'].toString();
+                    }
+                  } else {
+                    final notesStr = notesRaw.toString();
+                    if (notesStr.contains('status')) {
+                      if (notesStr.contains('"status":"SHORTAGE"')) existingStatus = 'SHORTAGE';
+                      if (notesStr.contains('"status":"DEFECTIVE"')) existingStatus = 'DEFECTIVE';
+                    }
+                    if (notesStr.contains('supplier_challan_no') && challanController.text.isEmpty) {
+                      final match = RegExp(r'"supplier_challan_no":"(.*?)"').firstMatch(notesStr);
+                      if (match != null && match.group(1) != null) {
+                        challanController.text = match.group(1)!;
+                      }
                     }
                   }
                 } catch (_) {}
@@ -3635,7 +3643,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft, size: 20),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              onPressed: () => Navigator.pop(ctx),
+                              onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
                             ),
                           ],
                         ),
@@ -3690,7 +3698,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                     ),
                                   );
                                 }).toList(),
-                                onChanged: (v) {
+                                onChanged: isSubmitting ? null : (v) {
                                   if (v != null) {
                                     setModalState(() {
                                       selectedAllotmentId = v;
@@ -4009,7 +4017,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                           width: 88,
                           height: 48,
                           child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               side: const BorderSide(color: AppTheme.border),
@@ -4030,121 +4038,174 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                           child: SizedBox(
                             height: 48,
                             child: ElevatedButton(
-                              onPressed: () async {
-                                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                Navigator.pop(ctx);
+                              onPressed: isSubmitting
+                                  ? null
+                                  : () async {
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      setModalState(() => isSubmitting = true);
 
-                                try {
-                                  final challanNo = challanController.text.trim();
-                                  final nowIso = DateTime.now().toIso8601String();
-
-                                  for (var mat in materials) {
-                                    final mId = mat['id'].toString();
-                                    final state = inspectionState[mId] ?? {};
-                                    final status = state['status'] ?? 'VERIFIED';
-                                    final receivedText = (state['receivedQtyCtrl'] as TextEditingController?)?.text.trim() ?? (mat['required_qty']?.toString() ?? '');
-                                    final shortageText = (state['shortageCtrl'] as TextEditingController?)?.text.trim() ?? '';
-                                    final remarksText = (state['remarksCtrl'] as TextEditingController?)?.text.trim() ?? '';
-
-                                    Map<String, dynamic> existingNotes = {};
-                                    if (mat['notes'] != null) {
                                       try {
-                                        existingNotes = jsonDecode(mat['notes']);
-                                      } catch (_) {}
-                                    }
+                                        final challanNo = challanController.text.trim();
+                                        final nowIso = DateTime.now().toIso8601String();
 
-                                    existingNotes['lineman_name'] = linemanName;
-                                    existingNotes['received_qty'] = receivedText.isEmpty ? (mat['required_qty']?.toString() ?? '') : receivedText;
-                                    existingNotes['status'] = status;
-                                    existingNotes['shortage_qty'] = shortageText.isEmpty ? null : shortageText;
-                                    existingNotes['supplier_challan_no'] = challanNo.isEmpty ? null : challanNo;
-                                    existingNotes['store_verified'] = true;
-                                    existingNotes['store_verified_at'] = nowIso;
-                                    existingNotes['store_remarks'] = remarksText.isEmpty ? null : remarksText;
+                                        for (var mat in materials) {
+                                          final mId = mat['id'].toString();
+                                          final state = inspectionState[mId] ?? {};
+                                          final status = state['status'] ?? 'VERIFIED';
+                                          final receivedText = (state['receivedQtyCtrl'] as TextEditingController?)?.text.trim() ?? (mat['required_qty']?.toString() ?? '');
+                                          final shortageText = (state['shortageCtrl'] as TextEditingController?)?.text.trim() ?? '';
+                                          final remarksText = (state['remarksCtrl'] as TextEditingController?)?.text.trim() ?? '';
 
-                                    final notesJson = jsonEncode(existingNotes);
+                                          Map<String, dynamic> existingNotes = {};
+                                          if (mat['notes'] != null) {
+                                            try {
+                                              final notesRaw = mat['notes'];
+                                              if (notesRaw is Map) {
+                                                existingNotes = Map<String, dynamic>.from(notesRaw);
+                                              } else if (notesRaw is String && notesRaw.trim().isNotEmpty) {
+                                                final decoded = jsonDecode(notesRaw);
+                                                if (decoded is Map) {
+                                                  existingNotes = Map<String, dynamic>.from(decoded);
+                                                }
+                                              }
+                                            } catch (_) {}
+                                          }
 
-                                    await supabase
-                                        .from('allotment_materials')
-                                        .update({
-                                          'admin_issued': true,
-                                          'notes': notesJson,
-                                        })
-                                        .eq('id', mat['id']);
+                                          existingNotes['lineman_name'] = linemanName;
+                                          existingNotes['received_qty'] = receivedText.isEmpty ? (mat['required_qty']?.toString() ?? '') : receivedText;
+                                          existingNotes['status'] = status;
+                                          if (shortageText.isNotEmpty) {
+                                            existingNotes['shortage_qty'] = shortageText;
+                                          }
+                                          if (challanNo.isNotEmpty) {
+                                            existingNotes['supplier_challan_no'] = challanNo;
+                                          }
+                                          existingNotes['store_verified'] = true;
+                                          existingNotes['store_verified_at'] = nowIso;
+                                          if (remarksText.isNotEmpty) {
+                                            existingNotes['store_remarks'] = remarksText;
+                                          }
 
-                                    // 2. Log OUTWARD in accessories table so Godown inventory is reduced automatically in real-time
-                                    int parseQuantity(dynamic val) {
-                                      if (val == null) return 0;
-                                      if (val is int) return val;
-                                      if (val is num) return val.toInt();
-                                      final str = val.toString().trim();
-                                      final direct = int.tryParse(str);
-                                      if (direct != null) return direct;
-                                      final match = RegExp(r'[-+]?\d+').firstMatch(str);
-                                      if (match != null) {
-                                        return int.tryParse(match.group(0) ?? '') ?? 0;
+                                          final notesJson = jsonEncode(existingNotes);
+
+                                          await supabase
+                                              .from('allotment_materials')
+                                              .update({
+                                                'admin_issued': true,
+                                                'notes': notesJson,
+                                              })
+                                              .eq('id', mat['id']);
+
+                                          // 2. Log OUTWARD in accessories table so Godown inventory is reduced automatically in real-time
+                                          int parseQuantity(dynamic val) {
+                                            if (val == null) return 0;
+                                            if (val is int) return val;
+                                            if (val is num) return val.toInt();
+                                            final str = val.toString().trim();
+                                            final direct = int.tryParse(str);
+                                            if (direct != null) return direct;
+                                            final match = RegExp(r'[-+]?\d+').firstMatch(str);
+                                            if (match != null) {
+                                              return int.tryParse(match.group(0) ?? '') ?? 0;
+                                            }
+                                            return 0;
+                                          }
+
+                                          final rawQtyVal = receivedText.isNotEmpty ? receivedText : mat['required_qty'];
+                                          final issuedQty = parseQuantity(rawQtyVal);
+                                          final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
+                                          final unit = (mat['unit'] ?? 'pcs').toString();
+
+                                          if (itemName.isNotEmpty && issuedQty > 0) {
+                                            try {
+                                              await supabase.from('accessories').insert({
+                                                'item_name': itemName,
+                                                'action': 'OUT',
+                                                'quantity': issuedQty,
+                                                'unit': unit,
+                                                'party_name': 'Issued to Lineman $linemanName',
+                                                'entry_date': DateTime.now().toIso8601String().split('T')[0],
+                                                'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}${artNo.isNotEmpty ? ' • Art #$artNo' : ''}',
+                                              });
+                                            } catch (accErr) {
+                                              debugPrint('Accessories insert note: $accErr');
+                                            }
+                                          }
+                                        }
+
+                                        // Refresh store data in dashboard
+                                        await _fetchStoreData();
+
+                                        if (ctx.mounted && Navigator.canPop(ctx)) {
+                                          Navigator.pop(ctx);
+                                        }
+
+                                        if (mounted) {
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Row(
+                                                children: [
+                                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text('Raw materials verified & issued to Lineman $linemanName! Stock updated.'),
+                                                  ),
+                                                ],
+                                              ),
+                                              backgroundColor: const Color(0xFF16A34A),
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        setModalState(() => isSubmitting = false);
+                                        if (mounted) {
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text('Handover Error: $e'),
+                                              backgroundColor: Colors.redAccent,
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
                                       }
-                                      return 0;
-                                    }
-
-                                    final rawQtyVal = receivedText.isNotEmpty ? receivedText : mat['required_qty'];
-                                    final issuedQty = parseQuantity(rawQtyVal);
-                                    final itemName = (mat['item_name'] ?? mat['material_name'] ?? '').toString().trim();
-                                    final unit = (mat['unit'] ?? 'pcs').toString();
-                                    final artNo = (mat['article_no'] ?? '').toString().trim();
-
-                                    if (itemName.isNotEmpty && issuedQty > 0) {
-                                      try {
-                                        await supabase.from('accessories').insert({
-                                          'item_name': itemName,
-                                          'action': 'OUT',
-                                          'quantity': issuedQty,
-                                          'unit': unit,
-                                          'party_name': 'Issued to Lineman $linemanName',
-                                          'entry_date': DateTime.now().toIso8601String().split('T')[0],
-                                          'notes': 'BOM Handover for Allotment #${mat['allotment_id']} • ${challanNo.isNotEmpty ? 'Challan #$challanNo' : 'Active Batch'}${artNo.isNotEmpty ? ' • Art #$artNo' : ''}',
-                                        });
-                                      } catch (_) {}
-                                    }
-                                  }
-
-                                  scaffoldMessenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text('Raw materials verified & issued to Lineman $linemanName! Stock updated.'),
-                                      backgroundColor: AppTheme.steel,
-                                    ),
-                                  );
-                                  _fetchStoreData();
-                                } catch (e) {
-                                  scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
-                                }
-                              },
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.steel,
+                                disabledBackgroundColor: AppTheme.steel.withValues(alpha: 0.6),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.check_circle_outline_rounded, size: 18),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      'Handover to $linemanName',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                         color: Colors.white,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                        const SizedBox(width: 6),
+                                        Flexible(
+                                          child: Text(
+                                            'Handover to $linemanName',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ),
