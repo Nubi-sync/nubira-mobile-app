@@ -986,12 +986,34 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   // ======= HANDOVER TO QC FLOOR MODAL =======
   Future<void> _openHandoverToQcModal() async {
     if (_selectedLot == null) return;
+    
+    final lot = _selectedLot!;
+    final assigns = (lot['assignments'] as List<dynamic>?) ?? [];
+    int totalCounted = 0;
+    for (var a in assigns) {
+      if (a is Map) {
+        totalCounted += _parseQty(a['completed_qty']);
+      }
+    }
+    if (totalCounted == 0) {
+      totalCounted = _parseQty(lot['total_counted']);
+    }
+    final targetQty = _parseQty(lot['target_qty']);
+
+    if (targetQty > 0 && totalCounted < targetQty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ Cannot forward: Only $totalCounted of $targetQty pcs counted. Please complete count verification first.'),
+          backgroundColor: const Color(0xFFB45309),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     await _fetchQcSupervisors();
     if (!mounted) return;
 
-    final lot = _selectedLot!;
-    final totalCounted = _parseQty(lot['total_counted']);
-    final targetQty = _parseQty(lot['target_qty']);
     final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
     final artNo = art?['art_no']?.toString() ?? 'N/A';
     final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
@@ -2160,6 +2182,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       }
     }
 
+    if (grandTarget == 0) {
+      grandTarget = _parseQty(lot['target_qty']);
+    }
+
+    final isCompleted = grandTarget > 0 && grandCounted >= grandTarget;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -2342,24 +2370,72 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Handover to QC Floor Button
+        // Locked / Incomplete warning banner
+        if (!isCompleted)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_clock_rounded, size: 18, color: Color(0xFFD97706)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Counting Incomplete ($grandCounted / $grandTarget pcs verified). Forwarding to QC is locked until 100% physical count is completed in "Worker Assignments".',
+                    style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Handover to QC Floor Button (Strictly locked if not completed)
         SizedBox(
           width: double.infinity,
           height: 50,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.green,
+              backgroundColor: isCompleted ? AppTheme.green : const Color(0xFFE2E8F0),
+              foregroundColor: isCompleted ? Colors.white : const Color(0xFF94A3B8),
+              elevation: isCompleted ? 2 : 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: _isSubmitting ? null : _openHandoverToQcModal,
+            onPressed: (_isSubmitting || !isCompleted)
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('⚠️ Cannot forward: $grandCounted of $grandTarget pcs counted. Please complete count verification in "Worker Assignments" tab.'),
+                        backgroundColor: const Color(0xFFB45309),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                : _openHandoverToQcModal,
             icon: _isSubmitting
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                : Icon(
+                    isCompleted ? Icons.send_rounded : Icons.lock_outline_rounded,
+                    color: isCompleted ? Colors.white : const Color(0xFF94A3B8),
+                    size: 18,
+                  ),
             label: Text(
-              _isSubmitting ? 'Forwarding to QC...' : 'Forward Reconciled Lot to QC Floor',
-              style: GoogleFonts.publicSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+              _isSubmitting
+                  ? 'Forwarding to QC...'
+                  : isCompleted
+                      ? 'Forward Reconciled Lot to QC Floor'
+                      : 'Locked: Count Incomplete ($grandCounted/$grandTarget pcs)',
+              style: GoogleFonts.publicSans(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isCompleted ? Colors.white : const Color(0xFF64748B),
+              ),
             ),
           ),
         ),
