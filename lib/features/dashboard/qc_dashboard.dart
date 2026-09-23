@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/widgets/connectivity_indicator.dart';
-import '../../core/utils/parser_utils.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import 'widgets/delivery_challan_modal.dart';
@@ -91,18 +88,30 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   }
 
   // Safe helper to extract integers from dynamic types (Strings, num, ints)
-  static int _parseQty(dynamic val) {
-    if (val == null) return 0;
+  static int _parseQty(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
     if (val is int) return val;
     if (val is num) return val.toInt();
     final str = val.toString().trim();
+    if (str.isEmpty) return fallback;
     final direct = int.tryParse(str);
     if (direct != null) return direct;
     final match = RegExp(r'[-+]?\d+').firstMatch(str);
     if (match != null) {
-      return int.tryParse(match.group(0) ?? '') ?? 0;
+      return int.tryParse(match.group(0) ?? '') ?? fallback;
     }
-    return 0;
+    return fallback;
+  }
+
+  // Safe helper to extract Map from dynamic types
+  static Map<String, dynamic>? _asMap(dynamic val) {
+    if (val == null) return null;
+    if (val is Map<String, dynamic>) return val;
+    if (val is Map) return Map<String, dynamic>.from(val);
+    if (val is List && val.isNotEmpty && val.first is Map) {
+      return Map<String, dynamic>.from(val.first as Map);
+    }
+    return null;
   }
 
   // Helper to calculate total pieces assigned to QC checkers for a specific variant
@@ -458,22 +467,22 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
         vars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
 
-        int adminTotal = parseQty(a['target_qty']);
+        int adminTotal = _parseQty(a['target_qty']);
         if (adminTotal == 0) {
           for (var v in vars) {
-            adminTotal += parseQty(v['quantity']);
+            adminTotal += _parseQty(v['quantity']);
           }
         }
 
-        int mendingTotal = parseQty(a['mending_total_counted']);
+        int mendingTotal = _parseQty(a['mending_total_counted']);
         if (mendingTotal == 0 && mendAssigns.isNotEmpty) {
           for (var m in mendAssigns) {
-            mendingTotal += parseQty(m['completed_qty']);
+            mendingTotal += _parseQty(m['completed_qty']);
           }
         }
 
-        final int passedQty = parseQty(a['qc_total_passed']);
-        final int alterQty = parseQty(a['qc_total_alter']);
+        final int passedQty = _parseQty(a['qc_total_passed']);
+        final int alterQty = _parseQty(a['qc_total_alter']);
         final mStatus = (a['mending_status'] ?? '').toString();
         final qStatus = (a['qc_status'] ?? '').toString();
 
@@ -494,7 +503,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         for (var v in vars) {
           final sz = (v['size'] ?? '-').toString().trim();
           final clr = (v['color'] ?? '-').toString().trim();
-          final allotQty = parseQty(v['quantity']);
+          final allotQty = _parseQty(v['quantity']);
 
           final vSizeUpper = sz.toUpperCase();
           final vColorUpper = clr.toUpperCase();
@@ -513,7 +522,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 (mColor.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vColorUpper.replaceAll(RegExp(r'[^A-Z0-9]'), ''));
 
             if (sizeMatch && colorMatch) {
-              mCount += parseQty(m['completed_qty']);
+              mCount += _parseQty(m['completed_qty']);
             }
           }
           if (mCount == 0 && isHandedOverFromMending) {
@@ -535,7 +544,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                   (qColor.replaceAll(RegExp(r'[^A-Z0-9]'), '') == vColorUpper.replaceAll(RegExp(r'[^A-Z0-9]'), ''));
 
               if (sizeMatch && colorMatch) {
-                qcPassCount += parseQty(qc['passed_qty']);
+                qcPassCount += _parseQty(qc['passed_qty']);
               }
             }
           }
@@ -591,7 +600,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           incoming.add(lotData);
           totalMendingReceived += mendingTotal;
         }
-        // Otherwise: Still with Lineman / in stitching / pending mending -> DO NOT show in QC!
       }
 
       // Universal Priority Queue Sorting: CRITICAL (Rank 0) -> RUSH (Rank 1) -> NORMAL (Rank 2)
@@ -607,17 +615,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       // If ready for challan is empty but some allotments have passed counts, populate
       if (readyForChallan.isEmpty) {
         for (var a in allotmentList) {
-          final passed = parseQty(a['qc_total_passed']);
+          final passed = _parseQty(a['qc_total_passed']);
           if (passed > 0) {
             final aId = a['id'].toString();
             final vars = variantsRes.where((v) => v['allotment_id'].toString() == aId).toList();
             readyForChallan.add({
               ...Map<String, dynamic>.from(a),
               'variants': vars,
-              'admin_total_qty': parseQty(a['target_qty'], passed),
-              'mending_received_qty': parseQty(a['mending_total_counted'], passed),
+              'admin_total_qty': _parseQty(a['target_qty'], passed),
+              'mending_received_qty': _parseQty(a['mending_total_counted'], passed),
               'qc_total_passed': passed,
-              'qc_total_alter': parseQty(a['qc_total_alter']),
+              'qc_total_alter': _parseQty(a['qc_total_alter']),
             });
           }
         }
@@ -632,9 +640,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       int passedToday = 0;
 
       for (var log in qcLogsRes) {
-        final qRej = parseQty(log['qty_rejected']);
-        final qPass = parseQty(log['qty_passed']);
-        final qRec = parseQty(log['qty_received']);
+        final qRej = _parseQty(log['qty_rejected']);
+        final qPass = _parseQty(log['qty_passed']);
+        final qRec = _parseQty(log['qty_received']);
         final mStatus = (log['mending_status'] ?? '').toString();
 
         final c = (qPass + qRej > 0) ? (qPass + qRej) : qRec;
@@ -650,15 +658,15 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       int inCheckingPieces = 0;
       for (var assign in activeAssignments) {
         if (assign['status'] != 'DONE') {
-          final assigned = parseQty(assign['assigned_qty']);
-          final checked = parseQty(assign['checked_qty']);
+          final assigned = _parseQty(assign['assigned_qty']);
+          final checked = _parseQty(assign['checked_qty']);
           inCheckingPieces += (assigned - checked).clamp(0, assigned);
         }
       }
 
       int readyPieces = 0;
       for (var r in readyForChallan) {
-        readyPieces += parseQty(r['qc_total_passed'], parseQty(r['mending_received_qty']));
+        readyPieces += _parseQty(r['qc_total_passed'], _parseQty(r['mending_received_qty']));
       }
 
       if (mounted) {
@@ -684,7 +692,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   }
 
   // ====================================================
-  // MODAL: ASSIGN QC CHECKER / WORKER
+  // MODAL: ASSIGN QC CHECKER / WORKER (INDUSTRIAL LUXURY)
   // ====================================================
   void _openAssignWorkerModal(Map<String, dynamic> lot) {
     final workerController = TextEditingController();
@@ -713,377 +721,499 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
-          final desc = lot['article']?['description'] ?? lot['description'] ?? '';
+          final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+          final artNo = art?['art_no']?.toString() ?? lot['art_no']?.toString() ?? 'Article';
+          final desc = art?['description']?.toString() ?? lot['description']?.toString() ?? '';
 
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          final vRem = selectedVariant != null
+              ? _getRemainingQtyForVariant(lot, selectedVariant)
+              : _parseQty(lot['mending_received_qty']);
+          final vTarget = selectedVariant != null
+              ? (_parseQty(selectedVariant!['allotted_qty']) > 0
+                  ? _parseQty(selectedVariant!['allotted_qty'])
+                  : _parseQty(selectedVariant!['quantity']))
+              : _parseQty(lot['admin_total_qty']);
+          final vAssigned = selectedVariant != null
+              ? _getAssignedQtyForVariant(lot, selectedVariant)
+              : 0;
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Assign QC Checker',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.steel,
-                            ),
-                          ),
-                          Text(
-                            'Art #$artNo · $desc',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. TOP HEADER (Warm Cream)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAF7F0),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    border: Border(bottom: BorderSide(color: Color(0x14000000), width: 1)),
                   ),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    'Checker Name / Worker *',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: workerController,
-                    decoration: InputDecoration(
-                      hintText: 'Worker name (e.g. Ramesh, Sunil)',
-                      prefixIcon: const Icon(Icons.person_outline_rounded, color: AppTheme.steel),
-                      filled: true,
-                      fillColor: AppTheme.steelMist.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
-                    ),
-                    onChanged: (_) => setModalState(() {}),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Variant / Size Selector
-                  if (sizeMatrix.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Select Size / Color Variant *',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                          ),
-                        ),
-                        if (selectedVariant != null)
-                          Flexible(
-                            child: Text(
-                              '${_getRemainingQtyForVariant(lot, selectedVariant)} pcs left',
-                              textAlign: TextAlign.end,
-                              style: GoogleFonts.publicSans(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: _getRemainingQtyForVariant(lot, selectedVariant) > 0 ? AppTheme.green : AppTheme.red,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: sizeMatrix.map((v) {
-                        final isSel = selectedVariant != null &&
-                            (selectedVariant!['size'] == v['size'] && selectedVariant!['color'] == v['color']);
-                        final sz = v['size'] ?? '-';
-                        final clr = v['color'] ?? '';
-                        final targetQty = _parseQty(v['allotted_qty']) > 0
-                            ? _parseQty(v['allotted_qty'])
-                            : (_parseQty(v['quantity']) > 0
-                                ? _parseQty(v['quantity'])
-                                : _parseQty(v['mending_qty']));
-                        final assignedQty = _getAssignedQtyForVariant(lot, v);
-                        final remQty = targetQty - assignedQty;
-                        final isDone = remQty <= 0;
-
-                        return InkWell(
-                          onTap: () {
-                            setModalState(() {
-                              selectedVariant = v;
-                              final rem = _getRemainingQtyForVariant(lot, v);
-                              qtyController.text = rem > 0 ? rem.toString() : '';
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isSel ? AppTheme.steel : (isDone ? const Color(0xFFF3F4F6) : Colors.white),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSel ? AppTheme.steel : (isDone ? AppTheme.border : const Color(0xFF93C5FD)),
-                                width: isSel ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '$sz ${clr.isNotEmpty && clr != "-" ? "($clr)" : ""}',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 11.5,
-                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                    color: isSel ? Colors.white : (isDone ? AppTheme.inkFaint : AppTheme.ink),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isSel
-                                        ? Colors.white.withValues(alpha: 0.25)
-                                        : (isDone ? AppTheme.greenMist : const Color(0xFFDBEAFE)),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    isDone ? '✓ Done' : '$remQty/$targetQty pcs',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSel
-                                          ? Colors.white
-                                          : (isDone ? AppTheme.green : const Color(0xFF1D4ED8)),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    // Live Variant Allocation Summary Card (Responsive 3-Column Layout)
-                    if (selectedVariant != null) ...[
-                      const SizedBox(height: 10),
-                      Builder(
-                        builder: (_) {
-                          final v = selectedVariant!;
-                          final target = _parseQty(v['allotted_qty']) > 0
-                              ? _parseQty(v['allotted_qty'])
-                              : (_parseQty(v['quantity']) > 0
-                                  ? _parseQty(v['quantity'])
-                                  : _parseQty(v['mending_qty']));
-                          final assigned = _getAssignedQtyForVariant(lot, v);
-                          final rem = target - assigned;
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: rem > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA)),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Lot Target', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
-                                      const SizedBox(height: 2),
-                                      Text('$target pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                                    ],
-                                  ),
-                                ),
-                                Container(width: 1, height: 24, color: (rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      const Text('QC Assigned', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
-                                      const SizedBox(height: 2),
-                                      Text('$assigned pcs', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.steel)),
-                                    ],
-                                  ),
-                                ),
-                                Container(width: 1, height: 24, color: (rem > 0 ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA))),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      const Text('Remaining', style: TextStyle(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w500)),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        rem > 0 ? '$rem pcs' : 'Done ✓',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: rem > 0 ? AppTheme.green : AppTheme.red,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Assigned Quantity Input
-                  Row(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Assigned Qty to Check *',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0x26000000), width: 1),
+                              ),
+                              child: Text(
+                                'QC WORKER ALLOCATION',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF3A3564),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 6),
-                            TextField(
-                              controller: qtyController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                suffixText: 'pcs',
-                                filled: true,
-                                fillColor: AppTheme.steelMist.withValues(alpha: 0.3),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
+                            Text(
+                              'Assign QC checker / worker',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Art #$artNo ${desc.isNotEmpty ? "· $desc" : ""}',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11.5,
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(ctx),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0x1A000000)),
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                ),
 
-                  // Notes Input
-                  Text(
-                    'Notes / Instructions (Optional)',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: notesController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Check stitching on collar and buttons',
-                      filled: true,
-                      fillColor: AppTheme.steelMist.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
+                // 2. FORM BODY
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Field 1: Checker Name *
+                        Text(
+                          'CHECKER NAME / WORKER *',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF334155),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: workerController,
+                          textCapitalization: TextCapitalization.words,
+                          onChanged: (_) => setModalState(() {}),
+                          style: GoogleFonts.publicSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Enter checker name (e.g. Ramesh, Sunil)',
+                            hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
+                          ),
+                        ),
 
-                  // Submit Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.steel,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      onPressed: _isSubmitting
-                          ? null
-                          : () async {
-                              final worker = workerController.text.trim();
-                              final qty = int.tryParse(qtyController.text.trim()) ?? 0;
-                              if (worker.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter or select a checker name')),
-                                );
-                                return;
-                              }
-                              if (qty <= 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a valid quantity')),
-                                );
-                                return;
-                              }
-
-                              // Check if qty exceeds remaining
-                              if (selectedVariant != null) {
-                                final rem = _getRemainingQtyForVariant(lot, selectedVariant);
-                                if (rem > 0 && qty > rem) {
-                                  final proceed = await showDialog<bool>(
-                                    context: ctx,
-                                    builder: (dCtx) => AlertDialog(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                      title: Row(
-                                        children: [
-                                          const Icon(Icons.warning_amber_rounded, color: AppTheme.amber, size: 22),
-                                          const SizedBox(width: 8),
-                                          Text('Exceeds Remaining', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.steel)),
-                                        ],
+                        // Quick worker chips
+                        if (_recentWorkerNames.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _recentWorkerNames.take(5).map((name) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setModalState(() {
+                                        workerController.text = name;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFAF7F0),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0x1A000000)),
                                       ),
-                                      content: Text(
-                                        'Only $rem pcs are remaining for ${selectedVariant?['size']} ${selectedVariant?['color'] != null && selectedVariant?['color'] != "-" ? "(${selectedVariant!['color']})" : ""}. You entered $qty pcs.\n\nDo you want to allocate $qty pcs anyway?',
-                                        style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.ink),
+                                      child: Text(
+                                        '+ $name',
+                                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(dCtx, false),
-                                          child: const Text('Cancel / Edit Qty'),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+
+                        // Field 2: Select Size / Color Variant
+                        if (sizeMatrix.isNotEmpty) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'SELECT SIZE / COLOR VARIANT *',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF334155),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                '${vRem > 0 ? vRem : 0} PCS REMAINING',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: vRem > 0 ? const Color(0xFF047857) : const Color(0xFFBE123C),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<Map<String, dynamic>>(
+                                isExpanded: true,
+                                value: selectedVariant,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 20),
+                                items: sizeMatrix.map((v) {
+                                  final clr = (v['color'] ?? 'Standard').toString();
+                                  final sz = (v['size'] ?? 'Free').toString();
+                                  final target = _parseQty(v['allotted_qty']) > 0
+                                      ? _parseQty(v['allotted_qty'])
+                                      : (_parseQty(v['quantity']) > 0
+                                          ? _parseQty(v['quantity'])
+                                          : _parseQty(v['mending_qty']));
+                                  final assigned = _getAssignedQtyForVariant(lot, v);
+                                  final rem = target - assigned;
+                                  final done = rem <= 0;
+
+                                  return DropdownMenuItem<Map<String, dynamic>>(
+                                    value: v,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '$clr - Size: $sz (Target: $target pcs)',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: done ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.steel),
-                                          onPressed: () => Navigator.pop(dCtx, true),
-                                          child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: done ? const Color(0xFFECFDF5) : const Color(0xFFFFFCF3),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: done ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            done ? '0 PCS LEFT' : '$rem PCS LEFT',
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: done ? const Color(0xFF047857) : const Color(0xFF92400E),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   );
-                                  if (proceed != true) return;
-                                }
-                              }
-
-                              if (!ctx.mounted) return;
-                              Navigator.pop(ctx);
-                              await _submitWorkerAssignment(
-                                lot: lot,
-                                workerName: worker,
-                                variant: selectedVariant,
-                                assignedQty: qty,
-                                notes: notesController.text.trim(),
-                              );
-                            },
-                      child: _isSubmitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              'Confirm Assignment & Start QC',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                                }).toList(),
+                                onChanged: (newVal) {
+                                  if (newVal != null) {
+                                    setModalState(() {
+                                      selectedVariant = newVal;
+                                      final rem = _getRemainingQtyForVariant(lot, newVal);
+                                      qtyController.text = rem > 0 ? rem.toString() : '';
+                                    });
+                                  }
+                                },
+                              ),
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+
+                        // Field 3: Lot Stat Strip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFAF7F0),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0x14000000)),
+                          ),
+                          child: Row(
+                            children: [
+                              // Target
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'LOT TARGET',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$vTarget pcs',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(width: 1, height: 26, color: const Color(0x14000000)),
+                              const SizedBox(width: 12),
+
+                              // Assigned
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'QC ASSIGNED',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$vAssigned pcs',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(width: 1, height: 26, color: const Color(0x14000000)),
+                              const SizedBox(width: 12),
+
+                              // Remaining
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'REMAINING',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      vRem > 0 ? '$vRem pcs' : '0 pcs',
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: vRem > 0 ? const Color(0xFF047857) : const Color(0xFF0F172A)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Field 4: Assigned Qty to Check
+                        Text(
+                          'ASSIGNED PIECES TO CHECK *',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF334155), letterSpacing: 0.5),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: qtyController,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setModalState(() {}),
+                          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w800, fontSize: 14, color: const Color(0xFF0F172A)),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. 50',
+                            suffixText: 'pcs',
+                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Field 5: Notes / Instructions (Optional)
+                        Text(
+                          'INSPECTION NOTES / INSTRUCTIONS (OPTIONAL)',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF334155), letterSpacing: 0.5),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: notesController,
+                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Check stitching on collar, buttons, and hemline',
+                            hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        // Submit Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A3564),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () async {
+                                    final worker = workerController.text.trim();
+                                    final qty = int.tryParse(qtyController.text.trim()) ?? 0;
+                                    if (worker.isEmpty) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please enter or select a checker name')),
+                                      );
+                                      return;
+                                    }
+                                    if (qty <= 0) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please enter a valid quantity')),
+                                      );
+                                      return;
+                                    }
+
+                                    if (selectedVariant != null) {
+                                      final rem = _getRemainingQtyForVariant(lot, selectedVariant);
+                                      if (rem > 0 && qty > rem) {
+                                        final proceed = await showDialog<bool>(
+                                          context: ctx,
+                                          builder: (dCtx) => AlertDialog(
+                                            backgroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            title: Text(
+                                              'Exceeds Remaining Pieces',
+                                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16, color: const Color(0xFF0F172A)),
+                                            ),
+                                            content: Text(
+                                              'Only $rem pcs remaining for ${selectedVariant?['size']} ${selectedVariant?['color'] != null && selectedVariant?['color'] != "-" ? "(${selectedVariant!['color']})" : ""}. You entered $qty pcs.\n\nDo you want to allocate $qty pcs anyway?',
+                                              style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF475569)),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(dCtx, false),
+                                                child: Text('Cancel', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3A3564), elevation: 0),
+                                                onPressed: () => Navigator.pop(dCtx, true),
+                                                child: const Text('Proceed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (proceed != true) return;
+                                      }
+                                    }
+
+                                    if (!ctx.mounted) return;
+                                    Navigator.pop(ctx);
+                                    await _submitWorkerAssignment(
+                                      lot: lot,
+                                      workerName: worker,
+                                      variant: selectedVariant,
+                                      assignedQty: qty,
+                                      notes: notesController.text.trim(),
+                                    );
+                                  },
+                            child: _isSubmitting
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : Text(
+                                    'Confirm Assignment & Start QC',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 14.5, fontWeight: FontWeight.w800, color: Colors.white),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -1162,7 +1292,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppTheme.green,
+            backgroundColor: const Color(0xFF047857),
             content: Text(
               '✓ Assigned $assignedQty pcs to $workerName for checking!',
               style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: Colors.white),
@@ -1176,7 +1306,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       debugPrint('Error assigning worker: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: AppTheme.red, content: Text('Error: $e')),
+          SnackBar(backgroundColor: const Color(0xFFBE123C), content: Text('Error: $e')),
         );
       }
     } finally {
@@ -1193,8 +1323,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     final alterCtrl = TextEditingController();
     final remarksCtrl = TextEditingController();
 
-    final int assignedQty = parseQty(task['assigned_qty'], 50);
-    final int alreadyChecked = parseQty(task['checked_qty']);
+    final int assignedQty = _parseQty(task['assigned_qty'], 50);
+    final int alreadyChecked = _parseQty(task['checked_qty']);
     final int remaining = (assignedQty - alreadyChecked).clamp(0, assignedQty);
 
     checkedCtrl.text = remaining > 0 ? remaining.toString() : assignedQty.toString();
@@ -1206,287 +1336,364 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          final artNo = task['article']?['art_no'] ?? 'Article';
-          final worker = task['worker_name'] ?? 'Checker';
-          final sz = task['size'] ?? '';
-          final clr = task['color'] ?? '';
+          final art = _asMap(task['article']) ?? _asMap(task['articles']);
+          final artNo = art?['art_no']?.toString() ?? task['art_no']?.toString() ?? 'Article';
+          final worker = task['worker_name']?.toString() ?? 'Checker';
+          final sz = task['size']?.toString() ?? '';
+          final clr = task['color']?.toString() ?? '';
           final alterQty = int.tryParse(alterCtrl.text.trim()) ?? 0;
 
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top Header (Warm Cream)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAF7F0),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    border: Border(bottom: BorderSide(color: Color(0x14000000), width: 1)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Record QC Inspection',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0x26000000), width: 1),
+                              ),
+                              child: Text(
+                                'QUALITY CONTROL AUDIT',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF3A3564),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
                             ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Record QC inspection',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
                             Text(
                               'Art #$artNo · $clr ($sz) · Checker: $worker',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppTheme.inkSoft),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Counter Inputs Row: Checked, Passed, Defective
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Total Checked', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.ink)),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: checkedCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: AppTheme.steelMist.withValues(alpha: 0.3),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.border)),
-                              ),
-                              onChanged: (val) {
-                                final total = int.tryParse(val.trim()) ?? 0;
-                                final alt = int.tryParse(alterCtrl.text.trim()) ?? 0;
-                                setModalState(() {
-                                  passedCtrl.text = (total - alt).clamp(0, total).toString();
-                                });
-                              },
+                      const SizedBox(width: 8),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(ctx),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0x1A000000)),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Passed (OK)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.green)),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: passedCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: AppTheme.greenMist,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.green)),
-                              ),
-                              onChanged: (val) {
-                                final pass = int.tryParse(val.trim()) ?? 0;
-                                final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
-                                setModalState(() {
-                                  alterCtrl.text = (total - pass).clamp(0, total).toString();
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Defect / Alter', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.red)),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: alterCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: AppTheme.amberMist,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.amber)),
-                              ),
-                              onChanged: (val) {
-                                final alt = int.tryParse(val.trim()) ?? 0;
-                                final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
-                                setModalState(() {
-                                  passedCtrl.text = (total - alt).clamp(0, total).toString();
-                                });
-                              },
-                            ),
-                          ],
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                ),
 
-                  // If Defects Exist: Show Defect Reason & Lineman Alteration Box
-                  if (alterQty > 0) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.amberMist,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.amber, width: 1.2),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.notification_important_rounded, color: AppTheme.amber, size: 18),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Lineman Alteration Alert',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.ink,
+                // Form Body
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Counter Inputs Row: Checked, Passed, Defective
+                        Row(
+                          children: [
+                            // Total Checked
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TOTAL CHECKED',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFF334155), letterSpacing: 0.5),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppTheme.amber),
-                                ),
-                                child: Text(
-                                  '$alterQty pcs to alter',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.amber,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'These defective pieces will automatically notify the Lineman dashboard for sewing repair.',
-                            style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Select Defect Category',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: _defectTypes.map((d) {
-                              final isSel = selectedDefect == d['key'];
-                              return InkWell(
-                                onTap: () => setModalState(() => selectedDefect = d['key']!),
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? AppTheme.amber : Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: isSel ? AppTheme.amber : AppTheme.border),
-                                  ),
-                                  child: Text(
-                                    d['label']!,
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                      color: isSel ? Colors.white : AppTheme.ink,
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: checkedCtrl,
+                                    keyboardType: TextInputType.number,
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFF8FAFC),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
                                     ),
+                                    onChanged: (val) {
+                                      final total = int.tryParse(val.trim()) ?? 0;
+                                      final alt = int.tryParse(alterCtrl.text.trim()) ?? 0;
+                                      setModalState(() {
+                                        passedCtrl.text = (total - alt).clamp(0, total).toString();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Passed OK
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PASSED (OK)',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFF047857), letterSpacing: 0.5),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: passedCtrl,
+                                    keyboardType: TextInputType.number,
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFECFDF5),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFA7F3D0))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFA7F3D0))),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                                    ),
+                                    onChanged: (val) {
+                                      final pass = int.tryParse(val.trim()) ?? 0;
+                                      final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
+                                      setModalState(() {
+                                        alterCtrl.text = (total - pass).clamp(0, total).toString();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Defect / Alter
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'DEFECT / ALTER',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFFBE123C), letterSpacing: 0.5),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: alterCtrl,
+                                    keyboardType: TextInputType.number,
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFFBE123C)),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFFFFCF3),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFBE123C), width: 1.5)),
+                                    ),
+                                    onChanged: (val) {
+                                      final alt = int.tryParse(val.trim()) ?? 0;
+                                      final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
+                                      setModalState(() {
+                                        passedCtrl.text = (total - alt).clamp(0, total).toString();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // If Defects Exist: Show Defect Reason & Lineman Alteration Box
+                        if (alterQty > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFCF3),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 18),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Lineman Alteration Alert',
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFFDE68A)),
+                                      ),
+                                      child: Text(
+                                        '$alterQty pcs to alter',
+                                        style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: const Color(0xFF92400E)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'These defective pieces will automatically notify the Lineman dashboard for sewing repair.',
+                                  style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFFB45309)),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'SELECT DEFECT CATEGORY',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFF92400E), letterSpacing: 0.5),
+                                ),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: _defectTypes.map((d) {
+                                    final isSel = selectedDefect == d['key'];
+                                    return InkWell(
+                                      onTap: () => setModalState(() => selectedDefect = d['key']!),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: isSel ? const Color(0xFF92400E) : Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: isSel ? const Color(0xFF92400E) : const Color(0xFFFDE68A)),
+                                        ),
+                                        child: Text(
+                                          d['label']!,
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11,
+                                            fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                            color: isSel ? Colors.white : const Color(0xFF92400E),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 10),
+                                TextField(
+                                  controller: remarksCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  decoration: InputDecoration(
+                                    hintText: 'Note for Lineman (e.g. Neck seam open, skip stitch on hem)',
+                                    hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFFDE68A))),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: remarksCtrl,
-                            decoration: InputDecoration(
-                              hintText: 'Note for Lineman (e.g. Neck seam open, skip stitch on hem)',
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                              ],
                             ),
                           ),
+                          const SizedBox(height: 16),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
 
-                  // Submit Inspection Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.steel,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      onPressed: _isSubmitting
-                          ? null
-                          : () async {
-                              final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
-                              final pass = int.tryParse(passedCtrl.text.trim()) ?? 0;
-                              final alt = int.tryParse(alterCtrl.text.trim()) ?? 0;
-
-                              if (total <= 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter valid checked count')),
-                                );
-                                return;
-                              }
-
-                              Navigator.pop(ctx);
-                              await _submitQcInspection(
-                                task: task,
-                                checkedQty: total,
-                                passedQty: pass,
-                                alterQty: alt,
-                                defectType: selectedDefect,
-                                remarks: remarksCtrl.text.trim(),
-                              );
-                            },
-                      child: _isSubmitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              alterQty > 0
-                                  ? 'Pass ${passedCtrl.text} pcs & Notify Lineman for $alterQty pcs'
-                                  : 'Pass All ${passedCtrl.text} Pieces (OK)',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                        // Submit Inspection Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A3564),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
                             ),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () async {
+                                    final total = int.tryParse(checkedCtrl.text.trim()) ?? 0;
+                                    final pass = int.tryParse(passedCtrl.text.trim()) ?? 0;
+                                    final alt = int.tryParse(alterCtrl.text.trim()) ?? 0;
+
+                                    if (total <= 0) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please enter valid checked count')),
+                                      );
+                                      return;
+                                    }
+
+                                    Navigator.pop(ctx);
+                                    await _submitQcInspection(
+                                      task: task,
+                                      checkedQty: total,
+                                      passedQty: pass,
+                                      alterQty: alt,
+                                      defectType: selectedDefect,
+                                      remarks: remarksCtrl.text.trim(),
+                                    );
+                                  },
+                            child: _isSubmitting
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : Text(
+                                    alterQty > 0
+                                        ? 'Pass ${passedCtrl.text} pcs & Flag $alterQty pcs for Alter'
+                                        : 'Pass All ${passedCtrl.text} Pieces (OK)',
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -1514,7 +1721,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       final assignId = task['id'];
 
       // 1. Insert audit record into qc_logs
-      // (This immediately triggers the Lineman Dashboard alert banner!)
       final todayStr = DateTime.now().toIso8601String().split('T')[0];
       await supabase.from('qc_logs').insert({
         if (allotmentId != null) 'allotment_id': allotmentId,
@@ -1587,7 +1793,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         }
       }
 
-      // 4. Update task status in local storage / table
+      // 4. Update task status in local storage
       final currentList = await _loadLocalAssignments();
       for (var a in currentList) {
         if (a['id'] == task['id'] || (a['allotment_id'] == allotmentId && a['worker_name'] == worker)) {
@@ -1602,7 +1808,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: alterQty > 0 ? AppTheme.amber : AppTheme.green,
+            backgroundColor: alterQty > 0 ? const Color(0xFFD97706) : const Color(0xFF047857),
             content: Text(
               alterQty > 0
                   ? '✓ $passedQty passed. $alterQty pcs flagged for alteration & notified to Lineman!'
@@ -1617,7 +1823,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       debugPrint('Error recording inspection: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: AppTheme.red, content: Text('Error: $e')),
+          SnackBar(backgroundColor: const Color(0xFFBE123C), content: Text('Error: $e')),
         );
       }
     } finally {
@@ -1629,9 +1835,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   // VERIFY & PASS REPAIRED ALTERATION PIECES FROM LINEMAN
   // ====================================================
   Future<void> _verifyAndPassRepairedPieces(Map<String, dynamic> alt) async {
-    final qty = parseQty(alt['qty_rejected']);
+    final qty = _parseQty(alt['qty_rejected']);
     final logId = alt['id'];
-    final artNo = alt['article']?['art_no'] ?? 'Article';
+    final art = _asMap(alt['article']) ?? _asMap(alt['articles']);
+    final artNo = art?['art_no']?.toString() ?? alt['art_no']?.toString() ?? 'Article';
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -1640,31 +1847,33 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Pass Repaired Garments?',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.green),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 16, color: const Color(0xFF047857)),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Art #$artNo', style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text('Art #$artNo', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF0F172A))),
             const SizedBox(height: 4),
-            Text('Defect: ${alt['defect_type'] ?? '-'}', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft)),
+            Text('Defect: ${alt['defect_type'] ?? '-'}', style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF64748B))),
             const SizedBox(height: 12),
             Text(
               'Confirm that Lineman has repaired all $qty defective pieces and they have passed physical re-inspection.',
-              style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.ink),
+              style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF334155)),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.inkSoft)),
+            child: Text('Cancel', style: GoogleFonts.publicSans(color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.green,
+              backgroundColor: const Color(0xFF047857),
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Confirm & Pass (OK)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1687,7 +1896,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: AppTheme.green,
+              backgroundColor: const Color(0xFF047857),
               content: Text('✓ $qty repaired pieces verified & passed inspection!'),
             ),
           );
@@ -1697,7 +1906,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         debugPrint('Error verifying repaired pieces: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(backgroundColor: AppTheme.red, content: Text('Error: $e')),
+            SnackBar(backgroundColor: const Color(0xFFBE123C), content: Text('Error: $e')),
           );
         }
       } finally {
@@ -1724,1362 +1933,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     ).then((_) => _fetchQcData());
   }
 
-  // ====================================================
-  // BUILD UI
-  // ====================================================
-  @override
-  Widget build(BuildContext context) {
-    final double passRate = _totalCheckedToday > 0
-        ? ((_totalPassedToday / _totalCheckedToday) * 100).clamp(0.0, 100.0)
-        : 100.0;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F0),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Consumer(
-              builder: (context, ref, _) {
-                final authState = ref.watch(authProvider);
-                final user = supabase.auth.currentUser;
-                final name = authState.cachedUsername ?? user?.userMetadata?['username'] ?? user?.email?.split('@')[0] ?? 'User';
-                return Text(
-                  'Welcome, $name',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.ink,
-                  ),
-                );
-              },
-            ),
-            Text(
-              'QC & Finishing Floor',
-              style: GoogleFonts.publicSans(
-                fontSize: 12,
-                color: AppTheme.inkSoft,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          const ConnectivityIndicator(),
-          const SizedBox(width: 8),
-          Container(
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: _fetchQcData,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.sync_rounded, size: 16, color: AppTheme.steel),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Sync',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.steel,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            height: 38,
-            width: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppTheme.inkSoft, size: 18),
-              tooltip: 'Logout',
-              padding: EdgeInsets.zero,
-              onPressed: () async {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: _isLoading
-          ? Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 28),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: CircularProgressIndicator(color: AppTheme.steel, strokeWidth: 3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Loading QC Shift Data...',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Connecting to factory records',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : RefreshIndicator(
-              color: AppTheme.steel,
-              onRefresh: _fetchQcData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ====================================================
-                    // 1. SOLID STEEL SUMMARY CARD (4 FLOOR LIFECYCLE STATS)
-                    // ====================================================
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppTheme.steel,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.steelDark.withValues(alpha: 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${_getShiftName()} · QC Floor Summary',
-                                      style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Finishing & Quality Assurance Flow',
-                                      style: GoogleFonts.publicSans(color: Colors.white.withValues(alpha: 0.85), fontSize: 11.5),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'Pass: ${passRate.toStringAsFixed(0)}%',
-                                  style: GoogleFonts.jetBrainsMono(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              _buildSummaryStat('Received', '$_totalReceivedFromMending', Icons.move_to_inbox_outlined),
-                              _buildSummaryStat('In QC', '$_totalInChecking', Icons.fact_check_outlined),
-                              _buildSummaryStat('Alteration', '$_totalInAlteration', Icons.handyman_outlined, isAlert: _totalInAlteration > 0),
-                              _buildSummaryStat('Ready Challan', '$_totalReadyForChallan', Icons.local_shipping_outlined),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // ====================================================
-                    // 2. LIVE INWARD NOTIFICATION BANNER (IF LOTS WAITING)
-                    // ====================================================
-                    if (_incomingLots.isNotEmpty)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFF59E0B), width: 1.2),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: const Color(0xFFD97706), borderRadius: BorderRadius.circular(8)),
-                              child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${_incomingLots.length} Lot(s) Handed Over from Mending Floor',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Verified physical piece counts ready for QC Checker assignment below.',
-                                    style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // ====================================================
-                    // 3. 4-STAGE PIPELINE TAB CONTROLLER
-                    // ====================================================
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        children: [
-                          _buildTabButton(0, 'Incoming (${_incomingLots.length})', Icons.inbox_rounded),
-                          _buildTabButton(1, 'In QC (${_activeAssignments.length})', Icons.fact_check_rounded),
-                          _buildTabButton(2, 'Alter (${_activeAlterations.length})', Icons.handyman_rounded),
-                          _buildTabButton(3, 'Ready (${_readyForChallanLots.length})', Icons.local_shipping_rounded),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ====================================================
-                    // 4. TAB CONTENT
-                    // ====================================================
-                    if (_selectedTabIndex == 0)
-                      _buildIncomingLotsSection()
-                    else if (_selectedTabIndex == 1)
-                      _buildActiveCheckingSection()
-                    else if (_selectedTabIndex == 2)
-                      _buildAlterationsSection()
-                    else
-                      _buildReadyForChallanSection(),
-
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  // ====================================================
-  // TAB BUTTON
-  // ====================================================
-  Widget _buildTabButton(int index, String label, IconData icon) {
-    final isSel = _selectedTabIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedTabIndex = index),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSel ? AppTheme.steel : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 13, color: isSel ? Colors.white : AppTheme.inkSoft),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
-                    color: isSel ? Colors.white : AppTheme.ink,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ====================================================
-  // TAB 0: INCOMING LOTS (FROM MENDING FLOOR) WITH ADMIN COMPARISON
-  // ====================================================
-  Widget _buildIncomingFilterBar() {
-    final currentUserId = supabase.auth.currentUser?.id;
-    final myCount = _incomingLots.where((l) {
-      final supId = l['qc_supervisor_id']?.toString();
-      return supId == null || supId.isEmpty || supId == currentUserId;
-    }).length;
-    final allCount = _incomingLots.length;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _incomingFilterMode = 0),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                decoration: BoxDecoration(
-                  color: _incomingFilterMode == 0 ? AppTheme.steel : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _incomingFilterMode == 0 ? AppTheme.steel : AppTheme.border),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_pin_rounded, size: 14, color: _incomingFilterMode == 0 ? Colors.white : AppTheme.inkSoft),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'My Assigned Lots ($myCount)',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11.5,
-                          fontWeight: _incomingFilterMode == 0 ? FontWeight.w700 : FontWeight.w600,
-                          color: _incomingFilterMode == 0 ? Colors.white : AppTheme.inkSoft,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _incomingFilterMode = 1),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                decoration: BoxDecoration(
-                  color: _incomingFilterMode == 1 ? AppTheme.steel : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _incomingFilterMode == 1 ? AppTheme.steel : AppTheme.border),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.factory_rounded, size: 14, color: _incomingFilterMode == 1 ? Colors.white : AppTheme.inkSoft),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'All Floor Lots ($allCount)',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11.5,
-                          fontWeight: _incomingFilterMode == 1 ? FontWeight.w700 : FontWeight.w600,
-                          color: _incomingFilterMode == 1 ? Colors.white : AppTheme.inkSoft,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIncomingLotsSection() {
-    if (_incomingLots.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.done_all_rounded, size: 48, color: AppTheme.inkSoft.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text(
-                'No Incoming Lots Right Now',
-                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.ink),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'When Mending Floor forwards physically counted lots, they appear here automatically with Admin allotted comparisons.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final displayLots = _filteredIncomingLots;
-
-    return Column(
-      children: [
-        _buildIncomingFilterBar(),
-        if (displayLots.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Center(
-              child: Text(
-                'No lots assigned to your queue in this filter.',
-                style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkSoft),
-              ),
-            ),
-          )
-        else
-          ...displayLots.map((lot) {
-            final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
-            final desc = lot['article']?['description'] ?? lot['description'] ?? '';
-            final challanNo = lot['challans']?['challan_no'] ?? '-';
-            final brand = (lot['challans']?['brand'] ?? lot['brand'] ?? '').toString();
-            final lineman = lot['lineman']?['username'] ?? 'Lineman';
-            final handedBy = lot['handed_to_qc_by']?.toString();
-            final supName = lot['qc_supervisor_name']?.toString() ?? 'General Pool';
-            final handoverNotes = lot['qc_handover_notes']?.toString();
-
-            final int adminAllotted = parseQty(lot['admin_total_qty']);
-            final int mendingCounted = parseQty(lot['mending_received_qty'], adminAllotted);
-            final int variance = parseQty(lot['variance'], mendingCounted - adminAllotted);
-            final sizeMatrix = lot['size_matrix'] as List<dynamic>? ?? [];
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.border),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Custody & Handover Header Banner
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
-                      border: Border(bottom: BorderSide(color: Color(0xFFFDE68A))),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.handshake_rounded, size: 15, color: Color(0xFFB45309)),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'From Mending: ${handedBy != null && handedBy.isNotEmpty ? handedBy : 'Mending Floor'}',
-                                style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(5),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
-                              ),
-                              child: Text(
-                                'Custody: $supName',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFB45309)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (handoverNotes != null && handoverNotes.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Note: $handoverNotes',
-                            style: GoogleFonts.publicSans(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // Header with Article, Brand, Lineman
-                  Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Priority Banner (CRITICAL / RUSH)
-                        if ((lot['priority'] ?? '') == 'CRITICAL' || (lot['priority'] ?? '') == 'RUSH') ...[
-                          Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7.5),
-                            decoration: BoxDecoration(
-                              color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFFF1F2) : const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFFDA4AF) : const Color(0xFFFDE68A),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  (lot['priority'] ?? '') == 'CRITICAL' ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
-                                  size: 16,
-                                  color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFE11D48) : const Color(0xFFD97706),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    (lot['priority'] ?? '') == 'CRITICAL'
-                                        ? 'CRITICAL / EXPORT PRIORITY • सबसे पहले चेक करो (DO THIS FIRST)'
-                                        : 'RUSH ORDER PRIORITY • HIGH URGENCY',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: (lot['priority'] ?? '') == 'CRITICAL' ? const Color(0xFFBE123C) : const Color(0xFFB45309),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                              child: Text(
-                                'CH-$challanNo · $brand',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
-                              child: Text(
-                                'Stitched by: $lineman',
-                                style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Text(
-                              'Art #$artNo',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
-                            ),
-                            if ((lot['priority'] ?? '') == 'CRITICAL') ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF1F2),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFFDA4AF)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFE11D48)),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'CRITICAL • सबसे पहले चेक करो',
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFBE123C)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ] else if ((lot['priority'] ?? '') == 'RUSH') ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFFBEB),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFFDE68A)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFD97706)),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'RUSH ORDER',
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFB45309)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (desc.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-                        ],
-                      ],
-                    ),
-                  ),
-
-              const Divider(height: 1, color: AppTheme.border),
-
-              // Admin Allotted vs Mending Counted Comparison Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Admin Allotted', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
-                          const SizedBox(height: 2),
-                          Text('$adminAllotted pcs', style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                        ],
-                      ),
-                    ),
-                    Container(width: 1, height: 32, color: AppTheme.border),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Mending Counted', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
-                          const SizedBox(height: 2),
-                          Text('$mendingCounted pcs', style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.steel)),
-                        ],
-                      ),
-                    ),
-                    Container(width: 1, height: 32, color: AppTheme.border),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Variance', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
-                          const SizedBox(height: 2),
-                          Text(
-                            variance == 0
-                                ? 'Exact (0)'
-                                : variance < 0
-                                    ? '$variance pcs'
-                                    : '+$variance pcs',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: variance == 0 ? AppTheme.green : (variance < 0 ? AppTheme.red : Colors.blue),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Natural Size Matrix Chips
-              if (sizeMatrix.isNotEmpty) ...[
-                const Divider(height: 1, color: AppTheme.border),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Natural Size Breakdown (Mending Count / Admin Allotted):', style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: sizeMatrix.map((sm) {
-                          final sz = sm['size'] ?? '-';
-                          final clr = sm['color'] ?? '';
-                          final aQ = _parseQty(sm['allotted_qty']);
-                          final mQ = _parseQty(sm['mending_qty']);
-                          final target = aQ > 0 ? aQ : (mQ > 0 ? mQ : aQ);
-                          final qcAssigned = _getAssignedQtyForVariant(lot, sm);
-                          final qcRem = target - qcAssigned;
-                          final isDiff = mQ != aQ && mQ > 0;
-                          final clrLabel = clr.isNotEmpty && clr != '-' ? ' ($clr)' : '';
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: qcRem <= 0 && target > 0 ? AppTheme.greenMist : (isDiff ? AppTheme.amberMist : AppTheme.steelMist),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: qcRem <= 0 && target > 0 ? AppTheme.green.withValues(alpha: 0.4) : (isDiff ? AppTheme.amber : AppTheme.border)),
-                            ),
-                            child: Text(
-                              qcAssigned > 0
-                                  ? '$sz$clrLabel: $aQ pcs (${qcRem > 0 ? "$qcRem left" : "Done ✓"})'
-                                  : (mQ > 0 && mQ != aQ
-                                      ? '$sz$clrLabel: $mQ/$aQ pcs'
-                                      : '$sz$clrLabel: $aQ pcs'),
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: qcRem <= 0 && target > 0 ? AppTheme.green : AppTheme.ink,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const Divider(height: 1, color: AppTheme.border),
-
-              // ACTION BUTTON: ASSIGN WORKER
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18, color: Colors.white),
-                    label: Text(
-                      'Assign QC Checker / Worker',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.steel,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                    onPressed: () => _openAssignWorkerModal(lot),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
-    ],
-  );
-}
-
-  // ====================================================
-  // TAB 1: ACTIVE QC CHECKING (ASSIGNED WORKERS)
-  // ====================================================
-  Widget _buildActiveCheckingSection() {
-    if (_activeAssignments.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.fact_check_outlined, size: 48, color: AppTheme.inkSoft.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text('No Active QC Checking Tasks', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-              const SizedBox(height: 4),
-              Text('Assign incoming lots to checkers to inspect garment pieces here.', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: _activeAssignments.map((task) {
-        final worker = task['worker_name'] ?? 'Checker';
-        final artNo = task['article']?['art_no'] ?? 'Article';
-        final clr = task['color'] ?? '';
-        final sz = task['size'] ?? '';
-        final int assigned = parseQty(task['assigned_qty']);
-        final int checked = parseQty(task['checked_qty']);
-        final int passed = parseQty(task['passed_qty']);
-        final int alter = parseQty(task['alter_qty']);
-        final isDone = task['status'] == 'DONE' || checked >= assigned;
-
-        final double progress = assigned > 0 ? (checked / assigned).clamp(0.0, 1.0) : 1.0;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDone ? AppTheme.green : AppTheme.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.person_rounded, size: 16, color: AppTheme.steel),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Checker: $worker',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.ink),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: isDone ? AppTheme.greenMist : AppTheme.amberMist,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      isDone ? 'Completed' : 'In Progress (${(progress * 100).toInt()}%)',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isDone ? AppTheme.green : AppTheme.amber,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Art #$artNo · $clr ($sz)',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.steel),
-              ),
-              const SizedBox(height: 10),
-
-              // Progress Bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  backgroundColor: AppTheme.steelMist,
-                  valueColor: AlwaysStoppedAnimation<Color>(isDone ? AppTheme.green : AppTheme.steel),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Inspection Metrics row
-              Row(
-                children: [
-                  _buildMiniStat('Assigned', '$assigned pcs', AppTheme.ink),
-                  _buildMiniStat('Checked', '$checked pcs', AppTheme.steel),
-                  _buildMiniStat('Passed', '$passed pcs', AppTheme.green),
-                  _buildMiniStat('Alteration', '$alter pcs', alter > 0 ? AppTheme.red : AppTheme.inkSoft),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Button to Record QC Check
-              SizedBox(
-                width: double.infinity,
-                height: 40,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.fact_check_outlined, size: 16, color: Colors.white),
-                  label: Text('Record QC Inspection / Check', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.steel,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => _openRecordInspectionModal(task),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // ====================================================
-  // TAB 2: ALTERATIONS WITH LINEMAN
-  // ====================================================
-  Widget _buildAlterationsSection() {
-    if (_activeAlterations.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.check_circle_outline_rounded, size: 48, color: AppTheme.green),
-              const SizedBox(height: 12),
-              Text('Zero Pending Alterations', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-              const SizedBox(height: 4),
-              Text('All defective pieces have been repaired by linemen or none reported.', style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: _activeAlterations.map((alt) {
-        final artNo = alt['article']?['art_no'] ?? 'Article';
-        final lineman = alt['lineman']?['username'] ?? 'Lineman';
-        final int qty = parseQty(alt['qty_rejected']);
-        final defect = alt['defect_type'] ?? 'Defect';
-        final remarks = alt['remarks'] ?? '';
-        final color = alt['color'] ?? '';
-        final size = alt['size'] ?? '';
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.amber, width: 1.2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: AppTheme.amberMist, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.handyman_rounded, size: 16, color: AppTheme.amber),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('With Lineman: $lineman', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: AppTheme.amber, borderRadius: BorderRadius.circular(6)),
-                    child: Text(
-                      '$qty pcs',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('Art #$artNo ${color.isNotEmpty ? "· $color ($size)" : ""}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.steel)),
-              const SizedBox(height: 4),
-              Text('Defect: $defect', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.red)),
-              if (remarks.toString().isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text('Note: $remarks', style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft)),
-              ],
-              const SizedBox(height: 12),
-
-              // Action button to verify repaired pieces from Lineman
-              SizedBox(
-                width: double.infinity,
-                height: 38,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.verified_outlined, size: 16, color: Colors.white),
-                  label: Text('Verify & Pass Repaired Pieces', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.green,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  onPressed: () => _verifyAndPassRepairedPieces(alt),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // ====================================================
-  // TAB 3: READY FOR CHALLAN (DISPATCH GATE READY)
-  // ====================================================
-  Widget _buildReadyForChallanSection() {
-    if (_readyForChallanLots.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.local_shipping_outlined, size: 48, color: AppTheme.inkSoft.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text('No Articles Ready for Challan Yet', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.ink)),
-              const SizedBox(height: 4),
-              Text('When articles complete 100% QC checking and pass inspection, they appear here ready for delivery challan generation.', textAlign: TextAlign.center, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        // Top Info Box
-        Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.greenMist,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.green, width: 1.2),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '${_readyForChallanLots.length} Article(s) Cleared QC & 100% Passed. Ready to generate Delivery Challan.',
-                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.ink),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // List of Ready Articles
-        ..._readyForChallanLots.map((lot) {
-          final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
-          final desc = lot['article']?['description'] ?? lot['description'] ?? '';
-          final challanNo = lot['challans']?['challan_no'] ?? '-';
-          final brand = (lot['challans']?['brand'] ?? lot['brand'] ?? '').toString();
-          final vendorName = (lot['vendor_name'] ?? lot['challans']?['vendor_name'] ?? '').toString().trim();
-          final int passedQty = parseQty(lot['qc_total_passed'], parseQty(lot['mending_received_qty']));
-          final vars = parseList(lot['variants']);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.green, width: 1.5),
-              boxShadow: [
-                BoxShadow(color: AppTheme.green.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                                  child: Text(
-                                    'CH-$challanNo · $brand',
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
-                                  ),
-                                ),
-                                if (vendorName.isNotEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF5FF),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFE9D5FF)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.business_rounded, size: 12, color: Color(0xFF7E22CE)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          vendorName,
-                                          style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF7E22CE)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.verified_rounded, size: 14, color: AppTheme.green),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'QC Passed: $passedQty pcs',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.green),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Art #$artNo',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
-                      ),
-                      if (desc.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-                      ],
-                    ],
-                  ),
-                ),
-
-                if (vars.isNotEmpty) ...[
-                  const Divider(height: 1, color: AppTheme.border),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: vars.map((v) {
-                        final sz = v['size'] ?? '-';
-                        final passQ = parseQty(v['qc_passed_qty'], parseQty(lot['qc_total_passed'], parseQty(v['allotted_qty'], parseQty(v['quantity']))));
-                        final totalQ = parseQty(v['allotted_qty'], parseQty(v['quantity']));
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
-                          child: Text(
-                            '$sz: $passQ / $totalQ pcs',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.green),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-
-                const Divider(height: 1, color: AppTheme.border),
-
-                // HANDOVER TO GODOWN (STORE INWARD) & CREATE DELIVERY CHALLAN BUTTONS
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      if ((lot['qc_status'] ?? '').toString() == 'PENDING_ADMIN_APPROVAL') ...[
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.amberMist,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.amber.withValues(alpha: 0.5)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.hourglass_top_rounded, color: AppTheme.amber, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Submitted for Admin Approval. Store Manager will collect after Admin authorizes.',
-                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 42,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.pending_actions_rounded, size: 18, color: AppTheme.amber),
-                            label: Text(
-                              'Submitted (Awaiting Admin Approval)',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.amber),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppTheme.amber, width: 1.2),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            onPressed: null,
-                          ),
-                        ),
-                      ] else if ((lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_STORE') ...[
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.greenMist,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.green.withValues(alpha: 0.5)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle_rounded, color: AppTheme.green, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Admin Approved! Store Manager has been notified to collect.',
-                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.green),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else ...[
-                        SizedBox(
-                          width: double.infinity,
-                          height: 44,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.warehouse_rounded, size: 18, color: Colors.white),
-                            label: Text(
-                              'Handover to Godown (Store Inward Ready)',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.green,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              elevation: 0,
-                            ),
-                            onPressed: _isSubmitting ? null : () => _handoverToStore(lot),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 38,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.local_shipping_rounded, size: 16, color: AppTheme.steel),
-                          label: Text(
-                            'Direct Delivery Challan (Dispatch)',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.steel),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppTheme.steel, width: 1.1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-
-        // Create General Delivery Challan Modal Action
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: AppTheme.steel),
-              label: Text(
-                'Open General 8-Column Delivery Challan Sheet',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.steel),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.steel, width: 1.2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () => _showDeliveryChallanModal(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   // Handover finished lot to Godown Store Manager (Pending Admin Approval)
   Future<void> _handoverToStore(Map<String, dynamic> lot) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -3102,60 +1955,1776 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Handover submitted for Admin Approval! Once approved by Admin, Store Manager will be notified to collect ${lot['qc_total_passed'] ?? lot['target_qty']} pcs.'),
-          backgroundColor: AppTheme.green,
+          content: Text('Handover submitted for Admin Approval! Store Manager will be notified once approved.'),
+          backgroundColor: const Color(0xFF047857),
         ),
       );
       await _fetchQcData();
     } catch (e) {
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFBE123C)),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  // ====================================================
-  // HELPER METRICS CARDS
-  // ====================================================
-  Widget _buildSummaryStat(String label, String value, IconData icon, {bool isAlert = false}) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 18, color: isAlert ? AppTheme.amber : Colors.white.withValues(alpha: 0.9)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: isAlert ? AppTheme.amber : Colors.white,
+  // SIGN OUT DIALOG
+  Future<void> _showSignOutDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF1F2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.logout_rounded, color: Color(0xFFB91C1C), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Sign Out',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to end your QC Floor session on this station?',
+          style: GoogleFonts.publicSans(
+            fontSize: 13,
+            color: const Color(0xFF475569),
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.publicSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF475569),
+              ),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.publicSans(fontSize: 10, color: Colors.white.withValues(alpha: 0.8)),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB91C1C),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Sign Out',
+              style: GoogleFonts.publicSans(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(authProvider.notifier).logout();
+      if (context.mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  // ====================================================
+  // BUILD UI — CANONICAL ENTERPRISE DESIGN SYSTEM
+  // ====================================================
+  @override
+  Widget build(BuildContext context) {
+    final double passRate = _totalCheckedToday > 0
+        ? ((_totalPassedToday / _totalCheckedToday) * 100).clamp(0.0, 100.0)
+        : 100.0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAF7F0), // Warm cream canvas
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. Minimal Top Bar (Centered Zigza. brand pill only, no hamburger)
+            _buildTopNavbar(),
+
+            // 2. Encapsulated Header Card
+            _buildEncapsulatedHeader(),
+
+            // 3. Body Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF3A3564)))
+                  : RefreshIndicator(
+                      color: const Color(0xFF3A3564),
+                      backgroundColor: Colors.white,
+                      onRefresh: _fetchQcData,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 3. Shift Hero Summary Card
+                            _buildHeroSummaryCard(passRate),
+                            const SizedBox(height: 12),
+
+                            // 4. Amber Notification Callout (From Mending Floor)
+                            if (_incomingLots.isNotEmpty) ...[
+                              _buildAmberNotificationCallout(),
+                              const SizedBox(height: 12),
+                            ],
+
+                            // 5. Horizontal Pill Tabs
+                            _buildHorizontalTabs(),
+                            const SizedBox(height: 14),
+
+                            // 6. Tab Content
+                            if (_selectedTabIndex == 0)
+                              _buildIncomingLotsSection()
+                            else if (_selectedTabIndex == 1)
+                              _buildActiveCheckingSection()
+                            else if (_selectedTabIndex == 2)
+                              _buildAlterationsSection()
+                            else
+                              _buildReadyForChallanSection(),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 1. MINIMAL TOP BAR
+  Widget _buildTopNavbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3A3564),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Text(
+          'Zigza.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 2. ENCAPSULATED HEADER CARD
+  Widget _buildEncapsulatedHeader() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x1A000000), width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Checkbox icon tile
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x1A000000)),
+                ),
+                child: const Icon(Icons.check_box_outlined, color: Color(0xFF3A3564), size: 20),
+              ),
+              const SizedBox(width: 12),
+              // User info
+              Expanded(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final authState = ref.watch(authProvider);
+                    final user = supabase.auth.currentUser;
+                    final name = authState.cachedUsername ?? user?.userMetadata?['username'] ?? user?.email?.split('@')[0] ?? 'QC Floor In-charge';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, $name',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          'QC & finishing floor',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              // Soft Pastel Online Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF047857),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Online',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Two-button row: Sync & Sign out (Equal width)
+          Row(
+            children: [
+              // Sync button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _fetchQcData,
+                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF3A3564)),
+                  label: Text(
+                    'Sync',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF3A3564),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: const BorderSide(color: Color(0x1A000000)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Sign out button (Soft red outline)
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showSignOutDialog(context),
+                  icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFFB91C1C)),
+                  label: Text(
+                    'Sign out',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFB91C1C),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: const BorderSide(color: Color(0xFFFCA5A5), width: 1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMiniStat(String label, String val, Color color) {
+  // 3. HERO SUMMARY CARD (Solid #3A3564 fill)
+  Widget _buildHeroSummaryCard(double passRate) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A3564),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_getShiftName()} - QC floor summary',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Finishing & quality assurance flow',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11.5,
+                        color: const Color(0xFFCBD5E1),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Pass rate pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                ),
+                child: Text(
+                  'PASS: ${passRate.toStringAsFixed(0)}%',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 4-column stat row
+          Row(
+            children: [
+              _buildHeroStatColumn('Received', '$_totalReceivedFromMending', Icons.move_to_inbox_outlined),
+              _buildHeroStatColumn('In QC', '$_totalInChecking', Icons.fact_check_outlined),
+              _buildHeroStatColumn('Alteration', '$_totalInAlteration', Icons.handyman_outlined, isAlter: _totalInAlteration > 0),
+              _buildHeroStatColumn('Ready Challan', '$_totalReadyForChallan', Icons.local_shipping_outlined),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroStatColumn(String label, String value, IconData icon, {bool isAlter = false}) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isAlter ? const Color(0xFFFDE68A) : Colors.white.withValues(alpha: 0.85),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: isAlter ? const Color(0xFFFDE68A) : Colors.white,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(
+              fontSize: 10.5,
+              color: const Color(0xFFCBD5E1),
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 4. AMBER NOTIFICATION CALLOUT
+  Widget _buildAmberNotificationCallout() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: const Icon(Icons.notifications_active_outlined, color: Color(0xFFD97706), size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_incomingLots.length} lot(s) handed over from mending floor',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Verified physical piece counts ready for QC checker assignment below.',
+                  style: GoogleFonts.publicSans(
+                    fontSize: 11,
+                    color: const Color(0xFFB45309),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 5. HORIZONTAL PILL TABS
+  Widget _buildHorizontalTabs() {
+    final tabs = [
+      {'label': 'Incoming', 'count': _incomingLots.length},
+      {'label': 'In QC', 'count': _activeAssignments.length},
+      {'label': 'Alter', 'count': _activeAlterations.length},
+      {'label': 'Ready', 'count': _readyForChallanLots.length},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(tabs.length, (i) {
+          final isSel = _selectedTabIndex == i;
+          final tab = tabs[i];
+          final label = tab['label'] as String;
+          final count = tab['count'] as int;
+
+          return Padding(
+            padding: EdgeInsets.only(right: i == tabs.length - 1 ? 0 : 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => setState(() => _selectedTabIndex = i),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSel ? const Color(0xFF3A3564) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSel ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                      width: 1,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 12.5,
+                          fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                          color: isSel ? Colors.white : const Color(0xFF475569),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isSel ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: isSel ? Colors.white : const Color(0xFF3A3564),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // TWO-BUTTON FILTER ROW (MY ASSIGNED VS ALL FLOOR)
+  Widget _buildIncomingFilterBar() {
+    final currentUserId = supabase.auth.currentUser?.id;
+    final myCount = _incomingLots.where((l) {
+      final supId = l['qc_supervisor_id']?.toString();
+      return supId == null || supId.isEmpty || supId == currentUserId;
+    }).length;
+    final allCount = _incomingLots.length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _incomingFilterMode = 0),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: _incomingFilterMode == 0 ? const Color(0xFF3A3564) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _incomingFilterMode == 0 ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.person_pin_rounded,
+                      size: 14,
+                      color: _incomingFilterMode == 0 ? Colors.white : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'My assigned lots ',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11.5,
+                                fontWeight: _incomingFilterMode == 0 ? FontWeight.w800 : FontWeight.w600,
+                                color: _incomingFilterMode == 0 ? Colors.white : const Color(0xFF475569),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '($myCount)',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _incomingFilterMode == 0 ? Colors.white : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _incomingFilterMode = 1),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: _incomingFilterMode == 1 ? const Color(0xFF3A3564) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _incomingFilterMode == 1 ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.factory_rounded,
+                      size: 14,
+                      color: _incomingFilterMode == 1 ? Colors.white : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'All floor lots ',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11.5,
+                                fontWeight: _incomingFilterMode == 1 ? FontWeight.w800 : FontWeight.w600,
+                                color: _incomingFilterMode == 1 ? Colors.white : const Color(0xFF475569),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '($allCount)',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _incomingFilterMode == 1 ? Colors.white : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ====================================================
+  // TAB 0: INCOMING LOTS (FROM MENDING)
+  // ====================================================
+  Widget _buildIncomingLotsSection() {
+    if (_incomingLots.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x1A000000)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x1A000000)),
+                ),
+                child: const Icon(Icons.inbox_outlined, size: 36, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'No Incoming Lots from Mending',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'When Mending supervisors verify piece counts and tap "Forward to QC", lots will immediately appear here ready for checker assignment.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final displayLots = _filteredIncomingLots;
+
+    return Column(
+      children: [
+        _buildIncomingFilterBar(),
+        if (displayLots.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x1A000000)),
+            ),
+            child: Center(
+              child: Text(
+                'No lots assigned to your queue in this filter.',
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+              ),
+            ),
+          )
+        else
+          ...displayLots.map((lot) {
+            final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+            final artNo = art?['art_no']?.toString() ?? lot['art_no']?.toString() ?? 'Article';
+            final desc = art?['description']?.toString() ?? lot['description']?.toString() ?? '';
+            final chal = _asMap(lot['challans']);
+            final challanNo = chal?['challan_no']?.toString() ?? lot['challan_no']?.toString() ?? '-';
+            final brand = (chal?['brand'] ?? lot['brand'] ?? '').toString();
+            final lm = _asMap(lot['lineman']);
+            final lineman = lm?['username']?.toString() ?? 'Lineman';
+            final handedBy = lot['handed_to_qc_by']?.toString();
+            final supName = lot['qc_supervisor_name']?.toString() ?? 'General Pool';
+            final handoverNotes = lot['qc_handover_notes']?.toString();
+
+            final int adminAllotted = _parseQty(lot['admin_total_qty']);
+            final int mendingCounted = _parseQty(lot['mending_received_qty'], adminAllotted);
+            final int variance = _parseQty(lot['variance'], mendingCounted - adminAllotted);
+            final sizeMatrix = (lot['size_matrix'] as List<dynamic>?) ?? [];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0x1A000000)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x08000000),
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 7. Amber Custody Banner
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFFCF3),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                      border: Border(bottom: BorderSide(color: Color(0xFFFDE68A), width: 1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.handshake_outlined, size: 15, color: Color(0xFFB45309)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'From mending: ${handedBy != null && handedBy.isNotEmpty ? handedBy : 'Mending Floor'}',
+                                style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF92400E)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFFDE68A)),
+                              ),
+                              child: Text(
+                                'CUSTODY: $supName',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.w800, color: const Color(0xFF92400E)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (handoverNotes != null && handoverNotes.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Note: $handoverNotes',
+                            style: GoogleFonts.publicSans(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF78350F)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // 8. Lot Detail Body
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top row: Challan code chip + Stitched by tag
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Text(
+                                  'CH-$challanNo ${brand.isNotEmpty ? "· $brand" : ""}',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.person_pin_circle_outlined, size: 12, color: Color(0xFF047857)),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        'Stitched by: $lineman',
+                                        style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, color: const Color(0xFF047857)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Article Code & Style Descriptor
+                        Text(
+                          'Art #$artNo',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                        ),
+                        if (desc.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            desc,
+                            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: Color(0x14000000)),
+                        const SizedBox(height: 12),
+
+                        // 3-Column Stat Row (Admin allotted / Mending counted / Variance)
+                        Row(
+                          children: [
+                            // Admin allotted
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Admin allotted',
+                                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$adminAllotted pcs',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, height: 28, color: const Color(0x14000000)),
+                            const SizedBox(width: 10),
+
+                            // Mending counted
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Mending counted',
+                                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$mendingCounted pcs',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF3A3564)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(width: 1, height: 28, color: const Color(0x14000000)),
+                            const SizedBox(width: 10),
+
+                            // Variance with soft pastel pill
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Variance',
+                                    style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: variance == 0
+                                          ? const Color(0xFFECFDF5)
+                                          : (variance < 0 ? const Color(0xFFFFF1F2) : const Color(0xFFEFF6FF)),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: variance == 0
+                                            ? const Color(0xFFA7F3D0)
+                                            : (variance < 0 ? const Color(0xFFFECDD3) : const Color(0xFFBFDBFE)),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      variance == 0
+                                          ? 'Exact (0)'
+                                          : (variance < 0 ? '$variance pcs' : '+$variance pcs'),
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: variance == 0
+                                            ? const Color(0xFF047857)
+                                            : (variance < 0 ? const Color(0xFFBE123C) : const Color(0xFF1E40AF)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Natural size breakdown chips
+                        if (sizeMatrix.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Divider(height: 1, color: Color(0x14000000)),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Natural size breakdown (mending count / admin allotted)',
+                            style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: sizeMatrix.map((sm) {
+                              final sz = sm['size'] ?? '-';
+                              final clr = sm['color'] ?? '';
+                              final aQ = _parseQty(sm['allotted_qty']);
+                              final mQ = _parseQty(sm['mending_qty']);
+                              final target = aQ > 0 ? aQ : (mQ > 0 ? mQ : aQ);
+                              final qcAssigned = _getAssignedQtyForVariant(lot, sm);
+                              final qcRem = target - qcAssigned;
+                              final isDiff = mQ != aQ && mQ > 0;
+                              final clrLabel = clr.isNotEmpty && clr != '-' ? ' ($clr)' : '';
+
+                              final isDone = qcRem <= 0 && target > 0;
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isDone
+                                      ? const Color(0xFFECFDF5)
+                                      : (isDiff ? const Color(0xFFFFFCF3) : const Color(0xFFFAF7F0)),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isDone
+                                        ? const Color(0xFFA7F3D0)
+                                        : (isDiff ? const Color(0xFFFDE68A) : const Color(0x1A000000)),
+                                  ),
+                                ),
+                                child: Text(
+                                  qcAssigned > 0
+                                      ? '$sz$clrLabel: $aQ pcs (${qcRem > 0 ? "$qcRem left" : "Done ✓"})'
+                                      : (mQ > 0 && mQ != aQ
+                                          ? '$sz$clrLabel: $mQ/$aQ pcs'
+                                          : '$sz$clrLabel: $aQ pcs'),
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDone
+                                        ? const Color(0xFF047857)
+                                        : (isDiff ? const Color(0xFF92400E) : const Color(0xFF0F172A)),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+
+                        const SizedBox(height: 14),
+
+                        // Full-width Primary Button: Assign QC checker / worker
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.person_add_outlined, size: 17, color: Colors.white),
+                            label: Text(
+                              'Assign QC checker / worker',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w800, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A3564),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            onPressed: () => _openAssignWorkerModal(lot),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  // ====================================================
+  // TAB 1: ACTIVE QC CHECKING (IN PROGRESS)
+  // ====================================================
+  Widget _buildActiveCheckingSection() {
+    if (_activeAssignments.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x1A000000)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x1A000000)),
+                ),
+                child: const Icon(Icons.fact_check_outlined, size: 36, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'No Active QC Checking Tasks',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Assign incoming lots to checkers to inspect garment pieces here.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: _activeAssignments.map((task) {
+        final worker = task['worker_name'] ?? 'Checker';
+        final art = _asMap(task['article']) ?? _asMap(task['articles']);
+        final artNo = art?['art_no']?.toString() ?? task['art_no']?.toString() ?? 'Article';
+        final clr = task['color'] ?? '';
+        final sz = task['size'] ?? '';
+        final int assigned = _parseQty(task['assigned_qty']);
+        final int checked = _parseQty(task['checked_qty']);
+        final int passed = _parseQty(task['passed_qty']);
+        final int alter = _parseQty(task['alter_qty']);
+        final isDone = task['status'] == 'DONE' || checked >= assigned;
+
+        final double progress = assigned > 0 ? (checked / assigned).clamp(0.0, 1.0) : 1.0;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDone ? const Color(0xFFA7F3D0) : const Color(0x1A000000),
+            ),
+            boxShadow: const [
+              BoxShadow(color: Color(0x06000000), blurRadius: 2, offset: Offset(0, 1)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF3A3564)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Checker: $worker',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFFFCF3),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                      ),
+                    ),
+                    child: Text(
+                      isDone ? 'Completed' : 'In Progress (${(progress * 100).toInt()}%)',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: isDone ? const Color(0xFF047857) : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Art #$artNo · $clr ($sz)',
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
+              ),
+              const SizedBox(height: 10),
+
+              // Progress Bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 5,
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Inspection Metrics row
+              Row(
+                children: [
+                  _buildInspectionMetricCard('Assigned', '$assigned pcs', const Color(0xFF0F172A)),
+                  const SizedBox(width: 6),
+                  _buildInspectionMetricCard('Checked', '$checked pcs', const Color(0xFF3A3564)),
+                  const SizedBox(width: 6),
+                  _buildInspectionMetricCard('Passed', '$passed pcs', const Color(0xFF047857)),
+                  const SizedBox(width: 6),
+                  _buildInspectionMetricCard('Alteration', '$alter pcs', alter > 0 ? const Color(0xFFBE123C) : const Color(0xFF64748B)),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Action button to record inspection
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.fact_check_outlined, size: 16, color: Colors.white),
+                  label: Text('Record QC inspection', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3A3564),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _openRecordInspectionModal(task),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInspectionMetricCard(String label, String value, Color valueColor) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7F0),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0x14000000)),
+        ),
         child: Column(
           children: [
-            Text(label, style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.inkSoft)),
+            Text(label, style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            Text(val, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+            Text(value, style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w800, color: valueColor)),
           ],
         ),
       ),
+    );
+  }
+
+  // ====================================================
+  // TAB 2: ALTERATIONS (WITH LINEMAN)
+  // ====================================================
+  Widget _buildAlterationsSection() {
+    if (_activeAlterations.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x1A000000)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: const Icon(Icons.check_circle_outline_rounded, size: 36, color: Color(0xFF047857)),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Zero Pending Alterations',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'All defective pieces have been repaired by linemen or none reported.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: _activeAlterations.map((alt) {
+        final art = _asMap(alt['article']) ?? _asMap(alt['articles']);
+        final artNo = art?['art_no']?.toString() ?? alt['art_no']?.toString() ?? 'Article';
+        final lm = _asMap(alt['lineman']);
+        final lineman = lm?['username']?.toString() ?? 'Lineman';
+        final int qty = _parseQty(alt['qty_rejected']);
+        final defect = alt['defect_type'] ?? 'Defect';
+        final remarks = alt['remarks'] ?? '';
+        final color = alt['color'] ?? '';
+        final size = alt['size'] ?? '';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x06000000), blurRadius: 2, offset: Offset(0, 1)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFCF3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: const Icon(Icons.handyman_outlined, size: 16, color: Color(0xFFD97706)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'With Lineman: $lineman',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFECDD3)),
+                    ),
+                    child: Text(
+                      '$qty pcs',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w800, color: const Color(0xFFBE123C)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Art #$artNo ${color.isNotEmpty ? "· $color ($size)" : ""}',
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Defect: $defect',
+                style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFBE123C)),
+              ),
+              if (remarks.toString().isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Note: $remarks',
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                ),
+              ],
+              const SizedBox(height: 12),
+
+              // Action button to verify repaired pieces from Lineman
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.verified_outlined, size: 16, color: Colors.white),
+                  label: Text('Verify & Pass Repaired Pieces', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF047857),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _verifyAndPassRepairedPieces(alt),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ====================================================
+  // TAB 3: READY FOR CHALLAN / STORE HANDOVER
+  // ====================================================
+  Widget _buildReadyForChallanSection() {
+    if (_readyForChallanLots.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x1A000000)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0x1A000000)),
+                ),
+                child: const Icon(Icons.local_shipping_outlined, size: 36, color: Color(0xFF94A3B8)),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'No Articles Ready for Challan Yet',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'When articles complete 100% QC checking and pass inspection, they appear here ready for delivery challan generation.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Top Info Box
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_readyForChallanLots.length} Article(s) Cleared QC & 100% Passed. Ready for dispatch.',
+                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF047857)),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // List of Ready Articles
+        ..._readyForChallanLots.map((lot) {
+          final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+          final artNo = art?['art_no']?.toString() ?? lot['art_no']?.toString() ?? 'Article';
+          final desc = art?['description']?.toString() ?? lot['description']?.toString() ?? '';
+          final chal = _asMap(lot['challans']);
+          final challanNo = chal?['challan_no']?.toString() ?? lot['challan_no']?.toString() ?? '-';
+          final brand = (chal?['brand'] ?? lot['brand'] ?? '').toString();
+          final vendorName = (lot['vendor_name'] ?? chal?['vendor_name'] ?? '').toString().trim();
+          final int passedQty = _parseQty(lot['qc_total_passed'], _parseQty(lot['mending_received_qty']));
+          final vars = (lot['variants'] as List<dynamic>?) ?? [];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFA7F3D0), width: 1.2),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 2, offset: Offset(0, 1)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Text(
+                                    'CH-$challanNo · $brand',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                  ),
+                                ),
+                                if (vendorName.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAF5FF),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFE9D5FF)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.business_rounded, size: 12, color: Color(0xFF7E22CE)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          vendorName,
+                                          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF7E22CE)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFA7F3D0)),
+                            ),
+                            child: Text(
+                              'QC Passed: $passedQty pcs',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Art #$artNo',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      ),
+                      if (desc.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B))),
+                      ],
+                    ],
+                  ),
+                ),
+
+                if (vars.isNotEmpty) ...[
+                  const Divider(height: 1, color: Color(0x14000000)),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: vars.map((v) {
+                        final sz = v['size'] ?? '-';
+                        final passQ = _parseQty(v['qc_passed_qty'], _parseQty(lot['qc_total_passed'], _parseQty(v['allotted_qty'], _parseQty(v['quantity']))));
+                        final totalQ = _parseQty(v['allotted_qty'], _parseQty(v['quantity']));
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: Text(
+                            '$sz: $passQ / $totalQ pcs',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+
+                const Divider(height: 1, color: Color(0x14000000)),
+
+                // Actions
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      if ((lot['qc_status'] ?? '').toString() == 'PENDING_ADMIN_APPROVAL') ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFCF3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Submitted for Admin Approval. Store Manager will collect after authorization.',
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 42,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.pending_actions_rounded, size: 18, color: Color(0xFFD97706)),
+                            label: Text(
+                              'Submitted (Awaiting Admin Approval)',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFD97706)),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFFDE68A), width: 1.2),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: null,
+                          ),
+                        ),
+                      ] else if ((lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_STORE') ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Admin Approved! Store Manager has been notified to collect.',
+                                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF047857)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.warehouse_rounded, size: 18, color: Colors.white),
+                            label: Text(
+                              'Handover to Godown (Store Inward Ready)',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF047857),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            onPressed: _isSubmitting ? null : () => _handoverToStore(lot),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 38,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.local_shipping_rounded, size: 16, color: Color(0xFF3A3564)),
+                          label: Text(
+                            'Direct Delivery Challan (Dispatch)',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF3A3564)),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0x1A000000), width: 1),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+
+        // Create General Delivery Challan Modal Action
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: Color(0xFF3A3564)),
+              label: Text(
+                'Open General 8-Column Delivery Challan Sheet',
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF3A3564), width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () => _showDeliveryChallanModal(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

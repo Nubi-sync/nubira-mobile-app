@@ -50,6 +50,7 @@ class MerchandisingOrder {
   final String? buyerId;
   final String? cadFrontUrl;
   final String? cadBackUrl;
+  final String? companyName;
 
   const MerchandisingOrder({
     required this.id,
@@ -74,6 +75,7 @@ class MerchandisingOrder {
     this.buyerId,
     this.cadFrontUrl,
     this.cadBackUrl,
+    this.companyName,
   });
 
   String get normalizedStatus {
@@ -146,6 +148,7 @@ class ActiveBuyer {
   final String? targetSeason;
   final String? notes;
   final String? updatedAt;
+  final String? companyName;
 
   const ActiveBuyer({
     required this.id,
@@ -166,6 +169,7 @@ class ActiveBuyer {
     this.notes,
     this.createdAt,
     this.updatedAt,
+    this.companyName,
   });
 
   ActiveBuyer copyWith({
@@ -187,6 +191,7 @@ class ActiveBuyer {
     String? notes,
     String? createdAt,
     String? updatedAt,
+    String? companyName,
   }) {
     return ActiveBuyer(
       id: id ?? this.id,
@@ -207,6 +212,7 @@ class ActiveBuyer {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      companyName: companyName ?? this.companyName,
     );
   }
 
@@ -232,6 +238,7 @@ class ActiveBuyer {
       notes: json['notes'] as String?,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      companyName: json['company_name']?.toString(),
     );
   }
 
@@ -255,6 +262,7 @@ class ActiveBuyer {
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (companyName != null) 'company_name': companyName,
     };
   }
 }
@@ -332,6 +340,7 @@ class TechPackArticleItem {
   final int targetGsm;
   final String? cadFrontUrl;
   final String? cadBackUrl;
+  final String? companyName;
 
   const TechPackArticleItem({
     required this.id,
@@ -344,5 +353,6 @@ class TechPackArticleItem {
     this.targetGsm = 180,
     this.cadFrontUrl,
     this.cadBackUrl,
+    this.companyName,
   });
 }

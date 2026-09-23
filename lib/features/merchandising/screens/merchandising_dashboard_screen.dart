@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
@@ -178,6 +179,10 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
     );
   }
 
+  String _formatQty(num val) {
+    return NumberFormat.decimalPattern('en_IN').format(val);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(merchandisingProvider);
@@ -187,7 +192,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
     final activities = state.activities;
 
     final selectedBuyerDisplayText = selectedBuyer != null
-        ? '${selectedBuyer.buyerName} (${selectedBuyer.contractedVolume.toString()} Pcs)'
+        ? '${selectedBuyer.buyerName} (${_formatQty(selectedBuyer.contractedVolume)} Pcs)'
         : (state.buyers.isEmpty ? 'No active buyers contracted' : 'Select buyer contract');
 
     final buyerVolume = selectedBuyer?.contractedVolume ?? 0;
@@ -521,7 +526,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   // Stat 2: Active buyer POs
                   _buildStatCard(
                     title: 'Active buyer POs',
-                    value: state.totalBookedPcs.toString(),
+                    value: _formatQty(state.activeBuyerPoPieces),
                     icon: Icons.work_outline,
                     onTap: () {
                       ref.read(merchandisingProvider.notifier).setStatusFilter('ALL');
@@ -531,7 +536,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   // Stat 3: In order
                   _buildStatCard(
                     title: 'In order',
-                    value: state.totalInOrderPieces.toString(),
+                    value: _formatQty(state.activeBuyerInOrderPieces),
                     icon: Icons.inventory_2_outlined,
                     onTap: _openActiveBuyersScreen,
                   ),
@@ -612,7 +617,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total booked: ${buyerVolume > 0 ? buyerVolume : state.totalBookedPcs} pcs',
+                          'Total booked: ${_formatQty(buyerVolume > 0 ? buyerVolume : state.totalBookedPcs)} pcs',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -1050,7 +1055,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       ],
                     ),
                     Text(
-                      pcs.toString(),
+                      _formatQty(pcs),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -1203,7 +1208,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${ord.totalQuantity} Pcs',
+                      '${_formatQty(ord.totalQuantity)} Pcs',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

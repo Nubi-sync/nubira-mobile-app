@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../models/merchandising_models.dart';
 
 String _cleanFabricComposition(String? raw) {
@@ -79,13 +80,62 @@ class MerchandisingState {
     return orders.fold<int>(0, (sum, ord) => sum + ord.totalQuantity);
   }
 
+  List<MerchandisingOrder> get buyerMatchingOrders {
+    final buyer = selectedBuyer;
+    if (buyer == null) return orders;
+    final sName = buyer.buyerName.trim().toLowerCase();
+    final sArt = (buyer.linkedArticleNumber ?? '').trim().toLowerCase();
+    final sId = buyer.id;
+
+    return orders.where((o) {
+      final oBuyerId = o.buyerId ?? '';
+      final oBrand = o.brandName.trim().toLowerCase();
+      final oStyle = o.styleRef.trim().toLowerCase();
+      final oPo = o.poNumber.trim().toLowerCase();
+
+      return (sId.isNotEmpty && oBuyerId == sId) ||
+          (sName.isNotEmpty && oBrand == sName) ||
+          (sArt.isNotEmpty && (oStyle == sArt || oPo == sArt));
+    }).toList();
+  }
+
   int get activeArticlesCount {
-    return techPackArticles.length;
+    final buyer = selectedBuyer;
+    if (buyer == null) return techPackArticles.length;
+    final sArt = (buyer.linkedArticleNumber ?? '').trim().toLowerCase();
+    final sBrand = buyer.buyerName.trim().toLowerCase();
+
+    final matched = techPackArticles.where((tp) {
+      final tpNum = tp.styleNumber.trim().toLowerCase();
+      final tpBrand = (tp.brandName ?? '').trim().toLowerCase();
+      return (sArt.isNotEmpty && tpNum == sArt) || (sBrand.isNotEmpty && tpBrand == sBrand);
+    }).length;
+
+    return matched > 0
+        ? matched
+        : (buyer.linkedArticleNumber != null && buyer.linkedArticleNumber!.isNotEmpty ? 1 : techPackArticles.length);
+  }
+
+  int get activeBuyerPoPieces {
+    final buyer = selectedBuyer;
+    if (buyer == null) return totalBookedPcs;
+    final matching = buyerMatchingOrders;
+    return matching.isNotEmpty
+        ? matching.fold<int>(0, (sum, o) => sum + o.totalQuantity)
+        : (buyer.contractedVolume > 0 ? buyer.contractedVolume : 0);
   }
 
   int get totalInOrderPieces {
     final linked = buyers.where((b) => b.linkedArticleNumber != null && b.linkedArticleNumber!.isNotEmpty);
     return linked.fold<int>(0, (sum, b) => sum + b.contractedVolume);
+  }
+
+  int get activeBuyerInOrderPieces {
+    final buyer = selectedBuyer;
+    if (buyer != null) {
+      return buyer.contractedVolume > 0 ? buyer.contractedVolume : totalInOrderPieces;
+    }
+    return totalInOrderPieces;
   }
 
   String get slaPercentage {
@@ -213,6 +263,18 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
     try {
       final client = Supabase.instance.client;
 
+      // Centrally resolve tenant identity to match Web Admin exactly
+      final currentUser = client.auth.currentUser;
+      String? companyFilter;
+      if (currentUser != null) {
+        try {
+          final tenant = await TenantResolverService.resolveUserTenant(currentUser);
+          if (!tenant.isLegacyNubira && tenant.companyName != 'Zigza MES Platform Operations') {
+            companyFilter = tenant.companyName.trim();
+          }
+        } catch (_) {}
+      }
+
       // 1. Fetch Orders with brands, tech packs, and ratios
       List<MerchandisingOrder> fetchedOrders = [];
       try {
@@ -220,14 +282,14 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             .from('merchandising_orders')
             .select('''
               *,
-              brands ( id, brand_name, brand_code ),
-              design_tech_packs ( id, style_number, category, embellishment_sequence, fabric_composition, target_gsm, cad_front_url, cad_back_url ),
+              brands ( id, brand_name, brand_code, company_name ),
+              design_tech_packs ( id, style_number, category, embellishment_sequence, fabric_composition, target_gsm, cad_front_url, cad_back_url, company_name ),
               merchandising_order_ratios ( id, color_name, color_code, size_label, ratio_units, quantity )
             ''')
             .order('created_at', ascending: false);
 
         final rawList = res as List<dynamic>;
-        fetchedOrders = rawList.map((row) {
+        var mapped = rawList.map((row) {
           final colorGroups = <String, Map<String, dynamic>>{};
           final ratios = (row['merchandising_order_ratios'] as List?) ?? [];
           for (final r in ratios) {
@@ -251,6 +313,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
 
           final tp = row['design_tech_packs'] as Map<String, dynamic>?;
           final brand = row['brands'] as Map<String, dynamic>?;
+          final company = row['company_name']?.toString() ?? brand?['company_name']?.toString() ?? tp?['company_name']?.toString();
 
           final totalQty = (row['total_quantity'] as num?)?.toInt() ?? 0;
           final fobPrice = (row['fob_price_per_piece'] as num?)?.toDouble() ?? 0.0;
@@ -287,6 +350,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             cadBackUrl: tp?['cad_back_url']?.toString(),
             buyerId: row['buyer_id']?.toString(),
             buyerCode: brand?['brand_code']?.toString(),
+            companyName: company,
             colorMatrix: colorMatrix.isNotEmpty
                 ? colorMatrix
                 : [
@@ -299,6 +363,16 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             createdAt: row['created_at']?.toString() ?? DateTime.now().toIso8601String(),
           );
         }).toList();
+
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          final target = companyFilter.toLowerCase();
+          mapped = mapped.where((ord) {
+            final oc = (ord.companyName ?? '').toLowerCase();
+            final bn = ord.brandName.toLowerCase();
+            return oc == target || oc.contains(target) || bn == target || bn.contains(target);
+          }).toList();
+        }
+        fetchedOrders = mapped;
       } catch (e) {
         debugPrint('[MerchandisingNotifier] Error loading orders: $e');
       }
@@ -309,7 +383,17 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
         final bRes = await client.from('merchandising_active_buyers').select('*').order('created_at', ascending: false);
         final rawBuyers = bRes as List<dynamic>;
         if (rawBuyers.isNotEmpty) {
-          buyersList = rawBuyers.map((b) => ActiveBuyer.fromJson(b as Map<String, dynamic>)).toList();
+          var mappedBuyers = rawBuyers.map((b) => ActiveBuyer.fromJson(b as Map<String, dynamic>)).toList();
+          if (companyFilter != null && companyFilter.isNotEmpty) {
+            final target = companyFilter.toLowerCase();
+            mappedBuyers = mappedBuyers.where((b) {
+              final comp = (b.companyName ?? '').toLowerCase();
+              final name = b.buyerName.toLowerCase();
+              final brand = (b.brandName ?? '').toLowerCase();
+              return comp == target || comp.contains(target) || name == target || name.contains(target) || brand == target || brand.contains(target);
+            }).toList();
+          }
+          buyersList = mappedBuyers;
         }
       } catch (_) {}
 
@@ -338,6 +422,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
               linkedArticleNumber: ord.styleRef,
               linkedArticleName: ord.styleName,
               status: 'LINKED',
+              companyName: ord.companyName,
               createdAt: ord.createdAt,
             );
           } else {
@@ -382,6 +467,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
           if (rawBrands.isNotEmpty) {
             buyersList = rawBrands.map((b) {
               final name = b['brand_name']?.toString() ?? 'Direct Buyer';
+              final comp = b['company_name']?.toString();
               return ActiveBuyer(
                 id: b['id']?.toString() ?? '',
                 buyerName: name,
@@ -391,6 +477,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
                 pricePerPiece: 1450.0,
                 totalContractValue: 5000 * 1450.0,
                 status: 'ACTIVE',
+                companyName: comp,
               );
             }).toList();
           }
@@ -400,10 +487,11 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
       // 3. Fetch Tech Pack Articles
       List<TechPackArticleItem> techPacksList = [];
       try {
-        final tpRes = await client.from('design_tech_packs').select('*, brands(brand_name)').order('created_at', ascending: false);
+        final tpRes = await client.from('design_tech_packs').select('*, brands(brand_name, company_name)').order('created_at', ascending: false);
         final rawTps = tpRes as List<dynamic>;
-        techPacksList = rawTps.map((tp) {
+        var mappedTps = rawTps.map((tp) {
           final brand = tp['brands'] as Map<String, dynamic>?;
+          final comp = tp['company_name']?.toString() ?? brand?['company_name']?.toString();
           return TechPackArticleItem(
             id: tp['id']?.toString() ?? '',
             styleNumber: tp['style_number']?.toString() ?? 'STYLE',
@@ -415,8 +503,19 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             targetGsm: (tp['target_gsm'] as num?)?.toInt() ?? 180,
             cadFrontUrl: tp['cad_front_url']?.toString(),
             cadBackUrl: tp['cad_back_url']?.toString(),
+            companyName: comp,
           );
         }).toList();
+
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          final target = companyFilter.toLowerCase();
+          mappedTps = mappedTps.where((tp) {
+            final comp = (tp.companyName ?? '').toLowerCase();
+            final brand = (tp.brandName ?? '').toLowerCase();
+            return comp == target || comp.contains(target) || brand == target || brand.contains(target);
+          }).toList();
+        }
+        techPacksList = mappedTps;
       } catch (e) {
         debugPrint('[MerchandisingNotifier] Error loading tech packs: $e');
       }
