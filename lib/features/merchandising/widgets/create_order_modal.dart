@@ -1040,9 +1040,11 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
         // 5. Read-only Info Chips: Embellishment Routing & Fabric Weight
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Container(
+                constraints: const BoxConstraints(minHeight: 56),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
@@ -1051,12 +1053,20 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('EMBELLISHMENT ROUTING', style: _chipLabelStyle),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       _embellishmentDisplayText,
-                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF332B6B),
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1065,6 +1075,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             const SizedBox(width: 8),
             Expanded(
               child: Container(
+                constraints: const BoxConstraints(minHeight: 56),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
@@ -1073,13 +1084,19 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('FABRIC & WEIGHT', style: _chipLabelStyle),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      '$_fabricComposition • $_targetGsm GSM',
-                      style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      maxLines: 1,
+                      '${_fabricComposition.isNotEmpty ? _fabricComposition : "100% Combed Cotton Single Jersey"} • ${_targetGsm > 0 ? _targetGsm : 180} GSM',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1A),
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -1142,10 +1159,18 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     child: TextFormField(
                       controller: _priceController,
+                      readOnly: isLockedToBuyer,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (_) => setState(() {}),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                      decoration: _inputDecoration(hint: '650.00'),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1A),
+                      ),
+                      decoration: _inputDecoration(
+                        hint: '650.00',
+                        isReadOnly: isLockedToBuyer,
+                      ),
                     ),
                   ),
                 ],
@@ -1169,10 +1194,18 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     child: TextFormField(
                       controller: _quantityController,
+                      readOnly: isLockedToBuyer,
                       keyboardType: TextInputType.number,
                       onChanged: (_) => setState(() {}),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
-                      decoration: _inputDecoration(hint: '6000'),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF332B6B),
+                      ),
+                      decoration: _inputDecoration(
+                        hint: '6000',
+                        isReadOnly: isLockedToBuyer,
+                      ),
                     ),
                   ),
                 ],
@@ -1497,7 +1530,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0x26000000)),
+        borderSide: BorderSide(color: isReadOnly ? const Color(0x1A000000) : const Color(0x26000000)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -1505,9 +1538,16 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           color: isReadOnly ? const Color(0x1A000000) : const Color(0x26000000),
         ),
       ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0x1A000000)),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+        borderSide: BorderSide(
+          color: isReadOnly ? const Color(0x1A000000) : const Color(0xFF332B6B),
+          width: isReadOnly ? 1.0 : 1.5,
+        ),
       ),
     );
   }
