@@ -238,7 +238,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 ),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 70),
             ],
           ),
         ),
