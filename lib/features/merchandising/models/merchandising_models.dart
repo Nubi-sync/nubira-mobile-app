@@ -332,6 +332,36 @@ class ActivityItem {
   });
 }
 
+class TechPackBomMaterial {
+  final String componentType;
+  final String itemName;
+  final String consumption;
+  final String placement;
+
+  const TechPackBomMaterial({
+    required this.componentType,
+    required this.itemName,
+    this.consumption = '1',
+    this.placement = '',
+  });
+
+  factory TechPackBomMaterial.fromJson(Map<String, dynamic> json) {
+    return TechPackBomMaterial(
+      componentType: json['component_type']?.toString() ?? json['component']?.toString() ?? 'TRIM',
+      itemName: json['item_name']?.toString() ?? json['desc']?.toString() ?? json['item_description']?.toString() ?? '',
+      consumption: json['consumption']?.toString() ?? json['cons']?.toString() ?? '1',
+      placement: json['placement']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'component_type': componentType,
+    'item_name': itemName,
+    'consumption': consumption,
+    'placement': placement,
+  };
+}
+
 class TechPackArticleItem {
   final String id;
   final String styleNumber;
@@ -344,6 +374,9 @@ class TechPackArticleItem {
   final String? cadFrontUrl;
   final String? cadBackUrl;
   final String? companyName;
+  final List<TechPackBomMaterial>? _bomMaterials;
+
+  List<TechPackBomMaterial> get bomMaterials => _bomMaterials ?? const [];
 
   const TechPackArticleItem({
     required this.id,
@@ -357,5 +390,6 @@ class TechPackArticleItem {
     this.cadFrontUrl,
     this.cadBackUrl,
     this.companyName,
-  });
+    List<TechPackBomMaterial>? bomMaterials,
+  }) : _bomMaterials = bomMaterials ?? const [];
 }

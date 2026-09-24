@@ -1249,22 +1249,12 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
   // STEP 2 WIDGETS
   // ==========================================================================
   Widget _buildStep2(String curSym) {
-    final bomItems = _selectedTechPack != null
-        ? [
-            {'component': 'Shell Fabric', 'desc': _fabricComposition, 'cons': '1.45 MTR/pc', 'placement': 'Front & Back Body'},
-            {'component': 'Collar Trim', 'desc': '1x1 Spandex Rib Knit', 'cons': '0.15 MTR/pc', 'placement': 'Neckband Collar'},
-            {'component': 'Sewing Thread', 'desc': '40/2 Spun Poly Thread', 'cons': '120 MTR/pc', 'placement': 'Seams & Overlock'},
-            {'component': 'Main Label', 'desc': 'Woven Satin Damask Label', 'cons': '1.0 PC/pc', 'placement': 'Center Back Neck'},
-          ]
-        : [
-            {'component': 'Body Fabric', 'desc': _fabricComposition, 'cons': '1.40 MTR/pc', 'placement': 'Full Garment'},
-            {'component': 'Sewing Thread', 'desc': 'Standard Polyester', 'cons': '100 MTR/pc', 'placement': 'All Seams'},
-          ];
+    final bomItems = _selectedTechPack?.bomMaterials ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Bill of Materials (BOM) Sheet Card (Mobile Stacked)
+        // 1. Bill of Materials (BOM) & Trims Sheet Table Card
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -1274,6 +1264,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header bar
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: const BoxDecoration(
@@ -1284,23 +1275,22 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              'BOM & TRIMS SHEET',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'BILL OF MATERIALS (BOM) & TRIMS SHEET',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1C1C1A),
+                            letterSpacing: 0.3,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -1309,66 +1299,100 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         border: Border.all(color: const Color(0x1A000000)),
                       ),
                       child: Text(
-                        '${bomItems.length} Components · Read-only',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                        '${bomItems.length} Component${bomItems.length == 1 ? "" : "s"} (Read-Only)',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF332B6B),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: bomItems.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                itemBuilder: (ctx, i) {
-                  final m = bomItems[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                m['component']!,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C1A),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${m['desc']} • ${m['placement']}',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 10.5,
-                                  color: const Color(0xFF6B6A65),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+
+              // BOM Data Table
+              if (bomItems.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 420),
+                    child: DataTable(
+                      headingRowHeight: 32,
+                      dataRowMinHeight: 34,
+                      dataRowMaxHeight: 44,
+                      horizontalMargin: 14,
+                      columnSpacing: 18,
+                      headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                      columns: [
+                        DataColumn(
+                          label: Text(
+                            'COMPONENT',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          m['cons']!,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF332B6B),
+                        DataColumn(
+                          label: Text(
+                            'ITEM DESCRIPTION',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'CONSUMPTION',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'PLACEMENT',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
                           ),
                         ),
                       ],
+                      rows: bomItems.map((mat) {
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                mat.componentType,
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                mat.itemName.isNotEmpty ? mat.itemName : '—',
+                                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF4A4944)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                mat.consumption.isNotEmpty ? mat.consumption : '1.0 unit',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                mat.placement.isNotEmpty ? mat.placement : 'Full Garment',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: const Color(0xFF6B6A65)),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                     ),
-                  );
-                },
-              ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                  child: Center(
+                    child: Text(
+                      'Standard garment trim and material specifications applied.',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: const Color(0xFF9B9A94)),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1376,7 +1400,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
         // 2. Metric Balance Bar
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFFFAF7F0),
             borderRadius: BorderRadius.circular(12),
@@ -1385,53 +1409,57 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('TARGET CONTRACT', style: _chipLabelStyle),
-                    const SizedBox(height: 2),
+                    Text('Target Contract Pcs: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
                     Text(
-                      '${NumberFormat.decimalPattern('en_IN').format(_targetQty)} Pcs',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
+                      NumberFormat.decimalPattern('en_IN').format(_targetQty),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('MATRIX SUM', style: _chipLabelStyle),
-                    const SizedBox(height: 2),
+                    Text('Matrix Sum: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
                     Text(
-                      '${NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum)} Pcs',
+                      NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum),
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.bold,
                         color: _currentMatrixSum == _targetQty ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _qtyDelta == 0 ? const Color(0xFFE9F7EE) : const Color(0xFFFFECEB),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _qtyDelta == 0 ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5)),
-                ),
-                child: Text(
-                  _qtyDelta == 0 ? 'Balanced (0)' : '${_qtyDelta > 0 ? "+" : ""}$_qtyDelta pcs',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: _qtyDelta == 0 ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
+              const SizedBox(width: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Delta: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _qtyDelta == 0 ? const Color(0xFFE9F7EE) : const Color(0xFFFFECEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _qtyDelta == 0 ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5)),
+                    ),
+                    child: Text(
+                      _qtyDelta == 0 ? 'Balanced (0)' : '${_qtyDelta > 0 ? "+" : ""}$_qtyDelta pcs',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: _qtyDelta == 0 ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -1443,7 +1471,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -1452,7 +1480,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: TextField(
                   controller: _newColorController,
                   decoration: const InputDecoration(
-                    hintText: 'Add colorway (e.g. Navy Blue)...',
+                    hintText: 'Add Colorway (e.g. Navy Blue, Sage Olive)...',
                     hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFFB6B4AC)),
                     border: InputBorder.none,
                     isDense: true,
@@ -1469,7 +1497,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 foregroundColor: const Color(0xFF332B6B),
                 side: const BorderSide(color: Color(0x1A000000)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               icon: const Icon(Icons.add_rounded, size: 16),
               label: Text('+ Add Color', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
@@ -1477,9 +1505,16 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             ),
             if (_colors.length > 1) ...[
               const SizedBox(width: 6),
-              IconButton(
-                icon: const Icon(Icons.balance_rounded, size: 18, color: Color(0xFF332B6B)),
-                tooltip: 'Auto-Balance All Quantities',
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF332B6B),
+                  side: const BorderSide(color: Color(0x1A000000)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                ),
+                icon: const Icon(Icons.balance_rounded, size: 15),
+                label: Text('Auto-Balance', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600)),
                 onPressed: _handleRebalanceAll,
               ),
             ],
@@ -1487,76 +1522,107 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         ),
         const SizedBox(height: 10),
 
-        // 4. Colorway x Size Matrix Grid (Card style per color)
-        ..._colors.map((color) {
-          final row = _matrixData[color] ?? {};
-          final rowTotal = kDefaultSizes.fold<int>(0, (sum, s) => sum + (row[s] ?? 0));
+        // 4. Colorway x Size Matrix Grid Table
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0x1A000000)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 420),
+              child: DataTable(
+                headingRowHeight: 34,
+                dataRowMinHeight: 46,
+                dataRowMaxHeight: 52,
+                horizontalMargin: 12,
+                columnSpacing: 10,
+                headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                columns: [
+                  DataColumn(
+                    label: Text('COLORWAY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                  ),
+                  ...kDefaultSizes.map(
+                    (s) => DataColumn(
+                      label: SizedBox(
+                        width: 48,
+                        child: Center(
+                          child: Text(s, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text('ROW TOTAL', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                  ),
+                  if (_colors.length > 1)
+                    const DataColumn(label: SizedBox(width: 24)),
+                ],
+                rows: _colors.map((color) {
+                  final row = _matrixData[color] ?? {};
+                  final rowTotal = kDefaultSizes.fold<int>(0, (sum, s) => sum + (row[s] ?? 0));
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x1A000000)),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(color, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A))),
-                    Row(
-                      children: [
-                        Text('Total: $rowTotal Pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
-                        if (_colors.length > 1) ...[
-                          const SizedBox(width: 4),
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Text(
+                          color,
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                        ),
+                      ),
+                      ...kDefaultSizes.map((size) {
+                        final val = row[size] ?? 0;
+                        return DataCell(
+                          SizedBox(
+                            width: 48,
+                            child: TextFormField(
+                              initialValue: val.toString(),
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: const BorderSide(color: Color(0x26000000)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+                                ),
+                              ),
+                              onChanged: (v) => _handleCellChange(color, size, v),
+                            ),
+                          ),
+                        );
+                      }),
+                      DataCell(
+                        Text(
+                          NumberFormat.decimalPattern('en_IN').format(rowTotal),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                        ),
+                      ),
+                      if (_colors.length > 1)
+                        DataCell(
                           IconButton(
                             icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFC0392B)),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: () => _handleRemoveColor(color),
                           ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: kDefaultSizes.map((size) {
-                    final val = row[size] ?? 0;
-                    return Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAF8),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0x1A000000)),
                         ),
-                        child: Column(
-                          children: [
-                            Text(size, style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
-                            const SizedBox(height: 2),
-                            TextFormField(
-                              initialValue: val.toString(),
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                              decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none),
-                              onChanged: (v) => _handleCellChange(color, size, v),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
-          );
-        }),
+          ),
+        ),
       ],
     );
   }

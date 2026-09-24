@@ -71,9 +71,18 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
       }).toList();
     }
 
+    if (matchedTp != null && matchedTp.bomMaterials.isNotEmpty) {
+      return matchedTp.bomMaterials.map((m) => {
+        'component_type': m.componentType,
+        'item_name': m.itemName,
+        'consumption': m.consumption,
+        'placement': m.placement,
+      }).toList();
+    }
+
     // Parse from fabric metadata
     final parsed = _parseTechPackMetadata(matchedTp?.fabricComposition ?? ord.fabricComposition);
-    final rawMats = parsed['materials'] as List<dynamic>;
+    final rawMats = (parsed['materials'] as List<dynamic>?) ?? [];
     if (rawMats.isNotEmpty) {
       return rawMats.map((m) {
         if (m is Map) {
@@ -93,31 +102,24 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
       }).toList();
     }
 
-    // Standard Apparel BOM Default matching Web
     return [
       {
         'component_type': 'Shell Fabric',
-        'item_name': '100% Combed Cotton Single Jersey',
+        'item_name': ord.fabricComposition,
         'consumption': '1.45 MTR/pc',
-        'placement': 'Front, Back Body & Sleeves',
-      },
-      {
-        'component_type': '1x1 Rib Trim',
-        'item_name': '95% Cotton 5% Spandex 1x1 Tubular Rib',
-        'consumption': '0.15 MTR/pc',
-        'placement': 'Crew Neck Collar & Cuffs',
+        'placement': 'Front & Back Body',
       },
       {
         'component_type': 'Sewing Thread',
-        'item_name': '40/2 Spun Polyester High-Tenacity Thread',
+        'item_name': '40/2 Spun Poly Thread',
         'consumption': '120 MTR/pc',
-        'placement': 'All Seams, Overlock & Hem',
+        'placement': 'All Seams & Overlock',
       },
       {
         'component_type': 'Main Label',
-        'item_name': 'Woven Satin Damask Heat-Cut Soft Label',
-        'consumption': '1.00 PC/pc',
-        'placement': 'Inside Center Back Neck',
+        'item_name': 'Woven Brand Label',
+        'consumption': '1.0 PC/pc',
+        'placement': 'Center Back Neck',
       },
     ];
   }

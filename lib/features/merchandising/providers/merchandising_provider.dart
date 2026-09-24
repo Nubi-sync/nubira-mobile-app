@@ -501,6 +501,31 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
         var mappedTps = rawTps.map((tp) {
           final brand = tp['brands'] as Map<String, dynamic>?;
           final comp = tp['company_name']?.toString() ?? brand?['company_name']?.toString();
+          
+          List<TechPackBomMaterial> parsedMaterials = [];
+          final rawFabric = tp['fabric_composition']?.toString() ?? '';
+          final bomMatch = RegExp(r'\[BOM_JSON:\s*(\[[\s\S]*?\])\]', caseSensitive: false).firstMatch(rawFabric);
+          if (bomMatch != null && bomMatch.group(1) != null) {
+            try {
+              final decoded = jsonDecode(bomMatch.group(1)!) as List<dynamic>;
+              parsedMaterials = decoded
+                  .whereType<Map>()
+                  .map((m) => TechPackBomMaterial.fromJson(Map<String, dynamic>.from(m)))
+                  .toList();
+            } catch (_) {}
+          }
+          if (parsedMaterials.isEmpty && tp['materials'] != null) {
+            try {
+              final mats = tp['materials'];
+              if (mats is List) {
+                parsedMaterials = mats
+                    .whereType<Map>()
+                    .map((m) => TechPackBomMaterial.fromJson(Map<String, dynamic>.from(m)))
+                    .toList();
+              }
+            } catch (_) {}
+          }
+
           return TechPackArticleItem(
             id: tp['id']?.toString() ?? '',
             styleNumber: tp['style_number']?.toString() ?? 'STYLE',
@@ -513,6 +538,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             cadFrontUrl: tp['cad_front_url']?.toString(),
             cadBackUrl: tp['cad_back_url']?.toString(),
             companyName: comp,
+            bomMaterials: parsedMaterials,
           );
         }).toList();
 
