@@ -10,6 +10,7 @@ import '../providers/merchandising_provider.dart';
 import '../widgets/create_order_modal.dart';
 import 'active_buyers_screen.dart';
 import 'buyer_po_specification_screen.dart';
+import 'buyer_purchase_orders_screen.dart';
 
 class MerchandisingDashboardScreen extends ConsumerStatefulWidget {
   const MerchandisingDashboardScreen({super.key});
@@ -42,6 +43,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ActiveBuyersScreen()),
+    );
+  }
+
+  void _openBuyerPurchaseOrdersScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BuyerPurchaseOrdersScreen()),
     );
   }
 
@@ -528,9 +536,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     title: 'Active buyer POs',
                     value: _formatQty(state.activeBuyerPoPieces),
                     icon: Icons.work_outline,
-                    onTap: () {
-                      ref.read(merchandisingProvider.notifier).setStatusFilter('ALL');
-                    },
+                    onTap: _openBuyerPurchaseOrdersScreen,
                   ),
 
                   // Stat 3: In order
