@@ -1472,53 +1472,50 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         Row(
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
+              child: SizedBox(
+                height: 40,
                 child: TextField(
                   controller: _newColorController,
                   style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF1C1C1A)),
-                  decoration: const InputDecoration(
-                    hintText: 'Add Colorway...',
-                    hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFFB6B4AC)),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  decoration: _inputDecoration(
+                    hint: 'Add Colorway...',
                   ),
                   onSubmitted: (_) => _handleAddColor(),
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                backgroundColor: const Color(0xFFFAF7F0),
-                foregroundColor: const Color(0xFF332B6B),
-                side: const BorderSide(color: Color(0x1A000000)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              ),
-              icon: const Icon(Icons.add_rounded, size: 15),
-              label: Text('Add Color', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
-              onPressed: _handleAddColor,
-            ),
-            if (_colors.length > 1) ...[
-              const SizedBox(width: 6),
-              OutlinedButton.icon(
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 40,
+              child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: const Color(0xFFFAF7F0),
                   foregroundColor: const Color(0xFF332B6B),
                   side: const BorderSide(color: Color(0x1A000000)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                icon: const Icon(Icons.balance_rounded, size: 14),
-                label: Text('Auto-Balance', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600)),
-                onPressed: _handleRebalanceAll,
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: Text('Add Color', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                onPressed: _handleAddColor,
+              ),
+            ),
+            if (_colors.length > 1) ...[
+              const SizedBox(width: 6),
+              SizedBox(
+                height: 40,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF332B6B),
+                    side: const BorderSide(color: Color(0x1A000000)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  icon: const Icon(Icons.balance_rounded, size: 14),
+                  label: Text('Auto-Balance', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600)),
+                  onPressed: _handleRebalanceAll,
+                ),
               ),
             ],
           ],
@@ -1591,6 +1588,10 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                                 filled: true,
                                 fillColor: Colors.white,
                                 border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: const BorderSide(color: Color(0x26000000)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
                                   borderSide: const BorderSide(color: Color(0x26000000)),
                                 ),
