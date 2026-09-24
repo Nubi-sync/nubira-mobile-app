@@ -23,17 +23,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
   String _activeFilter = 'ALL';
   String _searchQuery = '';
 
-  static const List<String> _statusFilters = [
-    'ALL',
-    'IN_CUTTING',
-    'IN_PRINTING',
-    'IN_EMBROIDERY',
-    'IN_SEWING',
-    'IRON',
-    'WASHING',
-    'ALTER',
-    'DISPATCHED',
-    'COMPLETED',
+  static const List<Map<String, String>> _statusTabFilters = [
+    {'key': 'ALL', 'label': 'All'},
+    {'key': 'IN_CUTTING', 'label': 'In cutting'},
+    {'key': 'IN_PRINTING', 'label': 'In printing'},
+    {'key': 'IN_EMBROIDERY', 'label': 'In embroidery'},
+    {'key': 'IN_SEWING', 'label': 'In sewing'},
+    {'key': 'IRON', 'label': 'Iron'},
+    {'key': 'WASHING', 'label': 'Washing'},
+    {'key': 'ALTER', 'label': 'Alter'},
+    {'key': 'DISPATCHED', 'label': 'Dispatched'},
   ];
 
   @override
@@ -99,6 +98,82 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
     }
   }
 
+  _StatusBadgeConfig _getStatusBadgeConfig(String rawStatus) {
+    final s = _normalizeStatus(rawStatus);
+    switch (s) {
+      case 'IN_CUTTING':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFFEF3C7),
+          border: Color(0xFFFDE68A),
+          text: Color(0xFFB45309),
+          label: 'IN CUTTING',
+        );
+      case 'IN_PRINTING':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFEDE9FE),
+          border: Color(0xFFDDD6FE),
+          text: Color(0xFF6D28D9),
+          label: 'IN PRINTING',
+        );
+      case 'IN_EMBROIDERY':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFFCE7F3),
+          border: Color(0xFFFBCFE8),
+          text: Color(0xFFBE185D),
+          label: 'IN EMBROIDERY',
+        );
+      case 'IN_SEWING':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFE0F2FE),
+          border: Color(0xFFBAE6FD),
+          text: Color(0xFF0369A1),
+          label: 'IN SEWING',
+        );
+      case 'IRON':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFE0F7FA),
+          border: Color(0xFFB2EBF2),
+          text: Color(0xFF00838F),
+          label: 'IRON',
+        );
+      case 'WASHING':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFE0F2FE),
+          border: Color(0xFFBAE6FD),
+          text: Color(0xFF0284C7),
+          label: 'WASHING',
+        );
+      case 'ALTER':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFFFEDD5),
+          border: Color(0xFFFED7AA),
+          text: Color(0xFFC2410C),
+          label: 'ALTER',
+        );
+      case 'DISPATCHED':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFDCFCE7),
+          border: Color(0xFFBBF7D0),
+          text: Color(0xFF15803D),
+          label: 'DISPATCHED',
+        );
+      case 'COMPLETED':
+        return const _StatusBadgeConfig(
+          bg: Color(0xFFDCFCE7),
+          border: Color(0xFFBBF7D0),
+          text: Color(0xFF15803D),
+          label: 'COMPLETED',
+        );
+      default:
+        return _StatusBadgeConfig(
+          bg: const Color(0xFFF1F5F9),
+          border: const Color(0xFFE2E8F0),
+          text: const Color(0xFF475569),
+          label: s.replaceAll('_', ' ').toUpperCase(),
+        );
+    }
+  }
+
   String _formatRoute(String? seq) {
     if (seq == null || seq.isEmpty || seq == 'NONE') return 'Cut & Sew';
     if (seq == 'ONLY_PRINTING') return 'Printing';
@@ -114,6 +189,19 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
       return '$sym${(val / 10000000).toStringAsFixed(2)} Cr';
     } else if (val >= 100000) {
       return '$sym${(val / 100000).toStringAsFixed(2)} Lakh';
+    } else if (val >= 1000) {
+      return '$sym${(val / 1000).toStringAsFixed(1)}k';
+    } else {
+      return '$sym${val.toStringAsFixed(0)}';
+    }
+  }
+
+  String _formatShortTotalValue(double val, String curr) {
+    final sym = curr == 'USD' ? '\$' : curr == 'EUR' ? '€' : '₹';
+    if (val >= 10000000) {
+      return '$sym${(val / 10000000).toStringAsFixed(2)} Cr';
+    } else if (val >= 100000) {
+      return '$sym${(val / 100000).toStringAsFixed(1)}L';
     } else if (val >= 1000) {
       return '$sym${(val / 1000).toStringAsFixed(1)}k';
     } else {
@@ -209,7 +297,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
               // -------------------------------------------------------------
               // LAYER 4: TOOLBAR (Status Tabs + Search Box)
               // -------------------------------------------------------------
-              _buildFilterToolbar(filteredOrders.length),
+              _buildFilterToolbar(filteredOrders.length, allOrders),
 
               const SizedBox(height: 12),
 
@@ -610,9 +698,9 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
   }
 
   // =========================================================================
-  // TOOLBAR (SEARCH & HORIZONTAL STATUS FILTER CHIPS)
+  // TOOLBAR (SEARCH & HORIZONTAL STATUS FILTER PILLS)
   // =========================================================================
-  Widget _buildFilterToolbar(int matchCount) {
+  Widget _buildFilterToolbar(int matchCount, List<MerchandisingOrder> allOrders) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -638,7 +726,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
               },
               style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
               decoration: InputDecoration(
-                hintText: 'Search PO, Buyer, Style Ref...',
+                hintText: 'Search PO, Buyer, Style...',
                 hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
                 prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF64748B)),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -658,36 +746,74 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
 
           const SizedBox(height: 10),
 
-          // Horizontal Status Filter Scroll
+          // Horizontal Status Filter Scroll (Full set matching Web)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _statusFilters.map((tab) {
-                final isSelected = _activeFilter == tab;
-                final label = tab == 'ALL' ? 'All Contracts' : _getStatusLabel(tab);
+              children: _statusTabFilters.map((tab) {
+                final tabKey = tab['key']!;
+                final tabLabel = tab['label']!;
+                final isSelected = _activeFilter == tabKey;
+                final count = tabKey == 'ALL'
+                    ? allOrders.length
+                    : allOrders.where((o) => _normalizeStatus(o.status) == tabKey).length;
 
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: InkWell(
-                    onTap: () => setState(() => _activeFilter = tab),
+                    onTap: () => setState(() => _activeFilter = tabKey),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
                       decoration: BoxDecoration(
                         color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF3A3564) : const Color(0x14000000),
-                          width: 0.5,
+                          color: isSelected ? const Color(0xFF3A3564) : const Color(0x0D000000), // rgba(0,0,0,0.05)
+                          width: 0.8,
                         ),
+                        boxShadow: isSelected
+                            ? const [
+                                BoxShadow(
+                                  color: Color(0x1F3A3564),
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1),
+                                ),
+                              ]
+                            : null,
                       ),
-                      child: Text(
-                        label,
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected ? Colors.white : const Color(0xFF475569),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tabLabel,
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11.5,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              color: isSelected ? Colors.white : const Color(0xFF475569),
+                            ),
+                          ),
+                          if (count > 0 || tabKey == 'ALL') ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.white.withOpacity(0.2)
+                                    : const Color(0x0A000000),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
@@ -701,283 +827,348 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
   }
 
   // =========================================================================
-  // SINGLE BUYER PO CARD (Industrial Luxury Styling)
+  // FIX 2: SINGLE BUYER PO CARD (Matching Web Table Columns & Spec)
   // =========================================================================
   Widget _buildOrderCard(MerchandisingOrder order) {
-    final statusText = _getStatusLabel(order.status);
+    final badgeConfig = _getStatusBadgeConfig(order.status);
     final routeText = _formatRoute(order.embellishmentSequence);
     final currencySym = order.currency == 'USD' ? '\$' : order.currency == 'EUR' ? '€' : '₹';
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFAF7F0), // cream-tinted #FAF7F0 background
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x1A000000), width: 0.5),
+        border: Border.all(color: const Color(0x0F000000), width: 1), // 1px rgba(0,0,0,0.06) border
         boxShadow: const [
           BoxShadow(
-            color: Color(0x06000000),
+            color: Color(0x04000000),
             blurRadius: 3,
             offset: Offset(0, 1),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top Header Row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+          // 1. TOP ROW: "PO number" label + monospace bold PO code on left; status badge on right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PO NUMBER',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF94A3B8),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    order.poNumber,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: badgeConfig.bg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: badgeConfig.border, width: 0.8),
+                ),
+                child: Text(
+                  badgeConfig.label,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: badgeConfig.text,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 11),
+
+          // 2. SECOND ROW: "Buyer" on left; "Article & style" on right
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: Buyer label + brand-color buyer name
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0x1A000000), width: 0.5),
-                      ),
-                      child: Text(
-                        order.poNumber,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF3A3564),
-                        ),
+                    Text(
+                      'BUYER',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 2),
                     Text(
-                      order.brandName,
+                      order.brandName.isNotEmpty ? order.brandName : 'Direct Buyer',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
+                        color: const Color(0xFF3A3564), // brand-color buyer name
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0x1A000000), width: 0.5),
-                  ),
-                  child: Text(
-                    statusText.toUpperCase(),
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF3A3564),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+              const SizedBox(width: 8),
 
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-
-          // Body Content: Style + Specs + Metrics
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Style ref and name
-                Row(
+              // Right: Article & style label + monospace article code + muted style subtitle
+              Expanded(
+                flex: 6,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        order.styleRef,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF334155),
-                        ),
+                    Text(
+                      'ARTICLE & STYLE',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        order.styleName.isNotEmpty ? order.styleName : 'Standard Garment Article',
+                    const SizedBox(height: 2),
+                    Text(
+                      order.styleRef,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (order.styleName.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        order.styleName,
                         style: GoogleFonts.publicSans(
-                          fontSize: 12,
-                          color: const Color(0xFF475569),
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                    ],
                   ],
                 ),
+              ),
+            ],
+          ),
 
-                const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-                // Specs 3-Column Box
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0x10000000), width: 0.5),
-                  ),
-                  child: Row(
+          // 3. WHITE INNER STAT STRIP (Bordered, Rounded, 3 Columns)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x18000000), width: 0.6),
+            ),
+            child: Row(
+              children: [
+                // Col 1: Volume (monospace bold pcs count)
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Volume
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'CONTRACT PCS',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${order.totalQuantity.toLocaleString()} Pcs',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
+                      Text(
+                        'VOLUME',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
                         ),
                       ),
-                      Container(width: 0.8, height: 26, color: const Color(0xFFE2E8F0)),
-                      const SizedBox(width: 10),
-
-                      // FOB & Value
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'UNIT FOB / VALUE',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '$currencySym${order.unitFobPrice.toStringAsFixed(2)} • ${_formatCurrencyValue(order.totalContractValue, order.currency)}',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0F172A),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${order.totalQuantity.toLocaleString()} pcs',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
+                Container(width: 0.8, height: 26, color: const Color(0xFFE2E8F0)),
+                const SizedBox(width: 8),
 
-                const SizedBox(height: 10),
+                // Col 2: FOB & value (monospace bold unit FOB + muted total value)
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FOB & VALUE',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '$currencySym${order.unitFobPrice.toStringAsFixed(2)}',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _formatShortTotalValue(order.totalContractValue, order.currency),
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 0.8, height: 26, color: const Color(0xFFE2E8F0)),
+                const SizedBox(width: 8),
 
-                // Ex-Factory & Embellishment Routing Tags
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.event_outlined, size: 14, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
-                        Text(
+                // Col 3: Ex-factory (monospace bold target date)
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'EX-FACTORY',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
                           order.exFactoryDate.isNotEmpty ? order.exFactoryDate : 'TBD',
                           style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF475569),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0x1A000000), width: 0.5),
-                      ),
-                      child: Text(
-                        routeText,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF3A3564),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
-
-          // Bottom Action Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                InkWell(
-                  onTap: () => _openViewOrderModal(order),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0x1A000000), width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.visibility_outlined, size: 14, color: Color(0xFF3A3564)),
-                        const SizedBox(width: 5),
-                        Text(
-                          'View Specification & Matrix',
-                          style: GoogleFonts.publicSans(
                             fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF3A3564),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+
+          const SizedBox(height: 10),
+
+          // 4. ROUTE ROW: "Route" label + small chip showing production routing sequence
+          Row(
+            children: [
+              Text(
+                'ROUTE',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF94A3B8),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0x18000000), width: 0.6),
+                ),
+                child: Text(
+                  routeText,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF3A3564),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 5. FULL-WIDTH PRIMARY BUTTON: "View specification & matrix ->"
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _openViewOrderModal(order),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3A3564),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'View specification & matrix',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_rounded, size: 15),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-    );
   }
 
   // =========================================================================
@@ -1070,4 +1261,18 @@ extension IntFormattingExtension on int {
   String toLocaleString() {
     return NumberFormat('#,##,###').format(this);
   }
+}
+
+class _StatusBadgeConfig {
+  final Color bg;
+  final Color border;
+  final Color text;
+  final String label;
+
+  const _StatusBadgeConfig({
+    required this.bg,
+    required this.border,
+    required this.text,
+    required this.label,
+  });
 }
