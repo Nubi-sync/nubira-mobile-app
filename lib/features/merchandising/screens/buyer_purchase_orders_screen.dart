@@ -66,10 +66,12 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
   }
 
   String _normalizeStatus(String? status) {
-    if (status == null || status.isEmpty || status == 'BOOKED') {
+    if (status == null || status.isEmpty) return 'IN_CUTTING';
+    final s = status.toUpperCase().trim();
+    if (s == 'BOOKED' || s == 'CONFIRMED' || s == 'PENDING_COSTING' || s == 'PENDING') {
       return 'IN_CUTTING';
     }
-    return status;
+    return s;
   }
 
   _StatusBadgeConfig _getStatusBadgeConfig(String rawStatus) {
@@ -77,51 +79,51 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
     switch (s) {
       case 'IN_CUTTING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFEF3C7),
-          border: Color(0xFFFDE68A),
-          text: Color(0xFFB45309),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'IN CUTTING',
         );
       case 'IN_PRINTING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFEDE9FE),
-          border: Color(0xFFDDD6FE),
-          text: Color(0xFF6D28D9),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'IN PRINTING',
         );
       case 'IN_EMBROIDERY':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFCE7F3),
-          border: Color(0xFFFBCFE8),
-          text: Color(0xFFBE185D),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'IN EMBROIDERY',
         );
       case 'IN_SEWING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFE0F2FE),
-          border: Color(0xFFBAE6FD),
-          text: Color(0xFF0369A1),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'IN SEWING',
         );
       case 'IRON':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFE0F7FA),
-          border: Color(0xFFB2EBF2),
-          text: Color(0xFF00838F),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'IRON',
         );
       case 'WASHING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFE0F2FE),
-          border: Color(0xFFBAE6FD),
-          text: Color(0xFF0284C7),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'WASHING',
         );
       case 'ALTER':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFFEDD5),
-          border: Color(0xFFFED7AA),
-          text: Color(0xFFC2410C),
+          bg: Color(0xFFFAF7F0),
+          border: Color(0x1A000000),
+          text: Color(0xFF3A3564),
           label: 'ALTER',
         );
       case 'DISPATCHED':
@@ -140,9 +142,9 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
         );
       default:
         return _StatusBadgeConfig(
-          bg: const Color(0xFFF1F5F9),
-          border: const Color(0xFFE2E8F0),
-          text: const Color(0xFF475569),
+          bg: const Color(0xFFFAF7F0),
+          border: const Color(0x1A000000),
+          text: const Color(0xFF3A3564),
           label: s.replaceAll('_', ' ').toUpperCase(),
         );
     }

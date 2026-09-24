@@ -16,6 +16,15 @@ String _cleanFabricComposition(String? raw) {
   return s.isEmpty ? '100% Combed Cotton Single Jersey' : s;
 }
 
+String _normalizeOrderStatus(String? st) {
+  if (st == null || st.isEmpty) return 'IN_CUTTING';
+  final s = st.toUpperCase().trim();
+  if (s == 'BOOKED' || s == 'CONFIRMED' || s == 'PENDING_COSTING' || s == 'PENDING') {
+    return 'IN_CUTTING';
+  }
+  return s;
+}
+
 class MerchandisingState {
   final bool isLoading;
   final bool isSyncing;
@@ -341,7 +350,7 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             unitFobPrice: fobPrice,
             totalContractValue: (totalQty * fobPrice),
             exFactoryDate: row['ex_factory_date']?.toString() ?? '',
-            status: row['status']?.toString() ?? 'IN_CUTTING',
+            status: _normalizeOrderStatus(row['status']?.toString()),
             embellishmentSequence: tp?['embellishment_sequence']?.toString() ?? 'NONE',
             fabricComposition: cleanFabric,
             bomMaterials: parsedMaterials,

@@ -79,8 +79,11 @@ class MerchandisingOrder {
   });
 
   String get normalizedStatus {
-    if (status.isEmpty || status == 'BOOKED') return 'IN_CUTTING';
-    return status;
+    final s = status.toUpperCase().trim();
+    if (s.isEmpty || s == 'BOOKED' || s == 'CONFIRMED' || s == 'PENDING_COSTING' || s == 'PENDING') {
+      return 'IN_CUTTING';
+    }
+    return s;
   }
 
   String get statusLabel {
