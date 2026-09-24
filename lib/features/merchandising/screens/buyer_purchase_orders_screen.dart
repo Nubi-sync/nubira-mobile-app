@@ -72,32 +72,6 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
     return status;
   }
 
-  String _getStatusLabel(String status) {
-    final s = _normalizeStatus(status);
-    switch (s) {
-      case 'IN_CUTTING':
-        return 'In Cutting';
-      case 'IN_PRINTING':
-        return 'In Printing';
-      case 'IN_EMBROIDERY':
-        return 'In Embroidery';
-      case 'IN_SEWING':
-        return 'In Sewing';
-      case 'IRON':
-        return 'Iron';
-      case 'WASHING':
-        return 'Washing';
-      case 'ALTER':
-        return 'Alter';
-      case 'DISPATCHED':
-        return 'Dispatched';
-      case 'COMPLETED':
-        return 'Completed';
-      default:
-        return s.replaceAll('_', ' ');
-    }
-  }
-
   _StatusBadgeConfig _getStatusBadgeConfig(String rawStatus) {
     final s = _normalizeStatus(rawStatus);
     switch (s) {
@@ -799,7 +773,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                               padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Colors.white.withOpacity(0.2)
+                                    ? const Color(0x33FFFFFF)
                                     : const Color(0x0A000000),
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -1169,6 +1143,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
           ),
         ],
       ),
+    );
   }
 
   // =========================================================================
