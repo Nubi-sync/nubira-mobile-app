@@ -1284,16 +1284,23 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'BOM & TRIMS SHEET',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
-                        ),
-                      ],
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'BOM & TRIMS SHEET',
+                              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -1319,16 +1326,44 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(m['component']!, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A))),
-                            Text('${m['desc']} • ${m['placement']}', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF6B6A65))),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                m['component']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1C1C1A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${m['desc']} • ${m['placement']}',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFF6B6A65),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(m['cons']!, style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
+                        const SizedBox(width: 8),
+                        Text(
+                          m['cons']!,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF332B6B),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -1350,28 +1385,37 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('TARGET CONTRACT', style: _chipLabelStyle),
-                  const SizedBox(height: 2),
-                  Text('${NumberFormat.decimalPattern('en_IN').format(_targetQty)} Pcs', style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('MATRIX SUM', style: _chipLabelStyle),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum)} Pcs',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _currentMatrixSum == _targetQty ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('TARGET CONTRACT', style: _chipLabelStyle),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${NumberFormat.decimalPattern('en_IN').format(_targetQty)} Pcs',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MATRIX SUM', style: _chipLabelStyle),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum)} Pcs',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _currentMatrixSum == _targetQty ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
