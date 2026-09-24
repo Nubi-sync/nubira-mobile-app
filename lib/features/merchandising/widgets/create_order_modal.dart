@@ -1266,31 +1266,29 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             children: [
               // Header bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: const BoxDecoration(
                   color: Color(0xFFFAF7F0),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
                   border: Border(bottom: BorderSide(color: Color(0x1A000000))),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'BILL OF MATERIALS (BOM) & TRIMS SHEET',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C1A),
-                            letterSpacing: 0.3,
-                          ),
+                    const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'BOM & TRIMS SHEET',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1C1C1A),
+                          letterSpacing: 0.3,
                         ),
-                      ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -1299,7 +1297,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         border: Border.all(color: const Color(0x1A000000)),
                       ),
                       child: Text(
-                        '${bomItems.length} Component${bomItems.length == 1 ? "" : "s"} (Read-Only)',
+                        '${bomItems.length} Component${bomItems.length == 1 ? "" : "s"}',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
@@ -1400,35 +1398,37 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
         // 2. Metric Balance Bar
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFFFAF7F0),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0x1A000000)),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Target Contract Pcs: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    Text('Target Contract', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
                     Text(
-                      NumberFormat.decimalPattern('en_IN').format(_targetQty),
+                      '${NumberFormat.decimalPattern('en_IN').format(_targetQty)} pcs',
                       style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              Container(width: 1, height: 26, color: const Color(0x1A000000)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Matrix Sum: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    Text('Matrix Sum', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
                     Text(
-                      NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum),
+                      '${NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum)} pcs',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
@@ -1438,22 +1438,24 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Container(width: 1, height: 26, color: const Color(0x1A000000)),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Delta: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                  Text('Delta', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: _qtyDelta == 0 ? const Color(0xFFE9F7EE) : const Color(0xFFFFECEB),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: _qtyDelta == 0 ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5)),
                     ),
                     child: Text(
-                      _qtyDelta == 0 ? 'Balanced (0)' : '${_qtyDelta > 0 ? "+" : ""}$_qtyDelta pcs',
+                      _qtyDelta == 0 ? 'Balanced (0)' : '${_qtyDelta > 0 ? "+" : ""}$_qtyDelta',
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: _qtyDelta == 0 ? const Color(0xFF1B7A43) : const Color(0xFFC0392B),
                       ),
@@ -1471,7 +1473,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -1479,8 +1481,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 ),
                 child: TextField(
                   controller: _newColorController,
+                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF1C1C1A)),
                   decoration: const InputDecoration(
-                    hintText: 'Add Colorway (e.g. Navy Blue, Sage Olive)...',
+                    hintText: 'Add Colorway...',
                     hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFFB6B4AC)),
                     border: InputBorder.none,
                     isDense: true,
@@ -1490,17 +1493,17 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 backgroundColor: const Color(0xFFFAF7F0),
                 foregroundColor: const Color(0xFF332B6B),
                 side: const BorderSide(color: Color(0x1A000000)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               ),
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: Text('+ Add Color', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.add_rounded, size: 15),
+              label: Text('Add Color', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
               onPressed: _handleAddColor,
             ),
             if (_colors.length > 1) ...[
@@ -1511,9 +1514,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   foregroundColor: const Color(0xFF332B6B),
                   side: const BorderSide(color: Color(0x1A000000)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                 ),
-                icon: const Icon(Icons.balance_rounded, size: 15),
+                icon: const Icon(Icons.balance_rounded, size: 14),
                 label: Text('Auto-Balance', style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600)),
                 onPressed: _handleRebalanceAll,
               ),
