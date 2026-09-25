@@ -16,6 +16,7 @@ import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../merchandising/screens/active_buyers_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
 import '../../merchandising/screens/tna_planner_screen.dart';
+import '../../cutting/screens/cutting_lay_floor_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -305,9 +306,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         ? adminDisplayName.trim().split(' ').map((s) => s.isNotEmpty ? s[0].toUpperCase() : '').take(2).join()
         : 'Z';
 
-    // Check if inside Design Studio or Merchandising
+    // Check if inside Design Studio, Merchandising, or Cutting
     final isDesignStudio = activeRoute.startsWith('/design') && activeRoute != '/design/sa-approvals';
     final isMerchandising = activeRoute.startsWith('/merchandising');
+    final isCutting = activeRoute.startsWith('/cutting');
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -501,27 +503,72 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                               onTap: () => _navigateTo(context, const CompanyProfileScreen()),
                             ),
                           ]
-                        : [
-                            // ==========================================
-                            // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
-                            // ==========================================
-                            _buildSectionLabel('WORKSPACE HUB'),
-                            const SizedBox(height: 4),
+                        : (isCutting
+                            ? [
+                                // ==========================================
+                                // 3. CUTTING & LAY FLOOR NAVIGATION
+                                // ==========================================
+                                _buildSectionLabel('WORKSPACE HUB'),
+                                const SizedBox(height: 4),
+                                _buildNavItem(
+                                  context: context,
+                                  icon: Icons.grid_view_rounded,
+                                  title: 'All Modules',
+                                  isActive: false,
+                                  onTap: () {
+                                    _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+                                  },
+                                ),
 
-                        // 1. All Modules (Hub Home)
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.grid_view_rounded,
-                          title: 'All Modules',
-                          isActive: activeRoute == '/modules' || activeRoute == '/workspace-hub',
-                          onTap: () {
-                            if (activeRoute == '/modules' || activeRoute == '/workspace-hub') {
-                              Navigator.pop(context);
-                            } else {
-                              _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                            }
-                          },
-                        ),
+                                const SizedBox(height: 16),
+                                _buildSectionLabel('3. CUTTING FLOOR'),
+                                const SizedBox(height: 4),
+                                _buildNavItem(
+                                  context: context,
+                                  icon: Icons.content_cut,
+                                  title: 'Cutting & Lay Floor',
+                                  isActive: activeRoute == '/cutting',
+                                  onTap: () {
+                                    if (activeRoute == '/cutting') {
+                                      Navigator.pop(context);
+                                    } else {
+                                      _navigateTo(context, const CuttingLayFloorScreen());
+                                    }
+                                  },
+                                ),
+
+                                const SizedBox(height: 16),
+                                _buildSectionLabel('ACCOUNT'),
+                                const SizedBox(height: 4),
+                                _buildNavItem(
+                                  context: context,
+                                  icon: Icons.person_outline_rounded,
+                                  title: 'Division Profile',
+                                  isActive: activeRoute == '/cutting/profile',
+                                  onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+                                ),
+                              ]
+                            : [
+                                // ==========================================
+                                // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
+                                // ==========================================
+                                _buildSectionLabel('WORKSPACE HUB'),
+                                const SizedBox(height: 4),
+
+                                // 1. All Modules (Hub Home)
+                                _buildNavItem(
+                                  context: context,
+                                  icon: Icons.grid_view_rounded,
+                                  title: 'All Modules',
+                                  isActive: activeRoute == '/modules' || activeRoute == '/workspace-hub',
+                                  onTap: () {
+                                    if (activeRoute == '/modules' || activeRoute == '/workspace-hub') {
+                                      Navigator.pop(context);
+                                    } else {
+                                      _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+                                    }
+                                  },
+                                ),
 
                         // 2. Department Heads (Role-Gated)
                         if (canHeads)

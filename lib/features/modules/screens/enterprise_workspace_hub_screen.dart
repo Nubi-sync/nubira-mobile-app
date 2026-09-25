@@ -7,6 +7,7 @@ import '../../auth/screens/login_screen.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
+import '../../cutting/screens/cutting_lay_floor_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
@@ -96,6 +97,9 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         break;
       case 'merchandising':
         destination = const MerchandisingDashboardScreen();
+        break;
+      case 'cutting':
+        destination = const CuttingLayFloorScreen();
         break;
       case 'stitching-sewing':
         destination = const AdminShell();
