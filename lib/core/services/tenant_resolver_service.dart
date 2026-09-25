@@ -314,7 +314,7 @@ class TenantResolverService {
         if (rawAllowed is List && rawAllowed.isNotEmpty) {
           tenantDivisions = List<String>.from(rawAllowed);
         } else {
-          tenantDivisions = ['/stitching-sewing', '/store'];
+          tenantDivisions = allDefaultDivisions;
         }
 
         if (isSuperAdmin) {
@@ -408,7 +408,7 @@ class TenantResolverService {
         userId: user.id,
         userEmail: userEmail,
         role: effectiveRole,
-        isSuperAdmin: isSuperAdmin || userEmail == 'team.anga9@gmail.com' || userEmail == 'admin@nubira.local',
+        isSuperAdmin: isSuperAdmin || userEmail == 'team.anga9@gmail.com' || userEmail == 'admin@nubira.local' || userEmail.startsWith('admin'),
         isPlatformAdmin: false,
         companyName: 'Nubira Creation',
         adminDisplayName: profileUsername.isNotEmpty ? profileUsername : 'Nubira Admin',
@@ -416,7 +416,7 @@ class TenantResolverService {
         phone: '+91 98765 43210',
         cityState: 'Kolkata, West Bengal',
         subscriptionTier: 'FULL_PLANT_AI',
-        allowedDivisions: ['/stitching-sewing', '/store'],
+        allowedDivisions: profileAllowedModules.isNotEmpty ? profileAllowedModules : allDefaultDivisions,
         isProvisionedTenant: false,
         accessType: 'DEMO_TRIAL',
         expiresAt: '2026-09-22T23:59:59.000Z',

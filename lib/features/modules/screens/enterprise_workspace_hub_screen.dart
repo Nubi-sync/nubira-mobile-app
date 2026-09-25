@@ -209,14 +209,16 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         ? tenant!.allowedDivisions
         : authState.allowedDivisions;
 
-    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
-        (tenant?.isLegacyNubira == true) ||
-        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
-        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
+    final isAdminUser = isSuperAdmin ||
+        role.toUpperCase() == 'ADMIN' ||
+        role.toUpperCase() == 'SUPERADMIN' ||
+        role.toUpperCase() == 'PLATFORM_SUPERADMIN' ||
+        (authState.cachedUsername ?? '').toLowerCase().contains('admin') ||
+        (tenant?.userEmail ?? '').toLowerCase().contains('admin');
 
-    final allowed = isNubira
-        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
-        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
+    final allowed = rawAllowed.isNotEmpty
+        ? rawAllowed
+        : (isAdminUser ? allEnterpriseModules.map((m) => m.route).toList() : const ['/stitching-sewing', '/store']);
 
     final visibleModules = allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList();
 

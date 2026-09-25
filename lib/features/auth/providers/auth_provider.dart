@@ -192,7 +192,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
               userRole: cachedRole,
               isOfflineSession: true,
               cachedUsername: savedUsername,
-              allowedDivisions: cachedRole == 'ADMIN' ? ['/stitching-sewing', '/store'] : ['/stitching-sewing'],
+              allowedDivisions: (cachedRole == 'ADMIN' || cachedRole == 'SUPERADMIN') ? allDefaultDivisions : ['/stitching-sewing'],
             );
             return;
           }
