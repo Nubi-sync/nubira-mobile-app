@@ -233,7 +233,7 @@ class _SelectPrintingBuyerModalState extends ConsumerState<SelectPrintingBuyerMo
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${state.upstreamCutPieces} Cut Pcs (of ${b.contractedVolume} BPO)$articleStr',
+                                      '${b.completedCutPieces} Cut Pcs (of ${b.contractedVolume} BPO)$articleStr',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         color: isSelected ? const Color(0xFFC7D2FE) : const Color(0xFF64748B),

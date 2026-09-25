@@ -276,6 +276,7 @@ class PrintingBuyerContract {
   final String embellishmentSequence;
   final String status;
   final String? companyName;
+  final int completedCutPieces;
 
   const PrintingBuyerContract({
     required this.id,
@@ -289,6 +290,7 @@ class PrintingBuyerContract {
     this.embellishmentSequence = 'PRINT_FIRST_THEN_EMBROIDERY',
     this.status = 'ACTIVE',
     this.companyName,
+    this.completedCutPieces = 0,
   });
 
   PrintingBuyerContract copyWith({
@@ -303,6 +305,7 @@ class PrintingBuyerContract {
     String? embellishmentSequence,
     String? status,
     String? companyName,
+    int? completedCutPieces,
   }) {
     return PrintingBuyerContract(
       id: id ?? this.id,
@@ -316,6 +319,7 @@ class PrintingBuyerContract {
       embellishmentSequence: embellishmentSequence ?? this.embellishmentSequence,
       status: status ?? this.status,
       companyName: companyName ?? this.companyName,
+      completedCutPieces: completedCutPieces ?? this.completedCutPieces,
     );
   }
 
@@ -335,6 +339,7 @@ class PrintingBuyerContract {
       embellishmentSequence: json['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
       status: json['status']?.toString() ?? 'ACTIVE',
       companyName: json['company_name']?.toString(),
+      completedCutPieces: (json['completed_cut_pieces'] as num?)?.toInt() ?? 0,
     );
   }
 }

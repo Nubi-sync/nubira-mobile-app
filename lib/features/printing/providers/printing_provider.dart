@@ -270,120 +270,197 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
   }
 
   Future<List<PrintingBuyerContract>> _fetchBuyersFromSupabase(String? company) async {
-    List<PrintingBuyerContract> buyersList = [];
+    final Map<String, PrintingBuyerContract> mergedMap = {};
+    final Map<String, int> buyerCutMap = {};
 
-    // 1. Fetch from merchandising_active_buyers
+    // 1. Fetch cutting allocations to compute completed cut pieces per buyer / article
+    try {
+      final cRes = await supabase
+          .from('cutting_task_allocations')
+          .select('completed_pieces, pieces_to_cut, status, buyer_name, article_number');
+      final cList = (cRes as List<dynamic>?) ?? [];
+      for (final r in cList) {
+        final status = r['status']?.toString();
+        if (status == 'VERIFIED_COMPLETED' || status == 'COMPLETED') {
+          final pcs = ((r['completed_pieces'] ?? r['pieces_to_cut']) as num?)?.toInt() ?? 0;
+          final bName = (r['buyer_name']?.toString() ?? '').trim().toUpperCase();
+          final aNum = (r['article_number']?.toString() ?? '').trim().toUpperCase();
+          if (bName.isNotEmpty) {
+            buyerCutMap[bName] = (buyerCutMap[bName] ?? 0) + pcs;
+          }
+          if (aNum.isNotEmpty) {
+            buyerCutMap[aNum] = (buyerCutMap[aNum] ?? 0) + pcs;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[PrintingNotifier] Error fetching cutting allocations: $e');
+    }
+
+    // 2. Fetch from merchandising_active_buyers
     try {
       final res = await supabase
           .from('merchandising_active_buyers')
           .select('*')
           .order('created_at', ascending: false);
       final raw = (res as List<dynamic>?) ?? [];
-      if (raw.isNotEmpty) {
-        var mapped = raw.map((e) => PrintingBuyerContract.fromJson(e as Map<String, dynamic>)).toList();
-        if (company != null && company.isNotEmpty) {
-          final target = company.toLowerCase();
-          mapped = mapped.where((b) {
-            final c = (b.buyerName).toLowerCase();
-            return c == target || c.contains(target);
-          }).toList();
-        }
-        buyersList = mapped;
-      }
-    } catch (_) {}
+      for (final row in raw) {
+        final bName = (row['buyer_name']?.toString() ?? row['brand_name']?.toString() ?? '').trim();
+        if (bName.isEmpty) continue;
+        final key = bName.toUpperCase();
+        final qty = ((row['contracted_volume'] as num?) ?? 0).toInt();
+        final article = row['linked_article_number']?.toString() ?? row['style_ref']?.toString();
+        final cutPcs = buyerCutMap[key] ?? (article != null ? buyerCutMap[article.trim().toUpperCase()] ?? 0 : 0);
 
-    // 2. Fetch master merchandising orders (same as Web fetchActiveBuyersAction)
+        mergedMap[key] = PrintingBuyerContract(
+          id: row['id']?.toString() ?? 'buyer-$key',
+          buyerName: bName,
+          buyerCode: row['buyer_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+          contractedVolume: qty > 0 ? qty : 5000,
+          pricePerPiece: ((row['price_per_piece'] as num?) ?? 12.5).toDouble(),
+          totalContractValue: ((row['total_contract_value'] as num?) ?? 0).toDouble(),
+          linkedArticleNumber: article,
+          linkedArticleName: row['linked_article_name']?.toString() ?? row['style_name']?.toString(),
+          embellishmentSequence: row['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
+          status: row['status']?.toString() ?? 'ACTIVE',
+          companyName: row['company_name']?.toString(),
+          completedCutPieces: cutPcs,
+        );
+      }
+    } catch (e) {
+      debugPrint('[PrintingNotifier] Error fetching merchandising_active_buyers: $e');
+    }
+
+    // 3. Fetch from merchandising_orders safely
     try {
       final oRes = await supabase
           .from('merchandising_orders')
-          .select('''
-            id,
-            order_number,
-            total_quantity,
-            fob_price_per_piece,
-            status,
-            company_name,
-            created_at,
-            brands ( id, brand_name, brand_code, company_name ),
-            design_tech_packs ( id, style_number, category, embellishment_sequence, company_name )
-          ''')
+          .select('*')
           .order('created_at', ascending: false);
-
       final rawOrders = (oRes as List<dynamic>?) ?? [];
-      if (rawOrders.isNotEmpty) {
-        var filteredOrders = rawOrders;
-        if (company != null && company.isNotEmpty) {
-          final target = company.toLowerCase();
-          filteredOrders = rawOrders.where((ord) {
-            final oc = (ord['company_name']?.toString() ?? '').toLowerCase();
-            final brand = ord['brands'] as Map<String, dynamic>?;
-            final bc = (brand?['company_name']?.toString() ?? '').toLowerCase();
-            final bn = (brand?['brand_name']?.toString() ?? '').toLowerCase();
-            final tp = ord['design_tech_packs'] as Map<String, dynamic>?;
-            final tc = (tp?['company_name']?.toString() ?? '').toLowerCase();
-            return oc == target || oc.contains(target) ||
-                   bc == target || bc.contains(target) ||
-                   tc == target || tc.contains(target) ||
-                   bn == target || bn.contains(target);
-          }).toList();
+
+      Map<String, Map<String, dynamic>> brandMap = {};
+      try {
+        final bRes = await supabase.from('brands').select('*');
+        for (final b in (bRes as List<dynamic>? ?? [])) {
+          final id = b['id']?.toString();
+          if (id != null) brandMap[id] = b as Map<String, dynamic>;
         }
+      } catch (_) {}
 
-        final orderBuyersMap = <String, PrintingBuyerContract>{};
-        for (final ord in filteredOrders) {
-          final brand = ord['brands'] as Map<String, dynamic>?;
-          final tp = ord['design_tech_packs'] as Map<String, dynamic>?;
-          final buyerName = brand?['brand_name']?.toString() ?? 'Commercial Buyer';
-          final buyerKey = buyerName.trim().toUpperCase();
-          final qty = ((ord['total_quantity'] as num?) ?? 0).toInt();
-          final price = ((ord['fob_price_per_piece'] as num?) ?? 12.5).toDouble();
-
-          if (!orderBuyersMap.containsKey(buyerKey)) {
-            orderBuyersMap[buyerKey] = PrintingBuyerContract(
-              id: brand?['id']?.toString() ?? 'buyer-${ord['id']}',
-              buyerName: buyerName,
-              buyerCode: brand?['brand_code']?.toString() ?? (buyerName.length >= 4 ? buyerName.substring(0, 4).toUpperCase() : 'BUYER'),
-              contractedVolume: qty,
-              pricePerPiece: price,
-              totalContractValue: (qty * price),
-              linkedArticleNumber: tp?['style_number']?.toString() ?? ord['order_number']?.toString() ?? 'DEMO-102',
-              linkedArticleName: tp?['category']?.toString() ?? 'Garment Contract',
-              embellishmentSequence: tp?['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
-              status: 'LINKED',
-            );
-          } else {
-            final prev = orderBuyersMap[buyerKey]!;
-            final updatedVol = prev.contractedVolume + qty;
-            final updatedVal = prev.totalContractValue + (qty * price);
-            orderBuyersMap[buyerKey] = prev.copyWith(
-              contractedVolume: updatedVol,
-              totalContractValue: updatedVal,
-              linkedArticleNumber: prev.linkedArticleNumber ?? tp?['style_number']?.toString(),
-              linkedArticleName: prev.linkedArticleName ?? tp?['category']?.toString(),
-            );
-          }
+      Map<String, Map<String, dynamic>> techPackMap = {};
+      try {
+        final tpRes = await supabase.from('design_tech_packs').select('*');
+        for (final tp in (tpRes as List<dynamic>? ?? [])) {
+          final id = tp['id']?.toString();
+          if (id != null) techPackMap[id] = tp as Map<String, dynamic>;
         }
+      } catch (_) {}
 
-        // Merge order-derived buyers into buyersList
-        orderBuyersMap.forEach((key, ordBuyer) {
-          final idx = buyersList.indexWhere((b) => b.buyerName.trim().toUpperCase() == key);
-          if (idx >= 0) {
-            final existing = buyersList[idx];
-            buyersList[idx] = existing.copyWith(
-              contractedVolume: ordBuyer.contractedVolume > existing.contractedVolume ? ordBuyer.contractedVolume : existing.contractedVolume,
-              linkedArticleNumber: existing.linkedArticleNumber ?? ordBuyer.linkedArticleNumber,
-              linkedArticleName: existing.linkedArticleName ?? ordBuyer.linkedArticleName,
-              embellishmentSequence: existing.embellishmentSequence.isNotEmpty ? existing.embellishmentSequence : ordBuyer.embellishmentSequence,
-            );
-          } else {
-            buyersList.add(ordBuyer);
-          }
-        });
+      for (final ord in rawOrders) {
+        final bId = ord['buyer_id']?.toString();
+        final tpId = ord['tech_pack_id']?.toString();
+        final brand = bId != null ? brandMap[bId] : null;
+        final tp = tpId != null ? techPackMap[tpId] : null;
+
+        final buyerName = brand?['brand_name']?.toString() ?? ord['brand_name']?.toString() ?? 'Commercial Buyer';
+        final key = buyerName.trim().toUpperCase();
+        final qty = ((ord['total_quantity'] as num?) ?? 0).toInt();
+        final price = ((ord['fob_price_per_piece'] as num?) ?? 12.5).toDouble();
+        final styleNum = tp?['style_number']?.toString() ?? ord['style_ref']?.toString() ?? ord['order_number']?.toString() ?? 'DEMO-102';
+        final styleName = tp?['category']?.toString() ?? ord['style_name']?.toString() ?? 'Garment Contract';
+        final embSeq = tp?['embellishment_sequence']?.toString() ?? ord['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY';
+        final cutPcs = buyerCutMap[key] ?? buyerCutMap[styleNum.trim().toUpperCase()] ?? 0;
+
+        if (!mergedMap.containsKey(key)) {
+          mergedMap[key] = PrintingBuyerContract(
+            id: brand?['id']?.toString() ?? ord['buyer_id']?.toString() ?? 'buyer-${ord['id']}',
+            buyerName: buyerName,
+            buyerCode: brand?['brand_code']?.toString() ?? (buyerName.length >= 4 ? buyerName.substring(0, 4).toUpperCase() : 'BUYER'),
+            contractedVolume: qty > 0 ? qty : 5000,
+            pricePerPiece: price,
+            totalContractValue: qty * price,
+            linkedArticleNumber: styleNum,
+            linkedArticleName: styleName,
+            embellishmentSequence: embSeq,
+            status: 'LINKED',
+            companyName: ord['company_name']?.toString(),
+            completedCutPieces: cutPcs,
+          );
+        } else {
+          final prev = mergedMap[key]!;
+          final updatedVol = prev.contractedVolume + qty;
+          final updatedVal = prev.totalContractValue + (qty * price);
+          mergedMap[key] = prev.copyWith(
+            contractedVolume: updatedVol > prev.contractedVolume ? updatedVol : prev.contractedVolume,
+            totalContractValue: updatedVal,
+            linkedArticleNumber: prev.linkedArticleNumber ?? styleNum,
+            linkedArticleName: prev.linkedArticleName ?? styleName,
+            embellishmentSequence: prev.embellishmentSequence.isNotEmpty ? prev.embellishmentSequence : embSeq,
+            completedCutPieces: cutPcs > 0 ? cutPcs : prev.completedCutPieces,
+          );
+        }
       }
     } catch (e) {
-      debugPrint('[PrintingNotifier] _fetchBuyersFromSupabase orders error: $e');
+      debugPrint('[PrintingNotifier] Error fetching merchandising_orders: $e');
     }
 
-    return buyersList;
+    try {
+      final bRes = await supabase.from('brands').select('*').order('created_at', ascending: false);
+      final rawBrands = (bRes as List<dynamic>?) ?? [];
+      for (final br in rawBrands) {
+        final bName = (br['brand_name']?.toString() ?? '').trim();
+        if (bName.isEmpty) continue;
+        final key = bName.toUpperCase();
+        if (!mergedMap.containsKey(key)) {
+          final cutPcs = buyerCutMap[key] ?? 0;
+          mergedMap[key] = PrintingBuyerContract(
+            id: br['id']?.toString() ?? 'brand-${DateTime.now().millisecondsSinceEpoch}',
+            buyerName: bName,
+            buyerCode: br['brand_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+            contractedVolume: 5000,
+            pricePerPiece: 14.5,
+            totalContractValue: 72500,
+            linkedArticleNumber: 'DEMO-102',
+            linkedArticleName: 'Commercial Apparel Order',
+            embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
+            status: 'ACTIVE',
+            companyName: br['company_name']?.toString(),
+            completedCutPieces: cutPcs,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[PrintingNotifier] Error fetching brands table: $e');
+    }
+
+    // 5. Ensure any buyer in printing_task_allocations is in mergedMap
+    try {
+      final tRes = await supabase.from('printing_task_allocations').select('buyer_id, buyer_name, article_number, article_name');
+      final rawTasks = (tRes as List<dynamic>?) ?? [];
+      for (final t in rawTasks) {
+        final bName = (t['buyer_name']?.toString() ?? '').trim();
+        if (bName.isEmpty || bName.toLowerCase() == 'direct buyer') continue;
+        final key = bName.toUpperCase();
+        if (!mergedMap.containsKey(key)) {
+          final aNum = t['article_number']?.toString();
+          final cutPcs = buyerCutMap[key] ?? (aNum != null ? buyerCutMap[aNum.trim().toUpperCase()] ?? 0 : 0);
+          mergedMap[key] = PrintingBuyerContract(
+            id: t['buyer_id']?.toString() ?? 'buyer-${key.toLowerCase()}',
+            buyerName: bName,
+            buyerCode: bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUY',
+            contractedVolume: 6000,
+            linkedArticleNumber: aNum ?? 'DEMO-101-03',
+            linkedArticleName: t['article_name']?.toString() ?? 'Garment Contract',
+            embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
+            status: 'LINKED',
+            completedCutPieces: cutPcs,
+          );
+        }
+      }
+    } catch (_) {}
+
+    return mergedMap.values.toList();
   }
 
   Future<int> _fetchUpstreamCuttingPieces(String? company) async {
