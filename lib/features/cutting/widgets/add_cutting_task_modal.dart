@@ -170,7 +170,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossContent: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Allocate Cutting Task',
