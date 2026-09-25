@@ -579,13 +579,19 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     required String phone,
     required String password,
     required List<String> roles,
-    String shift = 'MORNING',
+    String shift = 'GENERAL',
   }) async {
     final company = await _getResolvedCompanyFilter() ?? 'Nubira Creation';
     final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
     final phone10 = cleanPhone.length >= 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
     final internalEmail = '$phone10@printing.nubira.local';
-    final primaryRole = roles.isNotEmpty ? roles.first.replaceAll('_', ' ') : 'Screen Printer';
+    
+    const roleLabels = {
+      'SCREEN_PRINTER': 'Screen Print Operator',
+      'DTG_TECHNICIAN': 'DTG & Heat Press Technician',
+      'TABLE_OPERATOR': 'Table Master / Flocking Lead',
+    };
+    final primaryRole = roles.map((r) => roleLabels[r] ?? r.replaceAll('_', ' ')).join(', ');
 
     final newWorker = PrintingWorker(
       id: 'pw-${DateTime.now().millisecondsSinceEpoch}',
@@ -593,7 +599,7 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
       phoneNumber: phone10,
       workerEmail: internalEmail,
       roles: roles,
-      role: primaryRole,
+      role: primaryRole.isNotEmpty ? primaryRole : 'Screen Print Operator',
       shift: shift,
       status: 'ACTIVE',
       assignedPieces: 0,

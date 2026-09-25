@@ -14,18 +14,16 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController(text: '123456');
+  final _passwordCtrl = TextEditingController();
+  bool _showPassword = false;
 
-  final List<String> _availableRoles = [
-    'SCREEN_PRINTER',
-    'CAROUSEL_MASTER',
-    'DTG_SPECIALIST',
-    'CURING_OVEN_OPERATOR',
-    'STRIKE_OFF_TESTER',
+  final List<Map<String, String>> _availableRoles = const [
+    {'id': 'SCREEN_PRINTER', 'label': 'Screen Print Operator'},
+    {'id': 'DTG_TECHNICIAN', 'label': 'DTG & Heat Press Technician'},
+    {'id': 'TABLE_OPERATOR', 'label': 'Table Master / Flocking Lead'},
   ];
 
   final Set<String> _selectedRoles = {'SCREEN_PRINTER'};
-  String _selectedShift = 'MORNING';
   bool _isSubmitting = false;
 
   @override
@@ -36,11 +34,27 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
     super.dispose();
   }
 
+  void _toggleRole(String roleId) {
+    setState(() {
+      if (_selectedRoles.contains(roleId)) {
+        if (_selectedRoles.length == 1) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Worker must have at least one floor role.')),
+          );
+          return;
+        }
+        _selectedRoles.remove(roleId);
+      } else {
+        _selectedRoles.add(roleId);
+      }
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedRoles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one worker skill role.')),
+        const SnackBar(content: Text('Please select at least one floor role.')),
       );
       return;
     }
@@ -53,14 +67,13 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
             phone: _phoneCtrl.text.trim(),
             password: _passwordCtrl.text.trim(),
             roles: _selectedRoles.toList(),
-            shift: _selectedShift,
           );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Worker "${_nameCtrl.text.trim()}" successfully registered!'),
+            content: Text('Worker "${_nameCtrl.text.trim()}" registered successfully!'),
             backgroundColor: const Color(0xFF047857),
           ),
         );
@@ -96,7 +109,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Modal Title & Close
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -112,205 +125,344 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                         child: const Icon(Icons.person_add_alt_1, color: Color(0xFF3A3564), size: 20),
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        'Register Printing Worker',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add Printing Floor Worker',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            'Create worker credentials for printing studio portal access',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                    onPressed: () => Navigator.pop(context),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Create an operational floor profile and mobile station credentials',
-                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
-              ),
-              const Divider(height: 24),
 
-              // Worker Full Name
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 16),
+
+              // WORKER FULL NAME *
               Text(
-                'FULL NAME *',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                'WORKER FULL NAME *',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF334155),
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nameCtrl,
-                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter worker name' : null,
-                style: GoogleFonts.publicSans(fontSize: 14),
+                validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter worker full name.' : null,
+                style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Ramesh Kumar',
+                  hintText: 'e.g. Anand Sharma',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF94A3B8)),
                   filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
 
               const SizedBox(height: 14),
 
-              // 10-Digit Mobile Phone
+              // PHONE NUMBER *
               Text(
-                '10-DIGIT MOBILE NUMBER *',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _phoneCtrl,
-                keyboardType: TextInputType.phone,
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Phone number required';
-                  final digits = val.replaceAll(RegExp(r'\D'), '');
-                  if (digits.length < 10) return 'Must be a valid 10-digit number';
-                  return null;
-                },
-                style: GoogleFonts.jetBrainsMono(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: '9876543210',
-                  prefixText: '+91 ',
-                  prefixStyle: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
-                  filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                'PHONE NUMBER *',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF334155),
+                  letterSpacing: 0.5,
                 ),
               ),
-
-              const SizedBox(height: 14),
-
-              // Station Password
-              Text(
-                'WORKSTATION PASSWORD *',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
-              ),
               const SizedBox(height: 6),
-              TextFormField(
-                controller: _passwordCtrl,
-                validator: (val) => (val == null || val.length < 6) ? 'Min 6 characters' : null,
-                style: GoogleFonts.jetBrainsMono(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Default: 123456',
-                  filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Skill Roles Checklist
-              Text(
-                'PRINTING SKILL ROLES',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _availableRoles.map((role) {
-                  final isSelected = _selectedRoles.contains(role);
-                  final label = role.replaceAll('_', ' ');
-                  return FilterChip(
-                    label: Text(
-                      label,
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF3A3564),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF7F0),
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
+                        border: Border(right: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
+                      ),
+                      child: Text(
+                        '+91',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A3564),
+                        ),
                       ),
                     ),
-                    selected: isSelected,
-                    selectedColor: const Color(0xFF3A3564),
-                    backgroundColor: const Color(0xFFFAF7F0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1)),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) return 'Please enter phone number.';
+                          final digits = val.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length != 10) return 'Must be a valid 10-digit number.';
+                          return null;
+                        },
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0F172A),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter 10-digit phone number',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          suffixIcon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF94A3B8)),
+                        ),
+                      ),
                     ),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedRoles.add(role);
-                        } else {
-                          _selectedRoles.remove(role);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // PASSWORD *
+              Text(
+                'PASSWORD *',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF334155),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                ),
+                child: TextFormField(
+                  controller: _passwordCtrl,
+                  obscureText: !_showPassword,
+                  validator: (val) => (val == null || val.length < 6) ? 'Password must be at least 6 characters long.' : null,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0F172A),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter password (min. 6 characters)',
+                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 18,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                      onPressed: () => setState(() => _showPassword = !_showPassword),
+                    ),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 16),
 
-              // Shift Selection
-              Text(
-                'ASSIGNED SHIFT',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+              // FLOOR ROLES (SELECT ONE OR MULTIPLE) *
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'FLOOR ROLES (SELECT ONE OR MULTIPLE) *',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF334155),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    '${_selectedRoles.length} of 3 selected',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              Row(
-                children: ['MORNING', 'EVENING', 'NIGHT'].map((s) {
-                  final isSelected = _selectedShift == s;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedShift = s),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          child: Center(
+
+              // 3 Role Cards
+              ..._availableRoles.map((role) {
+                final roleId = role['id']!;
+                final roleLabel = role['label']!;
+                final isChecked = _selectedRoles.contains(roleId);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: InkWell(
+                    onTap: () => _toggleRole(roleId),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isChecked ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isChecked ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
                             child: Text(
-                              s,
+                              roleLabel,
                               style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : const Color(0xFF475569),
+                                color: isChecked ? Colors.white : const Color(0xFF334155),
                               ),
                             ),
                           ),
+                          Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: isChecked ? Colors.white : Colors.white,
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: isChecked ? Colors.white : const Color(0xFFCBD5E1),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: isChecked
+                                ? const Center(
+                                    child: Icon(
+                                      Icons.check,
+                                      size: 13,
+                                      color: Color(0xFF3A3564),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 20),
+
+              // Bottom Actions: Cancel & Register Worker
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF334155),
+                          side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
                   ),
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(
-                          'Save & Authorize Worker',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3A3564),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                ),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_circle_outline, size: 16, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Register Worker',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
