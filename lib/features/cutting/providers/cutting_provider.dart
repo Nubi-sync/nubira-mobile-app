@@ -13,6 +13,12 @@ class CuttingState {
   final List<CuttingTaskAllocation> allocations;
   final List<ActiveBuyer> buyers;
   final List<MerchandisingOrder> orders;
+  final List<LaySheet> laySheets;
+  final List<CutBundle> bundles;
+  final List<MarkerEfficiency> markers;
+  final List<CuttingOrder> cuttingOrders;
+  final List<StoreChallanRecord> storeChallans;
+  final List<FloorNotification> notifications;
   final String selectedBuyerId;
   final String statusFilter;
   final String searchQuery;
@@ -27,6 +33,12 @@ class CuttingState {
     this.allocations = const [],
     this.buyers = const [],
     this.orders = const [],
+    this.laySheets = const [],
+    this.bundles = const [],
+    this.markers = const [],
+    this.cuttingOrders = const [],
+    this.storeChallans = const [],
+    this.notifications = const [],
     this.selectedBuyerId = '',
     this.statusFilter = 'ALL',
     this.searchQuery = '',
@@ -42,6 +54,12 @@ class CuttingState {
     List<CuttingTaskAllocation>? allocations,
     List<ActiveBuyer>? buyers,
     List<MerchandisingOrder>? orders,
+    List<LaySheet>? laySheets,
+    List<CutBundle>? bundles,
+    List<MarkerEfficiency>? markers,
+    List<CuttingOrder>? cuttingOrders,
+    List<StoreChallanRecord>? storeChallans,
+    List<FloorNotification>? notifications,
     String? selectedBuyerId,
     String? statusFilter,
     String? searchQuery,
@@ -56,6 +74,12 @@ class CuttingState {
       allocations: allocations ?? this.allocations,
       buyers: buyers ?? this.buyers,
       orders: orders ?? this.orders,
+      laySheets: laySheets ?? this.laySheets,
+      bundles: bundles ?? this.bundles,
+      markers: markers ?? this.markers,
+      cuttingOrders: cuttingOrders ?? this.cuttingOrders,
+      storeChallans: storeChallans ?? this.storeChallans,
+      notifications: notifications ?? this.notifications,
       selectedBuyerId: selectedBuyerId ?? this.selectedBuyerId,
       statusFilter: statusFilter ?? this.statusFilter,
       searchQuery: searchQuery ?? this.searchQuery,
@@ -345,6 +369,291 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
         debugPrint('[CuttingNotifier] Error fetching orders: $e');
       }
 
+      // 5. Fetch Lay Sheets from Supabase or Fallback
+      List<LaySheet> laysList = [];
+      try {
+        final lRes = await client.from('cutting_lay_sheets').select('*').order('created_at', ascending: false);
+        final rawL = (lRes as List<dynamic>?) ?? [];
+        if (rawL.isNotEmpty) {
+          laysList = rawL.map((l) => LaySheet.fromJson(l as Map<String, dynamic>)).toList();
+        }
+      } catch (e) {
+        debugPrint('[CuttingNotifier] DB notice on lay sheets: $e');
+      }
+      if (laysList.isEmpty) {
+        laysList = [
+          const LaySheet(
+            id: 'lay-01',
+            layNumber: 'LAY-2026-0842',
+            poNumber: 'PO-2026-9901',
+            brandName: 'ZARA INTERNATIONAL',
+            styleRef: 'TP-2026-8801',
+            styleName: 'Heavyweight Relaxed French Terry Hoodie',
+            tableNumber: 'Table 01 - Gerber Auto-Cutter',
+            fabricRollBarcodes: ['ROL-2026-9901', 'ROL-2026-9902'],
+            shellFabric: '100% Combed Cotton French Terry 380 GSM',
+            gsm: 380,
+            pliesCount: 84,
+            markerLengthMeters: 5.4,
+            totalCutPieces: 1000,
+            ratioBreakdown: 'S:1, M:2, L:2, XL:1 (Ratio: 6)',
+            fabricWeightKg: 480.0,
+            cuttingMaster: 'R. Veerappan (Master Cutter)',
+            status: 'SPREADING',
+            createdAt: '2026-09-25',
+          ),
+          const LaySheet(
+            id: 'lay-02',
+            layNumber: 'LAY-2026-0841',
+            poNumber: 'PO-2026-9902',
+            brandName: 'H&M CONSCIOUS',
+            styleRef: 'TP-2026-8802',
+            styleName: 'Organic Cotton Oversized Crewneck',
+            tableNumber: 'Table 02 - Lectra Vector',
+            fabricRollBarcodes: ['ROL-2026-9903'],
+            shellFabric: '100% Organic Loopback Terry 320 GSM',
+            gsm: 320,
+            pliesCount: 60,
+            markerLengthMeters: 4.8,
+            totalCutPieces: 600,
+            ratioBreakdown: 'XS:1, S:2, M:2, L:1',
+            fabricWeightKg: 290.0,
+            cuttingMaster: 'S. Kumar',
+            status: 'READY_FOR_CUT',
+            createdAt: '2026-09-24',
+          ),
+        ];
+      }
+
+      // 6. Fetch Cut Bundles
+      List<CutBundle> bundleList = [];
+      try {
+        final bndRes = await client.from('cutting_bundles').select('*').order('created_at', ascending: false);
+        final rawBnd = (bndRes as List<dynamic>?) ?? [];
+        if (rawBnd.isNotEmpty) {
+          bundleList = rawBnd.map((b) => CutBundle.fromJson(b as Map<String, dynamic>)).toList();
+        }
+      } catch (e) {
+        debugPrint('[CuttingNotifier] DB notice on bundles: $e');
+      }
+      if (bundleList.isEmpty) {
+        bundleList = [
+          const CutBundle(
+            id: 'bnd-01',
+            bundleNumber: 'BND-2026-0842-M-001',
+            laySheetId: 'lay-01',
+            layNumber: 'LAY-2026-0842',
+            poNumber: 'PO-2026-9901',
+            styleRef: 'TP-2026-8801',
+            styleName: 'Heavyweight Relaxed French Terry Hoodie',
+            color: 'Orange',
+            size: 'M',
+            plyRangeStart: 1,
+            plyRangeEnd: 25,
+            piecesCount: 25,
+            qrCode: 'BND-2026-0842-M-001',
+            destination: '04_PRINTING',
+            status: 'GENERATED',
+            createdAt: '2026-09-25',
+          ),
+          const CutBundle(
+            id: 'bnd-02',
+            bundleNumber: 'BND-2026-0842-M-002',
+            laySheetId: 'lay-01',
+            layNumber: 'LAY-2026-0842',
+            poNumber: 'PO-2026-9901',
+            styleRef: 'TP-2026-8801',
+            styleName: 'Heavyweight Relaxed French Terry Hoodie',
+            color: 'Orange',
+            size: 'M',
+            plyRangeStart: 26,
+            plyRangeEnd: 50,
+            piecesCount: 25,
+            qrCode: 'BND-2026-0842-M-002',
+            destination: '04_PRINTING',
+            status: 'BANDED',
+            createdAt: '2026-09-25',
+          ),
+          const CutBundle(
+            id: 'bnd-03',
+            bundleNumber: 'BND-2026-0842-L-001',
+            laySheetId: 'lay-01',
+            layNumber: 'LAY-2026-0842',
+            poNumber: 'PO-2026-9901',
+            styleRef: 'TP-2026-8801',
+            styleName: 'Heavyweight Relaxed French Terry Hoodie',
+            color: 'Green',
+            size: 'L',
+            plyRangeStart: 1,
+            plyRangeEnd: 25,
+            piecesCount: 25,
+            qrCode: 'BND-2026-0842-L-001',
+            destination: '06_SEWING',
+            status: 'IN_TRANSIT',
+            createdAt: '2026-09-25',
+          ),
+        ];
+      }
+
+      // 7. Fetch Markers
+      List<MarkerEfficiency> markerList = [
+        const MarkerEfficiency(
+          id: 'mrk-01',
+          markerName: 'MKR-ZARA-HD-8801',
+          markerRef: 'CAD-NEST-01',
+          styleRef: 'TP-2026-8801',
+          styleName: 'Heavyweight Relaxed French Terry Hoodie',
+          cadSoftware: 'GERBER_ACCUMARK',
+          fabricWidthInches: 60.0,
+          markerLengthMeters: 5.4,
+          efficiencyPercent: 89.6,
+          sizesIncluded: ['S', 'M', 'L', 'XL'],
+          ratio: '1:2:2:1 (Ratio: 6)',
+          patternMaster: 'R. Veerappan (Master Cutter)',
+          status: 'CAD_APPROVED',
+          createdAt: '2026-09-25',
+        ),
+        const MarkerEfficiency(
+          id: 'mrk-02',
+          markerName: 'MKR-HM-CR-8802',
+          markerRef: 'CAD-NEST-02',
+          styleRef: 'TP-2026-8802',
+          styleName: 'Organic Cotton Oversized Crewneck',
+          cadSoftware: 'LECTRA_MODARIS',
+          fabricWidthInches: 58.0,
+          markerLengthMeters: 4.8,
+          efficiencyPercent: 91.2,
+          sizesIncluded: ['XS', 'S', 'M', 'L'],
+          ratio: '1:2:2:1 (Ratio: 6)',
+          patternMaster: 'M. Selvam',
+          status: 'IN_BULK_USE',
+          createdAt: '2026-09-24',
+        ),
+      ];
+
+      // 8. Fetch Cutting Orders
+      List<CuttingOrder> cOrderList = [
+        const CuttingOrder(
+          id: 'co-01',
+          orderNumber: 'CO-2026-088',
+          buyerPo: 'PO-2026-9901',
+          buyerName: 'ZARA INTERNATIONAL',
+          styleNumber: 'TP-2026-8801',
+          styleName: 'Heavyweight Relaxed French Terry Hoodie',
+          colorway: 'Orange & Green',
+          totalPieces: 1000,
+          pliesPlanned: 84,
+          fabricMetersAllocated: 900.0,
+          tableAssigned: 'Table 01 - Gerber Paragon HX',
+          status: 'SPREADING',
+          priority: 'HIGH',
+          scheduledStart: '2026-09-25 08:00',
+          operatorLead: 'Cutting Master R. Veerappan',
+          createdAt: '2026-09-25',
+        ),
+        const CuttingOrder(
+          id: 'co-02',
+          orderNumber: 'CO-2026-089',
+          buyerPo: 'PO-2026-9902',
+          buyerName: 'H&M CONSCIOUS',
+          styleNumber: 'TP-2026-8802',
+          styleName: 'Organic Cotton Oversized Crewneck',
+          colorway: 'Heather Grey',
+          totalPieces: 600,
+          pliesPlanned: 60,
+          fabricMetersAllocated: 450.0,
+          tableAssigned: 'Table 02 - Lectra Vector',
+          status: 'QUEUED',
+          priority: 'NORMAL',
+          scheduledStart: '2026-09-26 09:00',
+          operatorLead: 'Cutting Master S. Kumar',
+          createdAt: '2026-09-25',
+        ),
+      ];
+
+      // 9. Fetch Store Challans
+      List<StoreChallanRecord> challanList = [];
+      try {
+        final stRes = await client.from('store_material_issues').select('*').order('created_at', ascending: false);
+        final rawSt = (stRes as List<dynamic>?) ?? [];
+        if (rawSt.isNotEmpty) {
+          challanList = rawSt.map((s) => StoreChallanRecord.fromJson(s as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+      if (challanList.isEmpty) {
+        challanList = [
+          const StoreChallanRecord(
+            id: 'ch-01',
+            challanNumber: 'ISS-2026-0412',
+            fromDivision: 'CENTRAL_STORE',
+            toDivision: 'CUTTING',
+            articleNumber: 'TP-2026-8801',
+            buyerName: 'ZARA INTERNATIONAL',
+            fabricType: '100% Combed Cotton French Terry 380 GSM',
+            color: 'Orange',
+            quantity: 900.0,
+            unit: 'meters',
+            rollsCount: 4,
+            shortageQuantity: 0.0,
+            status: 'RECEIVED',
+            receiverName: 'R. Veerappan',
+            rackLocation: 'RACK-CUT-01',
+            notes: 'Verified 4 rolls on vacuum inspection table',
+            createdAt: '2026-09-25',
+          ),
+          const StoreChallanRecord(
+            id: 'ch-02',
+            challanNumber: 'ISS-2026-0415',
+            fromDivision: 'CENTRAL_STORE',
+            toDivision: 'CUTTING',
+            articleNumber: 'TP-2026-8802',
+            buyerName: 'H&M CONSCIOUS',
+            fabricType: '100% Organic Loopback Terry 320 GSM',
+            color: 'Heather Grey',
+            quantity: 450.0,
+            unit: 'meters',
+            rollsCount: 2,
+            shortageQuantity: 0.0,
+            status: 'PENDING',
+            receiverName: '',
+            rackLocation: 'FLOOR-STORE',
+            notes: 'Awaiting floor receipt verification',
+            createdAt: '2026-09-25',
+          ),
+        ];
+      }
+
+      // 10. Fetch Notifications
+      List<FloorNotification> notifList = [
+        FloorNotification(
+          id: 'notif-1',
+          title: 'Fabric Roll Issue Dispatched',
+          message: 'Central Store issued 4 rolls (900m) for PO-2026-9901 (Zara Hoodie).',
+          timestamp: '10 mins ago',
+          isRead: false,
+          type: 'MATERIAL',
+          module: 'cutting',
+        ),
+        FloorNotification(
+          id: 'notif-2',
+          title: 'CAD Marker Approved',
+          message: 'MKR-ZARA-HD-8801 approved with 89.6% efficiency on Gerber Paragon.',
+          timestamp: '45 mins ago',
+          isRead: false,
+          type: 'TASK',
+          module: 'cutting',
+        ),
+        FloorNotification(
+          id: 'notif-3',
+          title: 'Auto-Cutter Maintenance Scheduled',
+          message: 'Table 01 blade lubrication & sharpening at 18:00.',
+          timestamp: '2 hours ago',
+          isRead: true,
+          type: 'ALERT',
+          module: 'cutting',
+        ),
+      ];
+
       // Default selected buyer
       String activeBuyerId = state.selectedBuyerId;
       if (activeBuyerId.isEmpty || (activeBuyerId != 'ALL' && !buyersList.any((b) => b.id == activeBuyerId))) {
@@ -358,6 +667,12 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
         allocations: taskList,
         buyers: buyersList,
         orders: ordersList,
+        laySheets: laysList,
+        bundles: bundleList,
+        markers: markerList,
+        cuttingOrders: cOrderList,
+        storeChallans: challanList,
+        notifications: notifList,
         selectedBuyerId: activeBuyerId,
         companyName: companyFilter,
       );
@@ -371,6 +686,9 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
     }
   }
 
+  // ==========================================
+  // WORKER ACTIONS
+  // ==========================================
   Future<bool> registerWorker({
     required String workerName,
     required String phoneNumber,
@@ -448,6 +766,9 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
     }
   }
 
+  // ==========================================
+  // TASK ALLOCATION ACTIONS
+  // ==========================================
   Future<bool> createTaskAllocation({
     required String buyerId,
     required String buyerName,
@@ -597,8 +918,189 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
       return false;
     }
   }
+
+  // ==========================================
+  // LAY SHEETS & BUNDLES ACTIONS
+  // ==========================================
+  Future<bool> addLaySheet(LaySheet laySheet) async {
+    try {
+      state = state.copyWith(laySheets: [laySheet, ...state.laySheets]);
+      try {
+        final client = Supabase.instance.client;
+        await client.from('cutting_lay_sheets').insert({
+          'lay_sheet_number': laySheet.layNumber,
+          'cutting_table_id': laySheet.tableNumber,
+          'marker_length_m': laySheet.markerLengthMeters,
+          'total_plies': laySheet.pliesCount,
+          'size_ratio_text': laySheet.ratioBreakdown,
+          'expected_pieces': laySheet.totalCutPieces,
+          'actual_cut_pieces': laySheet.totalCutPieces,
+          'status': laySheet.status,
+          'company_name': state.companyName,
+        });
+      } catch (_) {}
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> addBundle(CutBundle bundle) async {
+    try {
+      state = state.copyWith(bundles: [bundle, ...state.bundles]);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> advanceBundleStatus(String bundleId) async {
+    final updated = state.bundles.map((b) {
+      if (b.id == bundleId || b.bundleNumber == bundleId) {
+        String nextStatus = b.status;
+        if (b.status == 'GENERATED') {
+          nextStatus = 'BANDED';
+        } else if (b.status == 'BANDED') {
+          nextStatus = 'IN_TRANSIT';
+        } else if (b.status == 'IN_TRANSIT') {
+          nextStatus = 'HANDOVER_CONFIRMED';
+        }
+        return b.copyWith(status: nextStatus);
+      }
+      return b;
+    }).toList();
+    state = state.copyWith(bundles: updated);
+  }
+
+  // ==========================================
+  // CAD MARKERS ACTIONS
+  // ==========================================
+  Future<bool> addMarker(MarkerEfficiency marker) async {
+    try {
+      state = state.copyWith(markers: [marker, ...state.markers]);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ==========================================
+  // CUTTING ORDERS ACTIONS
+  // ==========================================
+  Future<bool> addCuttingOrder(CuttingOrder order) async {
+    try {
+      state = state.copyWith(cuttingOrders: [order, ...state.cuttingOrders]);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> advanceOrderStatus(String orderId) async {
+    final updated = state.cuttingOrders.map((o) {
+      if (o.id == orderId || o.orderNumber == orderId) {
+        String nextStatus = o.status;
+        if (o.status == 'QUEUED') {
+          nextStatus = 'SPREADING';
+        } else if (o.status == 'SPREADING') {
+          nextStatus = 'CUTTING';
+        } else if (o.status == 'CUTTING') {
+          nextStatus = 'INSPECTED';
+        } else if (o.status == 'INSPECTED') {
+          nextStatus = 'BUNDLED';
+        }
+        return o.copyWith(status: nextStatus);
+      }
+      return o;
+    }).toList();
+    state = state.copyWith(cuttingOrders: updated);
+  }
+
+  // ==========================================
+  // STORE CHALLAN ACTIONS
+  // ==========================================
+  Future<bool> createStoreIssueChallan({
+    required String targetDivision,
+    required String articleNumber,
+    required String buyerName,
+    required String fabricType,
+    required String color,
+    required double quantity,
+    required String unit,
+    required int rollsCount,
+    String? notes,
+  }) async {
+    try {
+      final newChallan = StoreChallanRecord(
+        id: 'iss-${DateTime.now().millisecondsSinceEpoch}',
+        challanNumber: 'ISS-${DateTime.now().year}-${(DateTime.now().millisecondsSinceEpoch % 9000 + 1000)}',
+        fromDivision: 'CUTTING',
+        toDivision: targetDivision,
+        articleNumber: articleNumber,
+        buyerName: buyerName,
+        fabricType: fabricType,
+        color: color,
+        quantity: quantity,
+        unit: unit,
+        rollsCount: rollsCount,
+        status: 'ISSUED',
+        notes: notes ?? '',
+        createdAt: DateTime.now().toIso8601String().split('T')[0],
+      );
+      state = state.copyWith(storeChallans: [newChallan, ...state.storeChallans]);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> acknowledgeStoreReceipt({
+    required String challanId,
+    required double receivedQty,
+    required double shortageQty,
+    required String receiverName,
+    required String rackLocation,
+    String? notes,
+  }) async {
+    try {
+      final updated = state.storeChallans.map((c) {
+        if (c.id == challanId || c.challanNumber == challanId) {
+          return c.copyWith(
+            status: 'RECEIVED',
+            quantity: receivedQty,
+            shortageQuantity: shortageQty,
+            receiverName: receiverName,
+            rackLocation: rackLocation,
+            notes: notes ?? c.notes,
+          );
+        }
+        return c;
+      }).toList();
+      state = state.copyWith(storeChallans: updated);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ==========================================
+  // NOTIFICATIONS ACTIONS
+  // ==========================================
+  void markNotificationAsRead(String notifId) {
+    final updated = state.notifications.map((n) {
+      if (n.id == notifId) return n.copyWith(isRead: true);
+      return n;
+    }).toList();
+    state = state.copyWith(notifications: updated);
+  }
+
+  void markAllNotificationsAsRead() {
+    final updated = state.notifications.map((n) => n.copyWith(isRead: true)).toList();
+    state = state.copyWith(notifications: updated);
+  }
 }
 
 final cuttingProvider = StateNotifierProvider<CuttingNotifier, CuttingState>((ref) {
   return CuttingNotifier();
 });
+

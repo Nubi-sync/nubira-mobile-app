@@ -17,6 +17,13 @@ import '../../merchandising/screens/active_buyers_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
 import '../../merchandising/screens/tna_planner_screen.dart';
 import '../../cutting/screens/cutting_lay_floor_screen.dart';
+import '../../cutting/screens/cutting_notifications_screen.dart';
+import '../../cutting/screens/cutting_rolls_store_screen.dart';
+import '../../cutting/screens/cutting_lay_sheets_screen.dart';
+import '../../cutting/screens/cutting_cad_markers_screen.dart';
+import '../../cutting/screens/cutting_orders_queue_screen.dart';
+import '../../cutting/screens/cutting_bundle_tickets_screen.dart';
+import '../../cutting/screens/cutting_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -501,14 +508,105 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         const SizedBox(height: 4),
         _buildNavItem(
           context: context,
-          icon: Icons.content_cut,
-          title: 'Cutting & Lay Floor',
+          icon: Icons.content_cut_rounded,
+          title: 'Floor Dashboard',
           isActive: activeRoute == '/cutting',
           onTap: () {
             if (activeRoute == '/cutting') {
               Navigator.pop(context);
             } else {
               _navigateTo(context, const CuttingLayFloorScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.notifications_none_rounded,
+          title: 'Notification',
+          isActive: activeRoute == '/cutting/notifications',
+          onTap: () {
+            if (activeRoute == '/cutting/notifications') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.storefront_outlined,
+          title: 'Floor Store (Rolls)',
+          isActive: activeRoute == '/cutting/store',
+          onTap: () {
+            if (activeRoute == '/cutting/store') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingRollsStoreScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.layers_outlined,
+          title: 'Spreading & Lay Plans',
+          isActive: activeRoute == '/cutting/lay-sheets',
+          onTap: () {
+            if (activeRoute == '/cutting/lay-sheets') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingLaySheetsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.open_in_full_rounded,
+          title: 'CAD Markers & Nesting',
+          isActive: activeRoute == '/cutting/markers',
+          onTap: () {
+            if (activeRoute == '/cutting/markers') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingCadMarkersScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.memory_rounded,
+          title: 'Cutting Orders & Queue',
+          isActive: activeRoute == '/cutting/orders',
+          onTap: () {
+            if (activeRoute == '/cutting/orders') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingOrdersQueueScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.qr_code_2_rounded,
+          title: 'Bundle Tickets & Barcodes',
+          isActive: activeRoute == '/cutting/bundles',
+          onTap: () {
+            if (activeRoute == '/cutting/bundles') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingBundleTicketsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/cutting/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/cutting/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingZigzaAiScreen());
             }
           },
         ),

@@ -10,6 +10,10 @@ import '../widgets/add_cutting_task_modal.dart';
 import '../widgets/add_cutting_worker_modal.dart';
 import '../widgets/cutting_worker_list_modal.dart';
 import '../widgets/select_route_modal.dart';
+import 'cutting_lay_sheets_screen.dart';
+import 'cutting_cad_markers_screen.dart';
+import 'cutting_bundle_tickets_screen.dart';
+import 'cutting_zigza_ai_screen.dart';
 
 class CuttingLayFloorScreen extends ConsumerStatefulWidget {
   const CuttingLayFloorScreen({super.key});
@@ -214,19 +218,6 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
     }
   }
 
-  void _showActionNotice(String title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$title module is actively synchronized with live Cutting MES',
-          style: GoogleFonts.publicSans(fontSize: 13, color: Colors.white),
-        ),
-        backgroundColor: const Color(0xFF3A3564),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(cuttingProvider);
@@ -427,15 +418,21 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           child: _buildActionOutlineButton(
                             icon: Icons.layers_outlined,
                             label: 'Lay sheets',
-                            onTap: () => _showActionNotice('Spreading & Lay Sheets'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CuttingLaySheetsScreen()),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionOutlineButton(
-                            icon: Icons.architecture_outlined,
+                            icon: Icons.open_in_full_rounded,
                             label: 'CAD markers',
-                            onTap: () => _showActionNotice('CAD Marker Nesting'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CuttingCadMarkersScreen()),
+                            ),
                           ),
                         ),
                       ],
@@ -445,17 +442,23 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                       children: [
                         Expanded(
                           child: _buildActionOutlineButton(
-                            icon: Icons.qr_code_scanner,
+                            icon: Icons.qr_code_2_rounded,
                             label: 'Bundle QR',
-                            onTap: () => _showActionNotice('Cut Bundle QR & Barcode'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CuttingBundleTicketsScreen()),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionOutlineButton(
-                            icon: Icons.auto_awesome,
+                            icon: Icons.smart_toy_outlined,
                             label: 'Zigza AI',
-                            onTap: () => _showActionNotice('Zigza AI Yield Optimizer'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CuttingZigzaAiScreen()),
+                            ),
                           ),
                         ),
                       ],
