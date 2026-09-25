@@ -51,7 +51,7 @@ class SelectRouteModal extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                   ),
                   child: const Icon(Icons.alt_route_rounded, color: Color(0xFF3A3564), size: 22),
                 ),

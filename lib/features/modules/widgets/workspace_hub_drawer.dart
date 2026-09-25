@@ -311,6 +311,275 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isMerchandising = activeRoute.startsWith('/merchandising');
     final isCutting = activeRoute.startsWith('/cutting');
 
+    List<Widget> navChildren;
+
+    if (isDesignStudio) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('1. DESIGN STUDIO'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.palette_outlined,
+          title: 'Studio Dashboard',
+          isActive: activeRoute == '/design',
+          onTap: () {
+            if (activeRoute == '/design') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const DesignStudioScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.description_outlined,
+          title: 'Tech-Pack Catalog',
+          isActive: activeRoute == '/design/tech-packs',
+          onTap: () {
+            if (activeRoute == '/design/tech-packs') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const TechPackCatalogScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.people_outline_rounded,
+          title: 'Team Management',
+          isActive: activeRoute == '/design/team',
+          onTap: () {
+            if (activeRoute == '/design/team') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const DesignTeamManagementScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.settings_outlined,
+          title: 'PH Settings',
+          isActive: activeRoute == '/design/settings',
+          onTap: () {
+            if (activeRoute == '/design/settings') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const PHSettingsScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Studio Profile',
+          isActive: activeRoute == '/design/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isMerchandising) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('2. MERCHANDISING'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.business_center_outlined,
+          title: 'Desk Dashboard',
+          isActive: activeRoute == '/merchandising',
+          onTap: () {
+            if (activeRoute == '/merchandising') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const MerchandisingDashboardScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.people_outline_rounded,
+          title: 'Active Buyers',
+          isActive: activeRoute == '/merchandising/buyers',
+          onTap: () {
+            if (activeRoute == '/merchandising/buyers') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const ActiveBuyersScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.fact_check_outlined,
+          title: 'Buyer Purchase Orders',
+          isActive: activeRoute == '/merchandising/orders',
+          onTap: () {
+            if (activeRoute == '/merchandising/orders') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const BuyerPurchaseOrdersScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.calendar_month_outlined,
+          title: 'Time & Action (T&A) Planner',
+          isActive: activeRoute == '/merchandising/tna-calendar',
+          onTap: () {
+            if (activeRoute == '/merchandising/tna-calendar') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const TnaPlannerScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/merchandising/zigza-ai',
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Zigza AI Merchandising Assistant active on desk')),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Desk Profile',
+          isActive: activeRoute == '/merchandising/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isCutting) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('3. CUTTING FLOOR'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.content_cut,
+          title: 'Cutting & Lay Floor',
+          isActive: activeRoute == '/cutting',
+          onTap: () {
+            if (activeRoute == '/cutting') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CuttingLayFloorScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/cutting/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: activeRoute == '/modules' || activeRoute == '/workspace-hub',
+          onTap: () {
+            if (activeRoute == '/modules' || activeRoute == '/workspace-hub') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+            }
+          },
+        ),
+        if (canHeads)
+          _buildNavItem(
+            context: context,
+            icon: Icons.shield_outlined,
+            title: 'Department Heads',
+            isActive: activeRoute == '/access-control' ||
+                activeRoute == '/department-heads' ||
+                activeRoute == '/modules/access-control',
+            onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
+          ),
+        if (canSupervisor)
+          _buildNavItem(
+            context: context,
+            icon: Icons.build_outlined,
+            title: 'Supervisor Operations',
+            isActive: activeRoute == '/supervisor-desk' ||
+                activeRoute == '/supervisor-hub' ||
+                activeRoute == '/modules/supervisor-desk',
+            onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
+          ),
+        if (canSAApprovals)
+          _buildNavItem(
+            context: context,
+            icon: Icons.verified_user_outlined,
+            title: 'SA Design Approvals',
+            isActive: activeRoute == '/design/sa-approvals' || activeRoute == '/sa-approvals',
+            onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
+          ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.business_outlined,
+          title: 'Company Profile',
+          isActive: activeRoute == '/profile' ||
+              activeRoute == '/company-profile' ||
+              activeRoute == '/modules/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    }
+
     return Drawer(
       backgroundColor: Colors.white,
       width: MediaQuery.of(context).size.width * 0.82,
@@ -323,297 +592,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                children: isDesignStudio
-                    ? [
-                        // ==========================================
-                        // 1. DESIGN STUDIO CONTEXTUAL NAVIGATION
-                        // ==========================================
-                        _buildSectionLabel('WORKSPACE HUB'),
-                        const SizedBox(height: 4),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.grid_view_rounded,
-                          title: 'All Modules',
-                          isActive: false,
-                          onTap: () {
-                            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-                        _buildSectionLabel('1. DESIGN STUDIO'),
-                        const SizedBox(height: 4),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.palette_outlined,
-                          title: 'Studio Dashboard',
-                          isActive: activeRoute == '/design',
-                          onTap: () {
-                            if (activeRoute == '/design') {
-                              Navigator.pop(context);
-                            } else {
-                              _navigateTo(context, const DesignStudioScreen());
-                            }
-                          },
-                        ),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.description_outlined,
-                          title: 'Tech-Pack Catalog',
-                          isActive: activeRoute == '/design/tech-packs',
-                          onTap: () {
-                            if (activeRoute == '/design/tech-packs') {
-                              Navigator.pop(context);
-                            } else {
-                              _navigateTo(context, const TechPackCatalogScreen());
-                            }
-                          },
-                        ),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.people_outline_rounded,
-                          title: 'Team Management',
-                          isActive: activeRoute == '/design/team',
-                          onTap: () {
-                            if (activeRoute == '/design/team') {
-                              Navigator.pop(context);
-                            } else {
-                              _navigateTo(context, const DesignTeamManagementScreen());
-                            }
-                          },
-                        ),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.settings_outlined,
-                          title: 'PH Settings',
-                          isActive: activeRoute == '/design/settings',
-                          onTap: () {
-                            if (activeRoute == '/design/settings') {
-                              Navigator.pop(context);
-                            } else {
-                              _navigateTo(context, const PHSettingsScreen());
-                            }
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-                        _buildSectionLabel('ACCOUNT'),
-                        const SizedBox(height: 4),
-                        _buildNavItem(
-                          context: context,
-                          icon: Icons.person_outline_rounded,
-                          title: 'Studio Profile',
-                          isActive: activeRoute == '/design/profile',
-                          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                        ),
-                      ]
-                    : (isMerchandising
-                        ? [
-                            // ==========================================
-                            // 2. MERCHANDISING CONTEXTUAL NAVIGATION (Matching Web Exactly)
-                            // ==========================================
-                            _buildSectionLabel('WORKSPACE HUB'),
-                            const SizedBox(height: 4),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.grid_view_rounded,
-                              title: 'All Modules',
-                              isActive: false,
-                              onTap: () {
-                                _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                              },
-                            ),
-
-                            const SizedBox(height: 16),
-                            _buildSectionLabel('2. MERCHANDISING'),
-                            const SizedBox(height: 4),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.business_center_outlined,
-                              title: 'Desk Dashboard',
-                              isActive: activeRoute == '/merchandising',
-                              onTap: () {
-                                if (activeRoute == '/merchandising') {
-                                  Navigator.pop(context);
-                                } else {
-                                  _navigateTo(context, const MerchandisingDashboardScreen());
-                                }
-                              },
-                            ),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.people_outline_rounded,
-                              title: 'Active Buyers',
-                              isActive: activeRoute == '/merchandising/buyers',
-                              onTap: () {
-                                if (activeRoute == '/merchandising/buyers') {
-                                  Navigator.pop(context);
-                                } else {
-                                  _navigateTo(context, const ActiveBuyersScreen());
-                                }
-                              },
-                            ),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.fact_check_outlined,
-                              title: 'Buyer Purchase Orders',
-                              isActive: activeRoute == '/merchandising/orders',
-                              onTap: () {
-                                if (activeRoute == '/merchandising/orders') {
-                                  Navigator.pop(context);
-                                } else {
-                                  _navigateTo(context, const BuyerPurchaseOrdersScreen());
-                                }
-                              },
-                            ),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.calendar_month_outlined,
-                              title: 'Time & Action (T&A) Planner',
-                              isActive: activeRoute == '/merchandising/tna-calendar',
-                              onTap: () {
-                                if (activeRoute == '/merchandising/tna-calendar') {
-                                  Navigator.pop(context);
-                                } else {
-                                  _navigateTo(context, const TnaPlannerScreen());
-                                }
-                              },
-                            ),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.smart_toy_outlined,
-                              title: 'Zigza AI',
-                              isActive: activeRoute == '/merchandising/zigza-ai',
-                              onTap: () {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Zigza AI Merchandising Assistant active on desk')),
-                                );
-                              },
-                            ),
-
-                            const SizedBox(height: 16),
-                            _buildSectionLabel('ACCOUNT'),
-                            const SizedBox(height: 4),
-                            _buildNavItem(
-                              context: context,
-                              icon: Icons.person_outline_rounded,
-                              title: 'Desk Profile',
-                              isActive: activeRoute == '/merchandising/profile',
-                              onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                            ),
-                          ]
-                        : (isCutting
-                            ? [
-                                // ==========================================
-                                // 3. CUTTING & LAY FLOOR NAVIGATION
-                                // ==========================================
-                                _buildSectionLabel('WORKSPACE HUB'),
-                                const SizedBox(height: 4),
-                                _buildNavItem(
-                                  context: context,
-                                  icon: Icons.grid_view_rounded,
-                                  title: 'All Modules',
-                                  isActive: false,
-                                  onTap: () {
-                                    _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                                  },
-                                ),
-
-                                const SizedBox(height: 16),
-                                _buildSectionLabel('3. CUTTING FLOOR'),
-                                const SizedBox(height: 4),
-                                _buildNavItem(
-                                  context: context,
-                                  icon: Icons.content_cut,
-                                  title: 'Cutting & Lay Floor',
-                                  isActive: activeRoute == '/cutting',
-                                  onTap: () {
-                                    if (activeRoute == '/cutting') {
-                                      Navigator.pop(context);
-                                    } else {
-                                      _navigateTo(context, const CuttingLayFloorScreen());
-                                    }
-                                  },
-                                ),
-
-                                const SizedBox(height: 16),
-                                _buildSectionLabel('ACCOUNT'),
-                                const SizedBox(height: 4),
-                                _buildNavItem(
-                                  context: context,
-                                  icon: Icons.person_outline_rounded,
-                                  title: 'Division Profile',
-                                  isActive: activeRoute == '/cutting/profile',
-                                  onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                                ),
-                              ]
-                            : [
-                                // ==========================================
-                                // ROOT WORKSPACE HUB NAVIGATION (Matching Web Exactly)
-                                // ==========================================
-                                _buildSectionLabel('WORKSPACE HUB'),
-                                const SizedBox(height: 4),
-
-                                // 1. All Modules (Hub Home)
-                                _buildNavItem(
-                                  context: context,
-                                  icon: Icons.grid_view_rounded,
-                                  title: 'All Modules',
-                                  isActive: activeRoute == '/modules' || activeRoute == '/workspace-hub',
-                                  onTap: () {
-                                    if (activeRoute == '/modules' || activeRoute == '/workspace-hub') {
-                                      Navigator.pop(context);
-                                    } else {
-                                      _navigateTo(context, const EnterpriseWorkspaceHubScreen());
-                                    }
-                                  },
-                                ),
-
-                        // 2. Department Heads (Role-Gated)
-                        if (canHeads)
-                          _buildNavItem(
-                            context: context,
-                            icon: Icons.shield_outlined,
-                            title: 'Department Heads',
-                            isActive: activeRoute == '/access-control' ||
-                                activeRoute == '/department-heads' ||
-                                activeRoute == '/modules/access-control',
-                            onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
-                          ),
-
-                        // 3. Supervisor Operations (Role-Gated)
-                        if (canSupervisor)
-                          _buildNavItem(
-                            context: context,
-                            icon: Icons.build_outlined,
-                            title: 'Supervisor Operations',
-                            isActive: activeRoute == '/supervisor-desk' ||
-                                activeRoute == '/supervisor-hub' ||
-                                activeRoute == '/modules/supervisor-desk',
-                            onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
-                          ),
-
-                        // 4. SA Design Approvals (Role-Gated, matches Web order & icon)
-                        if (canSAApprovals)
-                          _buildNavItem(
-                            context: context,
-                            icon: Icons.verified_user_outlined,
-                            title: 'SA Design Approvals',
-                            isActive: activeRoute == '/design/sa-approvals' || activeRoute == '/sa-approvals',
-                            onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
-                          ),
-
-                          _buildNavItem(
-                            context: context,
-                            icon: Icons.business_outlined,
-                            title: 'Company Profile',
-                            isActive: activeRoute == '/profile' ||
-                                activeRoute == '/company-profile' ||
-                                activeRoute == '/modules/profile',
-                            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                          ),
-                        ]))),
+                children: navChildren,
               ),
             ),
 

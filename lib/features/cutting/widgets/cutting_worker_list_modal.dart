@@ -146,7 +146,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                   ),
                   child: const Icon(Icons.badge_outlined, color: Color(0xFF3A3564), size: 22),
                 ),
@@ -192,7 +192,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withOpacity(0.08)),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                     ),
                     child: TextField(
                       controller: _searchCtrl,
@@ -282,7 +282,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.black.withOpacity(0.06)),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
                         ),
                         child: Row(
                           children: [

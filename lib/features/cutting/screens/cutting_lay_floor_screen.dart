@@ -247,10 +247,9 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFFAF7F0),
-      drawer: const WorkspaceHubDrawer(),
+      drawer: const WorkspaceHubDrawer(activeRoute: '/cutting'),
       appBar: ZigzaAppBar(
-        scaffoldKey: _scaffoldKey,
-        onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
         color: const Color(0xFF3A3564),
@@ -325,7 +324,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                     const SizedBox(width: 6),
                     Text(
                       'VACUUM & WORKER PORTAL SYNC ACTIVE',
-                      style: GoogleFonts.jetbrainsMono(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF047857),
@@ -347,7 +346,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withOpacity(0.1)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                   boxShadow: [
                     BoxKeyValues.cardShadow,
                   ],
@@ -365,7 +364,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAF7F0),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withOpacity(0.1)),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                           ),
                           child: const Icon(Icons.content_cut, color: Color(0xFF3A3564), size: 22),
                         ),
@@ -395,7 +394,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                                     ),
                                     child: Text(
                                       '${state.workers.length} workers registered',
-                                      style: GoogleFonts.jetbrainsMono(
+                                      style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         color: const Color(0xFF3A3564),
@@ -476,7 +475,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withOpacity(0.1)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                   boxShadow: [
                     BoxKeyValues.cardShadow,
                   ],
@@ -492,7 +491,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAF7F0),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.black.withOpacity(0.08)),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                           ),
                           child: const Icon(Icons.business_outlined, color: Color(0xFF3A3564), size: 18),
                         ),
@@ -502,7 +501,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           children: [
                             Text(
                               'SELECTED BUYER CONTRACT',
-                              style: GoogleFonts.jetbrainsMono(
+                              style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF64748B),
@@ -529,7 +528,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                                   ),
                                   child: Text(
                                     'Article: $articleCode',
-                                    style: GoogleFonts.jetbrainsMono(
+                                    style: GoogleFonts.jetBrainsMono(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: const Color(0xFF3A3564),
@@ -554,7 +553,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFFAF7F0),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black.withOpacity(0.06)),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
                         ),
                         child: Row(
                           children: [
@@ -585,7 +584,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withOpacity(0.1)),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -624,7 +623,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF0F172A),
-                          side: BorderSide(color: Colors.black.withOpacity(0.12)),
+                          side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
@@ -664,7 +663,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withOpacity(0.12)),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
                           ),
                           child: IconButton(
                             icon: state.isSyncing
@@ -720,7 +719,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withOpacity(0.1)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                   boxShadow: [
                     BoxKeyValues.cardShadow,
                   ],
@@ -742,7 +741,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFAF7F0),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withOpacity(0.08)),
+                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                                 ),
                                 child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 18),
                               ),
@@ -775,7 +774,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFFAF7F0),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withOpacity(0.08)),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                             ),
                             child: TextField(
                               controller: _searchCtrl,
@@ -891,7 +890,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                               ),
                               Text(
                                 '$inHand',
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF0F172A),
@@ -903,7 +902,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                               ),
                               Text(
                                 '$pendingCutting',
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF0F172A),
@@ -915,7 +914,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                               ),
                               Text(
                                 '$completedCutting',
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF047857),
@@ -955,7 +954,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withOpacity(0.1)),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -988,7 +987,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withOpacity(0.1)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
         boxShadow: [
           BoxKeyValues.cardShadow,
         ],
@@ -1002,7 +1001,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
               children: [
                 Text(
                   label.toUpperCase(),
-                  style: GoogleFonts.jetbrainsMono(
+                  style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF64748B),
@@ -1012,7 +1011,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: GoogleFonts.jetbrainsMono(
+                  style: GoogleFonts.jetBrainsMono(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF0F172A),
@@ -1035,7 +1034,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFFAF7F0),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.black.withOpacity(0.08)),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
             ),
             child: Icon(icon, color: const Color(0xFF3A3564), size: 24),
           ),
@@ -1083,7 +1082,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFFAF7F0),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.black.withOpacity(0.08)),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
               ),
               child: const Icon(Icons.table_restaurant_outlined, size: 28, color: Color(0xFF94A3B8)),
             ),
@@ -1145,7 +1144,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFFAF7F0),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1167,7 +1166,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                     const SizedBox(width: 6),
                     Text(
                       task.taskRef,
-                      style: GoogleFonts.jetbrainsMono(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         color: const Color(0xFF64748B),
                       ),
@@ -1184,7 +1183,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                 ),
                 child: Text(
                   statusLabel,
-                  style: GoogleFonts.jetbrainsMono(
+                  style: GoogleFonts.jetBrainsMono(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: statusText,
@@ -1211,7 +1210,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                         const SizedBox(width: 4),
                         Text(
                           task.articleNumber,
-                          style: GoogleFonts.jetbrainsMono(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF3A3564),
@@ -1240,7 +1239,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                         const SizedBox(width: 4),
                         Text(
                           '${task.allotedHours.toInt()}h shift',
-                          style: GoogleFonts.jetbrainsMono(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             color: const Color(0xFF64748B),
                           ),
@@ -1252,7 +1251,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
               ),
               Text(
                 '${task.piecesToCut} pcs',
-                style: GoogleFonts.jetbrainsMono(
+                style: GoogleFonts.jetBrainsMono(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF0F172A),
@@ -1325,7 +1324,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
 
 class BoxKeyValues {
   static final BoxShadow cardShadow = BoxShadow(
-    color: Colors.black.withOpacity(0.03),
+    color: Colors.black.withValues(alpha: 0.03),
     blurRadius: 2,
     offset: const Offset(0, 1),
   );

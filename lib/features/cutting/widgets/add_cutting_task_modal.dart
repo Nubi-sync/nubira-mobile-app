@@ -163,7 +163,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                   ),
                   child: const Icon(Icons.assignment_add, color: Color(0xFF3A3564), size: 22),
                 ),
@@ -212,7 +212,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.black.withOpacity(0.08)),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                       ),
                       child: Row(
                         children: [
@@ -349,7 +349,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withOpacity(0.08)),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<CuttingWorker>(
@@ -431,7 +431,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withOpacity(0.08)),
+                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -495,11 +495,11 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+                                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+                                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -546,7 +546,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 color: isSelected ? const Color(0xFF3A3564) : Colors.white,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF3A3564) : Colors.black.withOpacity(0.08),
+                                  color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
                                 ),
                               ),
                               child: Center(
@@ -589,11 +589,11 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
