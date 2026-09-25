@@ -169,6 +169,8 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                           fontSize: 12,
                           color: const Color(0xFF64748B),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
