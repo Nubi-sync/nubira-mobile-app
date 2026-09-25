@@ -555,23 +555,92 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
         debugPrint('[MerchandisingNotifier] Error loading tech packs: $e');
       }
 
-      // 4. Fetch T&A Milestones
+      // 4. Fetch T&A Milestones with Order & Tech Pack details
       List<TnaMilestone> milestoneList = [];
       try {
-        final mRes = await client.from('merchandising_tna_milestones').select('*').order('target_date', ascending: true);
-        final rawMilestones = mRes as List<dynamic>;
-        milestoneList = rawMilestones.map((m) {
+        final mRes = await client
+            .from('merchandising_tna_milestones')
+            .select('''
+              *,
+              merchandising_orders (
+                id,
+                order_number,
+                order_date,
+                ex_factory_date,
+                company_name,
+                design_tech_packs ( style_number, category, company_name )
+              )
+            ''')
+            .order('target_date', ascending: true);
+
+        final rawMilestones = (mRes as List<dynamic>?) ?? [];
+        final gateRatios = <String, double>{
+          'LAB_DIP_APPROVAL': 0.12,
+          'FABRIC_INWARD': 0.28,
+          'PPS_APPROVAL': 0.40,
+          'CUTTING_START': 0.52,
+          'SEWING_COMPLETE': 0.72,
+          'WASHING_COMPLETE': 0.84,
+          'FINAL_AQL_AUDIT': 0.92,
+          'EX_FACTORY': 1.00,
+        };
+
+        var mappedMilestones = rawMilestones.map((m) {
+          final ord = m['merchandising_orders'] as Map<String, dynamic>?;
+          final tp = ord?['design_tech_packs'] as Map<String, dynamic>?;
+          final poNum = ord?['order_number']?.toString() ?? 'PO';
+          final style = tp?['style_number']?.toString() ?? 'Standard Style';
+
+          String targetDate = m['target_date']?.toString() ?? '';
+          if (targetDate.isEmpty && ord != null && ord['ex_factory_date'] != null) {
+            final now = DateTime.now();
+            final orderDate = DateTime.tryParse(ord['order_date']?.toString() ?? '') ?? now;
+            final exDate = DateTime.tryParse(ord['ex_factory_date']?.toString() ?? '') ?? now.add(const Duration(days: 30));
+            final totalDays = exDate.difference(orderDate).inDays > 0 ? exDate.difference(orderDate).inDays : 30;
+            final ratio = gateRatios[m['gate_name']?.toString() ?? ''] ?? 0.5;
+            targetDate = ratio == 1.0
+                ? ord['ex_factory_date'].toString()
+                : orderDate.add(Duration(days: (totalDays * ratio).round())).toIso8601String().split('T')[0];
+          }
+
+          final rawStatus = m['status']?.toString() ?? 'ON_SCHEDULE';
+          String normStatus = rawStatus.toUpperCase().trim();
+          if (normStatus == 'COMPLETED' || normStatus == 'CLEARED') {
+            normStatus = 'COMPLETED';
+          } else if (normStatus == 'DELAYED') {
+            normStatus = 'DELAYED';
+          } else if (normStatus == 'ESCALATED') {
+            normStatus = 'ESCALATED';
+          } else {
+            normStatus = 'ON_SCHEDULE';
+          }
+
           return TnaMilestone(
             id: m['id']?.toString() ?? '',
             orderId: m['order_id']?.toString() ?? '',
+            poNumber: poNum,
+            styleRef: style,
             gateName: m['gate_name']?.toString() ?? 'GATE',
-            targetDate: m['target_date']?.toString() ?? '',
+            targetDate: targetDate,
             actualDate: m['actual_date']?.toString(),
-            status: m['status']?.toString() ?? 'ON_SCHEDULE',
+            status: normStatus,
             delayReason: m['delay_reason']?.toString(),
+            mitigationNotes: m['mitigation_notes']?.toString(),
+            sortOrder: (m['sort_order'] as num?)?.toInt() ?? 1,
           );
         }).toList();
-      } catch (_) {}
+
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          final target = companyFilter.toLowerCase();
+          mappedMilestones = mappedMilestones.where((m) {
+            final matchingOrd = fetchedOrders.where((o) => o.id == m.orderId).firstOrNull;
+            if (matchingOrd == null) return true;
+            final oc = (matchingOrd.companyName ?? '').toLowerCase();
+            final bn = matchingOrd.brandName.toLowerCase();
+        milestoneList = mappedMilestones;
+      } catch (e) {
+        debugPrint('[MerchandisingNotifier] Error loading milestones: $e');
+      }
 
       // Keep selected buyer ID or default to first
       String activeBuyerId = state.selectedBuyerId;
@@ -873,6 +942,72 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
       return true;
     } catch (e) {
       debugPrint('[MerchandisingNotifier] Error unlinking article: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateTnaMilestone({
+    required String id,
+    required String status,
+    String? plannedDate,
+    String? actualDate,
+    String? delayReason,
+    String? mitigationNotes,
+  }) async {
+    try {
+      final client = Supabase.instance.client;
+      final target = state.milestones.where((m) => m.id == id).firstOrNull;
+      if (target == null) return false;
+
+      final updatedStatus = status.toUpperCase().trim();
+      final updatedActualDate = actualDate != null && actualDate.isNotEmpty
+          ? actualDate
+          : (updatedStatus == 'COMPLETED' ? DateTime.now().toIso8601String().split('T')[0] : target.actualDate);
+
+      final updatedMilestone = target.copyWith(
+        status: updatedStatus,
+        targetDate: plannedDate ?? target.targetDate,
+        actualDate: updatedActualDate,
+        delayReason: delayReason,
+        mitigationNotes: mitigationNotes,
+      );
+
+      // Optimistically update local state
+      final updatedList = state.milestones.map((m) => m.id == id ? updatedMilestone : m).toList();
+      state = state.copyWith(milestones: updatedList);
+
+      // Persist to Supabase
+      if (id.startsWith('syn-')) {
+        // Insert real record into Supabase
+        final insertRes = await client.from('merchandising_tna_milestones').insert({
+          'order_id': target.orderId,
+          'gate_name': target.gateName,
+          'target_date': updatedMilestone.targetDate,
+          'actual_date': updatedMilestone.actualDate,
+          'status': updatedStatus,
+          'delay_reason': delayReason,
+        }).select().maybeSingle();
+
+        if (insertRes != null && insertRes['id'] != null) {
+          final realId = insertRes['id'].toString();
+          final realUpdated = updatedMilestone.copyWith(id: realId);
+          state = state.copyWith(
+            milestones: state.milestones.map((m) => m.id == id ? realUpdated : m).toList(),
+          );
+        }
+      } else {
+        await client.from('merchandising_tna_milestones').update({
+          'status': updatedStatus,
+          'target_date': updatedMilestone.targetDate,
+          'actual_date': updatedMilestone.actualDate,
+          'delay_reason': delayReason,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', id);
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('[MerchandisingNotifier] Error updating milestone: $e');
       return false;
     }
   }

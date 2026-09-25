@@ -15,6 +15,7 @@ import '../../design/screens/sa_design_approvals_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../merchandising/screens/active_buyers_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
+import '../../merchandising/screens/tna_planner_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -469,10 +470,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                               title: 'Time & Action (T&A) Planner',
                               isActive: activeRoute == '/merchandising/tna-calendar',
                               onTap: () {
-                                if (activeRoute == '/merchandising') {
+                                if (activeRoute == '/merchandising/tna-calendar') {
                                   Navigator.pop(context);
                                 } else {
-                                  _navigateTo(context, const MerchandisingDashboardScreen());
+                                  _navigateTo(context, const TnaPlannerScreen());
                                 }
                               },
                             ),

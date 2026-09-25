@@ -295,21 +295,94 @@ class StageMetrics {
 class TnaMilestone {
   final String id;
   final String orderId;
+  final String poNumber;
+  final String styleRef;
   final String gateName;
   final String targetDate;
   final String? actualDate;
   final String status;
   final String? delayReason;
+  final String? mitigationNotes;
+  final int sortOrder;
 
   const TnaMilestone({
     required this.id,
     required this.orderId,
+    this.poNumber = 'N/A',
+    this.styleRef = 'Standard Style',
     required this.gateName,
     required this.targetDate,
     this.actualDate,
     this.status = 'ON_SCHEDULE',
     this.delayReason,
+    this.mitigationNotes,
+    this.sortOrder = 1,
   });
+
+  String get milestoneName => gateName.replaceAll('_', ' ');
+
+  String get plannedDate => targetDate;
+
+  bool get isCompleted => status.toUpperCase() == 'COMPLETED' || status.toUpperCase() == 'CLEARED';
+  bool get isDelayed => status.toUpperCase() == 'DELAYED';
+  bool get isEscalated => status.toUpperCase() == 'ESCALATED';
+
+  TnaMilestone copyWith({
+    String? id,
+    String? orderId,
+    String? poNumber,
+    String? styleRef,
+    String? gateName,
+    String? targetDate,
+    String? actualDate,
+    String? status,
+    String? delayReason,
+    String? mitigationNotes,
+    int? sortOrder,
+  }) {
+    return TnaMilestone(
+      id: id ?? this.id,
+      orderId: orderId ?? this.orderId,
+      poNumber: poNumber ?? this.poNumber,
+      styleRef: styleRef ?? this.styleRef,
+      gateName: gateName ?? this.gateName,
+      targetDate: targetDate ?? this.targetDate,
+      actualDate: actualDate ?? this.actualDate,
+      status: status ?? this.status,
+      delayReason: delayReason ?? this.delayReason,
+      mitigationNotes: mitigationNotes ?? this.mitigationNotes,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  factory TnaMilestone.fromJson(Map<String, dynamic> json) {
+    return TnaMilestone(
+      id: json['id']?.toString() ?? '',
+      orderId: json['order_id']?.toString() ?? '',
+      poNumber: json['po_number']?.toString() ?? 'N/A',
+      styleRef: json['style_ref']?.toString() ?? 'Standard Style',
+      gateName: json['gate_name']?.toString() ?? json['milestone_name']?.toString() ?? 'GATE',
+      targetDate: json['target_date']?.toString() ?? json['planned_date']?.toString() ?? '',
+      actualDate: json['actual_date']?.toString(),
+      status: json['status']?.toString() ?? 'ON_SCHEDULE',
+      delayReason: json['delay_reason']?.toString(),
+      mitigationNotes: json['mitigation_notes']?.toString(),
+      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'order_id': orderId,
+      'gate_name': gateName,
+      'target_date': targetDate,
+      if (actualDate != null) 'actual_date': actualDate,
+      'status': status,
+      if (delayReason != null) 'delay_reason': delayReason,
+      if (mitigationNotes != null) 'mitigation_notes': mitigationNotes,
+    };
+  }
 }
 
 class ActivityItem {

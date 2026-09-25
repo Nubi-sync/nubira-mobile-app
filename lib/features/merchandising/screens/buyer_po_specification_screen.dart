@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
+import 'tna_planner_screen.dart';
 
 class BuyerPOSpecificationScreen extends ConsumerWidget {
   final MerchandisingOrder order;
@@ -967,14 +968,40 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             const SizedBox(height: 20),
 
             // =========================================================
-            // 6. CLOSE SPECIFICATION BUTTON
+            // 6. ACTION BUTTONS ROW
             // =========================================================
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF3A3564),
+                    side: const BorderSide(color: Color(0x1A000000)),
+                    backgroundColor: const Color(0xFFFAF7F0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TnaPlannerScreen(initialPoNumber: order.poNumber),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.schedule_rounded, size: 16),
+                  label: Text(
+                    'T&A Schedule',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF241D52),
+                    backgroundColor: const Color(0xFF3A3564),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

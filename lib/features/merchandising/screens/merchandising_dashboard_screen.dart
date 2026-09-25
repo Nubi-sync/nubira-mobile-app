@@ -11,6 +11,7 @@ import '../widgets/create_order_modal.dart';
 import 'active_buyers_screen.dart';
 import 'buyer_po_specification_screen.dart';
 import 'buyer_purchase_orders_screen.dart';
+import 'tna_planner_screen.dart';
 
 class MerchandisingDashboardScreen extends ConsumerStatefulWidget {
   const MerchandisingDashboardScreen({super.key});
@@ -552,7 +553,12 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     title: 'Critical path SLA',
                     value: '${state.slaPercentage}%',
                     icon: Icons.calendar_today_outlined,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TnaPlannerScreen()),
+                      );
+                    },
                   ),
                 ],
               ),
