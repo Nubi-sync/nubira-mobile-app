@@ -259,8 +259,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
         .fold<int>(0, (sum, t) => sum + t.piecesToPrint);
 
     // In Hand resolution based on upstream Cutting Floor pieces
-    final upstreamCut = state.upstreamCutPieces > 0 ? state.upstreamCutPieces : 1420;
-    final upstreamEmb = state.upstreamEmbroideryPieces > 0 ? state.upstreamEmbroideryPieces : 850;
+    final upstreamCut = state.upstreamCutPieces;
+    final upstreamEmb = state.upstreamEmbroideryPieces;
 
     int sourcePieces = upstreamCut;
     if (activeRouteKey == 'EMBROIDERY_FIRST_THEN_PRINT') {

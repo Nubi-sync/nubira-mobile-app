@@ -291,6 +291,34 @@ class PrintingBuyerContract {
     this.companyName,
   });
 
+  PrintingBuyerContract copyWith({
+    String? id,
+    String? buyerName,
+    String? buyerCode,
+    int? contractedVolume,
+    double? pricePerPiece,
+    double? totalContractValue,
+    String? linkedArticleNumber,
+    String? linkedArticleName,
+    String? embellishmentSequence,
+    String? status,
+    String? companyName,
+  }) {
+    return PrintingBuyerContract(
+      id: id ?? this.id,
+      buyerName: buyerName ?? this.buyerName,
+      buyerCode: buyerCode ?? this.buyerCode,
+      contractedVolume: contractedVolume ?? this.contractedVolume,
+      pricePerPiece: pricePerPiece ?? this.pricePerPiece,
+      totalContractValue: totalContractValue ?? this.totalContractValue,
+      linkedArticleNumber: linkedArticleNumber ?? this.linkedArticleNumber,
+      linkedArticleName: linkedArticleName ?? this.linkedArticleName,
+      embellishmentSequence: embellishmentSequence ?? this.embellishmentSequence,
+      status: status ?? this.status,
+      companyName: companyName ?? this.companyName,
+    );
+  }
+
   factory PrintingBuyerContract.fromJson(Map<String, dynamic> json) {
     final qty = (json['contracted_volume'] as num?)?.toInt() ?? 0;
     final price = (json['price_per_piece'] as num?)?.toDouble() ?? 12.5;

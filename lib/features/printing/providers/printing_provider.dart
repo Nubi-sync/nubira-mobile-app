@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../main.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../models/printing_models.dart';
 
 class PrintingState {
@@ -29,7 +30,10 @@ class PrintingState {
     this.buyers = const [],
     this.selectedBuyerId = '',
     this.articleRoutes = const {},
-    this.strikeOffApproval = const StrikeOffApproval(),
+    this.strikeOffApproval = const StrikeOffApproval(
+      status: 'APPROVED',
+      labRemarks: 'Lab color fastness & swatch shade sign-off',
+    ),
     this.statusFilter = 'ALL',
     this.searchQuery = '',
     this.upstreamCutPieces = 0,
@@ -76,17 +80,24 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     loadInitialData();
   }
 
-  String _getCompanyFilter() {
-    final authState = ref.read(authProvider);
-    final tenant = authState.tenantProfile;
-    return (tenant?.companyName ?? 'Nubira Creation').trim();
+  Future<String?> _getResolvedCompanyFilter() async {
+    try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser != null) {
+        final tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        if (!tenant.isLegacyNubira && tenant.companyName != 'Zigza MES Platform Operations') {
+          return tenant.companyName.trim();
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> loadInitialData() async {
     state = state.copyWith(isLoading: true, error: null);
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Load from local cache first
+    // 1. Load from local cache, filtering out legacy dummy seed data
     try {
       final cachedWorkers = prefs.getString('cached_printing_workers');
       final cachedTasks = prefs.getString('cached_printing_tasks');
@@ -98,19 +109,31 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
       List<PrintingTaskAllocation> tasks = [];
       List<PrintingBuyerContract> buyers = [];
       Map<String, String> routes = {};
-      StrikeOffApproval strikeOff = const StrikeOffApproval();
+      StrikeOffApproval strikeOff = const StrikeOffApproval(
+        status: 'APPROVED',
+        labRemarks: 'Lab color fastness & swatch shade sign-off',
+      );
 
       if (cachedWorkers != null) {
         final decoded = jsonDecode(cachedWorkers) as List;
-        workers = decoded.map((e) => PrintingWorker.fromJson(e)).toList();
+        workers = decoded
+            .map((e) => PrintingWorker.fromJson(e))
+            .where((w) => w.id != 'pw-101' && w.id != 'pw-102' && w.id != 'pw-103')
+            .toList();
       }
       if (cachedTasks != null) {
         final decoded = jsonDecode(cachedTasks) as List;
-        tasks = decoded.map((e) => PrintingTaskAllocation.fromJson(e)).toList();
+        tasks = decoded
+            .map((e) => PrintingTaskAllocation.fromJson(e))
+            .where((t) => t.id != 'task-prn-01' && t.id != 'task-prn-02')
+            .toList();
       }
       if (cachedBuyers != null) {
         final decoded = jsonDecode(cachedBuyers) as List;
-        buyers = decoded.map((e) => PrintingBuyerContract.fromJson(e)).toList();
+        buyers = decoded
+            .map((e) => PrintingBuyerContract.fromJson(e))
+            .where((b) => b.id != 'byr-01' && b.id != 'byr-02' && b.id != 'byr-03')
+            .toList();
       }
       if (cachedRoutes != null) {
         final decoded = jsonDecode(cachedRoutes) as Map<String, dynamic>;
@@ -120,37 +143,32 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
         strikeOff = StrikeOffApproval.fromJson(jsonDecode(cachedStrikeOff));
       }
 
-      if (workers.isNotEmpty || tasks.isNotEmpty || buyers.isNotEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          workers: workers,
-          taskAllocations: tasks,
-          buyers: buyers,
-          articleRoutes: routes,
-          strikeOffApproval: strikeOff,
-          selectedBuyerId: state.selectedBuyerId.isNotEmpty
-              ? state.selectedBuyerId
-              : (buyers.isNotEmpty ? buyers.first.id : ''),
-        );
-      }
+      state = state.copyWith(
+        workers: workers,
+        taskAllocations: tasks,
+        buyers: buyers,
+        articleRoutes: routes,
+        strikeOffApproval: strikeOff,
+        selectedBuyerId: buyers.isNotEmpty ? buyers.first.id : '',
+      );
     } catch (_) {}
 
-    // 2. Fetch live data from Supabase backend
+    // 2. Fetch live data from Supabase backend (exact mirror of Web)
     await syncData();
   }
 
   Future<void> syncData() async {
     state = state.copyWith(isSyncing: true, error: null);
-    final company = _getCompanyFilter();
+    final companyFilter = await _getResolvedCompanyFilter();
 
     try {
-      // Parallel fetch from Supabase
+      // Parallel fetch from live Supabase tables
       final results = await Future.wait([
-        _fetchWorkersFromSupabase(company),
-        _fetchTasksFromSupabase(company),
-        _fetchBuyersFromSupabase(company),
-        _fetchUpstreamCuttingPieces(company),
-        _fetchUpstreamEmbroideryPieces(company),
+        _fetchWorkersFromSupabase(companyFilter),
+        _fetchTasksFromSupabase(companyFilter),
+        _fetchBuyersFromSupabase(companyFilter),
+        _fetchUpstreamCuttingPieces(companyFilter),
+        _fetchUpstreamEmbroideryPieces(companyFilter),
       ]);
 
       final freshWorkers = results[0] as List<PrintingWorker>;
@@ -159,32 +177,27 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
       final upstreamCut = results[3] as int;
       final upstreamEmbroidery = results[4] as int;
 
-      // Seed fallback demo data if server tables are empty
-      final finalWorkers = freshWorkers.isNotEmpty ? freshWorkers : _getFallbackWorkers();
-      final finalBuyers = freshBuyers.isNotEmpty ? freshBuyers : _getFallbackBuyers();
-      final finalTasks = freshTasks.isNotEmpty ? freshTasks : _getFallbackTasks();
-
       final activeBuyerId = state.selectedBuyerId.isNotEmpty &&
-              finalBuyers.any((b) => b.id == state.selectedBuyerId)
+              freshBuyers.any((b) => b.id == state.selectedBuyerId)
           ? state.selectedBuyerId
-          : (finalBuyers.isNotEmpty ? finalBuyers.first.id : '');
+          : (freshBuyers.isNotEmpty ? freshBuyers.first.id : '');
 
       state = state.copyWith(
         isLoading: false,
         isSyncing: false,
-        workers: finalWorkers,
-        taskAllocations: finalTasks,
-        buyers: finalBuyers,
+        workers: freshWorkers,
+        taskAllocations: freshTasks,
+        buyers: freshBuyers,
         selectedBuyerId: activeBuyerId,
-        upstreamCutPieces: upstreamCut > 0 ? upstreamCut : 1420,
-        upstreamEmbroideryPieces: upstreamEmbroidery > 0 ? upstreamEmbroidery : 850,
+        upstreamCutPieces: upstreamCut,
+        upstreamEmbroideryPieces: upstreamEmbroidery,
       );
 
-      // Save to SharedPreferences cache
+      // Save live synchronized data to SharedPreferences cache
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_printing_workers', jsonEncode(finalWorkers.map((e) => e.toJson()).toList()));
-      await prefs.setString('cached_printing_tasks', jsonEncode(finalTasks.map((e) => e.toJson()).toList()));
-      await prefs.setString('cached_printing_buyers', jsonEncode(finalBuyers.map((e) => {
+      await prefs.setString('cached_printing_workers', jsonEncode(freshWorkers.map((e) => e.toJson()).toList()));
+      await prefs.setString('cached_printing_tasks', jsonEncode(freshTasks.map((e) => e.toJson()).toList()));
+      await prefs.setString('cached_printing_buyers', jsonEncode(freshBuyers.map((e) => {
         'id': e.id,
         'buyer_name': e.buyerName,
         'buyer_code': e.buyerCode,
@@ -197,6 +210,7 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
         'status': e.status,
       }).toList()));
     } catch (e) {
+      debugPrint('[PrintingNotifier] syncData error: $e');
       state = state.copyWith(
         isLoading: false,
         isSyncing: false,
@@ -205,55 +219,188 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     }
   }
 
-  Future<List<PrintingWorker>> _fetchWorkersFromSupabase(String company) async {
+  Future<List<PrintingWorker>> _fetchWorkersFromSupabase(String? company) async {
     try {
-      final res = await supabase
+      var query = supabase
           .from('printing_workers')
           .select('*')
-          .eq('company_name', company)
           .order('created_at', ascending: false);
-      return (res as List).map((e) => PrintingWorker.fromJson(e)).toList();
-    } catch (_) {
+
+      final res = await query;
+      final rawList = (res as List<dynamic>?) ?? [];
+      var mapped = rawList.map((e) => PrintingWorker.fromJson(e as Map<String, dynamic>)).toList();
+
+      if (company != null && company.isNotEmpty) {
+        final target = company.toLowerCase();
+        mapped = mapped.where((w) {
+          final c = (w.companyName ?? '').toLowerCase();
+          return c.isEmpty || c == target || c.contains(target);
+        }).toList();
+      }
+      return mapped;
+    } catch (e) {
+      debugPrint('[PrintingNotifier] _fetchWorkersFromSupabase error: $e');
       return [];
     }
   }
 
-  Future<List<PrintingTaskAllocation>> _fetchTasksFromSupabase(String company) async {
+  Future<List<PrintingTaskAllocation>> _fetchTasksFromSupabase(String? company) async {
     try {
-      final res = await supabase
+      var query = supabase
           .from('printing_task_allocations')
           .select('*')
-          .eq('company_name', company)
           .order('created_at', ascending: false);
-      return (res as List).map((e) => PrintingTaskAllocation.fromJson(e)).toList();
-    } catch (_) {
+
+      final res = await query;
+      final rawList = (res as List<dynamic>?) ?? [];
+      var mapped = rawList.map((e) => PrintingTaskAllocation.fromJson(e as Map<String, dynamic>)).toList();
+
+      if (company != null && company.isNotEmpty) {
+        final target = company.toLowerCase();
+        mapped = mapped.where((t) {
+          final c = (t.companyName ?? '').toLowerCase();
+          return c.isEmpty || c == target || c.contains(target);
+        }).toList();
+      }
+      return mapped;
+    } catch (e) {
+      debugPrint('[PrintingNotifier] _fetchTasksFromSupabase error: $e');
       return [];
     }
   }
 
-  Future<List<PrintingBuyerContract>> _fetchBuyersFromSupabase(String company) async {
+  Future<List<PrintingBuyerContract>> _fetchBuyersFromSupabase(String? company) async {
+    List<PrintingBuyerContract> buyersList = [];
+
+    // 1. Fetch from merchandising_active_buyers
     try {
       final res = await supabase
           .from('merchandising_active_buyers')
           .select('*')
-          .eq('company_name', company)
           .order('created_at', ascending: false);
-      return (res as List).map((e) => PrintingBuyerContract.fromJson(e)).toList();
-    } catch (_) {
-      return [];
+      final raw = (res as List<dynamic>?) ?? [];
+      if (raw.isNotEmpty) {
+        var mapped = raw.map((e) => PrintingBuyerContract.fromJson(e as Map<String, dynamic>)).toList();
+        if (company != null && company.isNotEmpty) {
+          final target = company.toLowerCase();
+          mapped = mapped.where((b) {
+            final c = (b.buyerName).toLowerCase();
+            return c == target || c.contains(target);
+          }).toList();
+        }
+        buyersList = mapped;
+      }
+    } catch (_) {}
+
+    // 2. Fetch master merchandising orders (same as Web fetchActiveBuyersAction)
+    try {
+      final oRes = await supabase
+          .from('merchandising_orders')
+          .select('''
+            id,
+            order_number,
+            total_quantity,
+            fob_price_per_piece,
+            status,
+            company_name,
+            created_at,
+            brands ( id, brand_name, brand_code, company_name ),
+            design_tech_packs ( id, style_number, category, embellishment_sequence, company_name )
+          ''')
+          .order('created_at', ascending: false);
+
+      final rawOrders = (oRes as List<dynamic>?) ?? [];
+      if (rawOrders.isNotEmpty) {
+        var filteredOrders = rawOrders;
+        if (company != null && company.isNotEmpty) {
+          final target = company.toLowerCase();
+          filteredOrders = rawOrders.where((ord) {
+            final oc = (ord['company_name']?.toString() ?? '').toLowerCase();
+            final brand = ord['brands'] as Map<String, dynamic>?;
+            final bc = (brand?['company_name']?.toString() ?? '').toLowerCase();
+            final bn = (brand?['brand_name']?.toString() ?? '').toLowerCase();
+            final tp = ord['design_tech_packs'] as Map<String, dynamic>?;
+            final tc = (tp?['company_name']?.toString() ?? '').toLowerCase();
+            return oc == target || oc.contains(target) ||
+                   bc == target || bc.contains(target) ||
+                   tc == target || tc.contains(target) ||
+                   bn == target || bn.contains(target);
+          }).toList();
+        }
+
+        final orderBuyersMap = <String, PrintingBuyerContract>{};
+        for (final ord in filteredOrders) {
+          final brand = ord['brands'] as Map<String, dynamic>?;
+          final tp = ord['design_tech_packs'] as Map<String, dynamic>?;
+          final buyerName = brand?['brand_name']?.toString() ?? 'Commercial Buyer';
+          final buyerKey = buyerName.trim().toUpperCase();
+          final qty = ((ord['total_quantity'] as num?) ?? 0).toInt();
+          final price = ((ord['fob_price_per_piece'] as num?) ?? 12.5).toDouble();
+
+          if (!orderBuyersMap.containsKey(buyerKey)) {
+            orderBuyersMap[buyerKey] = PrintingBuyerContract(
+              id: brand?['id']?.toString() ?? 'buyer-${ord['id']}',
+              buyerName: buyerName,
+              buyerCode: brand?['brand_code']?.toString() ?? (buyerName.length >= 4 ? buyerName.substring(0, 4).toUpperCase() : 'BUYER'),
+              contractedVolume: qty,
+              pricePerPiece: price,
+              totalContractValue: (qty * price),
+              linkedArticleNumber: tp?['style_number']?.toString() ?? ord['order_number']?.toString() ?? 'DEMO-102',
+              linkedArticleName: tp?['category']?.toString() ?? 'Garment Contract',
+              embellishmentSequence: tp?['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
+              status: 'LINKED',
+            );
+          } else {
+            final prev = orderBuyersMap[buyerKey]!;
+            final updatedVol = prev.contractedVolume + qty;
+            final updatedVal = prev.totalContractValue + (qty * price);
+            orderBuyersMap[buyerKey] = prev.copyWith(
+              contractedVolume: updatedVol,
+              totalContractValue: updatedVal,
+              linkedArticleNumber: prev.linkedArticleNumber ?? tp?['style_number']?.toString(),
+              linkedArticleName: prev.linkedArticleName ?? tp?['category']?.toString(),
+            );
+          }
+        }
+
+        // Merge order-derived buyers into buyersList
+        orderBuyersMap.forEach((key, ordBuyer) {
+          final idx = buyersList.indexWhere((b) => b.buyerName.trim().toUpperCase() == key);
+          if (idx >= 0) {
+            final existing = buyersList[idx];
+            buyersList[idx] = existing.copyWith(
+              contractedVolume: ordBuyer.contractedVolume > existing.contractedVolume ? ordBuyer.contractedVolume : existing.contractedVolume,
+              linkedArticleNumber: existing.linkedArticleNumber ?? ordBuyer.linkedArticleNumber,
+              linkedArticleName: existing.linkedArticleName ?? ordBuyer.linkedArticleName,
+              embellishmentSequence: existing.embellishmentSequence.isNotEmpty ? existing.embellishmentSequence : ordBuyer.embellishmentSequence,
+            );
+          } else {
+            buyersList.add(ordBuyer);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[PrintingNotifier] _fetchBuyersFromSupabase orders error: $e');
     }
+
+    return buyersList;
   }
 
-  Future<int> _fetchUpstreamCuttingPieces(String company) async {
+  Future<int> _fetchUpstreamCuttingPieces(String? company) async {
     try {
       final res = await supabase
           .from('cutting_task_allocations')
-          .select('completed_pieces, pieces_to_cut, status')
-          .eq('company_name', company);
+          .select('completed_pieces, pieces_to_cut, status, company_name');
+      final rawList = (res as List<dynamic>?) ?? [];
       int sum = 0;
-      for (final r in (res as List)) {
+      for (final r in rawList) {
         final status = r['status']?.toString();
         if (status == 'VERIFIED_COMPLETED' || status == 'COMPLETED') {
+          if (company != null && company.isNotEmpty) {
+            final c = (r['company_name']?.toString() ?? '').toLowerCase();
+            final target = company.toLowerCase();
+            if (c.isNotEmpty && c != target && !c.contains(target)) continue;
+          }
           sum += ((r['completed_pieces'] ?? r['pieces_to_cut']) as num?)?.toInt() ?? 0;
         }
       }
@@ -263,16 +410,21 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     }
   }
 
-  Future<int> _fetchUpstreamEmbroideryPieces(String company) async {
+  Future<int> _fetchUpstreamEmbroideryPieces(String? company) async {
     try {
       final res = await supabase
           .from('embroidery_task_allocations')
-          .select('completed_pieces, pieces_to_embroider, status')
-          .eq('company_name', company);
+          .select('completed_pieces, pieces_to_embroider, status, company_name');
+      final rawList = (res as List<dynamic>?) ?? [];
       int sum = 0;
-      for (final r in (res as List)) {
+      for (final r in rawList) {
         final status = r['status']?.toString();
         if (status == 'VERIFIED_COMPLETED' || status == 'COMPLETED') {
+          if (company != null && company.isNotEmpty) {
+            final c = (r['company_name']?.toString() ?? '').toLowerCase();
+            final target = company.toLowerCase();
+            if (c.isNotEmpty && c != target && !c.contains(target)) continue;
+          }
           sum += ((r['completed_pieces'] ?? r['pieces_to_embroider']) as num?)?.toInt() ?? 0;
         }
       }
@@ -322,7 +474,7 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     required List<String> roles,
     String shift = 'MORNING',
   }) async {
-    final company = _getCompanyFilter();
+    final company = await _getResolvedCompanyFilter() ?? 'Nubira Creation';
     final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
     final phone10 = cleanPhone.length >= 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
     final internalEmail = '$phone10@printing.nubira.local';
@@ -383,7 +535,7 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
   }
 
   Future<bool> addTaskAllocation(PrintingTaskAllocation task) async {
-    final company = _getCompanyFilter();
+    final company = await _getResolvedCompanyFilter() ?? 'Nubira Creation';
     final cleanTask = task.copyWith(companyName: company);
 
     final updatedTasks = [cleanTask, ...state.taskAllocations];
@@ -458,130 +610,6 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     } catch (_) {}
 
     return true;
-  }
-
-  // Fallback seed data
-  List<PrintingWorker> _getFallbackWorkers() {
-    return [
-      PrintingWorker(
-        id: 'pw-101',
-        workerName: 'Rajesh Sharma',
-        phoneNumber: '9876543211',
-        workerEmail: '9876543211@printing.nubira.local',
-        roles: const ['SCREEN_PRINTER', 'CAROUSEL_MASTER'],
-        role: 'Screen Printer, Carousel Master',
-        shift: 'MORNING',
-        status: 'ACTIVE',
-        assignedPieces: 450,
-        completedPieces: 450,
-        createdAt: '2026-09-18T00:00:00.000Z',
-      ),
-      PrintingWorker(
-        id: 'pw-102',
-        workerName: 'Amit Mondal',
-        phoneNumber: '9876543212',
-        workerEmail: '9876543212@printing.nubira.local',
-        roles: const ['DTG_SPECIALIST'],
-        role: 'DTG Specialist',
-        shift: 'EVENING',
-        status: 'ACTIVE',
-        assignedPieces: 300,
-        completedPieces: 150,
-        createdAt: '2026-09-19T00:00:00.000Z',
-      ),
-      PrintingWorker(
-        id: 'pw-103',
-        workerName: 'Sunil Das',
-        phoneNumber: '9876543213',
-        workerEmail: '9876543213@printing.nubira.local',
-        roles: const ['CURING_OVEN_OPERATOR'],
-        role: 'Curing Oven Operator',
-        shift: 'NIGHT',
-        status: 'ACTIVE',
-        assignedPieces: 600,
-        completedPieces: 600,
-        createdAt: '2026-09-20T00:00:00.000Z',
-      ),
-    ];
-  }
-
-  List<PrintingBuyerContract> _getFallbackBuyers() {
-    return [
-      const PrintingBuyerContract(
-        id: 'byr-01',
-        buyerName: 'Ollywood Brand Global',
-        buyerCode: 'OLLY',
-        contractedVolume: 3500,
-        pricePerPiece: 14.50,
-        totalContractValue: 50750,
-        linkedArticleNumber: 'ART-TEE-882',
-        linkedArticleName: 'Premium Graphic Cotton Tee',
-        embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
-      ),
-      const PrintingBuyerContract(
-        id: 'byr-02',
-        buyerName: 'Urban Heritage Lifestyle',
-        buyerCode: 'URBN',
-        contractedVolume: 2200,
-        pricePerPiece: 18.00,
-        totalContractValue: 39600,
-        linkedArticleNumber: 'ART-HOODIE-104',
-        linkedArticleName: 'Front Chest Plastisol Hoodie',
-        embellishmentSequence: 'PRINTING_ONLY',
-      ),
-      const PrintingBuyerContract(
-        id: 'byr-03',
-        buyerName: 'Nordic Trend Exports',
-        buyerCode: 'NORD',
-        contractedVolume: 1800,
-        pricePerPiece: 12.00,
-        totalContractValue: 21600,
-        linkedArticleNumber: 'ART-JOGGER-301',
-        linkedArticleName: 'Waterbase Side-Print Joggers',
-        embellishmentSequence: 'EMBROIDERY_FIRST_THEN_PRINT',
-      ),
-    ];
-  }
-
-  List<PrintingTaskAllocation> _getFallbackTasks() {
-    return [
-      PrintingTaskAllocation(
-        id: 'task-prn-01',
-        taskRef: 'PRN-101',
-        buyerId: 'byr-01',
-        buyerName: 'Ollywood Brand Global',
-        articleNumber: 'ART-TEE-882',
-        articleName: 'Premium Graphic Cotton Tee',
-        workerId: 'pw-101',
-        workerName: 'Rajesh Sharma',
-        workerPhone: '9876543211',
-        tableNumber: 'Print Table 01 (Screen 4-Color)',
-        piecesToPrint: 450,
-        completedPieces: 450,
-        allotedHours: 6.0,
-        status: 'VERIFIED_COMPLETED',
-        createdAt: '2026-09-24T09:00:00.000Z',
-        completedAt: '2026-09-24T15:00:00.000Z',
-      ),
-      PrintingTaskAllocation(
-        id: 'task-prn-02',
-        taskRef: 'PRN-102',
-        buyerId: 'byr-01',
-        buyerName: 'Ollywood Brand Global',
-        articleNumber: 'ART-TEE-882',
-        articleName: 'Premium Graphic Cotton Tee',
-        workerId: 'pw-102',
-        workerName: 'Amit Mondal',
-        workerPhone: '9876543212',
-        tableNumber: 'Automatic Carousel A (6-Head)',
-        piecesToPrint: 350,
-        completedPieces: 200,
-        allotedHours: 8.0,
-        status: 'IN_PROGRESS',
-        notes: 'Plastisol curing at 165°C, 2.5 min conveyor dwell time',
-        createdAt: '2026-09-25T08:30:00.000Z',
-      ),
-    ];
   }
 }
 
