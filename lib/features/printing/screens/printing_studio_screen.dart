@@ -219,25 +219,25 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(printingProvider);
 
-    // Selected Buyer resolution
-    final selectedBuyer = state.buyers.firstWhere(
-      (b) => b.id == state.selectedBuyerId,
-      orElse: () => state.buyers.isNotEmpty
-          ? state.buyers.first
-          : const PrintingBuyerContract(
-              id: 'byr-direct',
-              buyerName: 'Direct Buyer',
-              buyerCode: 'DIR',
-              contractedVolume: 1000,
-              linkedArticleNumber: 'ART-STD',
-            ),
-    );
+    final activeSelectedBuyerId = state.selectedBuyerId == 'ALL'
+        ? 'ALL'
+        : (state.selectedBuyerId.isNotEmpty && state.buyers.any((b) => b.id == state.selectedBuyerId)
+            ? state.selectedBuyerId
+            : (state.buyers.isNotEmpty ? state.buyers.first.id : 'ALL'));
 
-    final buyerName = selectedBuyer.buyerName;
-    final articleCode = selectedBuyer.linkedArticleNumber ?? 'ART-STD';
+    final PrintingBuyerContract? selectedBuyer = activeSelectedBuyerId == 'ALL'
+        ? null
+        : (state.buyers.where((b) => b.id == activeSelectedBuyerId).firstOrNull ??
+            (state.buyers.isNotEmpty ? state.buyers.first : null));
+
+    final buyerTitle = selectedBuyer != null ? selectedBuyer.buyerName : 'No Active Buyers';
+    final articleCode = selectedBuyer?.linkedArticleNumber;
 
     // Route resolution
-    final activeRouteKey = state.articleRoutes[selectedBuyer.id] ?? selectedBuyer.embellishmentSequence;
+    final activeRouteKey = selectedBuyer != null
+        ? (state.articleRoutes[selectedBuyer.id] ?? selectedBuyer.embellishmentSequence)
+        : (state.articleRoutes['ALL'] ?? 'PRINT_FIRST_THEN_EMBROIDERY');
+
     final routeOption = kPrintingRouteOptions.firstWhere(
       (r) => r.key == activeRouteKey,
       orElse: () => kPrintingRouteOptions.first,
@@ -245,8 +245,12 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
     // Filter tasks for selected buyer
     final buyerTasks = state.taskAllocations.where((t) {
-      final bMatch = t.buyerId == selectedBuyer.id || t.buyerName.toLowerCase() == buyerName.toLowerCase();
-      final aMatch = t.articleNumber.trim().toUpperCase() == articleCode.trim().toUpperCase();
+      if (selectedBuyer == null) return true;
+      final bMatch = (t.buyerId != null && t.buyerId == selectedBuyer.id) ||
+          t.buyerName.toLowerCase() == selectedBuyer.buyerName.toLowerCase();
+      final aMatch = articleCode != null && articleCode.isNotEmpty
+          ? t.articleNumber.trim().toUpperCase() == articleCode.trim().toUpperCase()
+          : false;
       return bMatch || aMatch;
     }).toList();
 
@@ -523,7 +527,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                                 ),
-                                child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF3A3564), size: 18),
+                                child: const Icon(Icons.business_outlined, color: Color(0xFF3A3564), size: 18),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -546,29 +550,30 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       crossAxisAlignment: WrapCrossAlignment.center,
                                       children: [
                                         Text(
-                                          buyerName,
+                                          buyerTitle,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
                                             color: const Color(0xFF0F172A),
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFAF7F0),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                                          ),
-                                          child: Text(
-                                            'Article: $articleCode',
-                                            style: GoogleFonts.jetBrainsMono(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF3A3564),
+                                        if (articleCode != null && articleCode.isNotEmpty)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFAF7F0),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: Text(
+                                              'Article: $articleCode',
+                                              style: GoogleFonts.jetBrainsMono(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF3A3564),
+                                              ),
                                             ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ],
@@ -581,7 +586,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
                           // Route Info Row (Clickable)
                           InkWell(
-                            onTap: () => _openRouteModal(activeRouteKey, buyerName, selectedBuyer.id),
+                            onTap: () => _openRouteModal(activeRouteKey, buyerTitle, selectedBuyer?.id ?? 'ALL'),
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -625,43 +630,71 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
                           const SizedBox(height: 12),
 
-                          // Buyer Dropdown Switcher
-                          if (state.buyers.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: state.selectedBuyerId.isNotEmpty && state.buyers.any((b) => b.id == state.selectedBuyerId)
-                                      ? state.selectedBuyerId
-                                      : (state.buyers.isNotEmpty ? state.buyers.first.id : null),
-                                  isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                  items: state.buyers.map((b) {
+                          // Buyer Dropdown Switcher (Always available with 'All Buyers' option)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFAF7F0),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: activeSelectedBuyerId,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                items: [
+                                  DropdownMenuItem<String>(
+                                    value: 'ALL',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.people_outline, size: 16, color: Color(0xFF3A3564)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'All Buyers (${state.taskAllocations.length} Active Lots)',
+                                            style: GoogleFonts.publicSans(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF0F172A),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  ...state.buyers.map((b) {
                                     return DropdownMenuItem<String>(
                                       value: b.id,
-                                      child: Text(
-                                        '${b.buyerName} ($upstreamCut cut / ${b.contractedVolume} BPO)',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF0F172A),
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.business_outlined, size: 16, color: Color(0xFF3A3564)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${b.buyerName} ($upstreamCut Cut / ${b.contractedVolume} BPO)',
+                                              style: GoogleFonts.publicSans(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF0F172A),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      ref.read(printingProvider.notifier).setSelectedBuyerId(val);
-                                    }
-                                  },
-                                ),
+                                  }),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    ref.read(printingProvider.notifier).setSelectedBuyerId(val);
+                                  }
+                                },
                               ),
                             ),
+                          ),
 
                           const SizedBox(height: 12),
 
