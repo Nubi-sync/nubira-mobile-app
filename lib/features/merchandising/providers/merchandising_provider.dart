@@ -637,6 +637,10 @@ class MerchandisingNotifier extends StateNotifier<MerchandisingState> {
             if (matchingOrd == null) return true;
             final oc = (matchingOrd.companyName ?? '').toLowerCase();
             final bn = matchingOrd.brandName.toLowerCase();
+            return oc == target || oc.contains(target) || bn == target || bn.contains(target);
+          }).toList();
+        }
+
         milestoneList = mappedMilestones;
       } catch (e) {
         debugPrint('[MerchandisingNotifier] Error loading milestones: $e');
