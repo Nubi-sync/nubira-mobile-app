@@ -613,7 +613,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                                 activeRoute == '/modules/profile',
                             onTap: () => _navigateTo(context, const CompanyProfileScreen()),
                           ),
-                        ]),
+                        ]))),
               ),
             ),
 
