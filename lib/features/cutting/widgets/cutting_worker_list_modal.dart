@@ -153,7 +153,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossContent: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Cutting Floor Workers',
@@ -291,7 +291,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                               backgroundColor: const Color(0xFFFAF7F0),
                               child: Text(
                                 initials,
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF3A3564),
@@ -326,7 +326,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                         ),
                                         child: Text(
                                           worker.status.toUpperCase(),
-                                          style: GoogleFonts.jetbrainsMono(
+                                          style: GoogleFonts.jetBrainsMono(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: const Color(0xFF047857),
@@ -342,7 +342,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                       const SizedBox(width: 4),
                                       Text(
                                         worker.phoneNumber,
-                                        style: GoogleFonts.jetbrainsMono(
+                                        style: GoogleFonts.jetBrainsMono(
                                           fontSize: 11,
                                           color: const Color(0xFF64748B),
                                         ),

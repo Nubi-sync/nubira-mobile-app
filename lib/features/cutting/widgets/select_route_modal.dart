@@ -58,7 +58,7 @@ class SelectRouteModal extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossContent: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Manufacturing Route',
@@ -110,7 +110,7 @@ class SelectRouteModal extends StatelessWidget {
                       color: isSelected ? const Color(0xFFF1F0F7) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF3A3564) : Colors.black.withOpacity(0.06),
+                        color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.06),
                         width: isSelected ? 1.5 : 1.0,
                       ),
                     ),
@@ -142,7 +142,7 @@ class SelectRouteModal extends StatelessWidget {
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossContent: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 route.shortLabel,
