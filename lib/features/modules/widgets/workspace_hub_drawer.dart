@@ -24,6 +24,10 @@ import '../../cutting/screens/cutting_cad_markers_screen.dart';
 import '../../cutting/screens/cutting_orders_queue_screen.dart';
 import '../../cutting/screens/cutting_bundle_tickets_screen.dart';
 import '../../cutting/screens/cutting_zigza_ai_screen.dart';
+import '../../printing/screens/printing_studio_screen.dart';
+import '../../printing/screens/printing_notifications_screen.dart';
+import '../../printing/screens/printing_store_screen.dart';
+import '../../printing/screens/printing_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -313,10 +317,11 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         ? adminDisplayName.trim().split(' ').map((s) => s.isNotEmpty ? s[0].toUpperCase() : '').take(2).join()
         : 'Z';
 
-    // Check if inside Design Studio, Merchandising, or Cutting
+    // Check if inside Design Studio, Merchandising, Cutting, or Printing
     final isDesignStudio = activeRoute.startsWith('/design') && activeRoute != '/design/sa-approvals';
     final isMerchandising = activeRoute.startsWith('/merchandising');
     final isCutting = activeRoute.startsWith('/cutting');
+    final isPrinting = activeRoute.startsWith('/printing');
 
     List<Widget> navChildren;
 
@@ -618,6 +623,85 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/cutting/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isPrinting) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('4. PRINTING DIVISION'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.print_outlined,
+          title: 'Floor Dashboard',
+          isActive: activeRoute == '/printing',
+          onTap: () {
+            if (activeRoute == '/printing') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const PrintingStudioScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.notifications_none_rounded,
+          title: 'Notification',
+          isActive: activeRoute == '/printing/notifications',
+          onTap: () {
+            if (activeRoute == '/printing/notifications') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const PrintingNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.storefront_outlined,
+          title: 'Floor Store (Panels)',
+          isActive: activeRoute == '/printing/store',
+          onTap: () {
+            if (activeRoute == '/printing/store') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const PrintingStoreScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/printing/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/printing/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const PrintingZigzaAiScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/printing/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
