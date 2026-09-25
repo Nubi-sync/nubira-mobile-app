@@ -364,16 +364,18 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Cutting & lay floor',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
-                                      ),
+                                  Text(
+                                    'Cutting & lay floor',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0F172A),
                                     ),
                                   ),
                                   Container(
@@ -499,48 +501,53 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                           child: const Icon(Icons.business_outlined, color: Color(0xFF3A3564), size: 18),
                         ),
                         const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'SELECTED BUYER CONTRACT',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF64748B),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Text(
-                                  buyerName,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0F172A),
-                                  ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'SELECTED BUYER CONTRACT',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF64748B),
+                                  letterSpacing: 0.5,
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFAF7F0),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                                  ),
-                                  child: Text(
-                                    'Article: $articleCode',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 11,
+                              ),
+                              const SizedBox(height: 2),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    buyerName,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
+                                      color: const Color(0xFF0F172A),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAF7F0),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    ),
+                                    child: Text(
+                                      'Article: $articleCode',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF3A3564),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1154,9 +1161,13 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
         children: [
           // Worker Name, Task Ref & Status
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Row(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 2,
                   children: [
                     Text(
                       task.workerName,
@@ -1166,7 +1177,6 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                         color: const Color(0xFF0F172A),
                       ),
                     ),
-                    const SizedBox(width: 6),
                     Text(
                       task.taskRef,
                       style: GoogleFonts.jetBrainsMono(
@@ -1177,6 +1187,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                   ],
                 ),
               ),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -1196,61 +1207,63 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
             ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
           // Article, Table, Quota Details
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.checkroom_outlined, size: 12, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
-                        Text(
-                          task.articleNumber,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF3A3564),
-                          ),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.checkroom_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        task.articleNumber,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A3564),
                         ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.table_restaurant_outlined, size: 12, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
-                        Text(
-                          task.tableNumber,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            color: const Color(0xFF475569),
-                          ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.table_restaurant_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        task.tableNumber,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          color: const Color(0xFF475569),
                         ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${task.allotedHours.toInt()}h shift',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            color: const Color(0xFF64748B),
-                          ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${task.allotedHours.toInt()}h shift',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               Text(
                 '${task.piecesToCut} pcs',
