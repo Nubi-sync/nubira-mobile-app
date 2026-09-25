@@ -227,7 +227,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
-                              crossContent: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   buyer?.buyerName ?? 'All Contracts',
@@ -246,7 +246,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                     ),
                                     Text(
                                       articleCode,
-                                      style: GoogleFonts.jetbrainsMono(
+                                      style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         color: const Color(0xFF3A3564),
@@ -273,7 +273,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 ),
                                 Text(
                                   '$inHand pcs',
-                                  style: GoogleFonts.jetbrainsMono(
+                                  style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: const Color(0xFF3A3564),
@@ -294,7 +294,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       children: [
                         Text(
                           'ASSIGNED OPERATOR / WORKER',
-                          style: GoogleFonts.jetbrainsMono(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF64748B),
@@ -372,7 +372,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                     const SizedBox(width: 8),
                                     Text(
                                       '(${w.phoneNumber})',
-                                      style: GoogleFonts.jetbrainsMono(
+                                      style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         color: const Color(0xFF64748B),
                                       ),
@@ -414,11 +414,11 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         Expanded(
                           flex: 5,
                           child: Column(
-                            crossContent: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'TABLE STATION',
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF64748B),
@@ -465,11 +465,11 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         Expanded(
                           flex: 5,
                           child: Column(
-                            crossContent: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'PIECE QUOTA',
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF64748B),
@@ -481,7 +481,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 controller: _piecesCtrl,
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                style: GoogleFonts.jetbrainsMono(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF0F172A),
@@ -525,7 +525,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                     // Shift Target Duration
                     Text(
                       'SHIFT DEADLINE TARGET',
-                      style: GoogleFonts.jetbrainsMono(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF64748B),
@@ -552,7 +552,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                               child: Center(
                                 child: Text(
                                   '${hrs.toInt()} Hours',
-                                  style: GoogleFonts.jetbrainsMono(
+                                  style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: isSelected ? Colors.white : const Color(0xFF475569),
@@ -570,7 +570,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                     // Notes / Special Instructions
                     Text(
                       'SPECIAL INSTRUCTIONS / NOTES',
-                      style: GoogleFonts.jetbrainsMono(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF64748B),
