@@ -10,6 +10,7 @@ import '../widgets/add_printing_worker_modal.dart';
 import '../widgets/printing_worker_list_modal.dart';
 import '../widgets/add_printing_task_modal.dart';
 import '../widgets/select_printing_route_modal.dart';
+import '../widgets/select_printing_buyer_modal.dart';
 import 'printing_zigza_ai_screen.dart';
 
 class PrintingStudioScreen extends ConsumerStatefulWidget {
@@ -44,6 +45,15 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const PrintingWorkerListModal(),
+    );
+  }
+
+  void _openBuyerModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const SelectPrintingBuyerModal(),
     );
   }
 
@@ -233,6 +243,16 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     final buyerTitle = selectedBuyer != null ? selectedBuyer.buyerName : 'No Active Buyers';
     final articleCode = selectedBuyer?.linkedArticleNumber;
 
+    // In Hand resolution based on upstream Cutting Floor pieces
+    final upstreamCut = state.upstreamCutPieces;
+    final upstreamEmb = state.upstreamEmbroideryPieces;
+
+    final selectedBuyerDisplayText = selectedBuyer != null
+        ? '${selectedBuyer.buyerName} ($upstreamCut Cut / ${selectedBuyer.contractedVolume} BPO)'
+        : (activeSelectedBuyerId == 'ALL'
+            ? 'All Buyers (${state.taskAllocations.length} Active Lots)'
+            : (state.buyers.isEmpty ? 'All Buyers (${state.taskAllocations.length} Active Lots)' : 'Select Buyer Contract'));
+
     // Route resolution
     final activeRouteKey = selectedBuyer != null
         ? (state.articleRoutes[selectedBuyer.id] ?? selectedBuyer.embellishmentSequence)
@@ -262,9 +282,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
         .where((t) => !t.isCompleted)
         .fold<int>(0, (sum, t) => sum + t.piecesToPrint);
 
-    // In Hand resolution based on upstream Cutting Floor pieces
-    final upstreamCut = state.upstreamCutPieces;
-    final upstreamEmb = state.upstreamEmbroideryPieces;
+
 
     int sourcePieces = upstreamCut;
     if (activeRouteKey == 'EMBROIDERY_FIRST_THEN_PRINT') {
@@ -630,68 +648,38 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
                           const SizedBox(height: 12),
 
-                          // Buyer Dropdown Switcher (Always available with 'All Buyers' option)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: activeSelectedBuyerId,
-                                isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                items: [
-                                  DropdownMenuItem<String>(
-                                    value: 'ALL',
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.people_outline, size: 16, color: Color(0xFF3A3564)),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'All Buyers (${state.taskAllocations.length} Active Lots)',
-                                            style: GoogleFonts.publicSans(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF0F172A),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
+                          // Buyer Selector Button (Opens Searchable Bottom Sheet matching Web)
+                          InkWell(
+                            onTap: _openBuyerModal,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAF7F0),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    activeSelectedBuyerId == 'ALL' ? Icons.people_outline : Icons.business_outlined,
+                                    size: 17,
+                                    color: const Color(0xFF3A3564),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      selectedBuyerDisplayText,
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  ...state.buyers.map((b) {
-                                    return DropdownMenuItem<String>(
-                                      value: b.id,
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.business_outlined, size: 16, color: Color(0xFF3A3564)),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              '${b.buyerName} ($upstreamCut Cut / ${b.contractedVolume} BPO)',
-                                              style: GoogleFonts.publicSans(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF0F172A),
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
+                                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
                                 ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    ref.read(printingProvider.notifier).setSelectedBuyerId(val);
-                                  }
-                                },
                               ),
                             ),
                           ),
