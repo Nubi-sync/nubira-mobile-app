@@ -247,8 +247,10 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     final upstreamCut = state.upstreamCutPieces;
     final upstreamEmb = state.upstreamEmbroideryPieces;
 
+    final buyerCutPieces = selectedBuyer != null ? selectedBuyer.completedCutPieces : upstreamCut;
+
     final selectedBuyerDisplayText = selectedBuyer != null
-        ? '${selectedBuyer.buyerName} ($upstreamCut Cut / ${selectedBuyer.contractedVolume} BPO)'
+        ? '${selectedBuyer.buyerName} ($buyerCutPieces Cut / ${selectedBuyer.contractedVolume} BPO)'
         : (activeSelectedBuyerId == 'ALL'
             ? 'All Buyers (${state.taskAllocations.length} Active Lots)'
             : (state.buyers.isEmpty ? 'All Buyers (${state.taskAllocations.length} Active Lots)' : 'Select Buyer Contract'));
@@ -282,9 +284,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
         .where((t) => !t.isCompleted)
         .fold<int>(0, (sum, t) => sum + t.piecesToPrint);
 
-
-
-    int sourcePieces = upstreamCut;
+    int sourcePieces = buyerCutPieces;
     if (activeRouteKey == 'EMBROIDERY_FIRST_THEN_PRINT') {
       sourcePieces = upstreamEmb;
     }

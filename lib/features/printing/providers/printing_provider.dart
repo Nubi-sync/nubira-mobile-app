@@ -277,11 +277,16 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
     try {
       final cRes = await supabase
           .from('cutting_task_allocations')
-          .select('completed_pieces, pieces_to_cut, status, buyer_name, article_number');
+          .select('completed_pieces, pieces_to_cut, status, buyer_name, article_number, company_name');
       final cList = (cRes as List<dynamic>?) ?? [];
       for (final r in cList) {
         final status = r['status']?.toString();
         if (status == 'VERIFIED_COMPLETED' || status == 'COMPLETED') {
+          if (company != null && company.isNotEmpty) {
+            final c = (r['company_name']?.toString() ?? '').toLowerCase();
+            final target = company.toLowerCase();
+            if (c.isNotEmpty && c != target && !c.contains(target)) continue;
+          }
           final pcs = ((r['completed_pieces'] ?? r['pieces_to_cut']) as num?)?.toInt() ?? 0;
           final bName = (r['buyer_name']?.toString() ?? '').trim().toUpperCase();
           final aNum = (r['article_number']?.toString() ?? '').trim().toUpperCase();
@@ -305,6 +310,12 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
           .order('created_at', ascending: false);
       final raw = (res as List<dynamic>?) ?? [];
       for (final row in raw) {
+        if (company != null && company.isNotEmpty) {
+          final comp = (row['company_name']?.toString() ?? '').toLowerCase();
+          final target = company.toLowerCase();
+          if (comp.isNotEmpty && comp != target && !comp.contains(target)) continue;
+        }
+
         final bName = (row['buyer_name']?.toString() ?? row['brand_name']?.toString() ?? '').trim();
         if (bName.isEmpty) continue;
         final key = bName.toUpperCase();
@@ -331,7 +342,7 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
       debugPrint('[PrintingNotifier] Error fetching merchandising_active_buyers: $e');
     }
 
-    // 3. Fetch from merchandising_orders safely
+    // 3. Fetch from merchandising_orders safely (matching exact Web Action logic)
     try {
       final oRes = await supabase
           .from('merchandising_orders')
@@ -363,14 +374,27 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
         final brand = bId != null ? brandMap[bId] : null;
         final tp = tpId != null ? techPackMap[tpId] : null;
 
+        if (company != null && company.isNotEmpty) {
+          final target = company.toLowerCase();
+          final oc = (ord['company_name']?.toString() ?? '').toLowerCase();
+          final bc = (brand?['company_name']?.toString() ?? '').toLowerCase();
+          final tc = (tp?['company_name']?.toString() ?? '').toLowerCase();
+          final bn = (brand?['brand_name']?.toString() ?? '').toLowerCase();
+          final match = oc == target || oc.contains(target) ||
+                        bc == target || bc.contains(target) ||
+                        tc == target || tc.contains(target) ||
+                        bn == target || bn.contains(target);
+          if (!match && oc.isNotEmpty) continue;
+        }
+
         final buyerName = brand?['brand_name']?.toString() ?? ord['brand_name']?.toString() ?? 'Commercial Buyer';
         final key = buyerName.trim().toUpperCase();
         final qty = ((ord['total_quantity'] as num?) ?? 0).toInt();
         final price = ((ord['fob_price_per_piece'] as num?) ?? 12.5).toDouble();
-        final styleNum = tp?['style_number']?.toString() ?? ord['style_ref']?.toString() ?? ord['order_number']?.toString() ?? 'DEMO-102';
+        final styleNum = tp?['style_number']?.toString() ?? ord['style_ref']?.toString() ?? ord['order_number']?.toString();
         final styleName = tp?['category']?.toString() ?? ord['style_name']?.toString() ?? 'Garment Contract';
         final embSeq = tp?['embellishment_sequence']?.toString() ?? ord['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY';
-        final cutPcs = buyerCutMap[key] ?? buyerCutMap[styleNum.trim().toUpperCase()] ?? 0;
+        final cutPcs = buyerCutMap[key] ?? (styleNum != null ? buyerCutMap[styleNum.trim().toUpperCase()] ?? 0 : 0);
 
         if (!mergedMap.containsKey(key)) {
           mergedMap[key] = PrintingBuyerContract(
@@ -405,40 +429,16 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
       debugPrint('[PrintingNotifier] Error fetching merchandising_orders: $e');
     }
 
+    // 4. Ensure any buyer actively in printing_task_allocations is in mergedMap
     try {
-      final bRes = await supabase.from('brands').select('*').order('created_at', ascending: false);
-      final rawBrands = (bRes as List<dynamic>?) ?? [];
-      for (final br in rawBrands) {
-        final bName = (br['brand_name']?.toString() ?? '').trim();
-        if (bName.isEmpty) continue;
-        final key = bName.toUpperCase();
-        if (!mergedMap.containsKey(key)) {
-          final cutPcs = buyerCutMap[key] ?? 0;
-          mergedMap[key] = PrintingBuyerContract(
-            id: br['id']?.toString() ?? 'brand-${DateTime.now().millisecondsSinceEpoch}',
-            buyerName: bName,
-            buyerCode: br['brand_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
-            contractedVolume: 5000,
-            pricePerPiece: 14.5,
-            totalContractValue: 72500,
-            linkedArticleNumber: 'DEMO-102',
-            linkedArticleName: 'Commercial Apparel Order',
-            embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
-            status: 'ACTIVE',
-            companyName: br['company_name']?.toString(),
-            completedCutPieces: cutPcs,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('[PrintingNotifier] Error fetching brands table: $e');
-    }
-
-    // 5. Ensure any buyer in printing_task_allocations is in mergedMap
-    try {
-      final tRes = await supabase.from('printing_task_allocations').select('buyer_id, buyer_name, article_number, article_name');
+      final tRes = await supabase.from('printing_task_allocations').select('buyer_id, buyer_name, article_number, article_name, company_name');
       final rawTasks = (tRes as List<dynamic>?) ?? [];
       for (final t in rawTasks) {
+        if (company != null && company.isNotEmpty) {
+          final c = (t['company_name']?.toString() ?? '').toLowerCase();
+          final target = company.toLowerCase();
+          if (c.isNotEmpty && c != target && !c.contains(target)) continue;
+        }
         final bName = (t['buyer_name']?.toString() ?? '').trim();
         if (bName.isEmpty || bName.toLowerCase() == 'direct buyer') continue;
         final key = bName.toUpperCase();
@@ -459,6 +459,36 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
         }
       }
     } catch (_) {}
+
+    // 5. Fallback to brands table ONLY if mergedMap is completely empty (mirroring Web actions.ts:829)
+    if (mergedMap.isEmpty && (company == null || company.isEmpty || company.toLowerCase() == 'nubira creation')) {
+      try {
+        final bRes = await supabase.from('brands').select('*').order('created_at', ascending: false);
+        final rawBrands = (bRes as List<dynamic>?) ?? [];
+        for (final br in rawBrands) {
+          final bName = (br['brand_name']?.toString() ?? '').trim();
+          if (bName.isEmpty) continue;
+          final key = bName.toUpperCase();
+          final cutPcs = buyerCutMap[key] ?? 0;
+          mergedMap[key] = PrintingBuyerContract(
+            id: br['id']?.toString() ?? 'brand-${DateTime.now().millisecondsSinceEpoch}',
+            buyerName: bName,
+            buyerCode: br['brand_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+            contractedVolume: 5000,
+            pricePerPiece: 14.5,
+            totalContractValue: 72500,
+            linkedArticleNumber: 'DEMO-102',
+            linkedArticleName: 'Commercial Apparel Order',
+            embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
+            status: 'ACTIVE',
+            companyName: br['company_name']?.toString(),
+            completedCutPieces: cutPcs,
+          );
+        }
+      } catch (e) {
+        debugPrint('[PrintingNotifier] Error fetching brands table fallback: $e');
+      }
+    }
 
     return mergedMap.values.toList();
   }
