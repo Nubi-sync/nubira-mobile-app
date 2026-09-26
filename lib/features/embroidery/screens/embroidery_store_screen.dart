@@ -26,10 +26,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
   void _showIssueChallanDialog() {
     final articleCtrl = TextEditingController(text: 'DEMO-101-03');
-    final buyerCtrl = TextEditingController(text: 'Hollypop');
-    final descCtrl = TextEditingController(text: 'Embroidered Front Panels');
     final qtyCtrl = TextEditingController(text: '750');
-    final notesCtrl = TextEditingController();
     String targetDiv = 'SEWING';
 
     showModalBottomSheet(
@@ -604,6 +601,22 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
   Widget _buildLedgerContent(int totalReceived) {
     if (_selectedTabIndex == 0) {
+      if (_searchQuery.isNotEmpty) {
+        final matches = 'ISS-2026-001003 PRINTING Art #DEMO-101-03 Printed Front Panels EMB-FRAME-01 Sergio Ramos'
+            .toLowerCase()
+            .contains(_searchQuery);
+        if (!matches) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'No inward receipts matching "$_searchQuery"',
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              ),
+            ),
+          );
+        }
+      }
       // Inwards Received Table Item matching Web Screenshot
       return Container(
         padding: const EdgeInsets.all(12),
