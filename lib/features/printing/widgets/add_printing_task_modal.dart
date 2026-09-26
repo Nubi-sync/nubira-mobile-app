@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../models/printing_models.dart';
 import '../providers/printing_provider.dart';
+import 'add_printing_worker_modal.dart';
 
 class AddPrintingTaskModal extends ConsumerStatefulWidget {
   final int maxSuggestedPieces;
@@ -18,38 +20,61 @@ class AddPrintingTaskModal extends ConsumerStatefulWidget {
 class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
   final _formKey = GlobalKey<FormState>();
   final _piecesCtrl = TextEditingController();
+  final _hoursCtrl = TextEditingController(text: '4.0');
   final _notesCtrl = TextEditingController();
+  final _newStationCtrl = TextEditingController();
 
   String? _selectedWorkerId;
-  String? _selectedTable = 'Print Table 01 (Screen 4-Color)';
-  double _allotedHours = 6.0;
+  String _selectedStation = 'Print Table 01 (Manual Screen)';
+  bool _isAddingStation = false;
   bool _isSubmitting = false;
 
-  final List<String> _printingStations = [
-    'Print Table 01 (Screen 4-Color)',
-    'Print Table 02 (Screen 6-Color)',
-    'Automatic Carousel A (6-Head)',
-    'Automatic Carousel B (8-Head)',
-    'DTG Digital Machine 01',
-    'Sublimation Heat Press 01',
-    'Industrial Curing Conveyor 01',
+  final List<String> _stationList = [
+    'Print Table 01 (Manual Screen)',
+    'Print Table 02 (Manual Screen)',
+    'Carousel 01 (M&R 8-Color Auto)',
+    'DTG Station 01 (Kornit Avalanche)',
   ];
 
   @override
   void initState() {
     super.initState();
-    if (widget.maxSuggestedPieces > 0) {
-      _piecesCtrl.text = widget.maxSuggestedPieces.toString();
-    } else {
-      _piecesCtrl.text = '250';
-    }
+    final initialPcs = widget.maxSuggestedPieces > 0 ? widget.maxSuggestedPieces : 500;
+    _piecesCtrl.text = initialPcs.toString();
   }
 
   @override
   void dispose() {
     _piecesCtrl.dispose();
+    _hoursCtrl.dispose();
     _notesCtrl.dispose();
+    _newStationCtrl.dispose();
     super.dispose();
+  }
+
+  String _calculateDeadline() {
+    final hours = double.tryParse(_hoursCtrl.text.trim()) ?? 4.0;
+    final due = DateTime.now().add(Duration(minutes: (hours * 60).round()));
+    final timeStr = DateFormat('hh:mm a').format(due);
+    final dateStr = DateFormat('MMM d').format(due);
+    return '$timeStr, $dateStr';
+  }
+
+  void _saveNewStation() {
+    final text = _newStationCtrl.text.trim();
+    if (text.isNotEmpty && !_stationList.contains(text)) {
+      setState(() {
+        _stationList.add(text);
+        _selectedStation = text;
+        _isAddingStation = false;
+        _newStationCtrl.clear();
+      });
+    } else {
+      setState(() {
+        _isAddingStation = false;
+        _newStationCtrl.clear();
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -58,7 +83,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
 
     if (state.workers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please register a printing worker first.')),
+        const SnackBar(content: Text('Please register a printing floor worker first.')),
       );
       return;
     }
@@ -68,23 +93,29 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
       orElse: () => state.workers.first,
     );
 
+    final activeBuyerId = state.selectedBuyerId == 'ALL' || state.selectedBuyerId.isEmpty
+        ? (state.buyers.isNotEmpty ? state.buyers.first.id : '')
+        : state.selectedBuyerId;
+
     final selectedBuyer = state.buyers.firstWhere(
-      (b) => b.id == state.selectedBuyerId,
+      (b) => b.id == activeBuyerId,
       orElse: () => state.buyers.isNotEmpty
           ? state.buyers.first
           : const PrintingBuyerContract(
-              id: 'byr-direct',
-              buyerName: 'Direct Buyer',
-              buyerCode: 'DIR',
-              contractedVolume: 1000,
-              linkedArticleNumber: 'ART-STD',
+              id: 'byr-hollypop',
+              buyerName: 'Hollypop',
+              buyerCode: 'HOLL',
+              contractedVolume: 6000,
+              linkedArticleNumber: 'DEMO-101-03',
             ),
     );
 
     final pcs = int.tryParse(_piecesCtrl.text.trim()) ?? 0;
+    final hours = double.tryParse(_hoursCtrl.text.trim()) ?? 4.0;
+
     if (pcs <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid print piece count.')),
+        const SnackBar(content: Text('Please specify a valid pieces count of at least 1 piece.')),
       );
       return;
     }
@@ -93,23 +124,23 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
 
     try {
       final taskRef = 'PRN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-      final dueTime = DateTime.now().add(Duration(hours: _allotedHours.toInt())).toIso8601String();
+      final dueTimestamp = DateTime.now().add(Duration(minutes: (hours * 60).round())).toIso8601String();
 
       final newTask = PrintingTaskAllocation(
         id: 'task-$taskRef',
         taskRef: taskRef,
         buyerId: selectedBuyer.id,
         buyerName: selectedBuyer.buyerName,
-        articleNumber: selectedBuyer.linkedArticleNumber ?? 'ART-PRINT',
-        articleName: selectedBuyer.linkedArticleName,
+        articleNumber: selectedBuyer.linkedArticleNumber ?? 'DEMO-101-03',
+        articleName: selectedBuyer.linkedArticleName ?? '${selectedBuyer.linkedArticleNumber ?? "DEMO-101-03"} Garment Print Job',
         workerId: selectedWorker.id,
         workerName: selectedWorker.workerName,
         workerPhone: selectedWorker.phoneNumber,
-        tableNumber: _selectedTable ?? 'Print Table 01',
+        tableNumber: _selectedStation,
         piecesToPrint: pcs,
         completedPieces: 0,
-        allotedHours: _allotedHours,
-        dueTime: dueTime,
+        allotedHours: hours,
+        dueTime: dueTimestamp,
         notes: _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
         status: 'ASSIGNED',
         createdAt: DateTime.now().toIso8601String(),
@@ -121,7 +152,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Task #$taskRef successfully allocated to ${selectedWorker.workerName}!'),
+            content: Text('Task #$taskRef allocated to ${selectedWorker.workerName} ($pcs Pcs)!'),
             backgroundColor: const Color(0xFF047857),
           ),
         );
@@ -141,22 +172,29 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
   Widget build(BuildContext context) {
     final state = ref.watch(printingProvider);
 
+    final activeBuyerId = state.selectedBuyerId == 'ALL' || state.selectedBuyerId.isEmpty
+        ? (state.buyers.isNotEmpty ? state.buyers.first.id : '')
+        : state.selectedBuyerId;
+
     final selectedBuyer = state.buyers.firstWhere(
-      (b) => b.id == state.selectedBuyerId,
+      (b) => b.id == activeBuyerId,
       orElse: () => state.buyers.isNotEmpty
           ? state.buyers.first
           : const PrintingBuyerContract(
-              id: 'byr-direct',
-              buyerName: 'Direct Buyer',
-              buyerCode: 'DIR',
-              contractedVolume: 1000,
-              linkedArticleNumber: 'ART-STD',
+              id: 'byr-hollypop',
+              buyerName: 'Hollypop',
+              buyerCode: 'HOLL',
+              contractedVolume: 6000,
+              linkedArticleNumber: 'DEMO-101-03',
             ),
     );
 
     if (_selectedWorkerId == null && state.workers.isNotEmpty) {
       _selectedWorkerId = state.workers.first.id;
     }
+
+    final cutPieces = selectedBuyer.completedCutPieces > 0 ? selectedBuyer.completedCutPieces : 2800;
+    final inHandPieces = widget.maxSuggestedPieces > 0 ? widget.maxSuggestedPieces : 500;
 
     return Container(
       decoration: const BoxDecoration(
@@ -176,74 +214,93 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Modal Title & Close
+              // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        ),
-                        child: const Icon(Icons.add_task_rounded, color: Color(0xFF3A3564), size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Allocate Printing Task',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    ),
+                    child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                    onPressed: () => Navigator.pop(context),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assign Printing Task Row',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          'Allocate article print pieces to worker with strict timeline & table assignment',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10.5,
+                            color: const Color(0xFF64748B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Assign print quotas, print tables/carousels, and target shift deadlines',
-                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
-              ),
-              const Divider(height: 24),
 
-              // Buyer & Article Pill (Readonly / Scoped)
+              const SizedBox(height: 14),
+
+              // Route & In Hand Status Banner (Matching Web)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.business_outlined, size: 18, color: Color(0xFF3A3564)),
-                    const SizedBox(width: 8),
+                    const Icon(Icons.view_timeline_outlined, size: 18, color: Color(0xFF3A3564)),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            selectedBuyer.buyerName,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
+                            'Routing: Print First → Embroidery (Step 1: Cutting → Printing)',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF0F172A),
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
-                            'Article: ${selectedBuyer.linkedArticleNumber ?? "ART-STD"}',
-                            style: GoogleFonts.jetBrainsMono(
+                            '${NumberFormat('#,###').format(cutPieces)} cut pcs received from Cutting Floor',
+                            style: GoogleFonts.publicSans(
                               fontSize: 11,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
@@ -255,18 +312,47 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
 
               const SizedBox(height: 14),
 
-              // Select Worker
-              Text(
-                'ASSIGN PRINTING OPERATOR *',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+              // SELECT FLOOR WORKER *
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'SELECT FLOOR WORKER *',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF334155),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => const AddPrintingWorkerModal(),
+                      );
+                    },
+                    child: Text(
+                      '+ Add New Worker',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF3A3564),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -277,8 +363,13 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       return DropdownMenuItem<String>(
                         value: w.id,
                         child: Text(
-                          '${w.workerName} (${w.role})',
-                          style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
+                          '${w.workerName} — +91 ${w.phoneNumber} (${w.role})',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       );
                     }).toList(),
@@ -289,50 +380,84 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
 
               const SizedBox(height: 14),
 
-              // Station / Machine Selection
-              Text(
-                'PRINT TABLE / STATION *',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+              // ARTICLE STYLE REFERENCE (Read-Only / Contract Locked)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'ARTICLE STYLE REFERENCE',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF334155),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      'CONTRACT LOCKED',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedTable,
-                    isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                    items: _printingStations.map((st) {
-                      return DropdownMenuItem<String>(
-                        value: st,
-                        child: Text(
-                          st,
-                          style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => _selectedTable = val),
+                child: Text(
+                  selectedBuyer.linkedArticleNumber ?? 'DEMO-101-03',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F172A),
                   ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Contracted Buyer: ${selectedBuyer.buyerName}',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  color: const Color(0xFF64748B),
                 ),
               ),
 
               const SizedBox(height: 14),
 
-              // Pieces to Print Quota
+              // PIECES TO PRINT & TIME ALLOTED (HOURS)
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Pieces to Print
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PRINT QUOTA (PCS) *',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                          'PIECES TO PRINT *',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF334155),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         TextFormField(
@@ -344,50 +469,86 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                             if (n == null || n <= 0) return 'Invalid count';
                             return null;
                           },
-                          style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold),
                           decoration: InputDecoration(
-                            hintText: 'e.g. 250',
+                            suffixText: 'Pcs',
+                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
                             filled: true,
-                            fillColor: const Color(0xFFFAF7F0),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'In Hand Queue: $inHandPieces Pcs available (Max limit)',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF64748B)),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Time Alloted
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'SHIFT ALLOTED *',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                          'TIME ALLOTED (HOURS) *',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF334155),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                         const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<double>(
-                              value: _allotedHours,
-                              isExpanded: true,
-                              items: const [
-                                DropdownMenuItem(value: 4.0, child: Text('4 Hours Shift')),
-                                DropdownMenuItem(value: 6.0, child: Text('6 Hours Shift')),
-                                DropdownMenuItem(value: 8.0, child: Text('8 Hours Full')),
-                                DropdownMenuItem(value: 12.0, child: Text('12 Hours Shift')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) setState(() => _allotedHours = val);
-                              },
+                        TextFormField(
+                          controller: _hoursCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => setState(() {}),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return 'Hours required';
+                            final h = double.tryParse(val.trim());
+                            if (h == null || h <= 0) return 'Invalid hours';
+                            return null;
+                          },
+                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            suffixText: 'Hrs',
+                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Due: ${_calculateDeadline()}',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                         ),
                       ],
                     ),
@@ -397,10 +558,113 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
 
               const SizedBox(height: 14),
 
-              // Notes / Technical Specs
+              // ASSIGNED PRINT TABLE / MACHINE STATION
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'ASSIGNED PRINT TABLE / MACHINE STATION',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF334155),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  if (!_isAddingStation)
+                    InkWell(
+                      onTap: () => setState(() => _isAddingStation = true),
+                      child: Text(
+                        '+ Add Station',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A3564),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              if (_isAddingStation)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF7F0),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _newStationCtrl,
+                          autofocus: true,
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Print Table ${_stationList.length + 1}',
+                            hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _saveNewStation,
+                        child: Text('Save', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () => setState(() => _isAddingStation = false),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Station Grid (2x2)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _stationList.map((st) {
+                  final isSelected = _selectedStation == st;
+                  return InkWell(
+                    onTap: () => setState(() => _selectedStation = st),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Text(
+                        st,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF334155),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 14),
+
+              // PRINT INSTRUCTIONS / COLOR NOTES (OPTIONAL)
               Text(
-                'PRINTING & CURING SPECS (OPTIONAL)',
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                'PRINT INSTRUCTIONS / COLOR NOTES (OPTIONAL)',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF334155),
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 6),
               TextFormField(
@@ -408,35 +672,87 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                 maxLines: 2,
                 style: GoogleFonts.publicSans(fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Plastisol 4-color mesh 120, Oven 165°C dwell 2.5 min',
+                  hintText: 'e.g. 2-stroke plastisol white underbase, cure at 160°C',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                   filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.all(12),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(
-                          'Allocate Task & Dispatch to Table',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold),
+              // Bottom Actions: Cancel & Allocate Task
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF334155),
+                          side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3A3564),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_circle_outline, size: 16, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Allocate Task',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
