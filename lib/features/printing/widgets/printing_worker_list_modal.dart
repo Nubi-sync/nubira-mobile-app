@@ -69,17 +69,31 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
           w.shift.toLowerCase().contains(q);
     }).toList();
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
+    return SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        margin: const EdgeInsets.only(top: 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle pill
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -257,6 +271,7 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

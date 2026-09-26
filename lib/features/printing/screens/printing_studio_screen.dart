@@ -34,6 +34,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const AddPrintingWorkerModal(),
     );
@@ -43,6 +44,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const PrintingWorkerListModal(),
     );
@@ -52,6 +54,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const SelectPrintingBuyerModal(),
     );
@@ -61,6 +64,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddPrintingTaskModal(maxSuggestedPieces: maxPieces),
     );
@@ -70,6 +74,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SelectPrintingRouteModal(
         activeRouteKey: routeKey,

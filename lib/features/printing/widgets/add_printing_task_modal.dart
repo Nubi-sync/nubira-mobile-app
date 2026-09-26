@@ -196,49 +196,67 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
     final cutPieces = selectedBuyer.completedCutPieces > 0 ? selectedBuyer.completedCutPieces : 2800;
     final inHandPieces = widget.maxSuggestedPieces > 0 ? widget.maxSuggestedPieces : 500;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        top: 20,
-        left: 20,
-        right: 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.90,
+        ),
+        margin: const EdgeInsets.only(top: 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          top: 10,
+          left: 20,
+          right: 20,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top drag pill handle
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Assign Printing Task Row',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                ),
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF7F0),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      ),
+                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Assign Printing Task Row',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
                           ),
-                        ),
                         Text(
                           'Allocate article print pieces to worker with strict timeline & table assignment',
                           style: GoogleFonts.jetBrainsMono(
@@ -336,6 +354,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
+                        useSafeArea: true,
                         backgroundColor: Colors.transparent,
                         builder: (_) => const AddPrintingWorkerModal(),
                       );
@@ -773,6 +792,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
