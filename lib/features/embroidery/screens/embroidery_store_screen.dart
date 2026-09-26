@@ -5,14 +5,6 @@ import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../providers/embroidery_provider.dart';
 
-class BoxKeyValues {
-  static final BoxShadow cardShadow = BoxShadow(
-    color: Colors.black.withValues(alpha: 0.04),
-    blurRadius: 10,
-    offset: const Offset(0, 3),
-  );
-}
-
 class EmbroideryStoreScreen extends ConsumerStatefulWidget {
   const EmbroideryStoreScreen({super.key});
 
@@ -23,7 +15,8 @@ class EmbroideryStoreScreen extends ConsumerStatefulWidget {
 class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchCtrl = TextEditingController();
-  int _selectedTabIndex = 0; // 0: Inventory, 1: Receipts from Printing, 2: Issues to Stitching
+  int _selectedTabIndex = 0; // 0: Inwards Received (1), 1: Outward Issues (0), 2: Pending Inward (0)
+  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -31,16 +24,131 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
     super.dispose();
   }
 
+  void _showIssueChallanDialog() {
+    final articleCtrl = TextEditingController(text: 'DEMO-101-03');
+    final buyerCtrl = TextEditingController(text: 'Hollypop');
+    final descCtrl = TextEditingController(text: 'Embroidered Front Panels');
+    final qtyCtrl = TextEditingController(text: '750');
+    final notesCtrl = TextEditingController();
+    String targetDiv = 'SEWING';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Issue Material Challan',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Target Department / Line', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF475569))),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: targetDiv,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(value: 'SEWING', child: Text('Stitching & Sewing Floor')),
+                      DropdownMenuItem(value: 'WASHING', child: Text('Washing Division')),
+                      DropdownMenuItem(value: 'FINISHING', child: Text('Finishing & Packing')),
+                    ],
+                    onChanged: (val) => setModalState(() => targetDiv = val ?? 'SEWING'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: articleCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Article Number',
+                  filled: true,
+                  fillColor: const Color(0xFFFAF7F0),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: qtyCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Issue Quantity (Panels / Pcs)',
+                  filled: true,
+                  fillColor: const Color(0xFFFAF7F0),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3A3564),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Material Challan created & issued to Stitching floor!'),
+                        backgroundColor: Color(0xFF047857),
+                      ),
+                    );
+                  },
+                  child: Text('Create & Dispatch Challan', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final embState = ref.watch(embroideryProvider);
-    final selectedBuyer = embState.buyers.isNotEmpty ? embState.buyers.first : null;
-    final routeDetails = ref.read(embroideryProvider.notifier).getRouteDetails(selectedBuyer?.id ?? 'byr-hollypop');
-    final inHand = routeDetails.inHandPieces;
-
-    final completed = embState.taskAllocations
-        .where((t) => t.status == 'VERIFIED_COMPLETED' || t.status == 'COMPLETED')
-        .fold<int>(0, (sum, t) => sum + (t.completedPieces > 0 ? t.completedPieces : t.piecesToEmbroider));
+    final totalReceived = embState.upstreamPrintingPieces > 0 ? embState.upstreamPrintingPieces : 1300;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -58,46 +166,39 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Breadcrumb + Sync Badge
+              // 1. Breadcrumb + Sync Status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.arrow_back, size: 14, color: Color(0xFF3A3564)),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                'Workspace hub / Division 05 - Embroidery store',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF3A3564),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Modules / Embroidery Division / Floor Store',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF3A3564),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(20),
@@ -114,7 +215,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 5),
                         Text(
                           'PANEL STORE SYNC ACTIVE',
                           style: GoogleFonts.jetBrainsMono(
@@ -129,17 +230,16 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 ],
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
-              // 2. Header Card
+              // 2. Header Card (Embroidery Division Store DIV 05)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                  boxShadow: [BoxKeyValues.cardShadow],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +252,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                           height: 44,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                           ),
                           child: const Icon(Icons.storefront_outlined, color: Color(0xFF3A3564), size: 22),
@@ -162,44 +262,88 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Embroidery Floor Store (Panels)',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                                ),
-                                child: Text(
-                                  'INWARD & OUTWARD PANEL AUDIT',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Embroidery Division Store',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0F172A),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFAF7F0),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                    ),
+                                    child: Text(
+                                      'DIV 05',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Material receipts from preceding stage and handoff issues to next line',
+                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Store & track un-embroidered cut panels received from Printing Studio, hooping staging inventory, and finished embroidered bundles ready for Sewing.',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        color: const Color(0xFF64748B),
-                        height: 1.4,
-                      ),
+                    const SizedBox(height: 14),
+                    // Action Buttons Row: Central Store Hub + + Issue Challan
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF3A3564),
+                              side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Central Store Hub connected.')),
+                              );
+                            },
+                            icon: const Icon(Icons.store_outlined, size: 16),
+                            label: Text(
+                              'Central Store Hub',
+                              style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3A3564),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            onPressed: _showIssueChallanDialog,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: Text(
+                              '+ Issue Challan',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -207,87 +351,119 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
               const SizedBox(height: 14),
 
-              // 3. Three Stat KPI Cards
-              _buildStoreKpiCard(
-                title: 'UN-EMBROIDERED PANELS',
-                value: '$inHand',
-                subtext: '$inHand pcs ready on storage rack (from Printing Studio)',
-                icon: Icons.inventory_2_outlined,
+              // 3. Four KPI Stat Cards (2x2 Grid matching Web exactly)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStoreKpi(
+                      title: 'TOTAL RECEIVED',
+                      topBadge: 'INWARD',
+                      topBadgeColor: const Color(0xFF047857),
+                      topBadgeBg: const Color(0xFFECFDF5),
+                      subtext: 'Inward logged',
+                      value: totalReceived.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
+                      pillText: '1 LOTS',
+                      icon: Icons.south_west_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStoreKpi(
+                      title: 'TOTAL ISSUED',
+                      topBadge: 'OUTWARD',
+                      topBadgeColor: const Color(0xFF64748B),
+                      topBadgeBg: const Color(0xFFFAF7F0),
+                      subtext: 'Next line handoff',
+                      value: '0',
+                      pillText: '0 CHALLANS',
+                      icon: Icons.north_east_rounded,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              _buildStoreKpiCard(
-                title: 'FINISHED EMBROIDERED PANELS',
-                value: '$completed',
-                subtext: '$completed pcs inspected & ready to issue to Stitching Floor',
-                icon: Icons.verified_outlined,
-              ),
-              const SizedBox(height: 10),
-              _buildStoreKpiCard(
-                title: 'TOTAL PRINTED PANELS RECEIVED',
-                value: '${embState.upstreamPrintingPieces}',
-                subtext: '${embState.upstreamPrintingPieces} pcs cumulative received against contract Hollypop',
-                icon: Icons.move_to_inbox_outlined,
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStoreKpi(
+                      title: 'PENDING INWARDS',
+                      topBadge: 'PENDING',
+                      topBadgeColor: const Color(0xFFD97706),
+                      topBadgeBg: const Color(0xFFFFFBEB),
+                      subtext: 'Awaiting receipt',
+                      value: '0',
+                      pillText: 'IN-TRANSIT',
+                      icon: Icons.access_time_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildStoreKpi(
+                      title: 'LOGGED VARIANCE',
+                      topBadge: 'SHORTAGE',
+                      topBadgeColor: const Color(0xFFEF4444),
+                      topBadgeBg: const Color(0xFFFEF2F2),
+                      subtext: 'Inward discrepancy',
+                      value: '0',
+                      pillText: 'UNITS',
+                      icon: Icons.error_outline_rounded,
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 14),
 
-              // 4. Panel Store Ledger Card
+              // 4. Ledger & Tabs Card
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                  boxShadow: [BoxKeyValues.cardShadow],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header & Tab Selector
+                    // Tab Buttons Row
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                                ),
-                                child: const Icon(Icons.table_rows_outlined, color: Color(0xFF3A3564), size: 18),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Panel Inventory Ledger',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildTabPill(0, 'Inwards Received (1)'),
+                                const SizedBox(width: 6),
+                                _buildTabPill(1, 'Outward Issues (0)'),
+                                const SizedBox(width: 6),
+                                _buildTabPill(2, 'Pending Inward (0)'),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
-                          // Tab buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTabButton(0, 'Panels In Hand'),
+                          // Search Input
+                          Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFAF7F0),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            ),
+                            child: TextField(
+                              controller: _searchCtrl,
+                              onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                              style: GoogleFonts.publicSans(fontSize: 12.5),
+                              decoration: const InputDecoration(
+                                hintText: 'Search challan, article, division...',
+                                hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                prefixIcon: Icon(Icons.search, size: 17, color: Color(0xFF94A3B8)),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 10),
                               ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: _buildTabButton(1, 'Inward Receipts'),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: _buildTabButton(2, 'Issued to Sewing'),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -295,40 +471,10 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
                     const Divider(height: 1, color: Color(0x14000000)),
 
-                    // Tab Contents
+                    // Table / List Content
                     Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildSelectedTabContent(inHand, completed),
-                    ),
-
-                    // Footer summary
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Hollypop • DEMO-101-03',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
-                            ),
-                          ),
-                          Text(
-                            'Rack: EMB-STG-01',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 11,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: _buildLedgerContent(totalReceived),
                     ),
                   ],
                 ),
@@ -342,175 +488,22 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
     );
   }
 
-  Widget _buildStoreKpiCard({
+  Widget _buildStoreKpi({
     required String title,
-    required String value,
+    required String topBadge,
+    required Color topBadgeColor,
+    required Color topBadgeBg,
     required String subtext,
+    required String value,
+    required String pillText,
     required IconData icon,
   }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-        boxShadow: [BoxKeyValues.cardShadow],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtext,
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11.5,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-            ),
-            child: Icon(icon, color: const Color(0xFF3A3564), size: 22),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabButton(int index, String label) {
-    final isSelected = _selectedTabIndex == index;
-    return InkWell(
-      onTap: () => setState(() => _selectedTabIndex = index),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectedTabContent(int inHand, int completed) {
-    if (_selectedTabIndex == 0) {
-      // Inventory In Hand
-      return Column(
-        children: [
-          _buildItemRow(
-            ref: 'EMB-STK-01',
-            title: 'Hollypop • Premium Graphic Tee',
-            detail: 'Article: DEMO-101-03 | Location: Rack A-02',
-            qty: '$inHand pcs',
-            badge: 'UN-EMBROIDERED',
-            badgeColor: const Color(0xFF3A3564),
-            badgeBg: const Color(0xFFFAF7F0),
-          ),
-          const SizedBox(height: 10),
-          _buildItemRow(
-            ref: 'EMB-FIN-01',
-            title: 'Hollypop • Finished Panels',
-            detail: 'Article: DEMO-101-03 | Staging Box #3',
-            qty: '$completed pcs',
-            badge: 'READY FOR SEWING',
-            badgeColor: const Color(0xFF047857),
-            badgeBg: const Color(0xFFECFDF5),
-          ),
-        ],
-      );
-    } else if (_selectedTabIndex == 1) {
-      // Inward Receipts
-      return Column(
-        children: [
-          _buildItemRow(
-            ref: 'REC-PRINT-9921',
-            title: 'Received from Printing Studio',
-            detail: 'Challan #PRN-CH-1002 • 1,300 panels',
-            qty: '1,300 pcs',
-            badge: 'VERIFIED INWARD',
-            badgeColor: const Color(0xFF047857),
-            badgeBg: const Color(0xFFECFDF5),
-          ),
-        ],
-      );
-    } else {
-      // Issued to Sewing
-      return Column(
-        children: [
-          _buildItemRow(
-            ref: 'ISS-SEW-0101',
-            title: 'Issued to Stitching Floor',
-            detail: 'Challan #EMB-CH-501 • Sergio Ramos batch',
-            qty: '$completed pcs',
-            badge: 'ISSUED & IN-TRANSIT',
-            badgeColor: const Color(0xFFD97706),
-            badgeBg: const Color(0xFFFFFBEB),
-          ),
-        ],
-      );
-    }
-  }
-
-  Widget _buildItemRow({
-    required String ref,
-    required String title,
-    required String detail,
-    required String qty,
-    required String badge,
-    required Color badgeColor,
-    required Color badgeBg,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,66 +511,62 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                ),
-                child: Text(
-                  ref,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
-                  ),
+              Text(
+                title,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF64748B),
+                  letterSpacing: 0.5,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                 decoration: BoxDecoration(
-                  color: badgeBg,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
+                  color: topBadgeBg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: topBadgeColor.withValues(alpha: 0.2)),
                 ),
                 child: Text(
-                  badge,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor,
-                  ),
+                  topBadge,
+                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: topBadgeColor),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
           const SizedBox(height: 2),
+          Text(
+            subtext,
+            style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                detail,
-                style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  color: const Color(0xFF64748B),
+                value,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.5,
                 ),
               ),
-              Text(
-                qty,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0F172A),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                ),
+                child: Text(
+                  pillText,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF3A3564),
+                  ),
                 ),
               ),
             ],
@@ -585,5 +574,153 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildTabPill(int index, String label) {
+    final isSelected = _selectedTabIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedTabIndex = index),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 10.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF64748B),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLedgerContent(int totalReceived) {
+    if (_selectedTabIndex == 0) {
+      // Inwards Received Table Item matching Web Screenshot
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7F0),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'ISS-2026-001003',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      ),
+                      child: Text(
+                        'PRINTING',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '20/09/2026',
+                  style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF64748B)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Art #DEMO-101-03',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+            ),
+            Text(
+              'Printed Front Panels (Sleeve Crest Applique) - Olive Green',
+              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: Color(0x14000000)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('RECEIVED QTY', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
+                    Text(
+                      '${totalReceived.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} pcs',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('RACK', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
+                    Text('EMB-FRAME-01', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('RECEIVER', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
+                    Text('Sergio Ramos', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else if (_selectedTabIndex == 1) {
+      // Outward Issues
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.outbox_rounded, size: 36, color: Color(0xFF94A3B8)),
+              const SizedBox(height: 8),
+              Text('No Outward Issues Yet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+              const SizedBox(height: 4),
+              Text('Issue finished embroidery panel batches to Stitching & Sewing.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B))),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Pending Inwards
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, size: 36, color: Color(0xFF047857)),
+              const SizedBox(height: 8),
+              Text('All Inward Shipments Acknowledged', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+              const SizedBox(height: 4),
+              Text('No pending material transfers awaiting receipt.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B))),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
