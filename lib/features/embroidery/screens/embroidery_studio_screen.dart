@@ -1134,6 +1134,23 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
     final isWorkerDone = task.status == 'WORKER_COMPLETED';
     final dueTimeline = _formatDueTimeline(task.dueTime, task.allotedHours);
 
+    Color statusBg = const Color(0xFFFAF7F0);
+    Color statusText = const Color(0xFF3A3564);
+    Color statusBorder = Colors.black.withValues(alpha: 0.1);
+    String statusLabel = 'IN PROGRESS';
+
+    if (isDone) {
+      statusBg = const Color(0xFFECFDF5);
+      statusText = const Color(0xFF047857);
+      statusBorder = const Color(0xFFA7F3D0);
+      statusLabel = 'VERIFIED';
+    } else if (isWorkerDone) {
+      statusBg = const Color(0xFFFFFBEB);
+      statusText = const Color(0xFFD97706);
+      statusBorder = const Color(0xFFFDE68A);
+      statusLabel = 'NEEDS VERIFY';
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1146,194 +1163,147 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Task Ref + Status Pill + Delete/Verify Action Row
+          // 1. TOP ROW: Task Ref + Worker Name & Phone on Left, Status Pill on Right
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                    ),
-                    child: Text(
-                      '#${task.taskRef}',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
-                      ),
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                ),
+                child: Text(
+                  '#${task.taskRef}',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF3A3564),
                   ),
-                  const SizedBox(width: 8),
-                  if (isDone)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFA7F3D0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.check_circle, size: 11, color: Color(0xFF047857)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'VERIFIED',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF047857),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (isWorkerDone)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFDE68A)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.access_time, size: 11, color: Color(0xFFD97706)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'NEEDS VERIFY',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFD97706),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                      ),
-                      child: Text(
-                        'IN PROGRESS',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
-              Row(
-                children: [
-                  if (!isDone)
-                    InkWell(
-                      onTap: () => _confirmVerifyTask(task),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF047857),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check, size: 12, color: Colors.white),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Verify & Done',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.workerName,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F172A),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (task.workerPhone != null && task.workerPhone!.isNotEmpty)
+                      Text(
+                        '+91 ${task.workerPhone}',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          color: const Color(0xFF64748B),
                         ),
                       ),
-                    ),
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () => _confirmDeleteTask(task),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F2),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFECDD3)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: statusBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isDone) ...[
+                      const Icon(Icons.check_circle, size: 10, color: Color(0xFF047857)),
+                      const SizedBox(width: 3),
+                    ] else if (isWorkerDone) ...[
+                      const Icon(Icons.access_time, size: 10, color: Color(0xFFD97706)),
+                      const SizedBox(width: 3),
+                    ],
+                    Text(
+                      statusLabel,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: statusText,
                       ),
-                      child: const Icon(Icons.delete_outline, size: 14, color: Color(0xFFE11D48)),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
 
           const SizedBox(height: 8),
 
-          // Worker Name & Machine Station
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // 2. MIDDLE DETAILS: Article Style, Machine Station, Target Due, and Pieces Quota
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: Text(
-                  task.workerName,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.style_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${task.buyerName} • ${task.articleNumber}',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A3564),
+                        ),
+                      ),
+                    ],
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                ),
-                child: Text(
-                  task.tableNumber,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.precision_manufacturing_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        task.tableNumber,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // Buyer & Article Number
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${task.buyerName} • ${task.articleNumber}',
-                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        dueTimeline,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10.5,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               Text(
                 '${task.piecesToEmbroider.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} pcs',
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12.5,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF0F172A),
                 ),
@@ -1341,16 +1311,60 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
             ],
           ),
 
-          const SizedBox(height: 6),
+          if (task.notes != null && task.notes!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              task.notes!,
+              style: GoogleFonts.publicSans(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ],
 
-          // Timeline due info
+          const SizedBox(height: 8),
+
+          // 3. BOTTOM ACTION ROW: Verify & Done Button (if not completed) + Delete Icon Button
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Icon(Icons.timer_outlined, size: 12, color: Color(0xFF94A3B8)),
-              const SizedBox(width: 4),
-              Text(
-                'Target: $dueTimeline',
-                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF64748B)),
+              if (!isDone) ...[
+                InkWell(
+                  onTap: () => _confirmVerifyTask(task),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check, size: 13, color: Color(0xFF047857)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Verify & Done',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF047857),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              IconButton(
+                onPressed: () => _confirmDeleteTask(task),
+                icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFF94A3B8)),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                tooltip: 'Remove task allocation',
               ),
             ],
           ),
