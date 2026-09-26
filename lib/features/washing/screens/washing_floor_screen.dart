@@ -31,90 +31,166 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
   void _showBuyerSelectionSheet(BuildContext context, WashingState state) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final filteredBuyers = state.buyers.where((b) {
+              if (searchQuery.isEmpty) return true;
+              final q = searchQuery.toLowerCase();
+              return b.buyerName.toLowerCase().contains(q) ||
+                  b.linkedArticleNumber.toLowerCase().contains(q) ||
+                  b.buyerCode.toLowerCase().contains(q);
+            }).toList();
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.75,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  // Search Bar matching Web
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    ),
+                    child: TextField(
+                      autofocus: false,
+                      onChanged: (v) => setSheetState(() => searchQuery = v.trim()),
+                      style: GoogleFonts.publicSans(fontSize: 12.5),
+                      decoration: const InputDecoration(
+                        hintText: 'Search buyers...',
+                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        prefixIcon: Icon(Icons.search, size: 17, color: Color(0xFF94A3B8)),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 1. All Buyers & Contracts Option
+                          if (searchQuery.isEmpty || 'all buyers & contracts'.contains(searchQuery.toLowerCase()))
+                            _buildBuyerOption(
+                              isSelected: state.selectedBuyerId == 'ALL',
+                              title: 'All Buyers & Contracts',
+                              subtitle: 'Show all ${state.taskAllocations.length} floor task allocations',
+                              onTap: () {
+                                ref.read(washingProvider.notifier).selectBuyer('ALL');
+                                Navigator.pop(ctx);
+                              },
+                            ),
+
+                          // 2. Individual Buyers
+                          ...filteredBuyers.map((b) {
+                            final isSelected = state.selectedBuyerId == b.id;
+                            final formattedVol = b.contractedVolume.toString().replaceAllMapped(
+                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                  (Match m) => '${m[1]},',
+                                );
+                            return _buildBuyerOption(
+                              isSelected: isSelected,
+                              title: b.buyerName,
+                              subtitle: '$formattedVol BPO Pcs • ${b.linkedArticleNumber}',
+                              onTap: () {
+                                ref.read(washingProvider.notifier).selectBuyer(b.id);
+                                Navigator.pop(ctx);
+                              },
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBuyerOption({
+    required bool isSelected,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 38,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'Select Buyer Contract',
-              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 12),
-            // All Buyers Option
-            ListTile(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              tileColor: state.selectedBuyerId == 'ALL' ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
-              title: Text(
-                'All Buyers & Contracts',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: state.selectedBuyerId == 'ALL' ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-              subtitle: Text(
-                'Show all floor task allocations',
-                style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  color: state.selectedBuyerId == 'ALL' ? Colors.white70 : const Color(0xFF64748B),
-                ),
-              ),
-              trailing: state.selectedBuyerId == 'ALL' ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
-              onTap: () {
-                ref.read(washingProvider.notifier).selectBuyer('ALL');
-                Navigator.pop(ctx);
-              },
-            ),
-            const SizedBox(height: 6),
-            ...state.buyers.map((b) {
-              final isSelected = state.selectedBuyerId == b.id;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  tileColor: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
-                  title: Text(
-                    b.buyerName,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : const Color(0xFF0F172A),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    '${b.contractedVolume.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} Pcs Contracted • ${b.linkedArticleNumber}',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      color: isSelected ? Colors.white70 : const Color(0xFF64748B),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected ? const Color(0xFFC7D2FE) : const Color(0xFF64748B),
+                      ),
                     ),
-                  ),
-                  trailing: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
-                  onTap: () {
-                    ref.read(washingProvider.notifier).selectBuyer(b.id);
-                    Navigator.pop(ctx);
-                  },
+                  ],
                 ),
-              );
-            }),
-          ],
+              ),
+              if (isSelected)
+                const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+            ],
+          ),
         ),
       ),
     );
@@ -248,101 +324,93 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
               // ===============================================================
               // a. BREADCRUMB BLOCK & b. SYNC STATUS PILL
               // ===============================================================
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back_ios_new_rounded, size: 11, color: Color(0xFF3A3564)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Workspace Hub',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A3564),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5EDF9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        'Division 07 • Wet Processing & Laundry',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF2E5AA8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Sync status pill (Emerald pastel with pulsing dot)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F3EA),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF1F8A5A).withValues(alpha: 0.2)),
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.arrow_back_ios_new_rounded, size: 11, color: Color(0xFF3A3564)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Workspace Hub',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1F8A5A),
+                              shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE5EDF9),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.2)),
-                            ),
-                            child: Text(
-                              'Division 07 • Wet Processing & Laundry',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2E5AA8),
-                              ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Tumbler & Hydro Sync Active',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1F8A5A),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  // Sync status pill (Emerald pastel with pulsing dot)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F3EA),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF1F8A5A).withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF1F8A5A),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'Tumbler & Hydro Sync Active',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1F8A5A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
               const SizedBox(height: 14),
