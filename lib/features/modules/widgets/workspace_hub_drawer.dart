@@ -28,6 +28,9 @@ import '../../printing/screens/printing_studio_screen.dart';
 import '../../printing/screens/printing_notifications_screen.dart';
 import '../../printing/screens/printing_store_screen.dart';
 import '../../printing/screens/printing_zigza_ai_screen.dart';
+import '../../embroidery/screens/embroidery_studio_screen.dart';
+import '../../embroidery/screens/embroidery_notifications_screen.dart';
+import '../../embroidery/screens/embroidery_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -322,6 +325,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isMerchandising = activeRoute.startsWith('/merchandising');
     final isCutting = activeRoute.startsWith('/cutting');
     final isPrinting = activeRoute.startsWith('/printing');
+    final isEmbroidery = activeRoute.startsWith('/embroidery');
 
     List<Widget> navChildren;
 
@@ -702,6 +706,72 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/printing/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isEmbroidery) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('5. EMBROIDERY STUDIO'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.auto_awesome_outlined,
+          title: 'Studio Dashboard',
+          isActive: activeRoute == '/embroidery',
+          onTap: () {
+            if (activeRoute == '/embroidery') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const EmbroideryStudioScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.notifications_none_rounded,
+          title: 'Notification',
+          isActive: activeRoute == '/embroidery/notifications',
+          onTap: () {
+            if (activeRoute == '/embroidery/notifications') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const EmbroideryNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/embroidery/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/embroidery/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const EmbroideryZigzaAiScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/embroidery/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
