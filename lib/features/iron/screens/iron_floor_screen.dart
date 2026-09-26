@@ -105,13 +105,23 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
     final allocations = ironState.taskAllocations;
     final buyers = ironState.buyers;
 
-    // Active Selected Buyer Resolution
-    final selectedBuyer = ironState.selectedBuyerId == 'ALL'
+    // Active Selected Buyer Resolution with Unique deduplication
+    final uniqueBuyersMap = <String, IronBuyerContract>{};
+    for (final b in buyers) {
+      uniqueBuyersMap[b.id] = b;
+    }
+    final uniqueBuyers = uniqueBuyersMap.values.toList();
+
+    final validSelectedBuyerId = (ironState.selectedBuyerId == 'ALL' || uniqueBuyers.any((b) => b.id == ironState.selectedBuyerId))
+        ? ironState.selectedBuyerId
+        : (uniqueBuyers.isNotEmpty ? uniqueBuyers.first.id : 'ALL');
+
+    final selectedBuyer = validSelectedBuyerId == 'ALL'
         ? null
-        : buyers.firstWhere(
-            (b) => b.id == ironState.selectedBuyerId,
-            orElse: () => buyers.isNotEmpty
-                ? buyers.first
+        : uniqueBuyers.firstWhere(
+            (b) => b.id == validSelectedBuyerId,
+            orElse: () => uniqueBuyers.isNotEmpty
+                ? uniqueBuyers.first
                 : const IronBuyerContract(
                     id: 'byr-ollywood',
                     buyerName: 'ollywood',
@@ -324,7 +334,10 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
                                 children: [
                                   Text(
                                     'Steam Ironing Floor',
@@ -334,7 +347,6 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                       color: const Color(0xFF232028),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
@@ -368,7 +380,9 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
@@ -390,7 +404,6 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             );
                           },
                         ),
-                        const SizedBox(width: 8),
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -452,9 +465,9 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                         IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.refresh_rounded,
-                            color: const Color(0xFF3A3564),
+                            color: Color(0xFF3A3564),
                             size: 18,
                           ),
                           tooltip: 'Refresh cloud data',
@@ -467,7 +480,10 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                     const SizedBox(height: 4),
 
                     // Buyer Name + Article Pill
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         Text(
                           selectedBuyer?.buyerName ?? 'No Active Buyer',
@@ -477,8 +493,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             color: const Color(0xFF232028),
                           ),
                         ),
-                        if (selectedBuyer != null) ...[
-                          const SizedBox(width: 8),
+                        if (selectedBuyer != null)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
@@ -495,7 +510,6 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                               ),
                             ),
                           ),
-                        ],
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -510,7 +524,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: ironState.selectedBuyerId,
+                          value: validSelectedBuyerId,
                           isExpanded: true,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7A7488)),
                           style: GoogleFonts.publicSans(
@@ -523,7 +537,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                               value: 'ALL',
                               child: Text('All Buyers (${allocations.length} Active Lots)'),
                             ),
-                            ...buyers.map((b) {
+                            ...uniqueBuyers.map((b) {
                               return DropdownMenuItem(
                                 value: b.id,
                                 child: Text('${b.buyerName} (${b.contractedVolume} Pcs Contracted)'),
