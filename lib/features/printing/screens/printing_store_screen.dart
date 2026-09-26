@@ -32,7 +32,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _IssueChallanModal(),
+      builder: (_) => const IssueMaterialChallanModal(),
     );
   }
 
@@ -42,7 +42,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AcknowledgeReceiptModal(pendingIssue: issue),
+      builder: (_) => AcknowledgeReceiptModal(pendingIssue: issue),
     );
   }
 
@@ -857,14 +857,14 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
 // Issue Challan Bottom Sheet Modal (1:1 with Web Admin ModuleStoreDashboard)
 // ============================================================================
 
-class _IssueChallanModal extends ConsumerStatefulWidget {
-  const _IssueChallanModal();
+class IssueMaterialChallanModal extends ConsumerStatefulWidget {
+  const IssueMaterialChallanModal({super.key});
 
   @override
-  ConsumerState<_IssueChallanModal> createState() => _IssueChallanModalState();
+  ConsumerState<IssueMaterialChallanModal> createState() => _IssueMaterialChallanModalState();
 }
 
-class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
+class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallanModal> {
   final _formKey = GlobalKey<FormState>();
   final _articleCtrl = TextEditingController();
   final _buyerCtrl = TextEditingController();
@@ -878,7 +878,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
   String _unit = 'meters';
   bool _isSubmitting = false;
 
-  final List<Map<String, String>> _divisions = [
+  static const List<Map<String, String>> _divisionList = [
     {'code': 'CUTTING', 'label': 'Cutting Floor'},
     {'code': 'PRINTING', 'label': 'Printing Division'},
     {'code': 'EMBROIDERY', 'label': 'Embroidery Division'},
@@ -888,7 +888,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
     {'code': 'PACKING', 'label': 'Ready Goods & Packing'},
   ];
 
-  final List<Map<String, String>> _units = [
+  static const List<Map<String, String>> _unitList = [
     {'code': 'meters', 'label': 'Meters'},
     {'code': 'pcs', 'label': 'Pieces'},
     {'code': 'kg', 'label': 'Kilograms'},
@@ -1051,7 +1051,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
                                       value: _targetDivision,
                                       isExpanded: true,
                                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
-                                      items: _divisions.map((d) {
+                                      items: _divisionList.map((d) {
                                         return DropdownMenuItem<String>(
                                           value: d['code'],
                                           child: Text(
@@ -1185,7 +1185,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
                                       value: _unit,
                                       isExpanded: true,
                                       icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
-                                      items: _units.map((u) {
+                                      items: _unitList.map((u) {
                                         return DropdownMenuItem<String>(
                                           value: u['code'],
                                           child: Text(
@@ -1333,15 +1333,15 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
 // Acknowledge Receipt Bottom Sheet Modal (1:1 with Web Admin ModuleStoreDashboard)
 // ============================================================================
 
-class _AcknowledgeReceiptModal extends ConsumerStatefulWidget {
+class AcknowledgeReceiptModal extends ConsumerStatefulWidget {
   final MaterialIssueItem pendingIssue;
-  const _AcknowledgeReceiptModal({required this.pendingIssue});
+  const AcknowledgeReceiptModal({super.key, required this.pendingIssue});
 
   @override
-  ConsumerState<_AcknowledgeReceiptModal> createState() => _AcknowledgeReceiptModalState();
+  ConsumerState<AcknowledgeReceiptModal> createState() => _AcknowledgeReceiptModalState();
 }
 
-class _AcknowledgeReceiptModalState extends ConsumerState<_AcknowledgeReceiptModal> {
+class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModal> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _recQtyCtrl;
   final _shortageCtrl = TextEditingController(text: '0');
