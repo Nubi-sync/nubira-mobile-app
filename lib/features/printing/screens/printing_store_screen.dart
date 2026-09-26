@@ -854,7 +854,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
 }
 
 // ============================================================================
-// Issue Challan Bottom Sheet Modal
+// Issue Challan Bottom Sheet Modal (1:1 with Web Admin ModuleStoreDashboard)
 // ============================================================================
 
 class _IssueChallanModal extends ConsumerStatefulWidget {
@@ -866,23 +866,33 @@ class _IssueChallanModal extends ConsumerStatefulWidget {
 
 class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
   final _formKey = GlobalKey<FormState>();
-  final _articleCtrl = TextEditingController(text: 'DEMO-101-03');
-  final _buyerCtrl = TextEditingController(text: 'Hollypop');
-  final _fabricCtrl = TextEditingController(text: 'Screen Printed Front Panels');
-  final _colorCtrl = TextEditingController(text: 'Olive Green');
-  final _qtyCtrl = TextEditingController(text: '1300');
+  final _articleCtrl = TextEditingController();
+  final _buyerCtrl = TextEditingController();
+  final _fabricCtrl = TextEditingController();
+  final _colorCtrl = TextEditingController();
+  final _qtyCtrl = TextEditingController();
+  final _rollsCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  String _targetDivision = 'EMBROIDERY';
+  String _targetDivision = 'SEWING';
+  String _unit = 'meters';
   bool _isSubmitting = false;
 
-  final List<String> _divisions = [
-    'EMBROIDERY',
-    'SEWING',
-    'WASHING',
-    'IRONING',
-    'PACKING',
-    'CENTRAL_STORE',
+  final List<Map<String, String>> _divisions = [
+    {'code': 'CUTTING', 'label': 'Cutting Floor'},
+    {'code': 'PRINTING', 'label': 'Printing Division'},
+    {'code': 'EMBROIDERY', 'label': 'Embroidery Division'},
+    {'code': 'SEWING', 'label': 'Sewing Floor'},
+    {'code': 'WASHING', 'label': 'Washing Operations'},
+    {'code': 'IRONING', 'label': 'Ironing Operations'},
+    {'code': 'PACKING', 'label': 'Ready Goods & Packing'},
+  ];
+
+  final List<Map<String, String>> _units = [
+    {'code': 'meters', 'label': 'Meters'},
+    {'code': 'pcs', 'label': 'Pieces'},
+    {'code': 'kg', 'label': 'Kilograms'},
+    {'code': 'rolls', 'label': 'Rolls'},
   ];
 
   @override
@@ -892,6 +902,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
     _fabricCtrl.dispose();
     _colorCtrl.dispose();
     _qtyCtrl.dispose();
+    _rollsCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -901,16 +912,18 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
     setState(() => _isSubmitting = true);
 
     final qty = int.tryParse(_qtyCtrl.text.trim()) ?? 0;
+    final rolls = int.tryParse(_rollsCtrl.text.trim()) ?? 0;
 
     final success = await ref.read(printingStoreProvider.notifier).createIssueChallan(
       toDivision: _targetDivision,
-      articleNo: _articleCtrl.text.trim(),
-      buyerName: _buyerCtrl.text.trim(),
-      fabricType: _fabricCtrl.text.trim(),
-      color: _colorCtrl.text.trim(),
+      articleNo: _articleCtrl.text.trim().isEmpty ? null : _articleCtrl.text.trim(),
+      buyerName: _buyerCtrl.text.trim().isEmpty ? null : _buyerCtrl.text.trim(),
+      fabricType: _fabricCtrl.text.trim().isEmpty ? null : _fabricCtrl.text.trim(),
+      color: _colorCtrl.text.trim().isEmpty ? null : _colorCtrl.text.trim(),
       quantity: qty,
-      unit: 'pcs',
-      notes: _notesCtrl.text.trim(),
+      unit: _unit,
+      rollsCount: rolls,
+      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
     );
 
     setState(() => _isSubmitting = false);
@@ -919,7 +932,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Outward Challan generated successfully.' : 'Failed to generate challan.'),
+          content: Text(success ? 'Material Challan generated successfully.' : 'Failed to generate challan.'),
           backgroundColor: success ? const Color(0xFF047857) : const Color(0xFFE11D48),
         ),
       );
@@ -938,254 +951,377 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          top: 10,
-          left: 20,
-          right: 20,
-        ),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Web Style Top Header with Cream BG & DIV 04 OUTWARD Badge
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF7F0),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFF3A3564), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Issue Outward Material Challan',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 15.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                          ),
-                          Text(
-                            'Handoff screen printed panels to downstream department',
-                            style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => Navigator.pop(context),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        ),
-                        child: const Icon(Icons.close, size: 16, color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Target Division Dropdown
-                Text(
-                  'TARGET DESTINATION DIVISION *',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _targetDivision,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                      items: _divisions.map((d) {
-                        return DropdownMenuItem<String>(
-                          value: d,
-                          child: Text(
-                            d,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _targetDivision = val);
-                      },
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // Article & Buyer Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('ARTICLE REF', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _articleCtrl,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
-                            decoration: _inputDecoration('e.g. DEMO-101-03'),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            child: Text(
+                              'DIV 04 OUTWARD',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A3564),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Issue Material Challan',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Form Body
+            Flexible(
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row 1: Destination & Article Number (2 Columns)
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('BUYER NAME', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _buyerCtrl,
-                            style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
-                            decoration: _inputDecoration('e.g. Hollypop'),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('DESTINATION', isRequired: true),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _targetDivision,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
+                                      items: _divisions.map((d) {
+                                        return DropdownMenuItem<String>(
+                                          value: d['code'],
+                                          child: Text(
+                                            d['label']!,
+                                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        if (val != null) setState(() => _targetDivision = val);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('ARTICLE NUMBER'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _articleCtrl,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                  decoration: _inputDecoration('E.G. 9437'),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                // Material Details & Color Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                      // Row 2: Buyer Name & Color / Shade (2 Columns)
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('MATERIAL / ITEM', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _fabricCtrl,
-                            style: GoogleFonts.publicSans(fontSize: 12.5),
-                            decoration: _inputDecoration('e.g. Printed Panels'),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('BUYER NAME'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _buyerCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('e.g. Zara / HM'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('COLOR / SHADE'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _colorCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('e.g. Navy Blue'),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
+                      const SizedBox(height: 14),
+
+                      // Row 3: Fabric / Item Type (Full Width)
+                      _buildLabel('FABRIC / ITEM TYPE'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _fabricCtrl,
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        decoration: _inputDecoration('e.g. Cotton Single Jersey 220 GSM'),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Row 4: Quantity, Unit, Rolls (3 Columns matching Web)
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('COLOR', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _colorCtrl,
-                            style: GoogleFonts.publicSans(fontSize: 12.5),
-                            decoration: _inputDecoration('e.g. Olive Green'),
+                          // Quantity
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('QUANTITY', isRequired: true),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _qtyCtrl,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) return 'Required';
+                                    final n = double.tryParse(val.trim());
+                                    if (n == null || n <= 0) return 'Invalid';
+                                    return null;
+                                  },
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('0'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Unit Dropdown
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('UNIT'),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _unit,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
+                                      items: _units.map((u) {
+                                        return DropdownMenuItem<String>(
+                                          value: u['code'],
+                                          child: Text(
+                                            u['label']!,
+                                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        if (val != null) setState(() => _unit = val);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Rolls
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('ROLLS'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _rollsCtrl,
+                                  keyboardType: TextInputType.number,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('0'),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
+
+                      // Row 5: Notes (Full Width)
+                      _buildLabel('NOTES'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _notesCtrl,
+                        maxLines: 2,
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        decoration: _inputDecoration('Remarks or instructions...'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Web Style Bottom Action Bar with Cancel and Confirm Issue Buttons
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF7F0),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF334155),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Quantity Row
-                Text('QUANTITY TO ISSUE (PCS) *', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _qtyCtrl,
-                  keyboardType: TextInputType.number,
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Quantity required';
-                    final n = int.tryParse(val.trim());
-                    if (n == null || n <= 0) return 'Enter valid count';
-                    return null;
-                  },
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold),
-                  decoration: _inputDecoration('e.g. 1300', suffix: 'pcs'),
-                ),
-                const SizedBox(height: 14),
-
-                // Notes
-                Text('HANDLING NOTES (OPTIONAL)', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _notesCtrl,
-                  maxLines: 2,
-                  style: GoogleFonts.publicSans(fontSize: 12.5),
-                  decoration: _inputDecoration('e.g. Cured at 160°C. Urgent lot for embroidery.'),
-                ),
-                const SizedBox(height: 18),
-
-                // Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3A3564),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     onPressed: _isSubmitting ? null : _submit,
                     child: _isSubmitting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.send_rounded, size: 16),
-                              const SizedBox(width: 8),
-                              Text('Dispatch Outward Challan', style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
+                        ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(
+                            'Confirm Issue',
+                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
                           ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint, {String? suffix}) {
+  Widget _buildLabel(String label, {bool isRequired = false}) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF334155),
+            letterSpacing: 0.5,
+          ),
+        ),
+        if (isRequired)
+          const Text(
+            ' *',
+            style: TextStyle(color: Color(0xFFE11D48), fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-      suffixText: suffix,
-      suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
@@ -1194,7 +1330,7 @@ class _IssueChallanModalState extends ConsumerState<_IssueChallanModal> {
 }
 
 // ============================================================================
-// Acknowledge Receipt Bottom Sheet Modal
+// Acknowledge Receipt Bottom Sheet Modal (1:1 with Web Admin ModuleStoreDashboard)
 // ============================================================================
 
 class _AcknowledgeReceiptModal extends ConsumerStatefulWidget {
@@ -1243,9 +1379,9 @@ class _AcknowledgeReceiptModalState extends ConsumerState<_AcknowledgeReceiptMod
       receivedQuantity: recQty,
       shortageQuantity: shortage,
       unit: widget.pendingIssue.unit,
-      receivedBy: _receiverCtrl.text.trim(),
-      rackLocation: _rackCtrl.text.trim(),
-      notes: _notesCtrl.text.trim(),
+      receivedBy: _receiverCtrl.text.trim().isEmpty ? null : _receiverCtrl.text.trim(),
+      rackLocation: _rackCtrl.text.trim().isEmpty ? null : _rackCtrl.text.trim(),
+      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
     );
 
     setState(() => _isSubmitting = false);
@@ -1274,204 +1410,293 @@ class _AcknowledgeReceiptModalState extends ConsumerState<_AcknowledgeReceiptMod
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          top: 10,
-          left: 20,
-          right: 20,
-        ),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Header with Cream BG & INWARD ACKNOWLEDGMENT Badge
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF7F0),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                      ),
-                      child: const Icon(Icons.check_circle_outline, color: Color(0xFF3A3564), size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Acknowledge Material Receipt', style: GoogleFonts.plusJakartaSans(fontSize: 15.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
-                          Text('Log received panels from ${p.fromDivision} onto Printing floor', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                        ],
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Challan Meta Banner
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
                   ),
-                  child: Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(p.issueChallanNo, style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
-                          Text(p.articleNo != null ? 'Art #${p.articleNo}' : 'General Stock', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            ),
+                            child: Text(
+                              'INWARD ACKNOWLEDGMENT',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A3564),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Receive ${p.issueChallanNo}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
                         ],
                       ),
-                      Text('${p.quantity} ${p.unit}', style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Form Body
+            Flexible(
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Challan Meta Summary Box
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildSummaryRow('From Division:', p.fromDivision),
+                            const SizedBox(height: 4),
+                            _buildSummaryRow('Article:', p.articleNo ?? 'N/A'),
+                            const SizedBox(height: 4),
+                            _buildSummaryRow('Dispatched Qty:', '${p.quantity} ${p.unit}', valueColor: const Color(0xFF3A3564)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Actual Received & Shortage Qty Row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('ACTUAL RECEIVED', isRequired: true),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _recQtyCtrl,
+                                  keyboardType: TextInputType.number,
+                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('0'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('SHORTAGE QTY'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _shortageCtrl,
+                                  keyboardType: TextInputType.number,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('0'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Rack / Location & Received By Row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('RACK / FLOOR LOCATION'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _rackCtrl,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('e.g. PRINT-INTAKE-01'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('RECEIVED BY'),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _receiverCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  decoration: _inputDecoration('Supervisor Name'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Notes
+                      _buildLabel('NOTES'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _notesCtrl,
+                        maxLines: 2,
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        decoration: _inputDecoration('Inspection remarks...'),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+              ),
+            ),
 
-                // Received & Shortage Qty Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('RECEIVED QTY *', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _recQtyCtrl,
-                            keyboardType: TextInputType.number,
-                            validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
-                            decoration: _inputDecoration('e.g. 2800', suffix: p.unit),
-                          ),
-                        ],
-                      ),
+            // Bottom Action Bar with Cancel and Confirm Buttons
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF7F0),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF334155),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('SHORTAGE QTY', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _shortageCtrl,
-                            keyboardType: TextInputType.number,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
-                            decoration: _inputDecoration('0', suffix: p.unit),
-                          ),
-                        ],
-                      ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Rack & Receiver Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('RACK / LOCATION', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _rackCtrl,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5),
-                            decoration: _inputDecoration('e.g. PRINT-INTAKE-01'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('RECEIVER NAME', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _receiverCtrl,
-                            style: GoogleFonts.publicSans(fontSize: 12.5),
-                            decoration: _inputDecoration('e.g. Kamal'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Notes
-                Text('RECEIPT NOTES (OPTIONAL)', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155))),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _notesCtrl,
-                  maxLines: 2,
-                  style: GoogleFonts.publicSans(fontSize: 12.5),
-                  decoration: _inputDecoration('e.g. Inward verified against physical bundle count.'),
-                ),
-                const SizedBox(height: 18),
-
-                // Confirm Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3A3564),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     onPressed: _isSubmitting ? null : _submit,
                     child: _isSubmitting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.check_circle_outline, size: 16),
-                              const SizedBox(width: 8),
-                              Text('Confirm & Accept Inward', style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
+                        ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(
+                            'Acknowledge Inward',
+                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
                           ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint, {String? suffix}) {
+  Widget _buildSummaryRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B))),
+        Text(
+          value,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? const Color(0xFF0F172A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLabel(String label, {bool isRequired = false}) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF334155),
+            letterSpacing: 0.5,
+          ),
+        ),
+        if (isRequired)
+          const Text(
+            ' *',
+            style: TextStyle(color: Color(0xFFE11D48), fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-      suffixText: suffix,
-      suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
