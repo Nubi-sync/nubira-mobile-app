@@ -167,35 +167,42 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Modules / Embroidery Division / Floor Store',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'Modules / Embroidery Division / Floor Store',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF3A3564),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
                       borderRadius: BorderRadius.circular(20),
@@ -212,11 +219,11 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Text(
                           'PANEL STORE SYNC ACTIVE',
                           style: GoogleFonts.jetBrainsMono(
-                            fontSize: 9.5,
+                            fontSize: 8.5,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF047857),
                           ),
@@ -496,7 +503,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -507,18 +514,24 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF64748B),
-                  letterSpacing: 0.5,
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF64748B),
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1.5),
                 decoration: BoxDecoration(
                   color: topBadgeBg,
                   borderRadius: BorderRadius.circular(4),
@@ -526,7 +539,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 ),
                 child: Text(
                   topBadge,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: topBadgeColor),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 8, fontWeight: FontWeight.bold, color: topBadgeColor),
                 ),
               ),
             ],
@@ -534,24 +547,31 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           const SizedBox(height: 2),
           Text(
             subtext,
-            style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
-                  letterSpacing: -0.5,
+              Flexible(
+                child: Text(
+                  value,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFAF7F0),
                   borderRadius: BorderRadius.circular(6),
@@ -560,7 +580,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 child: Text(
                   pillText,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF3A3564),
                   ),
