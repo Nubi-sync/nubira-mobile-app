@@ -35,6 +35,9 @@ import '../../embroidery/screens/embroidery_zigza_ai_screen.dart';
 import '../../washing/screens/washing_floor_screen.dart';
 import '../../washing/screens/washing_notifications_screen.dart';
 import '../../washing/screens/washing_zigza_ai_screen.dart';
+import '../../iron/screens/iron_floor_screen.dart';
+import '../../iron/screens/iron_notifications_screen.dart';
+import '../../iron/screens/iron_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -331,6 +334,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isPrinting = activeRoute.startsWith('/printing');
     final isEmbroidery = activeRoute.startsWith('/embroidery');
     final isWashing = activeRoute.startsWith('/washing');
+    final isIron = activeRoute.startsWith('/iron');
 
     List<Widget> navChildren;
 
@@ -856,6 +860,72 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/washing/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isIron) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('8. STEAM FINISHING & IRONING'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.air_rounded,
+          title: 'Floor Dashboard',
+          isActive: activeRoute == '/iron',
+          onTap: () {
+            if (activeRoute == '/iron') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const IronFloorScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.notifications_none_rounded,
+          title: 'Notification',
+          isActive: activeRoute == '/iron/notifications',
+          onTap: () {
+            if (activeRoute == '/iron/notifications') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const IronNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/iron/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/iron/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const IronZigzaAiScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/iron/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
