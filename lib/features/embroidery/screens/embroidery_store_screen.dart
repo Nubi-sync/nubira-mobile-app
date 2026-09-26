@@ -25,15 +25,15 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
   }
 
   void _showIssueChallanDialog() {
-    final articleCtrl = TextEditingController(text: 'DEMO-101-03');
-    final buyerCtrl = TextEditingController(text: 'Hollypop');
-    final colorCtrl = TextEditingController(text: 'Olive Green');
-    final fabricCtrl = TextEditingController(text: 'Printed Front Panels (Sleeve Crest Applique)');
-    final qtyCtrl = TextEditingController(text: '750');
+    final articleCtrl = TextEditingController();
+    final buyerCtrl = TextEditingController();
+    final colorCtrl = TextEditingController();
+    final fabricCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '0');
     final rollsCtrl = TextEditingController(text: '0');
     final notesCtrl = TextEditingController();
     String destination = 'SEWING';
-    String unit = 'pcs';
+    String unit = 'meters';
 
     showModalBottomSheet(
       context: context,
@@ -384,11 +384,11 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       children: [
         Text(
           text,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF64748B),
-            letterSpacing: 0.5,
+          style: GoogleFonts.publicSans(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF475569),
+            letterSpacing: 0.4,
           ),
         ),
         if (isRequired) ...[
@@ -415,12 +415,18 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: isMono
-            ? GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))
-            : GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+        style: GoogleFonts.publicSans(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF0F172A),
+        ),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+          hintStyle: GoogleFonts.publicSans(
+            fontSize: 12,
+            color: const Color(0xFF94A3B8),
+            fontWeight: FontWeight.normal,
+          ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           border: InputBorder.none,
           isDense: true,
