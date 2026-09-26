@@ -1325,7 +1325,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
 
           const SizedBox(height: 8),
 
-          // 3. BOTTOM ACTION ROW: Verify & Done Button (if not completed) + Delete Icon Button
+          // 3. BOTTOM ACTION ROW: Verify & Done Button (if not completed) or Done Indicator + Delete Icon Button
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -1356,6 +1356,23 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+              ] else ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check, size: 12, color: Color(0xFF64748B)),
+                    const SizedBox(width: 3),
+                    Text(
+                      'Done',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 8),
               ],

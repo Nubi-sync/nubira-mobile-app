@@ -88,7 +88,7 @@ const List<EmbroideryBuyerContract> kInitialEmbroideryBuyers = [
     embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
     status: 'LINKED',
     completedCutPieces: 2800,
-    completedPrintingPieces: 2800,
+    completedPrintingPieces: 1300,
   ),
   EmbroideryBuyerContract(
     id: 'byr-ollywood',
@@ -108,35 +108,52 @@ const List<EmbroideryBuyerContract> kInitialEmbroideryBuyers = [
 
 const List<EmbroideryTaskAllocation> kInitialEmbroideryTasks = [
   EmbroideryTaskAllocation(
-    id: 'task-emb-01',
-    taskRef: 'EMB-2026-9901',
-    workerId: 'ew-101',
-    workerName: 'Suresh Kumar',
-    workerPhone: '9876543210',
+    id: 'task-emb-0102',
+    taskRef: 'EMB-0102',
+    workerId: 'ew-vini',
+    workerName: 'Vini Jr',
+    workerPhone: '2583691470',
     buyerName: 'Hollypop',
     articleNumber: 'DEMO-101-03',
     articleName: 'Premium Graphic Tee',
-    tableNumber: 'Machine 01 (Tajima 20-Head)',
-    piecesToEmbroider: 800,
+    tableNumber: 'Tajima 20-Head #1',
+    piecesToEmbroider: 400,
     completedPieces: 0,
     status: 'ASSIGNED',
-    allotedHours: 4.0,
+    allotedHours: 6.0,
     createdAt: '2026-09-24T00:00:00.000Z',
   ),
   EmbroideryTaskAllocation(
-    id: 'task-emb-02',
-    taskRef: 'EMB-2026-9902',
-    workerId: 'ew-102',
-    workerName: 'Mohan Lal',
-    workerPhone: '9812345678',
+    id: 'task-emb-7487',
+    taskRef: 'EMB-7487',
+    workerId: 'ew-sergio',
+    workerName: 'Sergio Ramos',
+    workerPhone: '1472583690',
     buyerName: 'Hollypop',
     articleNumber: 'DEMO-101-03',
     articleName: 'Premium Graphic Tee',
-    tableNumber: 'Machine 02 (Tajima 12-Head)',
-    piecesToEmbroider: 500,
-    completedPieces: 500,
+    tableNumber: 'Tajima 20-Head #1',
+    piecesToEmbroider: 150,
+    completedPieces: 150,
     status: 'VERIFIED_COMPLETED',
-    allotedHours: 4.0,
+    allotedHours: 2.0,
+    createdAt: '2026-09-24T00:00:00.000Z',
+    completedAt: '2026-09-24T12:00:00.000Z',
+  ),
+  EmbroideryTaskAllocation(
+    id: 'task-emb-0101',
+    taskRef: 'EMB-0101',
+    workerId: 'ew-sergio',
+    workerName: 'Sergio Ramos',
+    workerPhone: '1472583690',
+    buyerName: 'Hollypop',
+    articleNumber: 'DEMO-101-03',
+    articleName: 'Premium Graphic Tee',
+    tableNumber: 'Tajima 20-Head #1',
+    piecesToEmbroider: 600,
+    completedPieces: 600,
+    status: 'VERIFIED_COMPLETED',
+    allotedHours: 6.0,
     createdAt: '2026-09-24T00:00:00.000Z',
     completedAt: '2026-09-24T12:00:00.000Z',
   ),
@@ -144,39 +161,27 @@ const List<EmbroideryTaskAllocation> kInitialEmbroideryTasks = [
 
 const List<EmbroideryWorker> kInitialEmbroideryWorkers = [
   EmbroideryWorker(
-    id: 'ew-101',
-    workerName: 'Suresh Kumar',
-    phoneNumber: '9876543210',
+    id: 'ew-vini',
+    workerName: 'Vini Jr',
+    phoneNumber: '2583691470',
     role: 'Multi-Head Machine Operator',
     roles: ['EMBROIDERY_OPERATOR'],
     shift: 'MORNING',
     status: 'ACTIVE',
-    assignedPieces: 800,
+    assignedPieces: 400,
     completedPieces: 0,
     createdAt: '2026-09-24T00:00:00.000Z',
   ),
   EmbroideryWorker(
-    id: 'ew-102',
-    workerName: 'Mohan Lal',
-    phoneNumber: '9812345678',
-    role: 'Hooping & Framing Specialist',
-    roles: ['HOOPING_SPECIALIST'],
+    id: 'ew-sergio',
+    workerName: 'Sergio Ramos',
+    phoneNumber: '1472583690',
+    role: 'Multi-Head Machine Operator',
+    roles: ['EMBROIDERY_OPERATOR'],
     shift: 'MORNING',
     status: 'ACTIVE',
-    assignedPieces: 500,
-    completedPieces: 500,
-    createdAt: '2026-09-24T00:00:00.000Z',
-  ),
-  EmbroideryWorker(
-    id: 'ew-103',
-    workerName: 'Vikram Singh',
-    phoneNumber: '9899887766',
-    role: 'Punch Digitizer / Quality Inspector',
-    roles: ['PUNCH_DIGITIZER'],
-    shift: 'GENERAL',
-    status: 'ACTIVE',
     assignedPieces: 0,
-    completedPieces: 0,
+    completedPieces: 750,
     createdAt: '2026-09-24T00:00:00.000Z',
   ),
 ];
@@ -214,13 +219,16 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // 1. Load cached workers
+      // 1. Load cached workers (filter legacy demo workers)
       List<EmbroideryWorker> loadedWorkers = [...kInitialEmbroideryWorkers];
       final cachedWorkersStr = prefs.getString(_prefWorkersKey);
       if (cachedWorkersStr != null && cachedWorkersStr.isNotEmpty) {
         try {
           final List decoded = jsonDecode(cachedWorkersStr);
-          final parsed = decoded.map((e) => EmbroideryWorker.fromJson(e)).toList();
+          final parsed = decoded
+              .map((e) => EmbroideryWorker.fromJson(e))
+              .where((w) => w.workerName != 'Suresh Kumar' && w.workerName != 'Mohan Lal' && w.workerName != 'Vikram Singh')
+              .toList();
           if (parsed.isNotEmpty) {
             final map = {for (var w in loadedWorkers) w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id: w};
             for (var w in parsed) {
@@ -231,13 +239,16 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         } catch (_) {}
       }
 
-      // 2. Load cached task allocations
+      // 2. Load cached task allocations (filter legacy dummy tasks)
       List<EmbroideryTaskAllocation> loadedTasks = [...kInitialEmbroideryTasks];
       final cachedTasksStr = prefs.getString(_prefTasksKey);
       if (cachedTasksStr != null && cachedTasksStr.isNotEmpty) {
         try {
           final List decoded = jsonDecode(cachedTasksStr);
-          final parsed = decoded.map((e) => EmbroideryTaskAllocation.fromJson(e)).toList();
+          final parsed = decoded
+              .map((e) => EmbroideryTaskAllocation.fromJson(e))
+              .where((t) => !t.taskRef.startsWith('EMB-2026-99') && !t.taskRef.startsWith('EMB-TSK') && !t.taskRef.startsWith('BA-'))
+              .toList();
           if (parsed.isNotEmpty) {
             final map = {for (var t in loadedTasks) t.taskRef: t};
             for (var t in parsed) {
@@ -264,6 +275,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
       }
 
       List<String> loadedMachines = [
+        'Tajima 20-Head #1',
         'Machine 01 (Tajima 20-Head)',
         'Machine 02 (Tajima 12-Head)',
         'Machine 03 (Barudan 15-Head)',
@@ -289,12 +301,17 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         }
         final dynamic serverWorkerRows = await workerQuery.order('created_at', ascending: false);
         if (serverWorkerRows is List && serverWorkerRows.isNotEmpty) {
-          final serverWorkers = serverWorkerRows.map((e) => EmbroideryWorker.fromJson(e as Map<String, dynamic>)).toList();
-          final map = {for (var w in loadedWorkers) w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id: w};
-          for (var w in serverWorkers) {
-            map[w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id] = w;
+          final serverWorkers = serverWorkerRows
+              .map((e) => EmbroideryWorker.fromJson(e as Map<String, dynamic>))
+              .where((w) => w.workerName != 'Suresh Kumar' && w.workerName != 'Mohan Lal' && w.workerName != 'Vikram Singh')
+              .toList();
+          if (serverWorkers.isNotEmpty) {
+            final map = {for (var w in loadedWorkers) w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id: w};
+            for (var w in serverWorkers) {
+              map[w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id] = w;
+            }
+            loadedWorkers = map.values.toList();
           }
-          loadedWorkers = map.values.toList();
         }
       } catch (e) {
         debugPrint('[EmbroideryProvider] Server worker fetch warning: $e');
@@ -308,12 +325,17 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         }
         final dynamic serverTaskRows = await taskQuery.order('created_at', ascending: false);
         if (serverTaskRows is List && serverTaskRows.isNotEmpty) {
-          final serverTasks = serverTaskRows.map((e) => EmbroideryTaskAllocation.fromJson(e as Map<String, dynamic>)).toList();
-          final map = {for (var t in loadedTasks) t.taskRef: t};
-          for (var t in serverTasks) {
-            map[t.taskRef] = t;
+          final serverTasks = serverTaskRows
+              .map((e) => EmbroideryTaskAllocation.fromJson(e as Map<String, dynamic>))
+              .where((t) => !t.taskRef.startsWith('EMB-2026-99') && !t.taskRef.startsWith('EMB-TSK') && !t.taskRef.startsWith('BA-'))
+              .toList();
+          if (serverTasks.isNotEmpty) {
+            final map = {for (var t in loadedTasks) t.taskRef: t};
+            for (var t in serverTasks) {
+              map[t.taskRef] = t;
+            }
+            loadedTasks = map.values.toList();
           }
-          loadedTasks = map.values.toList();
         }
       } catch (e) {
         debugPrint('[EmbroideryProvider] Server task fetch warning: $e');
@@ -321,7 +343,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
 
       // 7. Query Upstream Cutting & Printing Allocations for piece counting
       int totalCutPieces = 2800;
-      int totalPrintedPieces = 2800;
+      int totalPrintedPieces = 1300;
 
       try {
         var cutQuery = supabase.from('cutting_task_allocations').select('*');

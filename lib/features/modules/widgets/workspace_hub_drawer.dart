@@ -30,6 +30,7 @@ import '../../printing/screens/printing_store_screen.dart';
 import '../../printing/screens/printing_zigza_ai_screen.dart';
 import '../../embroidery/screens/embroidery_studio_screen.dart';
 import '../../embroidery/screens/embroidery_notifications_screen.dart';
+import '../../embroidery/screens/embroidery_store_screen.dart';
 import '../../embroidery/screens/embroidery_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
@@ -723,12 +724,12 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        _buildSectionLabel('5. EMBROIDERY STUDIO'),
+        _buildSectionLabel('5. EMBROIDERY DIVISION'),
         const SizedBox(height: 4),
         _buildNavItem(
           context: context,
           icon: Icons.auto_awesome_outlined,
-          title: 'Studio Dashboard',
+          title: 'Floor Dashboard',
           isActive: activeRoute == '/embroidery',
           onTap: () {
             if (activeRoute == '/embroidery') {
@@ -748,6 +749,19 @@ class WorkspaceHubDrawer extends ConsumerWidget {
               Navigator.pop(context);
             } else {
               _navigateTo(context, const EmbroideryNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.storefront_outlined,
+          title: 'Floor Store (Panels)',
+          isActive: activeRoute == '/embroidery/store',
+          onTap: () {
+            if (activeRoute == '/embroidery/store') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const EmbroideryStoreScreen());
             }
           },
         ),
