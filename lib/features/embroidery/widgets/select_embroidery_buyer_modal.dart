@@ -165,29 +165,33 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'All Active Buyers',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: activeSelectedId == 'ALL' ? Colors.white : const Color(0xFF0F172A),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'All Active Buyers',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeSelectedId == 'ALL' ? Colors.white : const Color(0xFF0F172A),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Showing aggregated floor tasks across all contracted brands',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 11,
-                                    color: activeSelectedId == 'ALL' ? Colors.white70 : const Color(0xFF64748B),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Showing aggregated floor tasks across all contracted brands',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11,
+                                      color: activeSelectedId == 'ALL' ? Colors.white70 : const Color(0xFF64748B),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                            if (activeSelectedId == 'ALL')
+                            if (activeSelectedId == 'ALL') ...[
+                              const SizedBox(width: 8),
                               const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                            ],
                           ],
                         ),
                       ),
@@ -196,7 +200,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                     // 2. BUYER CONTRACT ITEMS
                     ...filteredBuyers.map((b) {
                       final isSelected = activeSelectedId == b.id;
-                      final cutPieces = b.completedCutPieces > 0 ? b.completedCutPieces : state.upstreamCutPieces;
+                      final cutPieces = b.completedCutPieces;
 
                       return InkWell(
                         key: ValueKey(b.id),

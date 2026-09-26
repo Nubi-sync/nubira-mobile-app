@@ -341,9 +341,11 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         debugPrint('[EmbroideryProvider] Server task fetch warning: $e');
       }
 
-      // 7. Query Upstream Cutting & Printing Allocations for piece counting
+      // 7. Query Upstream Cutting & Printing Allocations per Buyer & Article
       int totalCutPieces = 2800;
       int totalPrintedPieces = 1300;
+      final Map<String, int> buyerCutMap = {'HOLLYPOP': 2800, 'DEMO-101-03': 2800};
+      final Map<String, int> buyerPrintMap = {'HOLLYPOP': 1300, 'DEMO-101-03': 1300};
 
       try {
         var cutQuery = supabase.from('cutting_task_allocations').select('*');
@@ -360,6 +362,14 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
                 acc + ((curr['completed_pieces'] as num?)?.toInt() ?? (curr['pieces_to_cut'] as num?)?.toInt() ?? 0),
           );
           if (sumCut > 0) totalCutPieces = sumCut;
+
+          for (final curr in completedCuts) {
+            final pcs = ((curr['completed_pieces'] ?? curr['pieces_to_cut']) as num?)?.toInt() ?? 0;
+            final bName = (curr['buyer_name']?.toString() ?? '').trim().toUpperCase();
+            final aNum = (curr['article_number']?.toString() ?? '').trim().toUpperCase();
+            if (bName.isNotEmpty) buyerCutMap[bName] = (buyerCutMap[bName] ?? 0) + pcs;
+            if (aNum.isNotEmpty) buyerCutMap[aNum] = (buyerCutMap[aNum] ?? 0) + pcs;
+          }
         }
       } catch (_) {}
 
@@ -378,47 +388,85 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
                 acc + ((curr['completed_pieces'] as num?)?.toInt() ?? (curr['pieces_to_print'] as num?)?.toInt() ?? 0),
           );
           if (sumPrint > 0) totalPrintedPieces = sumPrint;
+
+          for (final curr in completedPrints) {
+            final pcs = ((curr['completed_pieces'] ?? curr['pieces_to_print']) as num?)?.toInt() ?? 0;
+            final bName = (curr['buyer_name']?.toString() ?? '').trim().toUpperCase();
+            final aNum = (curr['article_number']?.toString() ?? '').trim().toUpperCase();
+            if (bName.isNotEmpty) buyerPrintMap[bName] = (buyerPrintMap[bName] ?? 0) + pcs;
+            if (aNum.isNotEmpty) buyerPrintMap[aNum] = (buyerPrintMap[aNum] ?? 0) + pcs;
+          }
         }
       } catch (_) {}
 
-      // 8. Fetch Active Buyers from Merchandising / Orders
+      // 8. Fetch Active Buyers from Merchandising / Orders with Tenant Isolation
       List<EmbroideryBuyerContract> loadedBuyers = [...kInitialEmbroideryBuyers];
       try {
-        final dynamic buyerRows = await supabase.from('brands').select('*').limit(20);
+        var buyerFilter = supabase.from('merchandising_active_buyers').select('*');
+        if (companyName != null && companyName.trim().isNotEmpty) {
+          buyerFilter = buyerFilter.eq('company_name', companyName.trim());
+        }
+        final dynamic buyerRows = await buyerFilter.order('created_at', ascending: false);
         if (buyerRows is List && buyerRows.isNotEmpty) {
           final parsedBuyers = buyerRows.map((b) {
+            final bName = (b['buyer_name']?.toString() ?? b['brand_name']?.toString() ?? 'Buyer').trim();
+            final qty = ((b['contracted_volume'] as num?) ?? 6000).toInt();
             return EmbroideryBuyerContract(
-              id: b['id']?.toString() ?? '',
-              buyerName: b['brand_name']?.toString() ?? 'Buyer',
-              buyerCode: b['brand_code']?.toString(),
-              contractedVolume: (b['contracted_volume'] as num?)?.toInt() ?? 6000,
+              id: b['id']?.toString() ?? 'byr-${bName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-')}',
+              buyerName: bName,
+              buyerCode: b['buyer_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+              contractedVolume: qty > 0 ? qty : 6000,
               pricePerPiece: (b['price_per_piece'] as num?)?.toDouble() ?? 18.5,
               totalContractValue: (b['total_contract_value'] as num?)?.toDouble() ?? 111000.0,
               linkedArticleNumber: b['linked_article_number']?.toString() ?? 'DEMO-101-03',
               linkedArticleName: b['linked_article_name']?.toString() ?? 'Premium Graphic Tee',
               embellishmentSequence: b['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
-              completedCutPieces: totalCutPieces,
-              completedPrintingPieces: totalPrintedPieces,
+              completedCutPieces: 0,
+              completedPrintingPieces: 0,
             );
           }).toList();
 
           if (parsedBuyers.isNotEmpty) {
-            final buyerMap = {for (var b in loadedBuyers) b.buyerName.toLowerCase(): b};
+            final buyerMap = {for (var b in loadedBuyers) b.buyerName.toUpperCase(): b};
             for (var b in parsedBuyers) {
-              buyerMap[b.buyerName.toLowerCase()] = b;
+              buyerMap[b.buyerName.toUpperCase()] = b;
             }
             loadedBuyers = buyerMap.values.toList();
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[EmbroideryProvider] Buyer fetch warning: $e');
+      }
 
-      // Match buyer completed cuts & prints
+      // Filter out legacy dummy/test brands
+      const dummyTestBrands = {
+        'FIRST SMILE',
+        'LAZY BONES',
+        'CANDY POP',
+        'NUBIRA IN-HOUSE',
+        'CHERRY POP',
+        'ZARA DEMO',
+        'H&M TEST',
+      };
+      loadedBuyers = loadedBuyers.where((b) => !dummyTestBrands.contains(b.buyerName.trim().toUpperCase())).toList();
+
+      // Match buyer completed cuts & prints strictly per buyer
       loadedBuyers = loadedBuyers.map((b) {
+        final bKey = b.buyerName.trim().toUpperCase();
+        final aKey = (b.linkedArticleNumber ?? '').trim().toUpperCase();
+
+        final cutPcs = buyerCutMap[bKey] ?? (aKey.isNotEmpty ? buyerCutMap[aKey] ?? 0 : 0);
+        final printPcs = buyerPrintMap[bKey] ?? (aKey.isNotEmpty ? buyerPrintMap[aKey] ?? 0 : 0);
+
         return b.copyWith(
-          completedCutPieces: totalCutPieces,
-          completedPrintingPieces: totalPrintedPieces,
+          completedCutPieces: cutPcs,
+          completedPrintingPieces: printPcs,
         );
       }).toList();
+
+      if (loadedBuyers.isEmpty) {
+        loadedBuyers = [...kInitialEmbroideryBuyers];
+      }
 
       final selectedId = state.selectedBuyerId.isNotEmpty
           ? state.selectedBuyerId
@@ -771,9 +819,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
 
     switch (route) {
       case 'PRINT_FIRST_THEN_EMBROIDERY':
-        sourcePieces = selectedBuyer.completedPrintingPieces > 0
-            ? selectedBuyer.completedPrintingPieces
-            : state.upstreamPrintingPieces;
+        sourcePieces = selectedBuyer.completedPrintingPieces;
         sourceDept = 'Printing Studio';
         targetDept = 'Stitching & Sewing Floor';
         badge = 'Step 2: Printing -> Embroidery';
@@ -782,9 +828,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         isActive = true;
         break;
       case 'EMBROIDERY_FIRST_THEN_PRINT':
-        sourcePieces = selectedBuyer.completedCutPieces > 0
-            ? selectedBuyer.completedCutPieces
-            : state.upstreamCutPieces;
+        sourcePieces = selectedBuyer.completedCutPieces;
         sourceDept = 'Cutting Lay Floor';
         targetDept = 'Printing Studio';
         badge = 'Step 1: Cutting -> Embroidery';
@@ -793,9 +837,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         isActive = true;
         break;
       case 'EMBROIDERY_ONLY':
-        sourcePieces = selectedBuyer.completedCutPieces > 0
-            ? selectedBuyer.completedCutPieces
-            : state.upstreamCutPieces;
+        sourcePieces = selectedBuyer.completedCutPieces;
         sourceDept = 'Cutting Lay Floor';
         targetDept = 'Stitching & Sewing Floor';
         badge = 'Direct: Cutting -> Embroidery';
@@ -813,9 +855,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         isActive = false;
         break;
       default:
-        sourcePieces = selectedBuyer.completedPrintingPieces > 0
-            ? selectedBuyer.completedPrintingPieces
-            : state.upstreamPrintingPieces;
+        sourcePieces = selectedBuyer.completedPrintingPieces;
         sourceDept = 'Printing Studio';
         targetDept = 'Stitching & Sewing Floor';
         badge = 'Step 2: Printing -> Embroidery';
