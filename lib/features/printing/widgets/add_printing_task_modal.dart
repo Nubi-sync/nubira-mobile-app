@@ -316,15 +316,20 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'SELECT FLOOR WORKER *',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF334155),
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      'SELECT FLOOR WORKER *',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF334155),
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: () {
                       Navigator.pop(context);
@@ -384,15 +389,20 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'ARTICLE STYLE REFERENCE',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF334155),
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      'ARTICLE STYLE REFERENCE',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF334155),
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -562,15 +572,20 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'ASSIGNED PRINT TABLE / MACHINE STATION',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF334155),
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      'ASSIGNED PRINT TABLE / MACHINE STATION',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF334155),
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (!_isAddingStation)
                     InkWell(
                       onTap: () => setState(() => _isAddingStation = true),
