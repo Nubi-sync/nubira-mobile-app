@@ -32,6 +32,9 @@ import '../../embroidery/screens/embroidery_studio_screen.dart';
 import '../../embroidery/screens/embroidery_notifications_screen.dart';
 import '../../embroidery/screens/embroidery_store_screen.dart';
 import '../../embroidery/screens/embroidery_zigza_ai_screen.dart';
+import '../../washing/screens/washing_floor_screen.dart';
+import '../../washing/screens/washing_notifications_screen.dart';
+import '../../washing/screens/washing_zigza_ai_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -327,6 +330,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isCutting = activeRoute.startsWith('/cutting');
     final isPrinting = activeRoute.startsWith('/printing');
     final isEmbroidery = activeRoute.startsWith('/embroidery');
+    final isWashing = activeRoute.startsWith('/washing');
 
     List<Widget> navChildren;
 
@@ -786,6 +790,72 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/embroidery/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isWashing) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('7. INDUSTRIAL WASHING'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.waves_outlined,
+          title: 'Floor Dashboard',
+          isActive: activeRoute == '/washing',
+          onTap: () {
+            if (activeRoute == '/washing') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const WashingFloorScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.notifications_none_rounded,
+          title: 'Notification',
+          isActive: activeRoute == '/washing/notifications',
+          onTap: () {
+            if (activeRoute == '/washing/notifications') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const WashingNotificationsScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/washing/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/washing/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const WashingZigzaAiScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/washing/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
