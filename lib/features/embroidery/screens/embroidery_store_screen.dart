@@ -26,8 +26,14 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
   void _showIssueChallanDialog() {
     final articleCtrl = TextEditingController(text: 'DEMO-101-03');
+    final buyerCtrl = TextEditingController(text: 'Hollypop');
+    final colorCtrl = TextEditingController(text: 'Olive Green');
+    final fabricCtrl = TextEditingController(text: 'Printed Front Panels (Sleeve Crest Applique)');
     final qtyCtrl = TextEditingController(text: '750');
-    String targetDiv = 'SEWING';
+    final rollsCtrl = TextEditingController(text: '0');
+    final notesCtrl = TextEditingController();
+    String destination = 'SEWING';
+    String unit = 'pcs';
 
     showModalBottomSheet(
       context: context,
@@ -36,107 +42,388 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Issue Material Challan',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text('Target Department / Line', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF475569))),
-              const SizedBox(height: 4),
+              // Header Section with Cream background
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF7F0),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border(bottom: BorderSide(color: Color(0x1A000000))),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: targetDiv,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(value: 'SEWING', child: Text('Stitching & Sewing Floor')),
-                      DropdownMenuItem(value: 'WASHING', child: Text('Washing Division')),
-                      DropdownMenuItem(value: 'FINISHING', child: Text('Finishing & Packing')),
-                    ],
-                    onChanged: (val) => setModalState(() => targetDiv = val ?? 'SEWING'),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: articleCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Article Number',
-                  filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: qtyCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Issue Quantity (Panels / Pcs)',
-                  filled: true,
-                  fillColor: const Color(0xFFFAF7F0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Material Challan created & issued to Stitching floor!'),
-                        backgroundColor: Color(0xFF047857),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    );
-                  },
-                  child: Text('Create & Dispatch Challan', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0x1A000000)),
+                              ),
+                              child: Text(
+                                'DIV 05 OUTWARD',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF3A3564),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Issue Material Challan',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(ctx),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0x1A000000)),
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Form Scrollable Body
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Row 1: Destination & Article Number
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('DESTINATION', isRequired: true),
+                                const SizedBox(height: 6),
+                                Container(
+                                  height: 44,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: destination,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
+                                      items: const [
+                                        DropdownMenuItem(value: 'SEWING', child: Text('Sewing Floor')),
+                                        DropdownMenuItem(value: 'WASHING', child: Text('Washing Division')),
+                                        DropdownMenuItem(value: 'PRINTING', child: Text('Printing Studio')),
+                                        DropdownMenuItem(value: 'FINISHING', child: Text('Finishing / Packing')),
+                                        DropdownMenuItem(value: 'CENTRAL_STORE', child: Text('Central Store')),
+                                      ],
+                                      onChanged: (v) => setModalState(() => destination = v ?? 'SEWING'),
+                                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('ARTICLE NUMBER'),
+                                const SizedBox(height: 6),
+                                _buildTextInput(
+                                  controller: articleCtrl,
+                                  hintText: 'E.G. 9437',
+                                  isMono: true,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Row 2: Buyer Name & Color / Shade
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('BUYER NAME'),
+                                const SizedBox(height: 6),
+                                _buildTextInput(
+                                  controller: buyerCtrl,
+                                  hintText: 'e.g. Zara / HM',
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('COLOR / SHADE'),
+                                const SizedBox(height: 6),
+                                _buildTextInput(
+                                  controller: colorCtrl,
+                                  hintText: 'e.g. Navy Blue',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Row 3: Fabric / Item Type
+                      _buildFieldLabel('FABRIC / ITEM TYPE'),
+                      const SizedBox(height: 6),
+                      _buildTextInput(
+                        controller: fabricCtrl,
+                        hintText: 'e.g. Cotton Single Jersey 220 GSM',
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Row 4: Quantity, Unit, Rolls (3-column grid)
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('QUANTITY', isRequired: true),
+                                const SizedBox(height: 6),
+                                _buildTextInput(
+                                  controller: qtyCtrl,
+                                  hintText: '0',
+                                  isMono: true,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('UNIT'),
+                                const SizedBox(height: 6),
+                                Container(
+                                  height: 44,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: unit,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
+                                      items: const [
+                                        DropdownMenuItem(value: 'meters', child: Text('Meters')),
+                                        DropdownMenuItem(value: 'pcs', child: Text('Pieces')),
+                                        DropdownMenuItem(value: 'kg', child: Text('Kilograms')),
+                                        DropdownMenuItem(value: 'rolls', child: Text('Rolls')),
+                                      ],
+                                      onChanged: (v) => setModalState(() => unit = v ?? 'pcs'),
+                                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('ROLLS'),
+                                const SizedBox(height: 6),
+                                _buildTextInput(
+                                  controller: rollsCtrl,
+                                  hintText: '0',
+                                  isMono: true,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Row 5: Notes
+                      _buildFieldLabel('NOTES'),
+                      const SizedBox(height: 6),
+                      _buildTextInput(
+                        controller: notesCtrl,
+                        hintText: 'Remarks or instructions...',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Footer Bar with Cream Background matching Web
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF7F0),
+                  border: Border(top: BorderSide(color: Color(0x1A000000))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF475569),
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3A3564),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Material Challan for ${qtyCtrl.text} $unit issued to ${destination == "SEWING" ? "Sewing Floor" : destination}!'),
+                            backgroundColor: const Color(0xFF047857),
+                          ),
+                        );
+                      },
+                      child: Text('Confirm Issue', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String text, {bool isRequired = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF64748B),
+            letterSpacing: 0.5,
+          ),
+        ),
+        if (isRequired) ...[
+          const SizedBox(width: 3),
+          const Text('*', style: TextStyle(color: Color(0xFFEF4444), fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTextInput({
+    required TextEditingController controller,
+    required String hintText,
+    bool isMono = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: isMono
+            ? GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))
+            : GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: InputBorder.none,
+          isDense: true,
         ),
       ),
     );
