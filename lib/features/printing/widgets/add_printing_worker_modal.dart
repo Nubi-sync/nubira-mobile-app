@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/printing_provider.dart';
 
+const List<Map<String, String>> kPrintingFloorRoles = [
+  {'id': 'SCREEN_PRINTER', 'label': 'Screen Print Operator'},
+  {'id': 'DTG_TECHNICIAN', 'label': 'DTG & Heat Press Technician'},
+  {'id': 'TABLE_OPERATOR', 'label': 'Table Master / Flocking Lead'},
+];
+
 class AddPrintingWorkerModal extends ConsumerStatefulWidget {
   const AddPrintingWorkerModal({super.key});
 
@@ -16,12 +22,6 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _showPassword = false;
-
-  final List<Map<String, String>> _availableRoles = const [
-    {'id': 'SCREEN_PRINTER', 'label': 'Screen Print Operator'},
-    {'id': 'DTG_TECHNICIAN', 'label': 'DTG & Heat Press Technician'},
-    {'id': 'TABLE_OPERATOR', 'label': 'Table Master / Flocking Lead'},
-  ];
 
   final Set<String> _selectedRoles = {'SCREEN_PRINTER'};
   bool _isSubmitting = false;
@@ -111,42 +111,46 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
             children: [
               // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        ),
-                        child: const Icon(Icons.person_add_alt_1, color: Color(0xFF3A3564), size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Add Printing Floor Worker',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            'Create worker credentials for printing studio portal access',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 11,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F0),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    ),
+                    child: const Icon(Icons.person_add_alt_1, color: Color(0xFF3A3564), size: 20),
                   ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Printing Floor Worker',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Create worker credentials for printing studio access',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(20),
@@ -163,9 +167,9 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Divider(height: 1, color: Color(0xFFE2E8F0)),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // WORKER FULL NAME *
               Text(
@@ -225,7 +229,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAF7F0),
                         borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
@@ -313,21 +317,26 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // FLOOR ROLES (SELECT ONE OR MULTIPLE) *
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'FLOOR ROLES (SELECT ONE OR MULTIPLE) *',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF334155),
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      'FLOOR ROLES (SELECT MULTIPLE) *',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF334155),
+                        letterSpacing: 0.4,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${_selectedRoles.length} of 3 selected',
                     style: GoogleFonts.jetBrainsMono(
@@ -341,7 +350,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
               const SizedBox(height: 8),
 
               // 3 Role Cards
-              ..._availableRoles.map((role) {
+              ...kPrintingFloorRoles.map((role) {
                 final roleId = role['id']!;
                 final roleLabel = role['label']!;
                 final isChecked = _selectedRoles.contains(roleId);
@@ -367,8 +376,8 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                           Expanded(
                             child: Text(
                               roleLabel,
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 12,
+                              style: GoogleFonts.publicSans(
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.bold,
                                 color: isChecked ? Colors.white : const Color(0xFF334155),
                               ),
@@ -378,7 +387,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                             width: 18,
                             height: 18,
                             decoration: BoxDecoration(
-                              color: isChecked ? Colors.white : Colors.white,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(5),
                               border: Border.all(
                                 color: isChecked ? Colors.white : const Color(0xFFCBD5E1),
@@ -402,7 +411,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 );
               }),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
               // Bottom Actions: Cancel & Register Worker
               Row(
