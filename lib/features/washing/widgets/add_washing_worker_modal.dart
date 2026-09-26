@@ -23,36 +23,77 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  String _selectedMachine = 'Washer 01 (Industrial Tumbler)';
-  String _selectedSpecialization = 'Bio-Enzyme & Softening';
-  String _selectedShift = 'Morning (08:00 - 16:30)';
+  final _passwordCtrl = TextEditingController();
+  bool _obscurePassword = true;
+
+  String _assignedMachine = 'Washer 01 (Tumbler 600kg)';
+  String _shift = 'Morning (08:00 AM - 04:00 PM)';
+  final List<String> _selectedRoles = ['WASH_MASTER'];
   bool _isSaving = false;
+
+  final List<Map<String, String>> _availableRoles = const [
+    {'id': 'WASH_MASTER', 'label': 'Washing Master / Head Chemist'},
+    {'id': 'HYDRO_EXTRACTOR', 'label': 'Hydro Extraction Operator'},
+    {'id': 'TUMBLER_OPERATOR', 'label': 'Industrial Tumbler Dryer Operator'},
+    {'id': 'CHEMICAL_MIXER', 'label': 'Chemical & Enzyme Dosing Specialist'},
+    {'id': 'SHRINKAGE_INSPECTOR', 'label': 'Shrinkage & Shade QC Inspector'},
+    {'id': 'FINISHING_LOADER', 'label': 'Wet Goods Conveyor & Loader'},
+  ];
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  void _toggleRole(String roleId) {
+    setState(() {
+      if (_selectedRoles.contains(roleId)) {
+        if (_selectedRoles.length == 1) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Worker must have at least one floor role.')),
+          );
+          return;
+        }
+        _selectedRoles.remove(roleId);
+      } else {
+        _selectedRoles.add(roleId);
+      }
+    });
   }
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedRoles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one floor role.')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
+      final primaryRoleLabel = _selectedRoles.map((r) {
+        final match = _availableRoles.firstWhere((ar) => ar['id'] == r, orElse: () => {'label': r});
+        return match['label']!;
+      }).join(', ');
+
       await ref.read(washingProvider.notifier).addWorker(
             name: _nameCtrl.text.trim(),
             phone: _phoneCtrl.text.trim(),
-            machineNumber: _selectedMachine,
-            specialization: _selectedSpecialization,
-            shift: _selectedShift,
+            machineNumber: _assignedMachine,
+            specialization: primaryRoleLabel,
+            shift: _shift,
           );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Washer ${_nameCtrl.text.trim()} registered successfully!'),
+            content: Text('Washing Operator "${_nameCtrl.text.trim()}" registered successfully!'),
             backgroundColor: const Color(0xFF047857),
           ),
         );
@@ -70,11 +111,9 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
 
   @override
   Widget build(BuildContext context) {
-    final washingState = ref.watch(washingProvider);
-
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -83,7 +122,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Modal Header with Cream Background
+          // Header matching Web exactly
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: const BoxDecoration(
@@ -108,33 +147,39 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                           ),
-                          child: Text(
-                            'WASHING CREW',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
-                            ),
-                          ),
+                          child: const Icon(Icons.person_add_alt_1_outlined, color: Color(0xFF3A3564), size: 20),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Register Washing Operator',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
-                          ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Register Washing Operator',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              'Create operator profile and floor access login',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -142,14 +187,14 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                       onTap: () => Navigator.pop(context),
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
-                        width: 34,
-                        height: 34,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0x1A000000)),
                         ),
-                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
                       ),
                     ),
                   ],
@@ -158,7 +203,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
             ),
           ),
 
-          // Scrollable Form
+          // Scrollable Form Body
           Flexible(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 16),
@@ -167,60 +212,208 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. Operator Full Name
                     _buildLabel('OPERATOR FULL NAME', isRequired: true),
                     const SizedBox(height: 6),
                     _buildTextInput(
                       controller: _nameCtrl,
-                      hintText: 'e.g. Ramesh Kumar',
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter operator name' : null,
+                      hintText: 'e.g. Ramesh Mondal',
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter operator full name' : null,
                     ),
+
                     const SizedBox(height: 14),
 
-                    _buildLabel('PHONE NUMBER', isRequired: true),
+                    // 2. Mobile Phone Number
+                    _buildLabel('MOBILE PHONE NUMBER (LOGIN ID)', isRequired: true),
                     const SizedBox(height: 6),
-                    _buildTextInput(
-                      controller: _phoneCtrl,
-                      hintText: 'e.g. 9876543210',
-                      keyboardType: TextInputType.phone,
-                      validator: (v) => v == null || v.trim().length < 10 ? 'Enter valid 10-digit number' : null,
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '+91',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _phoneCtrl,
+                              keyboardType: TextInputType.phone,
+                              maxLength: 10,
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: '9876543210',
+                                hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                                border: InputBorder.none,
+                                counterText: '',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              validator: (v) => v == null || v.trim().length != 10 ? 'Enter valid 10-digit number' : null,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Used as operator phone login credential',
+                      style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+                    ),
+
                     const SizedBox(height: 14),
 
-                    _buildLabel('DEFAULT MACHINE / TUMBLER'),
+                    // 3. Workstation Password
+                    _buildLabel('WORKSTATION PASSWORD', isRequired: true),
                     const SizedBox(height: 6),
-                    _buildDropdown(
-                      value: _selectedMachine,
-                      items: washingState.availableMachines,
-                      onChanged: (v) => setState(() => _selectedMachine = v!),
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscurePassword,
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          hintText: 'Min 6 characters (e.g. wash@123)',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 18,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                        validator: (v) => v == null || v.trim().length < 6 ? 'Password must be at least 6 characters' : null,
+                      ),
                     ),
+
                     const SizedBox(height: 14),
 
-                    _buildLabel('WASH SPECIALIZATION'),
-                    const SizedBox(height: 6),
-                    _buildDropdown(
-                      value: _selectedSpecialization,
-                      items: const [
-                        'Bio-Enzyme & Softening',
-                        'Silicon & Peach Finish',
-                        'Hydro-Extraction & Dryer Run',
-                        'Vintage Fade & Stone Wash',
-                        'Garment Overdye & Tinting',
+                    // 4. Primary Machine & Floor Shift (2-Column Grid)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('PRIMARY MACHINE'),
+                              const SizedBox(height: 6),
+                              _buildDropdown(
+                                value: _assignedMachine,
+                                items: const [
+                                  'Washer 01 (Tumbler 600kg)',
+                                  'Washer 02 (Hydro 400kg)',
+                                  'Washer 03 (Front Load 300kg)',
+                                  'Dryer 01 (Steam Tumbler)',
+                                  'Dryer 02 (Electric Tumbler)',
+                                ],
+                                onChanged: (v) => setState(() => _assignedMachine = v!),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('FLOOR SHIFT'),
+                              const SizedBox(height: 6),
+                              _buildDropdown(
+                                value: _shift,
+                                items: const [
+                                  'Morning (08:00 AM - 04:00 PM)',
+                                  'Evening (04:00 PM - 12:00 AM)',
+                                  'Night (12:00 AM - 08:00 AM)',
+                                ],
+                                onChanged: (v) => setState(() => _shift = v!),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                      onChanged: (v) => setState(() => _selectedSpecialization = v!),
                     ),
+
                     const SizedBox(height: 14),
 
-                    _buildLabel('OPERATIONAL SHIFT'),
-                    const SizedBox(height: 6),
-                    _buildDropdown(
-                      value: _selectedShift,
-                      items: const [
-                        'Morning (08:00 - 16:30)',
-                        'Evening (16:30 - 01:00)',
-                        'Night (01:00 - 08:00)',
-                      ],
-                      onChanged: (v) => setState(() => _selectedShift = v!),
-                    ),
+                    // 5. Floor Roles & Skill Competencies
+                    _buildLabel('FLOOR ROLES & SKILL COMPETENCIES', isRequired: true),
+                    const SizedBox(height: 8),
+                    ..._availableRoles.map((role) {
+                      final isSelected = _selectedRoles.contains(role['id']);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFFFAF7F0) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                            width: isSelected ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: () => _toggleRole(role['id']!),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    role['label']!,
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                                    borderRadius: BorderRadius.circular(5),
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(Icons.check, size: 13, color: Colors.white)
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -249,7 +442,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                   child: Text('Cancel', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton(
+                ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3A3564),
                     foregroundColor: Colors.white,
@@ -258,9 +451,10 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _isSaving ? null : _handleSave,
-                  child: _isSaving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text('Register Washer', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  icon: _isSaving
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 16),
+                  label: Text('Register Operator', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -326,7 +520,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
   }) {
     return Container(
       height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
@@ -337,9 +531,15 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
           value: items.contains(value) ? value : items.first,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items.map((e) => DropdownMenuItem(
+            value: e,
+            child: Text(
+              e,
+              style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w500, color: const Color(0xFF0F172A)),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )).toList(),
           onChanged: onChanged,
-          style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w500, color: const Color(0xFF0F172A)),
         ),
       ),
     );
