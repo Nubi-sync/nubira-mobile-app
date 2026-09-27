@@ -12,6 +12,13 @@ class InwardInspectionLotModal extends ConsumerStatefulWidget {
 }
 
 class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotModal> {
+  static const Color kCanvasColor = Color(0xFFFAF7F0);
+  static const Color kCardBg = Color(0xFFFFFFFF);
+  static const Color kPrimaryBrand = Color(0xFF3A3564);
+  static const Color kBorderColor = Color(0xFFE7E1D6);
+  static const Color kMutedText = Color(0xFF7A7488);
+  static const Color kInkText = Color(0xFF232028);
+
   final _formKey = GlobalKey<FormState>();
   final _lotCodeCtrl = TextEditingController();
   final _poNumberCtrl = TextEditingController();
@@ -165,371 +172,500 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
   Widget build(BuildContext context) {
     final buyers = ref.watch(readyGoodsProvider).buyers;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+    return Dialog(
+      backgroundColor: kCardBg,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: kBorderColor),
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 540, maxHeight: 720),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: kCanvasColor,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                border: Border(bottom: BorderSide(color: kBorderColor)),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: kCardBg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: kBorderColor),
+                    ),
+                    child: const Icon(Icons.all_inbox_rounded, color: kPrimaryBrand, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Inward Quality Checking Lot',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: kInkText,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        child: const Icon(Icons.all_inbox_rounded, color: Color(0xFF3A3564), size: 20),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Receive washed & pressed garments for final QC clearance',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            color: kMutedText,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: kCardBg,
+                        border: Border.all(color: kBorderColor),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: const Icon(Icons.close, size: 16, color: kMutedText),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Form Body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Quick Presets Selector
+                      Text(
+                        'QUICK STYLE PRESETS',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: kMutedText,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _presets.map((p) {
+                            final isSel = _styleNameCtrl.text == p['style'];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: InkWell(
+                                onTap: () => _applyPreset(p),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? kPrimaryBrand : kCanvasColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isSel ? kPrimaryBrand : kBorderColor),
+                                  ),
+                                  child: Text(
+                                    p['label'],
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11,
+                                      fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSel ? Colors.white : kInkText,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Lot Code & Order Number
+                      Row(
                         children: [
-                          Text(
-                            'Inward Quality Checking Lot',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F172A),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'LOT / BATCH # *',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
+                                ),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _lotCodeCtrl,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
+                                  decoration: _inputDecoration('e.g. QC-7715-01'),
+                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                                ),
+                              ],
                             ),
                           ),
-                          Text(
-                            'Receive washed & pressed garments for final QC clearance',
-                            style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ORDER / PO # *',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
+                                ),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _poNumberCtrl,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
+                                  decoration: _inputDecoration('e.g. PO-7715'),
+                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
-              // Quick Presets Selector
-              Text('QUICK STYLE PRESETS', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B))),
-              const SizedBox(height: 6),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _presets.map((p) {
-                    final isSel = _styleNameCtrl.text == p['style'];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: InkWell(
-                        onTap: () => _applyPreset(p),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isSel ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: isSel ? const Color(0xFF3A3564) : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Text(
-                            p['label'],
-                            style: GoogleFonts.publicSans(
-                              fontSize: 11,
-                              fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                              color: isSel ? Colors.white : const Color(0xFF334155),
-                            ),
+                      // Buyer Dropdown
+                      Text(
+                        'BUYER / CLIENT *',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: kCardBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: kBorderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: buyers.any((b) => b.buyerName == _selectedBuyer)
+                                ? _selectedBuyer
+                                : (buyers.isNotEmpty ? buyers.first.buyerName : null),
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
+                            items: buyers.map((b) {
+                              return DropdownMenuItem(
+                                value: b.buyerName,
+                                child: Text(
+                                  '${b.buyerName} (${b.buyerCode})',
+                                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: kInkText),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (v) {
+                              if (v != null) setState(() => _selectedBuyer = v);
+                            },
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
-              // Buyer Selector
-              Text('Buyer Contract *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: buyers.any((b) => b.buyerName == _selectedBuyer) ? _selectedBuyer : (buyers.isNotEmpty ? buyers.first.buyerName : null),
-                items: buyers.map((b) => DropdownMenuItem(value: b.buyerName, child: Text(b.buyerName, style: GoogleFonts.publicSans(fontSize: 13)))).toList(),
-                onChanged: (v) => setState(() => _selectedBuyer = v!),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Lot # & PO #
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('QC Lot Number *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _lotCodeCtrl,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      // Style Name & Color
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('STYLE NAME *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _styleNameCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
+                                  decoration: _inputDecoration('e.g. Drop-Shoulder Tee'),
+                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('COLOR *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _colorCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
+                                  decoration: _inputDecoration('e.g. Onyx Black'),
+                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Size & Quantity (Pieces)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('SIZE *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: kCardBg,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: kBorderColor),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedSize,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
+                                      items: _sizes.map((s) {
+                                        return DropdownMenuItem(
+                                          value: s,
+                                          child: Text(s, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText)),
+                                        );
+                                      }).toList(),
+                                      onChanged: (v) => setState(() => _selectedSize = v!),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('PIECES (QTY) *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _piecesCtrl,
+                                  keyboardType: TextInputType.number,
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
+                                  decoration: _inputDecoration('e.g. 75'),
+                                  validator: (v) {
+                                    if (v!.trim().isEmpty) return 'Required';
+                                    if (int.tryParse(v.trim()) == null) return 'Number only';
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Origin Details
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('WASH BATCH REF', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _washBatchCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 11, color: kInkText),
+                                  decoration: _inputDecoration('WB-084'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('IRON TABLE REF', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                                const SizedBox(height: 4),
+                                TextFormField(
+                                  controller: _ironStationCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 11, color: kInkText),
+                                  decoration: _inputDecoration('Vacuum Table 01'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Tech-Pack Criteria Checkboxes
+                      Text('TECH-PACK PROCESS SPECIFICATION', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: kCanvasColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: kBorderColor),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: _hasPrinting,
+                                    activeColor: kPrimaryBrand,
+                                    onChanged: (v) => setState(() => _hasPrinting = v!),
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  Text('Has Printing', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: kInkText)),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: _hasEmbroidery,
+                                    activeColor: kPrimaryBrand,
+                                    onChanged: (v) => setState(() => _hasEmbroidery = v!),
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  Text('Has Embroidery', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: kInkText)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Priority Selection
+                      Text('FLOOR PRIORITY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: _priorities.map((p) {
+                          final isSel = _selectedPriority == p;
+                          Color badgeColor = kPrimaryBrand;
+                          if (p == 'RUSH') badgeColor = const Color(0xFFD97706);
+                          if (p == 'CRITICAL') badgeColor = const Color(0xFFE11D48);
+
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedPriority = p),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? badgeColor : kCardBg,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isSel ? badgeColor : kBorderColor),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    p,
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSel ? Colors.white : kInkText,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
+                ),
+              ),
+            ),
+
+            // Footer
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: kCanvasColor,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                border: Border(top: BorderSide(color: kBorderColor)),
+              ),
+              child: Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: kBorderColor),
+                      backgroundColor: kCardBg,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    child: Text('Cancel', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: kMutedText)),
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('PO / Order # *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _poNumberCtrl,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
+                    child: ElevatedButton.icon(
+                      onPressed: _isSubmitting ? null : _submit,
+                      icon: _isSubmitting
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('📦', style: TextStyle(fontSize: 14)),
+                      label: Text(
+                        _isSubmitting ? 'Inwarding...' : 'Inward Lot for QC Check',
+                        style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryBrand,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Style Name
-              Text('Article Style Name *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _styleNameCtrl,
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Color, Size, Pieces
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Color', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _colorCtrl,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Size', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          value: _selectedSize,
-                          items: _sizes.map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.publicSans(fontSize: 12)))).toList(),
-                          onChanged: (v) => setState(() => _selectedSize = v!),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pieces *', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _piecesCtrl,
-                          keyboardType: TextInputType.number,
-                          validator: (v) => (v == null || int.tryParse(v) == null) ? 'Required' : null,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Wash Batch & Iron Origin
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Wash Batch Origin', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _washBatchCtrl,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Pressing Station Origin', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _ironStationCtrl,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Tech Pack Flags (Printing & Embroidery)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('TECH-PACK ROUTING CRITERIA', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B))),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text('Requires Print Check', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                            value: _hasPrinting,
-                            onChanged: (v) => setState(() => _hasPrinting = v ?? false),
-                            controlAffinity: ListTileControlAffinity.leading,
-                            dense: true,
-                          ),
-                        ),
-                        Expanded(
-                          child: CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text('Requires Embroidery Check', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                            value: _hasEmbroidery,
-                            onChanged: (v) => setState(() => _hasEmbroidery = v ?? false),
-                            controlAffinity: ListTileControlAffinity.leading,
-                            dense: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Priority
-              Text('Floor Priority', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _selectedPriority,
-                items: _priorities.map((p) => DropdownMenuItem(value: p, child: Text(p, style: GoogleFonts.publicSans(fontSize: 13)))).toList(),
-                onChanged: (v) => setState(() => _selectedPriority = v!),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      : Text('Confirm Lot Inward', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.publicSans(fontSize: 11.5, color: kMutedText),
+      filled: true,
+      fillColor: kCardBg,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorderColor)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorderColor)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kPrimaryBrand)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE11D48))),
     );
   }
 }

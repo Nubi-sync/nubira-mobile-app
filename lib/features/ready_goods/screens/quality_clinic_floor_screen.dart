@@ -47,15 +47,19 @@ class _QualityClinicFloorScreenState extends ConsumerState<QualityClinicFloorScr
   }
 
   void _openWorkerListModal() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => const ReadyGoodsWorkerListModal(),
     );
   }
 
   void _openAddWorkerModal() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => const AddReadyGoodsWorkerModal(),
     );
   }
