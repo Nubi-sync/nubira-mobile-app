@@ -209,21 +209,14 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
 
   void _toggleModuleSelection(DepartmentHeadCatalogDef div) {
     setState(() {
-      if (_selectedModules.contains(div.route)) {
-        _selectedModules.remove(div.route);
-        if (widget.existingHead == null && _selectedModules.isEmpty) {
-          _designationCtrl.text = '';
-        }
-      } else {
-        _selectedModules.add(div.route);
-        if (widget.existingHead == null && _selectedModules.length == 1) {
-          _designationCtrl.text = div.defaultDesignation;
-          if (_nameCtrl.text.trim().isNotEmpty) {
-            final clean = _nameCtrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
-            _usernameCtrl.text = '${clean}_${div.code}';
-            _checkUsernameAvailability(_usernameCtrl.text);
-          }
-        }
+      _selectedModules = [div.route];
+      if (widget.existingHead == null || _designationCtrl.text.trim().isEmpty) {
+        _designationCtrl.text = div.defaultDesignation;
+      }
+      if (widget.existingHead == null && _nameCtrl.text.trim().isNotEmpty) {
+        final clean = _nameCtrl.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-z0-9_]'), '');
+        _usernameCtrl.text = '${clean}_${div.code}';
+        _checkUsernameAvailability(_usernameCtrl.text);
       }
     });
   }
@@ -675,7 +668,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Flexible(
-                                    child: _buildFieldLabel('DEPARTMENT / UNIT ASSIGNMENT (${_selectedModules.length} SELECTED)'),
+                                    child: _buildFieldLabel(_selectedModules.isNotEmpty ? 'DEPARTMENT / UNIT ASSIGNMENT (1 UNIT SELECTED)' : 'DEPARTMENT / UNIT ASSIGNMENT *'),
                                   ),
                                   if (_selectedModules.isNotEmpty) ...[
                                     const SizedBox(width: 8),
@@ -703,7 +696,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Select the manufacturing unit this department head will lead:',
+                                'Select the manufacturing unit this department head will lead (1 Unit per Head):',
                                 style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
                               ),
                               const SizedBox(height: 8),
@@ -748,23 +741,18 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                               child: Row(
                                                 crossAxisAlignment: CrossAxisAlignment.center,
                                                 children: [
-                                                  // Checkbox
+                                                  // Radio Selection Indicator
                                                   Container(
-                                                    width: 18,
-                                                    height: 18,
+                                                    width: 20,
+                                                    height: 20,
                                                     decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(5),
+                                                      shape: BoxShape.circle,
                                                       border: Border.all(
                                                         color: isChecked ? kBrandIndigo : const Color(0xFFCBD5E1),
-                                                        width: 1.8,
+                                                        width: isChecked ? 6.0 : 1.8,
                                                       ),
-                                                      color: isChecked ? kBrandIndigo : Colors.white,
+                                                      color: Colors.white,
                                                     ),
-                                                    child: isChecked
-                                                        ? const Center(
-                                                            child: Icon(Icons.check_rounded, color: Colors.white, size: 13),
-                                                          )
-                                                        : null,
                                                   ),
                                                   const SizedBox(width: 12),
 
