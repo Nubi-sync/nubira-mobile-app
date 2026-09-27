@@ -14,8 +14,8 @@ import '../../washing/screens/washing_floor_screen.dart';
 import '../../iron/screens/iron_floor_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
-import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
+import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../models/module_card_model.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import 'supervisor_floor_stations_screen.dart';
@@ -127,7 +127,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         destination = const MendingDashboard();
         break;
       case 'ready-goods':
-        destination = const QcDashboard();
+        destination = const QualityClinicFloorScreen();
         break;
       case 'dispatch':
         destination = const DispatchDashboard();
