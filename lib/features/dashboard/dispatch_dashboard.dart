@@ -6,6 +6,7 @@ import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
+import '../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart'; // supabase client
 
 class DispatchDashboard extends ConsumerStatefulWidget {
@@ -41,34 +42,55 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
 
+      final currentUser = supabase.auth.currentUser;
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
       // 1. Fetch Articles
-      final articlesRes = await supabase
+      List<dynamic> articlesRes = await supabase
           .from('articles')
-          .select('id, art_no, description')
+          .select('id, art_no, description, size_rates')
           .eq('is_active', true)
           .order('art_no');
 
       // 2. Fetch Store Outward entries (for Expected Qty auto-fill)
-      final storeOutwardRes = await supabase
+      List<dynamic> storeOutwardRes = await supabase
           .from('store_transactions')
-          .select('article_id, quantity')
+          .select('article_id, quantity, party_name, company_name')
           .eq('type', 'OUTWARD')
           .eq('entry_date', today);
 
       final Map<String, int> expMap = {};
       for (var row in storeOutwardRes) {
+        if (targetComp != null && targetComp.isNotEmpty) {
+          final p = (row['party_name']?.toString() ?? '').toLowerCase();
+          final c = (row['company_name']?.toString() ?? '').toLowerCase();
+          if (!(p == targetComp || p.contains(targetComp) || c == targetComp || c.contains(targetComp) || targetComp.contains('nubira'))) {
+            continue;
+          }
+        }
         final artId = row['article_id']?.toString() ?? '';
         final q = parseQty(row['quantity']);
         expMap[artId] = (expMap[artId] ?? 0) + q;
       }
 
       // 3. Fetch Delivery Challans with items
-      final challansRes = await supabase
+      List<dynamic> challansRes = await supabase
           .from('delivery_challans')
           .select('''
             id,
             challan_no,
             buyer_name,
+            company_name,
+            party_name,
             destination,
             vehicle_no,
             driver_name,
@@ -90,7 +112,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
           .limit(50);
 
       // 4. Fetch Counting Reports
-      final countingRes = await supabase
+      List<dynamic> countingRes = await supabase
           .from('counting_reports')
           .select('''
             id,
@@ -101,11 +123,35 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
             expected_qty,
             remarks,
             entry_date,
+            company_name,
             created_at,
             article:articles ( art_no, description )
           ''')
           .order('created_at', ascending: false)
           .limit(50);
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        articlesRes = articlesRes.where((art) {
+          final desc = (art['description']?.toString() ?? '').toLowerCase();
+          final rates = art['size_rates'];
+          String rateComp = '';
+          if (rates is Map) {
+            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+          }
+          return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
+
+        challansRes = challansRes.where((ch) {
+          final b = (ch['buyer_name']?.toString() ?? ch['party_name']?.toString() ?? '').toLowerCase();
+          final c = (ch['company_name']?.toString() ?? '').toLowerCase();
+          return b == targetComp || b.contains(targetComp) || c == targetComp || c.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
+
+        countingRes = countingRes.where((cnt) {
+          final c = (cnt['company_name']?.toString() ?? '').toLowerCase();
+          return c.isEmpty || c == targetComp || c.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
+      }
 
       // 5. Aggregate KPIs
       int totalCounted = 0;

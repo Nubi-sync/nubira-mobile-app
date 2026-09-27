@@ -9,6 +9,7 @@ import '../auth/screens/login_screen.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
 import '../../core/utils/multi_size_parser.dart';
+import '../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart'; // supabase client
 
 class _AccessoryChallanItem {
@@ -100,10 +101,22 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
 
-            // 1. Fetch Articles
+      final currentUser = supabase.auth.currentUser;
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
+      // 1. Fetch Articles
       final articlesRes = await supabase
           .from('articles')
-          .select('id, art_no, description')
+          .select('id, art_no, description, size_rates')
           .eq('is_active', true)
           .order('art_no');
 
@@ -138,7 +151,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       try {
         profilesQuery = await supabase
             .from('profiles')
-            .select('id, username, role');
+            .select('id, username, role, company_name');
       } catch (e) {
         debugPrint('Profiles fetch error: $e');
       }
@@ -154,7 +167,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       try {
         challansQuery = await supabase
             .from('challans')
-            .select('id, challan_no, brand, fabric_type');
+            .select('id, challan_no, brand, fabric_type, notes, company_name');
       } catch (_) {}
 
       try {
@@ -164,6 +177,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             .order('created_at', ascending: false);
       } catch (e) {
         debugPrint('Allotment materials fetch error: $e');
+      }
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        allotQuery = allotQuery.where((al) {
+          final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+          return comp.isEmpty || comp == targetComp || comp.contains(targetComp);
+        }).toList();
+
+        challansQuery = challansQuery.where((ch) {
+          final brand = (ch['brand']?.toString() ?? '').toLowerCase();
+          final notes = (ch['notes']?.toString() ?? '').toLowerCase();
+          final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
+          return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+        }).toList();
+
+        articlesQuery = articlesQuery.where((art) {
+          final desc = (art['description']?.toString() ?? '').toLowerCase();
+          final rates = art['size_rates'];
+          String rateComp = '';
+          if (rates is Map) {
+            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+          }
+          return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
       }
 
       final Map<String, dynamic> profMap = {};
@@ -324,7 +361,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       });
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
-      final txRes = await supabase
+      List<dynamic> txRes = await supabase
           .from('store_transactions')
           .select('''
             id,
@@ -338,13 +375,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             challan_no,
             transport_no,
             notes,
+            company_name,
             article:articles ( id, art_no, description )
           ''')
           .order('created_at', ascending: false)
           .limit(100);
 
       // 3. Fetch Accessories Transactions
-      final accRes = await supabase
+      List<dynamic> accRes = await supabase
           .from('accessories')
           .select('''
             id,
@@ -354,11 +392,26 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             unit,
             party_name,
             notes,
+            company_name,
             entry_date,
             created_at
           ''')
           .order('created_at', ascending: false)
           .limit(100);
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        txRes = txRes.where((t) {
+          final party = (t['party_name']?.toString() ?? '').toLowerCase();
+          final comp = (t['company_name']?.toString() ?? '').toLowerCase();
+          return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
+
+        accRes = accRes.where((a) {
+          final party = (a['party_name']?.toString() ?? '').toLowerCase();
+          final comp = (a['company_name']?.toString() ?? '').toLowerCase();
+          return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
+      }
 
       // 4. Calculate Finished Goods Stock
       int totalIn = 0;

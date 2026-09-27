@@ -76,30 +76,7 @@ class WashingState {
   }
 }
 
-const List<WashingBuyerContract> kInitialWashingBuyers = [
-  WashingBuyerContract(
-    id: 'byr-ollywood',
-    buyerName: 'ollywood',
-    buyerCode: 'OLLY',
-    contractedVolume: 5000,
-    pricePerPiece: 15.0,
-    totalContractValue: 75000,
-    linkedArticleNumber: 'DEMO-102',
-    linkedArticleName: 'Washed Oversized Heavyweight Tee',
-    status: 'LINKED',
-  ),
-  WashingBuyerContract(
-    id: 'byr-hollypop',
-    buyerName: 'Hollypop',
-    buyerCode: 'HOLL',
-    contractedVolume: 6000,
-    pricePerPiece: 18.5,
-    totalContractValue: 111000,
-    linkedArticleNumber: 'DEMO-101-03',
-    linkedArticleName: 'Premium Graphic Tee',
-    status: 'LINKED',
-  ),
-];
+const List<WashingBuyerContract> kInitialWashingBuyers = [];
 
 class WashingNotifier extends StateNotifier<WashingState> {
   WashingNotifier() : super(const WashingState()) {
@@ -145,6 +122,8 @@ class WashingNotifier extends StateNotifier<WashingState> {
         return !ref.startsWith('BA-') && !ref.startsWith('WSH-TSK-MOCK');
       }).toList();
 
+      List<WashingBuyerContract> loadedBuyers = [];
+
       // 3. Cloud Sync with Supabase
       try {
         final currentUser = supabase.auth.currentUser;
@@ -164,6 +143,29 @@ class WashingNotifier extends StateNotifier<WashingState> {
           loadedWorkers = cloudWorkers;
           await prefs.setString(_workersPrefKey, jsonEncode(loadedWorkers.map((w) => w.toJson()).toList()));
         }
+
+        var buyerQuery = supabase.from('merchandising_active_buyers').select();
+        if (companyName != null && companyName.isNotEmpty) {
+          buyerQuery = buyerQuery.eq('company_name', companyName);
+        }
+        final buyerRes = await buyerQuery;
+        if (buyerRes.isNotEmpty) {
+          loadedBuyers = (buyerRes as List).map((b) {
+            final bName = (b['buyer_name']?.toString() ?? b['brand_name']?.toString() ?? 'Buyer').trim();
+            final qty = ((b['contracted_volume'] as num?) ?? 0).toInt();
+            return WashingBuyerContract(
+              id: b['id']?.toString() ?? 'byr-${bName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-')}',
+              buyerName: bName,
+              buyerCode: b['buyer_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+              contractedVolume: qty,
+              pricePerPiece: (b['price_per_piece'] as num?)?.toDouble() ?? 0.0,
+              totalContractValue: (b['total_contract_value'] as num?)?.toDouble() ?? 0.0,
+              linkedArticleNumber: b['linked_article_number']?.toString() ?? '',
+              linkedArticleName: b['linked_article_name']?.toString() ?? '',
+              status: 'LINKED',
+            );
+          }).toList();
+        }
       } catch (err) {
         debugPrint('Supabase washing sync notice: $err');
       }
@@ -171,8 +173,8 @@ class WashingNotifier extends StateNotifier<WashingState> {
       state = state.copyWith(
         isLoading: false,
         isSyncing: false,
-        buyers: kInitialWashingBuyers,
-        selectedBuyerId: state.selectedBuyerId.isEmpty ? 'byr-ollywood' : state.selectedBuyerId,
+        buyers: loadedBuyers,
+        selectedBuyerId: state.selectedBuyerId.isEmpty && loadedBuyers.isNotEmpty ? loadedBuyers.first.id : state.selectedBuyerId,
         workers: loadedWorkers,
         taskAllocations: loadedTasks,
       );
@@ -181,7 +183,7 @@ class WashingNotifier extends StateNotifier<WashingState> {
         isLoading: false,
         isSyncing: false,
         error: e.toString(),
-        buyers: kInitialWashingBuyers,
+        buyers: state.buyers,
       );
     }
   }

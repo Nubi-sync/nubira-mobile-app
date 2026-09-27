@@ -449,7 +449,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   String _determineRole(User user, Map<String, dynamic>? profileRes, [String? inputUsername, ResolvedTenantProfile? tenant]) {
-    final email = (user.email ?? '').toLowerCase();
+    final email = (user.email ?? '').toLowerCase().trim();
     final uname = (inputUsername ?? '').trim().toLowerCase();
 
     // 0. Check designer role / emails
@@ -464,12 +464,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (email == 'team.anga9@gmail.com' ||
         email == 'creationnubira@gmail.com' ||
         email == 'admin@zigza.in' ||
-        email.startsWith('admin') ||
-        email.contains('admin') ||
+        email.startsWith('admin@') ||
         uname == 'admin' ||
-        uname.startsWith('admin') ||
-        uname.contains('admin') ||
-        (tenant?.isSuperAdmin == true)) {
+        (tenant?.isSuperAdmin == true) ||
+        (tenant?.isPlatformAdmin == true)) {
       return 'ADMIN';
     }
 
@@ -525,6 +523,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await supabase.auth.signOut();
       await _storage.deleteAll();
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+      } catch (_) {}
       state = state.copyWith(
         isAuthenticated: false,
         userRole: null,

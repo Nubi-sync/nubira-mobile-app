@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart';
 import 'widgets/lot_selector_strip.dart';
 
@@ -137,15 +138,34 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
 
   Future<void> _fetchQcSupervisors() async {
     try {
+      final currentUser = supabase.auth.currentUser;
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
       final res = await supabase
           .from('profiles')
-          .select('id, username, role, is_active')
+          .select('id, username, role, is_active, company_name')
           .inFilter('role', ['PRODUCTION', 'QC', 'PRODUCTION_QC'])
           .order('username', ascending: true);
       if (mounted) {
         setState(() {
           _qcSupervisors = List<Map<String, dynamic>>.from(res as List)
-              .where((u) => u['is_active'] != false)
+              .where((u) {
+                if (u['is_active'] == false) return false;
+                if (targetComp != null && targetComp.isNotEmpty) {
+                  final pComp = (u['company_name']?.toString() ?? '').toLowerCase();
+                  return pComp.isEmpty || pComp == targetComp || pComp.contains(targetComp);
+                }
+                return true;
+              })
               .toList();
         });
       }
@@ -186,6 +206,18 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   Future<void> _fetchMendingLots() async {
     setState(() => _isLoading = true);
     try {
+      final currentUser = supabase.auth.currentUser;
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
       List<dynamic> allotmentList = [];
       try {
         final res = await supabase
@@ -205,12 +237,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               handed_to_mending_at,
               mending_handover_notes,
               created_at,
-              article:articles ( id, art_no, description ),
+              article:articles ( id, art_no, description, size_rates ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
               challans ( id, challan_no, brand, fabric_type )
             ''')
             .order('created_at', ascending: false)
-            .limit(50);
+            .limit(100);
         allotmentList = res as List<dynamic>;
       } catch (e) {
         debugPrint('Mending lots priority query fallback: $e');
@@ -230,13 +262,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               handed_to_mending_at,
               mending_handover_notes,
               created_at,
-              article:articles ( id, art_no, description ),
+              article:articles ( id, art_no, description, size_rates ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
               challans ( id, challan_no, brand, fabric_type )
             ''')
             .order('created_at', ascending: false)
-            .limit(50);
+            .limit(100);
         allotmentList = res as List<dynamic>;
+      }
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        allotmentList = allotmentList.where((al) {
+          final ch = al['challans'] as Map?;
+          final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+          final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+          final art = al['article'] as Map?;
+          final rates = art?['size_rates'];
+          String rateComp = '';
+          if (rates is Map) {
+            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+          }
+          return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || rateComp == targetComp || rateComp.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
       }
 
       final List<String> lotIds = allotmentList.map((a) => a['id'].toString()).toList();

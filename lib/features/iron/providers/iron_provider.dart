@@ -64,30 +64,7 @@ class IronState {
   }
 }
 
-const List<IronBuyerContract> kInitialIronBuyers = [
-  IronBuyerContract(
-    id: 'byr-ollywood',
-    buyerName: 'ollywood',
-    buyerCode: 'OLLY',
-    contractedVolume: 5000,
-    pricePerPiece: 2.20,
-    totalContractValue: 11000,
-    linkedArticleNumber: 'DEMO-102',
-    linkedArticleName: 'Heavyweight Loopback Hoodie',
-    status: 'LINKED',
-  ),
-  IronBuyerContract(
-    id: 'byr-hollypop',
-    buyerName: 'Hollypop',
-    buyerCode: 'HOLL',
-    contractedVolume: 6000,
-    pricePerPiece: 2.50,
-    totalContractValue: 15000,
-    linkedArticleNumber: 'DEMO-101-03',
-    linkedArticleName: 'Premium Graphic Tee',
-    status: 'LINKED',
-  ),
-];
+const List<IronBuyerContract> kInitialIronBuyers = [];
 
 class IronNotifier extends StateNotifier<IronState> {
   IronNotifier() : super(const IronState()) {
@@ -127,6 +104,8 @@ class IronNotifier extends StateNotifier<IronState> {
         } catch (_) {}
       }
 
+      List<IronBuyerContract> loadedBuyers = [];
+
       // 3. Cloud Sync with Supabase
       try {
         final currentUser = supabase.auth.currentUser;
@@ -159,6 +138,30 @@ class IronNotifier extends StateNotifier<IronState> {
           loadedTasks = cloudTasks;
           await prefs.setString(_tasksPrefKey, jsonEncode(loadedTasks.map((t) => t.toJson()).toList()));
         }
+
+        // Fetch Cloud Buyers
+        var buyerQuery = supabase.from('merchandising_active_buyers').select();
+        if (companyName != null && companyName.isNotEmpty) {
+          buyerQuery = buyerQuery.eq('company_name', companyName);
+        }
+        final buyerRes = await buyerQuery;
+        if (buyerRes.isNotEmpty) {
+          loadedBuyers = (buyerRes as List).map((b) {
+            final bName = (b['buyer_name']?.toString() ?? b['brand_name']?.toString() ?? 'Buyer').trim();
+            final qty = ((b['contracted_volume'] as num?) ?? 0).toInt();
+            return IronBuyerContract(
+              id: b['id']?.toString() ?? 'byr-${bName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-')}',
+              buyerName: bName,
+              buyerCode: b['buyer_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
+              contractedVolume: qty,
+              pricePerPiece: (b['price_per_piece'] as num?)?.toDouble() ?? 0.0,
+              totalContractValue: (b['total_contract_value'] as num?)?.toDouble() ?? 0.0,
+              linkedArticleNumber: b['linked_article_number']?.toString() ?? '',
+              linkedArticleName: b['linked_article_name']?.toString() ?? '',
+              status: 'LINKED',
+            );
+          }).toList();
+        }
       } catch (err) {
         debugPrint('Supabase iron sync notice: $err');
       }
@@ -166,8 +169,8 @@ class IronNotifier extends StateNotifier<IronState> {
       state = state.copyWith(
         isLoading: false,
         isSyncing: false,
-        buyers: kInitialIronBuyers,
-        selectedBuyerId: state.selectedBuyerId.isEmpty ? 'byr-ollywood' : state.selectedBuyerId,
+        buyers: loadedBuyers,
+        selectedBuyerId: state.selectedBuyerId.isEmpty && loadedBuyers.isNotEmpty ? loadedBuyers.first.id : state.selectedBuyerId,
         workers: loadedWorkers,
         taskAllocations: loadedTasks,
       );
@@ -176,7 +179,7 @@ class IronNotifier extends StateNotifier<IronState> {
         isLoading: false,
         isSyncing: false,
         error: e.toString(),
-        buyers: kInitialIronBuyers,
+        buyers: state.buyers,
       );
     }
   }

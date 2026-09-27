@@ -75,116 +75,9 @@ class EmbroideryState {
   }
 }
 
-const List<EmbroideryBuyerContract> kInitialEmbroideryBuyers = [
-  EmbroideryBuyerContract(
-    id: 'byr-hollypop',
-    buyerName: 'Hollypop',
-    buyerCode: 'HOLL',
-    contractedVolume: 6000,
-    pricePerPiece: 18.5,
-    totalContractValue: 111000,
-    linkedArticleNumber: 'DEMO-101-03',
-    linkedArticleName: 'Premium Graphic Tee',
-    embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
-    status: 'LINKED',
-    completedCutPieces: 2800,
-    completedPrintingPieces: 1300,
-  ),
-  EmbroideryBuyerContract(
-    id: 'byr-ollywood',
-    buyerName: 'ollywood',
-    buyerCode: 'OLLY',
-    contractedVolume: 5000,
-    pricePerPiece: 15.0,
-    totalContractValue: 75000,
-    linkedArticleNumber: 'DEMO-102',
-    linkedArticleName: 'Commercial Apparel Order',
-    embellishmentSequence: 'PRINT_FIRST_THEN_EMBROIDERY',
-    status: 'LINKED',
-    completedCutPieces: 0,
-    completedPrintingPieces: 0,
-  ),
-];
-
-const List<EmbroideryTaskAllocation> kInitialEmbroideryTasks = [
-  EmbroideryTaskAllocation(
-    id: 'task-emb-0102',
-    taskRef: 'EMB-0102',
-    workerId: 'ew-vini',
-    workerName: 'Vini Jr',
-    workerPhone: '2583691470',
-    buyerName: 'Hollypop',
-    articleNumber: 'DEMO-101-03',
-    articleName: 'Premium Graphic Tee',
-    tableNumber: 'Tajima 20-Head #1',
-    piecesToEmbroider: 400,
-    completedPieces: 0,
-    status: 'ASSIGNED',
-    allotedHours: 6.0,
-    createdAt: '2026-09-24T00:00:00.000Z',
-  ),
-  EmbroideryTaskAllocation(
-    id: 'task-emb-7487',
-    taskRef: 'EMB-7487',
-    workerId: 'ew-sergio',
-    workerName: 'Sergio Ramos',
-    workerPhone: '1472583690',
-    buyerName: 'Hollypop',
-    articleNumber: 'DEMO-101-03',
-    articleName: 'Premium Graphic Tee',
-    tableNumber: 'Tajima 20-Head #1',
-    piecesToEmbroider: 150,
-    completedPieces: 150,
-    status: 'VERIFIED_COMPLETED',
-    allotedHours: 2.0,
-    createdAt: '2026-09-24T00:00:00.000Z',
-    completedAt: '2026-09-24T12:00:00.000Z',
-  ),
-  EmbroideryTaskAllocation(
-    id: 'task-emb-0101',
-    taskRef: 'EMB-0101',
-    workerId: 'ew-sergio',
-    workerName: 'Sergio Ramos',
-    workerPhone: '1472583690',
-    buyerName: 'Hollypop',
-    articleNumber: 'DEMO-101-03',
-    articleName: 'Premium Graphic Tee',
-    tableNumber: 'Tajima 20-Head #1',
-    piecesToEmbroider: 600,
-    completedPieces: 600,
-    status: 'VERIFIED_COMPLETED',
-    allotedHours: 6.0,
-    createdAt: '2026-09-24T00:00:00.000Z',
-    completedAt: '2026-09-24T12:00:00.000Z',
-  ),
-];
-
-const List<EmbroideryWorker> kInitialEmbroideryWorkers = [
-  EmbroideryWorker(
-    id: 'ew-vini',
-    workerName: 'Vini Jr',
-    phoneNumber: '2583691470',
-    role: 'Multi-Head Machine Operator',
-    roles: ['EMBROIDERY_OPERATOR'],
-    shift: 'MORNING',
-    status: 'ACTIVE',
-    assignedPieces: 400,
-    completedPieces: 0,
-    createdAt: '2026-09-24T00:00:00.000Z',
-  ),
-  EmbroideryWorker(
-    id: 'ew-sergio',
-    workerName: 'Sergio Ramos',
-    phoneNumber: '1472583690',
-    role: 'Multi-Head Machine Operator',
-    roles: ['EMBROIDERY_OPERATOR'],
-    shift: 'MORNING',
-    status: 'ACTIVE',
-    assignedPieces: 0,
-    completedPieces: 750,
-    createdAt: '2026-09-24T00:00:00.000Z',
-  ),
-];
+const List<EmbroideryBuyerContract> kInitialEmbroideryBuyers = [];
+const List<EmbroideryTaskAllocation> kInitialEmbroideryTasks = [];
+const List<EmbroideryWorker> kInitialEmbroideryWorkers = [];
 
 class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
   EmbroideryNotifier() : super(const EmbroideryState()) {
@@ -220,7 +113,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
       final prefs = await SharedPreferences.getInstance();
 
       // 1. Load cached workers (filter legacy demo workers)
-      List<EmbroideryWorker> loadedWorkers = [...kInitialEmbroideryWorkers];
+      List<EmbroideryWorker> loadedWorkers = [];
       final cachedWorkersStr = prefs.getString(_prefWorkersKey);
       if (cachedWorkersStr != null && cachedWorkersStr.isNotEmpty) {
         try {
@@ -230,17 +123,13 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
               .where((w) => w.workerName != 'Suresh Kumar' && w.workerName != 'Mohan Lal' && w.workerName != 'Vikram Singh')
               .toList();
           if (parsed.isNotEmpty) {
-            final map = {for (var w in loadedWorkers) w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id: w};
-            for (var w in parsed) {
-              map[w.phoneNumber.isNotEmpty ? w.phoneNumber : w.id] = w;
-            }
-            loadedWorkers = map.values.toList();
+            loadedWorkers = parsed;
           }
         } catch (_) {}
       }
 
       // 2. Load cached task allocations (filter legacy dummy tasks)
-      List<EmbroideryTaskAllocation> loadedTasks = [...kInitialEmbroideryTasks];
+      List<EmbroideryTaskAllocation> loadedTasks = [];
       final cachedTasksStr = prefs.getString(_prefTasksKey);
       if (cachedTasksStr != null && cachedTasksStr.isNotEmpty) {
         try {
@@ -250,20 +139,13 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
               .where((t) => !t.taskRef.startsWith('EMB-2026-99') && !t.taskRef.startsWith('EMB-TSK') && !t.taskRef.startsWith('BA-'))
               .toList();
           if (parsed.isNotEmpty) {
-            final map = {for (var t in loadedTasks) t.taskRef: t};
-            for (var t in parsed) {
-              map[t.taskRef] = t;
-            }
-            loadedTasks = map.values.toList();
+            loadedTasks = parsed;
           }
         } catch (_) {}
       }
 
       // 3. Load cached routes & machines
-      Map<String, String> loadedRoutes = {
-        'byr-hollypop': 'PRINT_FIRST_THEN_EMBROIDERY',
-        'byr-ollywood': 'PRINT_FIRST_THEN_EMBROIDERY',
-      };
+      Map<String, String> loadedRoutes = {};
       final cachedRoutesStr = prefs.getString(_prefRoutesKey);
       if (cachedRoutesStr != null && cachedRoutesStr.isNotEmpty) {
         try {
@@ -342,10 +224,10 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
       }
 
       // 7. Query Upstream Cutting & Printing Allocations per Buyer & Article
-      int totalCutPieces = 2800;
-      int totalPrintedPieces = 1300;
-      final Map<String, int> buyerCutMap = {'HOLLYPOP': 2800, 'DEMO-101-03': 2800};
-      final Map<String, int> buyerPrintMap = {'HOLLYPOP': 1300, 'DEMO-101-03': 1300};
+      int totalCutPieces = 0;
+      int totalPrintedPieces = 0;
+      final Map<String, int> buyerCutMap = {};
+      final Map<String, int> buyerPrintMap = {};
 
       try {
         var cutQuery = supabase.from('cutting_task_allocations').select('*');
@@ -400,7 +282,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
       } catch (_) {}
 
       // 8. Fetch Active Buyers from Merchandising / Orders with Tenant Isolation
-      List<EmbroideryBuyerContract> loadedBuyers = [...kInitialEmbroideryBuyers];
+      List<EmbroideryBuyerContract> loadedBuyers = [];
       try {
         var buyerFilter = supabase.from('merchandising_active_buyers').select('*');
         if (companyName != null && companyName.trim().isNotEmpty) {
@@ -410,16 +292,16 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         if (buyerRows is List && buyerRows.isNotEmpty) {
           final parsedBuyers = buyerRows.map((b) {
             final bName = (b['buyer_name']?.toString() ?? b['brand_name']?.toString() ?? 'Buyer').trim();
-            final qty = ((b['contracted_volume'] as num?) ?? 6000).toInt();
+            final qty = ((b['contracted_volume'] as num?) ?? 0).toInt();
             return EmbroideryBuyerContract(
               id: b['id']?.toString() ?? 'byr-${bName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-')}',
               buyerName: bName,
               buyerCode: b['buyer_code']?.toString() ?? (bName.length >= 4 ? bName.substring(0, 4).toUpperCase() : 'BUYER'),
-              contractedVolume: qty > 0 ? qty : 6000,
-              pricePerPiece: (b['price_per_piece'] as num?)?.toDouble() ?? 18.5,
-              totalContractValue: (b['total_contract_value'] as num?)?.toDouble() ?? 111000.0,
-              linkedArticleNumber: b['linked_article_number']?.toString() ?? 'DEMO-101-03',
-              linkedArticleName: b['linked_article_name']?.toString() ?? 'Premium Graphic Tee',
+              contractedVolume: qty,
+              pricePerPiece: (b['price_per_piece'] as num?)?.toDouble() ?? 0.0,
+              totalContractValue: (b['total_contract_value'] as num?)?.toDouble() ?? 0.0,
+              linkedArticleNumber: b['linked_article_number']?.toString(),
+              linkedArticleName: b['linked_article_name']?.toString(),
               embellishmentSequence: b['embellishment_sequence']?.toString() ?? 'PRINT_FIRST_THEN_EMBROIDERY',
               completedCutPieces: 0,
               completedPrintingPieces: 0,
@@ -427,11 +309,7 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
           }).toList();
 
           if (parsedBuyers.isNotEmpty) {
-            final buyerMap = {for (var b in loadedBuyers) b.buyerName.toUpperCase(): b};
-            for (var b in parsedBuyers) {
-              buyerMap[b.buyerName.toUpperCase()] = b;
-            }
-            loadedBuyers = buyerMap.values.toList();
+            loadedBuyers = parsedBuyers;
           }
         }
       } catch (e) {
@@ -464,13 +342,9 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         );
       }).toList();
 
-      if (loadedBuyers.isEmpty) {
-        loadedBuyers = [...kInitialEmbroideryBuyers];
-      }
-
       final selectedId = state.selectedBuyerId.isNotEmpty
           ? state.selectedBuyerId
-          : (loadedBuyers.isNotEmpty ? loadedBuyers.first.id : 'byr-hollypop');
+          : (loadedBuyers.isNotEmpty ? loadedBuyers.first.id : '');
 
       state = state.copyWith(
         isLoading: false,
@@ -493,10 +367,10 @@ class EmbroideryNotifier extends StateNotifier<EmbroideryState> {
         isLoading: false,
         isSyncing: false,
         error: e.toString(),
-        workers: state.workers.isNotEmpty ? state.workers : kInitialEmbroideryWorkers,
-        taskAllocations: state.taskAllocations.isNotEmpty ? state.taskAllocations : kInitialEmbroideryTasks,
-        buyers: state.buyers.isNotEmpty ? state.buyers : kInitialEmbroideryBuyers,
-        selectedBuyerId: state.selectedBuyerId.isNotEmpty ? state.selectedBuyerId : 'byr-hollypop',
+        workers: state.workers,
+        taskAllocations: state.taskAllocations,
+        buyers: state.buyers,
+        selectedBuyerId: state.selectedBuyerId,
       );
     }
   }

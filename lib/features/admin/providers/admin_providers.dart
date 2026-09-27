@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../main.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../models/admin_models.dart';
 import '../challans/challan_models.dart';
 
@@ -14,6 +15,19 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
   final prefs = await SharedPreferences.getInstance();
   
   try {
+    // 0. Resolve current user's tenant profile
+    final currentUser = supabase.auth.currentUser;
+    ResolvedTenantProfile? tenant;
+    if (currentUser != null) {
+      try {
+        tenant = await TenantResolverService.resolveUserTenant(currentUser);
+      } catch (_) {}
+    }
+    final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+    final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+        ? tenant.companyName.trim().toLowerCase()
+        : null;
+
     // 1. Concurrently fetch all summary datasets from Supabase
     final results = await Future.wait([
       // 0: Challans count & recent with allotments join
@@ -23,7 +37,7 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
           id, target_qty, status,
           articles ( id, art_no, description )
         )
-      ''').order('created_at', ascending: false).limit(50),
+      ''').order('created_at', ascending: false).limit(100),
       
       // 1: Allotments with Lineman & Article joins
       supabase.from('allotments').select('''
@@ -33,13 +47,13 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
         profiles:lineman_id ( id, username ),
         articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
         challans:challan_id ( id, challan_no, brand, fabric_type )
-      ''').order('created_at', ascending: false).limit(50),
+      ''').order('created_at', ascending: false).limit(100),
       
       // 2: Active Articles
       supabase.from('articles').select('id, art_no, description, stitching_rate, size_rates, is_active, created_at').eq('is_active', true),
       
       // 3: Profiles (Employees)
-      supabase.from('profiles').select('id, username, role, is_active, created_at'),
+      supabase.from('profiles').select('id, username, role, is_active, created_at, company_name'),
       
       // 4: Production entries (daily_product)
       supabase.from('daily_product').select('quantity, created_at').order('created_at', ascending: false).limit(100),
@@ -51,20 +65,68 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
       supabase.from('store_transactions').select('''
         id, type, quantity, party_name, created_at,
         articles:article_id ( art_no, description )
-      ''').order('created_at', ascending: false).limit(50),
+      ''').order('created_at', ascending: false).limit(100),
       
       // 7: Dispatch entries
-      supabase.from('delivery_challans').select('*').order('created_at', ascending: false).limit(50),
+      supabase.from('delivery_challans').select('*').order('created_at', ascending: false).limit(100),
     ]);
 
-    final challansData = (results[0] as List?) ?? [];
-    final allotmentsData = (results[1] as List?) ?? [];
-    final articlesData = (results[2] as List?) ?? [];
-    final profilesData = (results[3] as List?) ?? [];
+    var challansData = (results[0] as List?) ?? [];
+    var allotmentsData = (results[1] as List?) ?? [];
+    var articlesData = (results[2] as List?) ?? [];
+    var profilesData = (results[3] as List?) ?? [];
     final prodData = (results[4] as List?) ?? [];
     final qcData = (results[5] as List?) ?? [];
-    final storeData = (results[6] as List?) ?? [];
-    final dispatchData = (results[7] as List?) ?? [];
+    var storeData = (results[6] as List?) ?? [];
+    var dispatchData = (results[7] as List?) ?? [];
+
+    // Apply strict tenant scoping
+    if (targetComp != null && targetComp.isNotEmpty) {
+      challansData = challansData.where((ch) {
+        final brand = (ch['brand']?.toString() ?? '').toLowerCase();
+        final notes = (ch['notes']?.toString() ?? '').toLowerCase();
+        final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
+        return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      }).toList();
+
+      final scopedChallanIds = challansData.map((c) => c['id']?.toString()).toSet();
+
+      allotmentsData = allotmentsData.where((al) {
+        final chId = al['challan_id']?.toString();
+        if (chId != null && scopedChallanIds.contains(chId)) return true;
+        final ch = al['challans'] as Map?;
+        final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+        final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+        return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      }).toList();
+
+      articlesData = articlesData.where((art) {
+        final desc = (art['description']?.toString() ?? '').toLowerCase();
+        final rates = art['size_rates'];
+        String rateComp = '';
+        if (rates is Map) {
+          rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+        }
+        return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+      }).toList();
+
+      profilesData = profilesData.where((p) {
+        final pComp = (p['company_name']?.toString() ?? '').toLowerCase();
+        return pComp.isEmpty || pComp == targetComp || pComp.contains(targetComp);
+      }).toList();
+
+      storeData = storeData.where((s) {
+        final party = (s['party_name']?.toString() ?? '').toLowerCase();
+        final comp = (s['company_name']?.toString() ?? '').toLowerCase();
+        return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      }).toList();
+
+      dispatchData = dispatchData.where((d) {
+        final party = (d['party_name']?.toString() ?? d['brand']?.toString() ?? '').toLowerCase();
+        final comp = (d['company_name']?.toString() ?? '').toLowerCase();
+        return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      }).toList();
+    }
 
     // Parse records
     final challans = challansData.map((e) => AdminChallan.fromJson(e)).toList();
@@ -114,18 +176,21 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
     );
 
     // Cache locally for offline viewing
-    await prefs.setString('cached_admin_kpi_total_challans', kpi.totalChallans.toString());
-    await prefs.setString('cached_admin_kpi_today_prod', kpi.todayProductionQty.toString());
-    await prefs.setString('cached_admin_kpi_qc_passed', kpi.todayQcPassedQty.toString());
-    await prefs.setString('cached_admin_kpi_store_inward', kpi.totalStoreInwardQty.toString());
+    final userKeyPrefix = currentUser != null ? '${currentUser.id}_' : '';
+    await prefs.setString('${userKeyPrefix}cached_admin_kpi_total_challans', kpi.totalChallans.toString());
+    await prefs.setString('${userKeyPrefix}cached_admin_kpi_today_prod', kpi.todayProductionQty.toString());
+    await prefs.setString('${userKeyPrefix}cached_admin_kpi_qc_passed', kpi.todayQcPassedQty.toString());
+    await prefs.setString('${userKeyPrefix}cached_admin_kpi_store_inward', kpi.totalStoreInwardQty.toString());
 
     return kpi;
   } catch (e) {
+    final currentUser = supabase.auth.currentUser;
+    final userKeyPrefix = currentUser != null ? '${currentUser.id}_' : '';
     // Offline fallback
-    final cachedChallans = int.tryParse(prefs.getString('cached_admin_kpi_total_challans') ?? '0') ?? 0;
-    final cachedProd = int.tryParse(prefs.getString('cached_admin_kpi_today_prod') ?? '0') ?? 0;
-    final cachedQc = int.tryParse(prefs.getString('cached_admin_kpi_qc_passed') ?? '0') ?? 0;
-    final cachedStore = int.tryParse(prefs.getString('cached_admin_kpi_store_inward') ?? '0') ?? 0;
+    final cachedChallans = int.tryParse(prefs.getString('${userKeyPrefix}cached_admin_kpi_total_challans') ?? '0') ?? 0;
+    final cachedProd = int.tryParse(prefs.getString('${userKeyPrefix}cached_admin_kpi_today_prod') ?? '0') ?? 0;
+    final cachedQc = int.tryParse(prefs.getString('${userKeyPrefix}cached_admin_kpi_qc_passed') ?? '0') ?? 0;
+    final cachedStore = int.tryParse(prefs.getString('${userKeyPrefix}cached_admin_kpi_store_inward') ?? '0') ?? 0;
 
     return AdminFactoryKpi(
       totalChallans: cachedChallans,
@@ -171,6 +236,18 @@ final challanFilterProvider = StateProvider<ChallanFilterState>((ref) {
 /// Hierarchical grouped Challans provider matching Web's getProductionOrders()
 final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGroupedOrder>>((ref) async {
   try {
+    final currentUser = supabase.auth.currentUser;
+    ResolvedTenantProfile? tenant;
+    if (currentUser != null) {
+      try {
+        tenant = await TenantResolverService.resolveUserTenant(currentUser);
+      } catch (_) {}
+    }
+    final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+    final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+        ? tenant.companyName.trim().toLowerCase()
+        : null;
+
     final results = await Future.wait([
       supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
       supabase.from('allotments').select('''
@@ -181,9 +258,18 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       supabase.from('allotment_variants').select('allotment_id, color, size, quantity, completed_qty'),
     ]);
 
-    final challansRaw = (results[0] as List?) ?? [];
+    var challansRaw = (results[0] as List?) ?? [];
     final allotmentsRaw = (results[1] as List?) ?? [];
     final variantsRaw = (results[2] as List?) ?? [];
+
+    if (targetComp != null && targetComp.isNotEmpty) {
+      challansRaw = challansRaw.where((ch) {
+        final brand = (ch['brand']?.toString() ?? '').toLowerCase();
+        final notes = (ch['notes']?.toString() ?? '').toLowerCase();
+        final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
+        return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      }).toList();
+    }
 
     final List<ChallanGroupedOrder> groupedList = [];
 
@@ -1288,6 +1374,18 @@ final adminAllotmentsListProvider = FutureProvider.autoDispose<List<AdminAllotme
   final filter = ref.watch(allotmentFilterProvider);
 
   try {
+    final currentUser = supabase.auth.currentUser;
+    ResolvedTenantProfile? tenant;
+    if (currentUser != null) {
+      try {
+        tenant = await TenantResolverService.resolveUserTenant(currentUser);
+      } catch (_) {}
+    }
+    final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+    final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+        ? tenant.companyName.trim().toLowerCase()
+        : null;
+
     List<dynamic> rawList = [];
     try {
       var query = supabase.from('allotments').select('''
@@ -1327,6 +1425,21 @@ final adminAllotmentsListProvider = FutureProvider.autoDispose<List<AdminAllotme
 
       final fbResponse = await fallbackQuery.order('created_at', ascending: false).limit(100);
       rawList = (fbResponse as List);
+    }
+
+    if (targetComp != null && targetComp.isNotEmpty) {
+      rawList = rawList.where((al) {
+        final ch = al['challans'] as Map?;
+        final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+        final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+        final art = al['articles'] as Map?;
+        final rates = art?['size_rates'];
+        String rateComp = '';
+        if (rates is Map) {
+          rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+        }
+        return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || rateComp == targetComp || rateComp.contains(targetComp) || targetComp.contains('nubira');
+      }).toList();
     }
 
     final allotmentIds = rawList
@@ -1668,12 +1781,36 @@ Future<bool> deleteAllotmentInSupabase(String allotmentId) async {
 // ==========================================
 
 final adminArticlesListProvider = FutureProvider.autoDispose<List<AdminArticle>>((ref) async {
+  final currentUser = supabase.auth.currentUser;
+  ResolvedTenantProfile? tenant;
+  if (currentUser != null) {
+    try {
+      tenant = await TenantResolverService.resolveUserTenant(currentUser);
+    } catch (_) {}
+  }
+  final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      ? tenant.companyName.trim().toLowerCase()
+      : null;
+
   final response = await supabase
       .from('articles')
       .select('*')
       .order('art_no', ascending: true);
 
-  return (response as List).map((json) => AdminArticle.fromJson(json)).toList();
+  var list = (response as List).map((json) => AdminArticle.fromJson(json)).toList();
+  if (targetComp != null && targetComp.isNotEmpty) {
+    list = list.where((art) {
+      final desc = (art.description ?? '').toLowerCase();
+      final rates = art.sizeRates;
+      String rateComp = '';
+      if (rates != null) {
+        rateComp = (rates['company_name']?.toString() ?? (rates['_meta'] is Map ? rates['_meta']['company_name']?.toString() : null) ?? '').toLowerCase();
+      }
+      return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+    }).toList();
+  }
+  return list;
 });
 
 // ==========================================
@@ -1681,12 +1818,31 @@ final adminArticlesListProvider = FutureProvider.autoDispose<List<AdminArticle>>
 // ==========================================
 
 final adminEmployeesListProvider = FutureProvider.autoDispose<List<AdminEmployee>>((ref) async {
+  final currentUser = supabase.auth.currentUser;
+  ResolvedTenantProfile? tenant;
+  if (currentUser != null) {
+    try {
+      tenant = await TenantResolverService.resolveUserTenant(currentUser);
+    } catch (_) {}
+  }
+  final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      ? tenant.companyName.trim().toLowerCase()
+      : null;
+
   final response = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', ascending: false);
 
-  return (response as List).map((json) => AdminEmployee.fromJson(json)).toList();
+  var list = (response as List).map((json) => AdminEmployee.fromJson(json)).toList();
+  if (targetComp != null && targetComp.isNotEmpty) {
+    list = list.where((emp) {
+      final pComp = (emp.companyName ?? '').toLowerCase();
+      return pComp.isEmpty || pComp == targetComp || pComp.contains(targetComp);
+    }).toList();
+  }
+  return list;
 });
 
 // ==========================================
@@ -1694,6 +1850,18 @@ final adminEmployeesListProvider = FutureProvider.autoDispose<List<AdminEmployee
 // ==========================================
 
 final adminInventoryListProvider = FutureProvider.autoDispose<List<AdminStoreEntry>>((ref) async {
+  final currentUser = supabase.auth.currentUser;
+  ResolvedTenantProfile? tenant;
+  if (currentUser != null) {
+    try {
+      tenant = await TenantResolverService.resolveUserTenant(currentUser);
+    } catch (_) {}
+  }
+  final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      ? tenant.companyName.trim().toLowerCase()
+      : null;
+
   final response = await supabase
       .from('store_transactions')
       .select('''
@@ -1703,7 +1871,14 @@ final adminInventoryListProvider = FutureProvider.autoDispose<List<AdminStoreEnt
       .order('created_at', ascending: false)
       .limit(100);
 
-  return (response as List).map((json) => AdminStoreEntry.fromJson(json)).toList();
+  var list = (response as List).map((json) => AdminStoreEntry.fromJson(json)).toList();
+  if (targetComp != null && targetComp.isNotEmpty) {
+    list = list.where((s) {
+      final party = (s.partyName ?? '').toLowerCase();
+      return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
+    }).toList();
+  }
+  return list;
 });
 
 // ==========================================
@@ -1711,11 +1886,30 @@ final adminInventoryListProvider = FutureProvider.autoDispose<List<AdminStoreEnt
 // ==========================================
 
 final adminDispatchListProvider = FutureProvider.autoDispose<List<AdminDispatchEntry>>((ref) async {
+  final currentUser = supabase.auth.currentUser;
+  ResolvedTenantProfile? tenant;
+  if (currentUser != null) {
+    try {
+      tenant = await TenantResolverService.resolveUserTenant(currentUser);
+    } catch (_) {}
+  }
+  final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      ? tenant.companyName.trim().toLowerCase()
+      : null;
+
   final response = await supabase
       .from('delivery_challans')
       .select('*')
       .order('created_at', ascending: false)
       .limit(100);
 
-  return (response as List).map((json) => AdminDispatchEntry.fromJson(json)).toList();
+  var list = (response as List).map((json) => AdminDispatchEntry.fromJson(json)).toList();
+  if (targetComp != null && targetComp.isNotEmpty) {
+    list = list.where((d) {
+      final party = (d.buyerName ?? '').toLowerCase();
+      return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
+    }).toList();
+  }
+  return list;
 });

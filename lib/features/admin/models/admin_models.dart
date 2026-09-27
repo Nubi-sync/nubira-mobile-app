@@ -421,6 +421,7 @@ class AdminEmployee {
   final String username;
   final String role;
   final bool isActive;
+  final String? companyName;
   final DateTime createdAt;
 
   AdminEmployee({
@@ -428,6 +429,7 @@ class AdminEmployee {
     required this.username,
     required this.role,
     this.isActive = true,
+    this.companyName,
     required this.createdAt,
   });
 
@@ -437,6 +439,7 @@ class AdminEmployee {
       username: json['username']?.toString() ?? 'Staff',
       role: json['role']?.toString().toUpperCase() ?? 'STAFF',
       isActive: json['is_active'] == null ? true : (json['is_active'] as bool),
+      companyName: json['company_name']?.toString(),
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),

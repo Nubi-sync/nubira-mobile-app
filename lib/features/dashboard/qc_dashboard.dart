@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../../core/services/tenant_resolver_service.dart';
 import 'widgets/delivery_challan_modal.dart';
 import '../../../main.dart';
 
@@ -326,6 +327,33 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             allotmentList = simpleRes as List<dynamic>;
           } catch (_) {}
         }
+      }
+
+      // Tenant isolation filter
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        allotmentList = allotmentList.where((al) {
+          final ch = al['challans'] as Map?;
+          final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+          final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+          final art = al['article'] as Map?;
+          final rates = art?['size_rates'];
+          String rateComp = '';
+          if (rates is Map) {
+            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+          }
+          return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || rateComp == targetComp || rateComp.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
       }
 
       final List<String> lotIds = allotmentList.map((a) => a['id'].toString()).toList();

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../main.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 
 enum PlantDateFilter { today, week, month, all }
 
@@ -479,6 +480,18 @@ final plantOperationsProvider =
     FutureProvider.autoDispose<PlantOperationsData>((ref) async {
   final filter = ref.watch(plantOperationsFilterProvider);
 
+  final currentUser = supabase.auth.currentUser;
+  ResolvedTenantProfile? tenant;
+  if (currentUser != null) {
+    try {
+      tenant = await TenantResolverService.resolveUserTenant(currentUser);
+    } catch (_) {}
+  }
+  final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      ? tenant.companyName.trim().toLowerCase()
+      : null;
+
   // Fetch all factory datasets concurrently in parallel matching Web Admin
   final results = await Future.wait([
     // 0: Articles
@@ -528,14 +541,56 @@ final plantOperationsProvider =
     supabase.from('delivery_challans').select('*').order('created_at', ascending: false).limit(100),
   ]);
 
-  final articlesRaw = (results[0] as List?) ?? [];
-  final allotmentsRaw = (results[1] as List?) ?? [];
-  final challansRaw = (results[2] as List?) ?? [];
+  var articlesRaw = (results[0] as List?) ?? [];
+  var allotmentsRaw = (results[1] as List?) ?? [];
+  var challansRaw = (results[2] as List?) ?? [];
   final variantsRaw = (results[3] as List?) ?? [];
   final prodRaw = (results[4] as List?) ?? [];
   final qcRaw = (results[5] as List?) ?? [];
-  final storeRaw = (results[6] as List?) ?? [];
-  final dispatchRaw = (results[7] as List?) ?? [];
+  var storeRaw = (results[6] as List?) ?? [];
+  var dispatchRaw = (results[7] as List?) ?? [];
+
+  if (targetComp != null && targetComp.isNotEmpty) {
+    challansRaw = challansRaw.where((ch) {
+      final brand = (ch['brand']?.toString() ?? '').toLowerCase();
+      final notes = (ch['notes']?.toString() ?? '').toLowerCase();
+      final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
+      return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+    }).toList();
+
+    final scopedChallanIds = challansRaw.map((c) => c['id']?.toString()).toSet();
+
+    allotmentsRaw = allotmentsRaw.where((al) {
+      final chId = al['challan_id']?.toString();
+      if (chId != null && scopedChallanIds.contains(chId)) return true;
+      final ch = al['challans'] as Map?;
+      final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+      final comp = (al['company_name']?.toString() ?? '').toLowerCase();
+      return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+    }).toList();
+
+    articlesRaw = articlesRaw.where((art) {
+      final desc = (art['description']?.toString() ?? '').toLowerCase();
+      final rates = art['size_rates'];
+      String rateComp = '';
+      if (rates is Map) {
+        rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+      }
+      return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+    }).toList();
+
+    storeRaw = storeRaw.where((s) {
+      final party = (s['party_name']?.toString() ?? '').toLowerCase();
+      final comp = (s['company_name']?.toString() ?? '').toLowerCase();
+      return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+    }).toList();
+
+    dispatchRaw = dispatchRaw.where((d) {
+      final party = (d['party_name']?.toString() ?? d['brand']?.toString() ?? '').toLowerCase();
+      final comp = (d['company_name']?.toString() ?? '').toLowerCase();
+      return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+    }).toList();
+  }
 
   final articles = articlesRaw.map((e) => PlantArticleItem.fromJson(e)).toList();
   final allotments = allotmentsRaw.map((e) => PlantAllotmentItem.fromJson(e)).toList();

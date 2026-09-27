@@ -239,17 +239,13 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
       // 1. Fetch Cutting Workers
       List<CuttingWorker> workersList = [];
       try {
-        final wRes = await client.from('cutting_workers').select('*').order('created_at', ascending: false);
-        final rawW = (wRes as List<dynamic>?) ?? [];
-        var mappedW = rawW.map((w) => CuttingWorker.fromJson(w as Map<String, dynamic>)).toList();
+        var wQuery = client.from('cutting_workers').select('*');
         if (companyFilter != null && companyFilter.isNotEmpty) {
-          final target = companyFilter.toLowerCase();
-          mappedW = mappedW.where((w) {
-            final c = (w.companyName ?? '').toLowerCase();
-            return c == target || c.contains(target);
-          }).toList();
+          wQuery = wQuery.eq('company_name', companyFilter);
         }
-        workersList = mappedW;
+        final wRes = await wQuery.order('created_at', ascending: false);
+        final rawW = (wRes as List<dynamic>?) ?? [];
+        workersList = rawW.map((w) => CuttingWorker.fromJson(w as Map<String, dynamic>)).toList();
       } catch (e) {
         debugPrint('[CuttingNotifier] Error fetching workers: $e');
       }
@@ -257,17 +253,13 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
       // 2. Fetch Cutting Task Allocations
       List<CuttingTaskAllocation> taskList = [];
       try {
-        final tRes = await client.from('cutting_task_allocations').select('*').order('created_at', ascending: false);
-        final rawT = (tRes as List<dynamic>?) ?? [];
-        var mappedT = rawT.map((t) => CuttingTaskAllocation.fromJson(t as Map<String, dynamic>)).toList();
+        var tQuery = client.from('cutting_task_allocations').select('*');
         if (companyFilter != null && companyFilter.isNotEmpty) {
-          final target = companyFilter.toLowerCase();
-          mappedT = mappedT.where((t) {
-            final c = (t.companyName ?? '').toLowerCase();
-            return c == target || c.contains(target);
-          }).toList();
+          tQuery = tQuery.eq('company_name', companyFilter);
         }
-        taskList = mappedT;
+        final tRes = await tQuery.order('created_at', ascending: false);
+        final rawT = (tRes as List<dynamic>?) ?? [];
+        taskList = rawT.map((t) => CuttingTaskAllocation.fromJson(t as Map<String, dynamic>)).toList();
       } catch (e) {
         debugPrint('[CuttingNotifier] Error fetching task allocations: $e');
       }

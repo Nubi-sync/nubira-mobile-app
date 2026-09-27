@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/connectivity_indicator.dart';
 import '../../core/utils/parser_utils.dart';
+import '../../core/services/tenant_resolver_service.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import 'qc_dashboard.dart';
@@ -74,6 +75,18 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     }
 
     try {
+      final currentUser = supabase.auth.currentUser;
+      ResolvedTenantProfile? tenant;
+      if (currentUser != null) {
+        try {
+          tenant = await TenantResolverService.resolveUserTenant(currentUser);
+        } catch (_) {}
+      }
+      final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
+      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+          ? tenant.companyName.trim().toLowerCase()
+          : null;
+
       // 1. Fetch All Active / Recent Allotments with comprehensive stage, custody, and priority columns
       List<dynamic> rawAllotments = [];
       try {
@@ -103,7 +116,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               created_at,
               article:articles ( id, art_no, description, size_rates ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-              challan:challans ( id, challan_no, brand )
+              challan:challans ( id, challan_no, brand, company_name, notes )
             ''')
             .order('created_at', ascending: false)
             .limit(100);
@@ -135,11 +148,27 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               created_at,
               article:articles ( id, art_no, description, size_rates ),
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-              challan:challans ( id, challan_no, brand )
+              challan:challans ( id, challan_no, brand, company_name, notes )
             ''')
             .order('created_at', ascending: false)
             .limit(100);
         rawAllotments = allotmentsRes as List<dynamic>;
+      }
+
+      if (targetComp != null && targetComp.isNotEmpty) {
+        rawAllotments = rawAllotments.where((al) {
+          final ch = al['challan'] as Map?;
+          final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
+          final notes = (ch?['notes']?.toString() ?? '').toLowerCase();
+          final comp = (al['company_name']?.toString() ?? ch?['company_name']?.toString() ?? '').toLowerCase();
+          final art = al['article'] as Map?;
+          final rates = art?['size_rates'];
+          String rateComp = '';
+          if (rates is Map) {
+            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+          }
+          return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || rateComp == targetComp || rateComp.contains(targetComp) || targetComp.contains('nubira');
+        }).toList();
       }
 
       final List<String> lotIds = rawAllotments.map((a) => a['id']?.toString() ?? '').where((id) => id.isNotEmpty).toList();
