@@ -5,9 +5,9 @@ class ReadyGoodsWorker {
   final String id;
   final String workerName;
   final String phoneNumber;
-  final String role; // 'Quality Auditor', 'Alteration Tailor', 'Polybag & Tagging Incharge', 'Master Carton Packer'
+  final String role; // 'CHECKER', 'ALTERATION_TAILOR', 'PACKER', 'BOTH'
   final String shift;
-  final String skillLevel; // 'Master', 'Senior', 'Certified'
+  final String skillLevel;
   final bool isActive;
   final int completedPieces;
   final String? companyName;
@@ -16,8 +16,8 @@ class ReadyGoodsWorker {
   const ReadyGoodsWorker({
     required this.id,
     required this.workerName,
-    required this.phoneNumber,
-    this.role = 'Quality Auditor (AQL Specialist)',
+    this.phoneNumber = '',
+    this.role = 'CHECKER',
     this.shift = 'SHIFT_1',
     this.skillLevel = 'Certified',
     this.isActive = true,
@@ -54,110 +54,182 @@ class ReadyGoodsWorker {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'workerName': workerName,
-        'phoneNumber': phoneNumber,
+        'worker_name': workerName,
+        'phone_number': phoneNumber,
         'role': role,
         'shift': shift,
-        'skillLevel': skillLevel,
-        'isActive': isActive,
-        'completedPieces': completedPieces,
-        'companyName': companyName,
-        'createdAt': createdAt?.toIso8601String(),
+        'skill_level': skillLevel,
+        'is_active': isActive,
+        'completed_pieces': completedPieces,
+        'company_name': companyName,
+        'created_at': createdAt?.toIso8601String(),
       };
 
   factory ReadyGoodsWorker.fromJson(Map<String, dynamic> json) => ReadyGoodsWorker(
-        id: json['id'] as String,
-        workerName: json['workerName'] as String,
-        phoneNumber: json['phoneNumber'] as String? ?? '',
-        role: json['role'] as String? ?? 'Quality Auditor',
-        shift: json['shift'] as String? ?? 'SHIFT_1',
-        skillLevel: json['skillLevel'] as String? ?? 'Certified',
-        isActive: json['isActive'] as bool? ?? true,
-        completedPieces: (json['completedPieces'] as num?)?.toInt() ?? 0,
-        companyName: json['companyName'] as String?,
-        createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+        id: json['id']?.toString() ?? '',
+        workerName: (json['worker_name'] ?? json['workerName'] ?? 'Worker').toString(),
+        phoneNumber: (json['phone_number'] ?? json['phoneNumber'] ?? '').toString(),
+        role: (json['role'] ?? 'CHECKER').toString(),
+        shift: (json['shift'] ?? 'SHIFT_1').toString(),
+        skillLevel: (json['skill_level'] ?? json['skillLevel'] ?? 'Certified').toString(),
+        isActive: json['is_active'] ?? json['isActive'] ?? true,
+        completedPieces: (json['completed_pieces'] ?? json['completedPieces'] as num?)?.toInt() ?? 0,
+        companyName: json['company_name'] ?? json['companyName'],
+        createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
       );
+}
+
+@immutable
+class InspectionChecklist {
+  final bool cuttingDoneRight;
+  final bool printingDoneRight;
+  final bool embroideryDoneRight;
+  final bool washingDoneRight;
+  final bool ironDoneRight;
+
+  const InspectionChecklist({
+    this.cuttingDoneRight = false,
+    this.printingDoneRight = false,
+    this.embroideryDoneRight = false,
+    this.washingDoneRight = false,
+    this.ironDoneRight = false,
+  });
+
+  InspectionChecklist copyWith({
+    bool? cuttingDoneRight,
+    bool? printingDoneRight,
+    bool? embroideryDoneRight,
+    bool? washingDoneRight,
+    bool? ironDoneRight,
+  }) {
+    return InspectionChecklist(
+      cuttingDoneRight: cuttingDoneRight ?? this.cuttingDoneRight,
+      printingDoneRight: printingDoneRight ?? this.printingDoneRight,
+      embroideryDoneRight: embroideryDoneRight ?? this.embroideryDoneRight,
+      washingDoneRight: washingDoneRight ?? this.washingDoneRight,
+      ironDoneRight: ironDoneRight ?? this.ironDoneRight,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'cutting_done_right': cuttingDoneRight,
+        'printing_done_right': printingDoneRight,
+        'embroidery_done_right': embroideryDoneRight,
+        'washing_done_right': washingDoneRight,
+        'iron_done_right': ironDoneRight,
+      };
+
+  factory InspectionChecklist.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const InspectionChecklist();
+    return InspectionChecklist(
+      cuttingDoneRight: json['cutting_done_right'] == true,
+      printingDoneRight: json['printing_done_right'] == true,
+      embroideryDoneRight: json['embroidery_done_right'] == true,
+      washingDoneRight: json['washing_done_right'] == true,
+      ironDoneRight: json['iron_done_right'] == true,
+    );
+  }
 }
 
 @immutable
 class FinishingInspectionTask {
   final String id;
-  final String taskRef;
-  final String lotNumber;
-  final String orderNumber;
-  final String styleName;
+  final String taskCode; // e.g. QC-7714-01
+  final String orderNumber; // e.g. PO-7714
+  final String buyer; // e.g. Urban Outfitters
+  final String styleName; // e.g. French Terry Relaxed Hoodie
   final String color;
-  final String buyer;
-  final String stage; // 'POST_WASH', 'POST_IRON', 'POST_PRINT', 'POST_EMBROIDERY', 'CUTTING_AUDIT'
+  final String size;
   final int piecesCount;
-  final int passedPieces;
-  final int alterationPieces;
-  final String? checkerName;
+  final String washBatchRef; // e.g. WB-082 (Silicon Softener Wash)
+  final String ironStationRef; // e.g. Steam Press Board 03
+  final bool hasPrinting;
+  final bool hasEmbroidery;
+  final String printEmbSummary;
   final String status; // 'PENDING_CHECK', 'IN_CHECKING', 'REJECTED_TO_ALTERATION', 'PASSED_TO_PACKING', 'PACKED_IN_CARTON'
   final String priority; // 'NORMAL', 'RUSH', 'CRITICAL'
-  final String? defectCategory;
-  final String? defectRemarks;
+  final String? checkedByWorkerName;
+  final String? checkedByWorkerId;
+  final String? defectReason;
+  final String? defectNotes;
+  final String? defectStation;
+  final InspectionChecklist checklist;
   final String? companyName;
   final DateTime createdAt;
 
   const FinishingInspectionTask({
     required this.id,
-    required this.taskRef,
-    required this.lotNumber,
+    required this.taskCode,
     required this.orderNumber,
+    required this.buyer,
     required this.styleName,
     this.color = 'Standard',
-    required this.buyer,
-    this.stage = 'POST_IRON',
+    this.size = 'M',
     required this.piecesCount,
-    this.passedPieces = 0,
-    this.alterationPieces = 0,
-    this.checkerName,
+    this.washBatchRef = 'WB-082 (Silicon Wash)',
+    this.ironStationRef = 'Vacuum Press Table 01',
+    this.hasPrinting = false,
+    this.hasEmbroidery = false,
+    this.printEmbSummary = 'Standard Finishing',
     this.status = 'PENDING_CHECK',
     this.priority = 'NORMAL',
-    this.defectCategory,
-    this.defectRemarks,
+    this.checkedByWorkerName,
+    this.checkedByWorkerId,
+    this.defectReason,
+    this.defectNotes,
+    this.defectStation,
+    this.checklist = const InspectionChecklist(),
     this.companyName,
     required this.createdAt,
   });
 
   FinishingInspectionTask copyWith({
     String? id,
-    String? taskRef,
-    String? lotNumber,
+    String? taskCode,
     String? orderNumber,
+    String? buyer,
     String? styleName,
     String? color,
-    String? buyer,
-    String? stage,
+    String? size,
     int? piecesCount,
-    int? passedPieces,
-    int? alterationPieces,
-    String? checkerName,
+    String? washBatchRef,
+    String? ironStationRef,
+    bool? hasPrinting,
+    bool? hasEmbroidery,
+    String? printEmbSummary,
     String? status,
     String? priority,
-    String? defectCategory,
-    String? defectRemarks,
+    String? checkedByWorkerName,
+    String? checkedByWorkerId,
+    String? defectReason,
+    String? defectNotes,
+    String? defectStation,
+    InspectionChecklist? checklist,
     String? companyName,
     DateTime? createdAt,
   }) {
     return FinishingInspectionTask(
       id: id ?? this.id,
-      taskRef: taskRef ?? this.taskRef,
-      lotNumber: lotNumber ?? this.lotNumber,
+      taskCode: taskCode ?? this.taskCode,
       orderNumber: orderNumber ?? this.orderNumber,
+      buyer: buyer ?? this.buyer,
       styleName: styleName ?? this.styleName,
       color: color ?? this.color,
-      buyer: buyer ?? this.buyer,
-      stage: stage ?? this.stage,
+      size: size ?? this.size,
       piecesCount: piecesCount ?? this.piecesCount,
-      passedPieces: passedPieces ?? this.passedPieces,
-      alterationPieces: alterationPieces ?? this.alterationPieces,
-      checkerName: checkerName ?? this.checkerName,
+      washBatchRef: washBatchRef ?? this.washBatchRef,
+      ironStationRef: ironStationRef ?? this.ironStationRef,
+      hasPrinting: hasPrinting ?? this.hasPrinting,
+      hasEmbroidery: hasEmbroidery ?? this.hasEmbroidery,
+      printEmbSummary: printEmbSummary ?? this.printEmbSummary,
       status: status ?? this.status,
       priority: priority ?? this.priority,
-      defectCategory: defectCategory ?? this.defectCategory,
-      defectRemarks: defectRemarks ?? this.defectRemarks,
+      checkedByWorkerName: checkedByWorkerName ?? this.checkedByWorkerName,
+      checkedByWorkerId: checkedByWorkerId ?? this.checkedByWorkerId,
+      defectReason: defectReason ?? this.defectReason,
+      defectNotes: defectNotes ?? this.defectNotes,
+      defectStation: defectStation ?? this.defectStation,
+      checklist: checklist ?? this.checklist,
       companyName: companyName ?? this.companyName,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -165,212 +237,54 @@ class FinishingInspectionTask {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'taskRef': taskRef,
-        'lotNumber': lotNumber,
-        'orderNumber': orderNumber,
-        'styleName': styleName,
-        'color': color,
+        'task_code': taskCode,
+        'order_number': orderNumber,
         'buyer': buyer,
-        'stage': stage,
-        'piecesCount': piecesCount,
-        'passedPieces': passedPieces,
-        'alterationPieces': alterationPieces,
-        'checkerName': checkerName,
+        'style_name': styleName,
+        'color': color,
+        'size': size,
+        'pieces_count': piecesCount,
+        'wash_batch_ref': washBatchRef,
+        'iron_station_ref': ironStationRef,
+        'has_printing': hasPrinting,
+        'has_embroidery': hasEmbroidery,
+        'print_emb_summary': printEmbSummary,
         'status': status,
         'priority': priority,
-        'defectCategory': defectCategory,
-        'defectRemarks': defectRemarks,
-        'companyName': companyName,
-        'createdAt': createdAt.toIso8601String(),
+        'checked_by_worker_name': checkedByWorkerName,
+        'checked_by_worker_id': checkedByWorkerId,
+        'defect_reason': defectReason,
+        'defect_notes': defectNotes,
+        'defect_station': defectStation,
+        'checklist': checklist.toJson(),
+        'company_name': companyName,
+        'created_at': createdAt.toIso8601String(),
       };
 
   factory FinishingInspectionTask.fromJson(Map<String, dynamic> json) => FinishingInspectionTask(
-        id: json['id'] as String,
-        taskRef: json['taskRef'] as String? ?? 'QC-101',
-        lotNumber: json['lotNumber'] as String? ?? 'LOT-001',
-        orderNumber: json['orderNumber'] as String? ?? 'PO-7700',
-        styleName: json['styleName'] as String? ?? 'Garment Style',
-        color: json['color'] as String? ?? 'Standard',
-        buyer: json['buyer'] as String? ?? 'Direct Buyer',
-        stage: json['stage'] as String? ?? 'POST_IRON',
-        piecesCount: (json['piecesCount'] as num?)?.toInt() ?? 0,
-        passedPieces: (json['passedPieces'] as num?)?.toInt() ?? 0,
-        alterationPieces: (json['alterationPieces'] as num?)?.toInt() ?? 0,
-        checkerName: json['checkerName'] as String?,
-        status: json['status'] as String? ?? 'PENDING_CHECK',
-        priority: json['priority'] as String? ?? 'NORMAL',
-        defectCategory: json['defectCategory'] as String?,
-        defectRemarks: json['defectRemarks'] as String?,
-        companyName: json['companyName'] as String?,
-        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      );
-}
-
-@immutable
-class ReadyGoodsCarton {
-  final String id;
-  final String cartonNumber;
-  final String orderNumber;
-  final String buyer;
-  final String styleName;
-  final String color;
-  final int totalPieces;
-  final double measuredWeightKg;
-  final double expectedWeightKg;
-  final String status; // 'PACKED', 'AQL_PASSED', 'QUARANTINED', 'SHIPPED'
-  final String godownBay; // 'BAY_3', 'BAY_4', 'BAY_5'
-  final String sealedBy;
-  final String? companyName;
-  final DateTime createdAt;
-
-  const ReadyGoodsCarton({
-    required this.id,
-    required this.cartonNumber,
-    required this.orderNumber,
-    required this.buyer,
-    required this.styleName,
-    this.color = 'Standard',
-    required this.totalPieces,
-    required this.measuredWeightKg,
-    this.expectedWeightKg = 12.5,
-    this.status = 'PACKED',
-    this.godownBay = 'BAY_3',
-    required this.sealedBy,
-    this.companyName,
-    required this.createdAt,
-  });
-
-  ReadyGoodsCarton copyWith({
-    String? id,
-    String? cartonNumber,
-    String? orderNumber,
-    String? buyer,
-    String? styleName,
-    String? color,
-    int? totalPieces,
-    double? measuredWeightKg,
-    double? expectedWeightKg,
-    String? status,
-    String? godownBay,
-    String? sealedBy,
-    String? companyName,
-    DateTime? createdAt,
-  }) {
-    return ReadyGoodsCarton(
-      id: id ?? this.id,
-      cartonNumber: cartonNumber ?? this.cartonNumber,
-      orderNumber: orderNumber ?? this.orderNumber,
-      buyer: buyer ?? this.buyer,
-      styleName: styleName ?? this.styleName,
-      color: color ?? this.color,
-      totalPieces: totalPieces ?? this.totalPieces,
-      measuredWeightKg: measuredWeightKg ?? this.measuredWeightKg,
-      expectedWeightKg: expectedWeightKg ?? this.expectedWeightKg,
-      status: status ?? this.status,
-      godownBay: godownBay ?? this.godownBay,
-      sealedBy: sealedBy ?? this.sealedBy,
-      companyName: companyName ?? this.companyName,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'cartonNumber': cartonNumber,
-        'orderNumber': orderNumber,
-        'buyer': buyer,
-        'styleName': styleName,
-        'color': color,
-        'totalPieces': totalPieces,
-        'measuredWeightKg': measuredWeightKg,
-        'expectedWeightKg': expectedWeightKg,
-        'status': status,
-        'godownBay': godownBay,
-        'sealedBy': sealedBy,
-        'companyName': companyName,
-        'createdAt': createdAt.toIso8601String(),
-      };
-
-  factory ReadyGoodsCarton.fromJson(Map<String, dynamic> json) => ReadyGoodsCarton(
-        id: json['id'] as String,
-        cartonNumber: json['cartonNumber'] as String,
-        orderNumber: json['orderNumber'] as String? ?? 'PO-7700',
-        buyer: json['buyer'] as String? ?? 'Buyer',
-        styleName: json['styleName'] as String? ?? 'Style',
-        color: json['color'] as String? ?? 'Standard',
-        totalPieces: (json['totalPieces'] as num?)?.toInt() ?? 0,
-        measuredWeightKg: (json['measuredWeightKg'] as num?)?.toDouble() ?? 0.0,
-        expectedWeightKg: (json['expectedWeightKg'] as num?)?.toDouble() ?? 12.5,
-        status: json['status'] as String? ?? 'PACKED',
-        godownBay: json['godownBay'] as String? ?? 'BAY_3',
-        sealedBy: json['sealedBy'] as String? ?? 'Packer',
-        companyName: json['companyName'] as String?,
-        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      );
-}
-
-@immutable
-class AqlAuditRecord {
-  final String id;
-  final String auditNumber;
-  final String orderNumber;
-  final String cartonNumber;
-  final String inspectorName;
-  final int sampleSize;
-  final int criticalDefects;
-  final int majorDefects;
-  final int minorDefects;
-  final String decision; // 'PASS', 'RE_AUDIT', 'REJECT_QUARANTINE'
-  final String remarks;
-  final String? companyName;
-  final DateTime auditDate;
-
-  const AqlAuditRecord({
-    required this.id,
-    required this.auditNumber,
-    required this.orderNumber,
-    required this.cartonNumber,
-    required this.inspectorName,
-    this.sampleSize = 32,
-    this.criticalDefects = 0,
-    this.majorDefects = 0,
-    this.minorDefects = 0,
-    this.decision = 'PASS',
-    this.remarks = 'Passed ISO 2859-1 AQL 2.5 standard',
-    this.companyName,
-    required this.auditDate,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'auditNumber': auditNumber,
-        'orderNumber': orderNumber,
-        'cartonNumber': cartonNumber,
-        'inspectorName': inspectorName,
-        'sampleSize': sampleSize,
-        'criticalDefects': criticalDefects,
-        'majorDefects': majorDefects,
-        'minorDefects': minorDefects,
-        'decision': decision,
-        'remarks': remarks,
-        'companyName': companyName,
-        'auditDate': auditDate.toIso8601String(),
-      };
-
-  factory AqlAuditRecord.fromJson(Map<String, dynamic> json) => AqlAuditRecord(
-        id: json['id'] as String,
-        auditNumber: json['auditNumber'] as String,
-        orderNumber: json['orderNumber'] as String? ?? '',
-        cartonNumber: json['cartonNumber'] as String? ?? '',
-        inspectorName: json['inspectorName'] as String? ?? 'Auditor',
-        sampleSize: (json['sampleSize'] as num?)?.toInt() ?? 32,
-        criticalDefects: (json['criticalDefects'] as num?)?.toInt() ?? 0,
-        majorDefects: (json['majorDefects'] as num?)?.toInt() ?? 0,
-        minorDefects: (json['minorDefects'] as num?)?.toInt() ?? 0,
-        decision: json['decision'] as String? ?? 'PASS',
-        remarks: json['remarks'] as String? ?? '',
-        companyName: json['companyName'] as String?,
-        auditDate: json['auditDate'] != null ? DateTime.parse(json['auditDate']) : DateTime.now(),
+        id: json['id']?.toString() ?? '',
+        taskCode: (json['task_code'] ?? json['taskRef'] ?? 'QC-101').toString(),
+        orderNumber: (json['order_number'] ?? json['orderNumber'] ?? 'PO-7700').toString(),
+        buyer: (json['buyer'] ?? 'Buyer').toString(),
+        styleName: (json['style_name'] ?? json['styleName'] ?? 'Style').toString(),
+        color: (json['color'] ?? 'Standard').toString(),
+        size: (json['size'] ?? 'M').toString(),
+        piecesCount: (json['pieces_count'] ?? json['piecesCount'] as num?)?.toInt() ?? 0,
+        washBatchRef: (json['wash_batch_ref'] ?? 'WB-082 (Silicon Wash)').toString(),
+        ironStationRef: (json['iron_station_ref'] ?? 'Vacuum Press Table 01').toString(),
+        hasPrinting: json['has_printing'] == true,
+        hasEmbroidery: json['has_embroidery'] == true,
+        printEmbSummary: (json['print_emb_summary'] ?? 'Standard Finishing').toString(),
+        status: (json['status'] ?? 'PENDING_CHECK').toString(),
+        priority: (json['priority'] ?? 'NORMAL').toString(),
+        checkedByWorkerName: json['checked_by_worker_name']?.toString(),
+        checkedByWorkerId: json['checked_by_worker_id']?.toString(),
+        defectReason: json['defect_reason']?.toString(),
+        defectNotes: json['defect_notes']?.toString(),
+        defectStation: json['defect_station']?.toString(),
+        checklist: InspectionChecklist.fromJson(json['checklist'] as Map<String, dynamic>?),
+        companyName: json['company_name']?.toString(),
+        createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
       );
 }
 
