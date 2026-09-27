@@ -2224,7 +2224,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         ),
                         const SizedBox(height: 1),
                         Text(
-                          'QC & finishing floor',
+                          'Quality Clinic & Export Packing',
                           style: GoogleFonts.publicSans(
                             fontSize: 12,
                             color: const Color(0xFF64748B),

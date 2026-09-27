@@ -885,7 +885,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
     {'code': 'SEWING', 'label': 'Sewing Floor'},
     {'code': 'WASHING', 'label': 'Washing Operations'},
     {'code': 'IRONING', 'label': 'Ironing Operations'},
-    {'code': 'PACKING', 'label': 'Ready Goods & Packing'},
+    {'code': 'PACKING', 'label': 'Quality Clinic & Export Packing'},
   ];
 
   static const List<Map<String, String>> _unitList = [

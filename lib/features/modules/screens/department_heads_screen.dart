@@ -162,24 +162,15 @@ const List<DepartmentHeadCatalogDef> kDepartmentHeadsCatalog = [
   DepartmentHeadCatalogDef(
     id: 'div-09',
     code: '09',
-    name: 'Ready Goods & Carton Packing',
+    name: 'Quality Clinic & Export Packing',
     route: '/ready-goods',
-    defaultDesignation: 'Quality Assurance Head / AQL Manager',
-    icon: Icons.inventory_2_outlined,
-    description: 'AQL 2.5 final inspection, barcode hangtags, polybag sealing & cartons',
+    defaultDesignation: 'Quality Assurance Head / Export Packing Incharge',
+    icon: Icons.all_inbox_rounded,
+    description: 'Post-wash & iron quality inspection, alteration mending clinic & carton export packing',
   ),
   DepartmentHeadCatalogDef(
     id: 'div-10',
     code: '10',
-    name: 'Alteration & Reclamation Clinic',
-    route: '/alter',
-    defaultDesignation: 'Alteration Incharge / Rework Master',
-    icon: Icons.build_outlined,
-    description: 'Defect categorization, seam rework, broken stitch alterations & re-inspection',
-  ),
-  DepartmentHeadCatalogDef(
-    id: 'div-11',
-    code: '11',
     name: 'Central Store Godown & Vault',
     route: '/store',
     defaultDesignation: 'Store Manager / Chief Godown Keeper',
@@ -187,8 +178,8 @@ const List<DepartmentHeadCatalogDef> kDepartmentHeadsCatalog = [
     description: 'Raw fabric rolls, trims inventory, cutting challan issue & finished carton storage',
   ),
   DepartmentHeadCatalogDef(
-    id: 'div-12',
-    code: '12',
+    id: 'div-11',
+    code: '11',
     name: 'Dispatch & Delivery Logistics',
     route: '/dispatch',
     defaultDesignation: 'Dispatch Manager / Logistics Head',
@@ -304,12 +295,11 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     if (modules.contains('/cutting')) return 'Cutting Master / CAD Head';
     if (modules.contains('/store')) return 'Central Store & Godown Manager';
     if (modules.contains('/stitching-sewing')) return 'Production Manager / Floor Head';
-    if (modules.contains('/ready-goods')) return 'Quality Assurance (QA) Head';
+    if (modules.contains('/ready-goods') || modules.contains('/alter')) return 'Quality Assurance & Packing Head';
     if (modules.contains('/merchandising')) return 'Senior Merchandiser / Sourcing Lead';
     if (modules.contains('/design')) return 'Design Studio Head';
     if (modules.contains('/washing')) return 'Washing Master';
     if (modules.contains('/iron')) return 'Finishing & Pressing Incharge';
-    if (modules.contains('/alter')) return 'Alteration Clinic Master';
     if (modules.contains('/printing')) return 'Printing Studio Head';
     if (modules.contains('/embroidery')) return 'Embroidery Head';
     if (modules.contains('/dispatch')) return 'Dispatch & Logistics Manager';
