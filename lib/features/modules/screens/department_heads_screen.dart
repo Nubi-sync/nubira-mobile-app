@@ -419,14 +419,9 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
         ? tenant!.allowedDivisions
         : authState.allowedDivisions;
 
-    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
-        (tenant?.isLegacyNubira == true) ||
-        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
-        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
-
-    final allowedDivisions = isNubira
-        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
-        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
+    final allowedDivisions = rawAllowed.isNotEmpty
+        ? rawAllowed
+        : kDepartmentHeadsCatalog.map((d) => d.route).toList();
 
     final result = await AppointDepartmentHeadScreen.show(
       context,
@@ -482,14 +477,9 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
         ? tenant!.allowedDivisions
         : authState.allowedDivisions;
 
-    final isNubira = (tenant?.companyName ?? '').toLowerCase().contains('nubira') ||
-        (tenant?.isLegacyNubira == true) ||
-        (authState.cachedUsername ?? '').toLowerCase().contains('nubira') ||
-        (authState.cachedUsername ?? '').toLowerCase() == 'admin';
-
-    final allowedDivisions = isNubira
-        ? (rawAllowed.isNotEmpty && rawAllowed.length <= 2 ? rawAllowed : const ['/stitching-sewing', '/store'])
-        : (rawAllowed.isNotEmpty ? rawAllowed : const ['/stitching-sewing', '/store']);
+    final allowedDivisions = rawAllowed.isNotEmpty
+        ? rawAllowed
+        : kDepartmentHeadsCatalog.map((d) => d.route).toList();
 
     // Filter catalog to tenant's purchased divisions (Strict match with Web)
     final subscribedCatalog = kDepartmentHeadsCatalog.where((d) => allowedDivisions.contains(d.route)).toList();

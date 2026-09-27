@@ -21,7 +21,9 @@ class CompanyProfileScreen extends ConsumerWidget {
     final subscription = tenant?.subscriptionTier ?? 'FULL_PLANT_AI';
     final cityState = tenant?.cityState ?? 'India';
     final phone = tenant?.phone.isNotEmpty == true ? tenant!.phone : '+91 98765 43210';
-    final operatingUnits = tenant?.allowedDivisions.length ?? 2;
+    final operatingUnits = tenant?.allowedDivisions.isNotEmpty == true
+        ? tenant!.allowedDivisions.length
+        : (authState.allowedDivisions.isNotEmpty ? authState.allowedDivisions.length : 12);
 
     return Scaffold(
       key: scaffoldKey,
