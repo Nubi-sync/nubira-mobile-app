@@ -64,7 +64,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
       // 2. Fetch Store Outward entries (for Expected Qty auto-fill)
       List<dynamic> storeOutwardRes = await supabase
           .from('store_transactions')
-          .select('article_id, quantity, party_name, company_name')
+          .select('article_id, quantity, party_name')
           .eq('type', 'OUTWARD')
           .eq('entry_date', today);
 
@@ -72,8 +72,7 @@ class _DispatchDashboardState extends ConsumerState<DispatchDashboard> {
       for (var row in storeOutwardRes) {
         if (targetComp != null && targetComp.isNotEmpty) {
           final p = (row['party_name']?.toString() ?? '').toLowerCase();
-          final c = (row['company_name']?.toString() ?? '').toLowerCase();
-          if (!(p == targetComp || p.contains(targetComp) || c == targetComp || c.contains(targetComp) || targetComp.contains('nubira'))) {
+          if (!(p == targetComp || p.contains(targetComp) || targetComp.contains('nubira'))) {
             continue;
           }
         }

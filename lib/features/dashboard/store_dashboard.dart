@@ -375,7 +375,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             challan_no,
             transport_no,
             notes,
-            company_name,
             article:articles ( id, art_no, description )
           ''')
           .order('created_at', ascending: false)
@@ -392,7 +391,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             unit,
             party_name,
             notes,
-            company_name,
             entry_date,
             created_at
           ''')
@@ -402,14 +400,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       if (targetComp != null && targetComp.isNotEmpty) {
         txRes = txRes.where((t) {
           final party = (t['party_name']?.toString() ?? '').toLowerCase();
-          final comp = (t['company_name']?.toString() ?? '').toLowerCase();
-          return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || targetComp.contains('nubira');
+          return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
         }).toList();
 
         accRes = accRes.where((a) {
           final party = (a['party_name']?.toString() ?? '').toLowerCase();
-          final comp = (a['company_name']?.toString() ?? '').toLowerCase();
-          return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || targetComp.contains('nubira');
+          return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
         }).toList();
       }
 
@@ -3096,23 +3092,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           final targetQty = parseQty(allotment['target_qty']);
           final assignedColor = allotment['assigned_color_label']?.toString() ?? '';
 
-          // Calculate Article Inwards & Buffer
-          final artInwards = _truckInwards.where((inw) {
-            final aNo = (inw['article_no'] ?? '').toString().trim().toUpperCase();
-            return aNo == artNo.toUpperCase();
-          }).toList();
-
-          int totalInwardPcs = 0;
-          for (var inw in artInwards) {
-            final items = inw['items'] ?? inw['line_items'] ?? [];
-            if (items is List) {
-              for (var it in items) {
-                totalInwardPcs += parseQty(it['quantity'] ?? it['received_qty']);
-              }
-            }
-          }
-
-          final int calculatedBuffer = ((totalInwardPcs > 0 ? totalInwardPcs : targetQty) * (_safetyBufferPct / 100)).floor();
+          // Calculate Safety Buffer based on active allotment batch size
+          final int calculatedBuffer = ((targetQty * _safetyBufferPct) / 100).ceil();
           final int claimedSoFar = _bufferClaims
               .where((c) => c['art_no'] == artNo)
               .fold(0, (sum, c) => sum + parseQty(c['qty']));
@@ -5484,35 +5465,18 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   Widget _buildArticleBufferLedgerSection() {
-    // 1. Group truck inwards and active allotments by Article No
+    // 1. Group active production allotments by Article No
     final Map<String, Map<String, dynamic>> articleGroups = {};
-
-    for (var inw in _truckInwards) {
-      final art = (inw['article_no'] ?? '').toString().trim().toUpperCase();
-      if (art.isEmpty) continue;
-      if (!articleGroups.containsKey(art)) {
-        articleGroups[art] = {
-          'art_no': art,
-          'total_inward': 0,
-          'total_allotted': 0,
-          'allotments': <dynamic>[],
-        };
-      }
-      final items = inw['items'] ?? inw['line_items'] ?? [];
-      if (items is List) {
-        for (var it in items) {
-          articleGroups[art]!['total_inward'] = (articleGroups[art]!['total_inward'] as int) + parseQty(it['quantity'] ?? it['received_qty']);
-        }
-      }
-    }
 
     for (var al in _activeAllotments) {
       final art = (al['articles']?['art_no'] ?? '').toString().trim().toUpperCase();
       if (art.isEmpty) continue;
       if (!articleGroups.containsKey(art)) {
+        final artId = al['article_id']?.toString() ?? '';
+        final stock = _articleStockMap[artId] ?? 0;
         articleGroups[art] = {
           'art_no': art,
-          'total_inward': 0,
+          'total_inward': stock,
           'total_allotted': 0,
           'allotments': <dynamic>[],
         };
@@ -5521,6 +5485,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       (articleGroups[art]!['allotments'] as List<dynamic>).add(al);
     }
 
+    // Only display when active floor batches exist
     if (articleGroups.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -5593,13 +5558,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           final artNo = grp['art_no'] as String;
           final totalInward = grp['total_inward'] as int;
           final totalAllotted = grp['total_allotted'] as int;
-          final balance = (totalInward - totalAllotted).clamp(0, 999999);
-          final buffer = ((totalInward > 0 ? totalInward : totalAllotted) * (_safetyBufferPct / 100)).floor();
+          final buffer = ((totalAllotted * _safetyBufferPct) / 100).ceil();
           final claimed = _bufferClaims
               .where((c) => c['art_no'] == artNo)
               .fold(0, (sum, c) => sum + parseQty(c['qty']));
           final available = (buffer - claimed).clamp(0, 999999);
           final lots = grp['allotments'] as List<dynamic>;
+          final balance = totalAllotted;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
