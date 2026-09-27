@@ -20,113 +20,39 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
   static const Color kInkText = Color(0xFF232028);
 
   final _formKey = GlobalKey<FormState>();
-  final _lotCodeCtrl = TextEditingController();
-  final _poNumberCtrl = TextEditingController();
-  final _styleNameCtrl = TextEditingController();
-  final _colorCtrl = TextEditingController();
-  final _piecesCtrl = TextEditingController();
-  final _washBatchCtrl = TextEditingController();
-  final _ironStationCtrl = TextEditingController();
-  final _summaryCtrl = TextEditingController();
+  final _styleNameCtrl = TextEditingController(text: 'French Terry Relaxed Hoodie');
+  final _piecesCtrl = TextEditingController(text: '50');
+  final _colorCtrl = TextEditingController(text: 'Vintage Mineral Wash');
+  final _washBatchCtrl = TextEditingController(text: 'WB-082 (Silicon Softener Wash)');
+  final _ironStationCtrl = TextEditingController(text: 'Steam Press Board 03');
 
-  String _selectedBuyer = 'Zara International';
-  String _selectedSize = 'M';
+  String _lotCode = 'QC-7720-01';
+  String _poNumber = 'PO-7720';
+  final String _buyer = 'Urban Outfitters';
+  String _size = 'L';
   bool _hasPrinting = true;
-  bool _hasEmbroidery = false;
-  String _selectedPriority = 'NORMAL';
+  bool _hasEmbroidery = true;
+  String? _assignedWorkerId;
   bool _isSubmitting = false;
 
-  final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'FREE'];
-  final List<String> _priorities = ['NORMAL', 'RUSH', 'CRITICAL'];
-
-  final List<Map<String, dynamic>> _presets = [
-    {
-      'label': 'T-Shirt (Screen Print)',
-      'buyer': 'Zara International',
-      'style': 'Heavyweight Boxy Drop-Shoulder Tee',
-      'color': 'Onyx Black',
-      'size': 'M',
-      'pieces': 75,
-      'washBatch': 'WB-084 (Bio-Polish Enzyme Wash)',
-      'ironStation': 'Vacuum Table 01',
-      'hasPrinting': true,
-      'hasEmbroidery': false,
-      'summary': 'Chest Graphic Screen Print'
-    },
-    {
-      'label': 'Hoodie (Print & Embroidery)',
-      'buyer': 'Urban Outfitters',
-      'style': 'French Terry Relaxed Hoodie',
-      'color': 'Vintage Mineral Wash',
-      'size': 'L',
-      'pieces': 50,
-      'washBatch': 'WB-082 (Silicon Softener Wash)',
-      'ironStation': 'Steam Press Board 03',
-      'hasPrinting': true,
-      'hasEmbroidery': true,
-      'summary': 'Chest Embroidery + Back Screen Print'
-    },
-    {
-      'label': 'Polo (Embroidery Only)',
-      'buyer': 'Tommy Hilfiger',
-      'style': 'Pique Heritage Polo',
-      'color': 'Classic Navy',
-      'size': 'S',
-      'pieces': 60,
-      'washBatch': 'WB-081 (Silicone Soft Wash)',
-      'ironStation': 'Collar Crease Table 02',
-      'hasPrinting': false,
-      'hasEmbroidery': true,
-      'summary': 'Crest Logo Multi-Head Embroidery'
-    },
-    {
-      'label': 'Denim Overshirt (Plain)',
-      'buyer': 'Levi Strauss Co',
-      'style': 'Raw Denim Workwear Overshirt',
-      'color': 'Indigo Rinse',
-      'size': 'XL',
-      'pieces': 40,
-      'washBatch': 'WB-085 (Stone Wash & Tint)',
-      'ironStation': 'Heavy Steam Press 04',
-      'hasPrinting': false,
-      'hasEmbroidery': false,
-      'summary': 'Standard Denim Finish (No Print/Embroidery)'
-    }
-  ];
+  final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
 
   @override
   void initState() {
     super.initState();
-    _applyPreset(_presets[0]);
-  }
-
-  void _applyPreset(Map<String, dynamic> p) {
-    final rng = Random().nextInt(9000) + 1000;
-    _lotCodeCtrl.text = 'QC-$rng-01';
-    _poNumberCtrl.text = 'PO-${Random().nextInt(1000) + 7000}';
-    _selectedBuyer = p['buyer'];
-    _styleNameCtrl.text = p['style'];
-    _colorCtrl.text = p['color'];
-    _selectedSize = p['size'];
-    _piecesCtrl.text = p['pieces'].toString();
-    _washBatchCtrl.text = p['washBatch'];
-    _ironStationCtrl.text = p['ironStation'];
-    _hasPrinting = p['hasPrinting'];
-    _hasEmbroidery = p['hasEmbroidery'];
-    _summaryCtrl.text = p['summary'];
-    setState(() {});
+    final rng1 = Random().nextInt(9000) + 1000;
+    final rng2 = Random().nextInt(1000) + 7000;
+    _lotCode = 'QC-$rng1-01';
+    _poNumber = 'PO-$rng2';
   }
 
   @override
   void dispose() {
-    _lotCodeCtrl.dispose();
-    _poNumberCtrl.dispose();
     _styleNameCtrl.dispose();
-    _colorCtrl.dispose();
     _piecesCtrl.dispose();
+    _colorCtrl.dispose();
     _washBatchCtrl.dispose();
     _ironStationCtrl.dispose();
-    _summaryCtrl.dispose();
     super.dispose();
   }
 
@@ -135,30 +61,42 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
     setState(() => _isSubmitting = true);
 
     try {
+      final pieces = int.tryParse(_piecesCtrl.text.trim()) ?? 50;
+      final state = ref.read(readyGoodsProvider);
+      final assignedWorker = state.workers.where((w) => w.id == _assignedWorkerId).firstOrNull;
+
       await ref.read(readyGoodsProvider.notifier).inwardLot(
-            lotCode: _lotCodeCtrl.text.trim(),
-            orderNumber: _poNumberCtrl.text.trim(),
-            buyer: _selectedBuyer,
+            lotCode: _lotCode,
+            orderNumber: _poNumber,
+            buyer: _buyer,
             styleName: _styleNameCtrl.text.trim(),
-            color: _colorCtrl.text.trim(),
-            size: _selectedSize,
-            piecesCount: int.tryParse(_piecesCtrl.text.trim()) ?? 50,
-            washBatchRef: _washBatchCtrl.text.trim(),
-            ironStationRef: _ironStationCtrl.text.trim(),
+            color: _colorCtrl.text.trim().isNotEmpty ? _colorCtrl.text.trim() : 'Standard',
+            size: _size,
+            piecesCount: pieces,
+            washBatchRef: _washBatchCtrl.text.trim().isNotEmpty ? _washBatchCtrl.text.trim() : 'Washing Batch #01',
+            ironStationRef: _ironStationCtrl.text.trim().isNotEmpty ? _ironStationCtrl.text.trim() : 'Steam Iron Line 01',
             hasPrinting: _hasPrinting,
             hasEmbroidery: _hasEmbroidery,
-            printEmbSummary: _summaryCtrl.text.trim(),
-            priority: _selectedPriority,
+            printEmbSummary: _hasPrinting && _hasEmbroidery
+                ? 'Printing & Embroidery Required'
+                : _hasPrinting
+                    ? 'Screen Printing Required'
+                    : _hasEmbroidery
+                        ? 'Embroidery Required'
+                        : 'Plain Finish (No Print/Embroidery)',
+            priority: 'NORMAL',
+            assignedWorkerId: assignedWorker?.id,
+            assignedWorkerName: assignedWorker?.workerName,
           );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF16A34A),
+            backgroundColor: const Color(0xFF10B981),
             content: Text(
-              '✓ Inwarded ${_piecesCtrl.text.trim()} pcs of ${_lotCodeCtrl.text.trim()} to Quality Clinic!',
-              style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, color: Colors.white),
+              'Lot #$_lotCode successfully inwarded to Quality Clinic!',
+              style: GoogleFonts.publicSans(fontWeight: FontWeight.w700, color: Colors.white),
             ),
           ),
         );
@@ -170,7 +108,8 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
 
   @override
   Widget build(BuildContext context) {
-    final buyers = ref.watch(readyGoodsProvider).buyers;
+    final state = ref.watch(readyGoodsProvider);
+    final availableCheckers = state.workers.where((w) => w.role == 'CHECKER' || w.role == 'BOTH').toList();
 
     return Dialog(
       backgroundColor: kCardBg,
@@ -185,7 +124,7 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
+            // Header (Exact Web Mirror)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -211,23 +150,21 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Inward Quality Checking Lot',
+                          'Inward Garments for Quality Clinic',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: kInkText,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Receive washed & pressed garments for final QC clearance',
+                          'Record incoming lot arriving from washing & steam iron to inspect and assign',
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
                             color: kMutedText,
                             fontWeight: FontWeight.w500,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -250,7 +187,7 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
               ),
             ),
 
-            // Form Body
+            // Form Body (Exact Web Order & Fields)
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -259,9 +196,9 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Quick Presets Selector
+                      // ARTICLE / STYLE NAME *
                       Text(
-                        'QUICK STYLE PRESETS',
+                        'ARTICLE / STYLE NAME *',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -270,335 +207,371 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
                         ),
                       ),
                       const SizedBox(height: 6),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: _presets.map((p) {
-                            final isSel = _styleNameCtrl.text == p['style'];
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: InkWell(
-                                onTap: () => _applyPreset(p),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? kPrimaryBrand : kCanvasColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: isSel ? kPrimaryBrand : kBorderColor),
-                                  ),
-                                  child: Text(
-                                    p['label'],
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 11,
-                                      fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                      color: isSel ? Colors.white : kInkText,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Lot Code & Order Number
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'LOT / BATCH # *',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
-                                ),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _lotCodeCtrl,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
-                                  decoration: _inputDecoration('e.g. QC-7715-01'),
-                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ORDER / PO # *',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
-                                ),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _poNumberCtrl,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
-                                  decoration: _inputDecoration('e.g. PO-7715'),
-                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _styleNameCtrl,
+                        style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: kInkText),
+                        decoration: _inputDecoration('e.g. French Terry Relaxed Hoodie'),
+                        validator: (v) => v!.trim().isEmpty ? 'Please enter style name' : null,
                       ),
                       const SizedBox(height: 12),
 
-                      // Buyer Dropdown
-                      Text(
-                        'BUYER / CLIENT *',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: kCardBg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: kBorderColor),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: buyers.any((b) => b.buyerName == _selectedBuyer)
-                                ? _selectedBuyer
-                                : (buyers.isNotEmpty ? buyers.first.buyerName : null),
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
-                            items: buyers.map((b) {
-                              return DropdownMenuItem(
-                                value: b.buyerName,
-                                child: Text(
-                                  '${b.buyerName} (${b.buyerCode})',
-                                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: kInkText),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (v) {
-                              if (v != null) setState(() => _selectedBuyer = v);
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Style Name & Color
+                      // Row: PIECES COUNT * | SIZE | COLOR
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Pieces Count
                           Expanded(
                             flex: 3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('STYLE NAME *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _styleNameCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
-                                  decoration: _inputDecoration('e.g. Drop-Shoulder Tee'),
-                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('COLOR *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _colorCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
-                                  decoration: _inputDecoration('e.g. Onyx Black'),
-                                  validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Size & Quantity (Pieces)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('SIZE *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: kCardBg,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: kBorderColor),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _selectedSize,
-                                      isExpanded: true,
-                                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
-                                      items: _sizes.map((s) {
-                                        return DropdownMenuItem(
-                                          value: s,
-                                          child: Text(s, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText)),
-                                        );
-                                      }).toList(),
-                                      onChanged: (v) => setState(() => _selectedSize = v!),
-                                    ),
+                                Text(
+                                  'PIECES COUNT *',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: kMutedText,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('PIECES (QTY) *', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _piecesCtrl,
                                   keyboardType: TextInputType.number,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: kInkText),
-                                  decoration: _inputDecoration('e.g. 75'),
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: kInkText,
+                                  ),
+                                  decoration: _inputDecoration('50'),
                                   validator: (v) {
                                     if (v!.trim().isEmpty) return 'Required';
-                                    if (int.tryParse(v.trim()) == null) return 'Number only';
+                                    if (int.tryParse(v.trim()) == null || int.parse(v.trim()) <= 0) return 'Min 1';
                                     return null;
                                   },
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                          const SizedBox(width: 8),
 
-                      // Origin Details
-                      Row(
-                        children: [
+                          // Size
                           Expanded(
+                            flex: 3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('WASH BATCH REF', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _washBatchCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 11, color: kInkText),
-                                  decoration: _inputDecoration('WB-084'),
+                                Text(
+                                  'SIZE',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: kMutedText,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: kCardBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: kBorderColor),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _size,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
+                                      items: _sizes.map((s) {
+                                        return DropdownMenuItem(
+                                          value: s,
+                                          child: Text(
+                                            s,
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: kInkText,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (v) {
+                                        if (v != null) setState(() => _size = v);
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
+
+                          // Color
                           Expanded(
+                            flex: 4,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('IRON TABLE REF', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                                const SizedBox(height: 4),
+                                Text(
+                                  'COLOR',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: kMutedText,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
                                 TextFormField(
-                                  controller: _ironStationCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 11, color: kInkText),
-                                  decoration: _inputDecoration('Vacuum Table 01'),
+                                  controller: _colorCtrl,
+                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
+                                  decoration: _inputDecoration('e.g. Onyx Black'),
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Tech-Pack Criteria Checkboxes
-                      Text('TECH-PACK PROCESS SPECIFICATION', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
-                      const SizedBox(height: 6),
+                      // Box 1: Wash Batch Origin & Steam Iron Station
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: kCanvasColor,
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: kBorderColor),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Checkbox(
-                                    value: _hasPrinting,
-                                    activeColor: kPrimaryBrand,
-                                    onChanged: (v) => setState(() => _hasPrinting = v!),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  Text('Has Printing', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: kInkText)),
-                                ],
+                            Text(
+                              'WASH BATCH ORIGIN',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: kMutedText,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Checkbox(
-                                    value: _hasEmbroidery,
-                                    activeColor: kPrimaryBrand,
-                                    onChanged: (v) => setState(() => _hasEmbroidery = v!),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              controller: _washBatchCtrl,
+                              style: GoogleFonts.publicSans(fontSize: 11.5, color: kInkText),
+                              decoration: _inputDecoration('e.g. WB-082 (Silicon Softener Wash)'),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'STEAM IRON STATION',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: kMutedText,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              controller: _ironStationCtrl,
+                              style: GoogleFonts.publicSans(fontSize: 11.5, color: kInkText),
+                              decoration: _inputDecoration('e.g. Steam Press Board 03'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Box 2: Tech Pack Criteria Configuration (Exact Web Mirror)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: kCardBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kBorderColor),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TECH PACK CRITERIA CONFIGURATION',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: kInkText,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Only enabled criteria will be required on the checker\'s verification checklist. (Cutting, Washing, and Ironing are always verified).',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                color: kMutedText,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Checkbox 1: Undergoes Printing
+                            InkWell(
+                              onTap: () => setState(() => _hasPrinting = !_hasPrinting),
+                              borderRadius: BorderRadius.circular(10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _hasPrinting ? kPrimaryBrand.withValues(alpha: 0.05) : kCardBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _hasPrinting ? kPrimaryBrand : kBorderColor,
+                                    width: _hasPrinting ? 1.5 : 1,
                                   ),
-                                  Text('Has Embroidery', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: kInkText)),
-                                ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: _hasPrinting ? const Color(0xFF2563EB) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: _hasPrinting ? const Color(0xFF2563EB) : kBorderColor,
+                                        ),
+                                      ),
+                                      child: _hasPrinting
+                                          ? const Icon(Icons.check, size: 13, color: Colors.white)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Icon(Icons.print_outlined, size: 16, color: Color(0xFF2563EB)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Undergoes Printing (Screen/DTF)',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 12,
+                                        fontWeight: _hasPrinting ? FontWeight.w700 : FontWeight.w500,
+                                        color: kInkText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Checkbox 2: Undergoes Embroidery
+                            InkWell(
+                              onTap: () => setState(() => _hasEmbroidery = !_hasEmbroidery),
+                              borderRadius: BorderRadius.circular(10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _hasEmbroidery ? kPrimaryBrand.withValues(alpha: 0.05) : kCardBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _hasEmbroidery ? kPrimaryBrand : kBorderColor,
+                                    width: _hasEmbroidery ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        color: _hasEmbroidery ? const Color(0xFF2563EB) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: _hasEmbroidery ? const Color(0xFF2563EB) : kBorderColor,
+                                        ),
+                                      ),
+                                      child: _hasEmbroidery
+                                          ? const Icon(Icons.check, size: 13, color: Colors.white)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFD97706)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Undergoes Embroidery',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 12,
+                                        fontWeight: _hasEmbroidery ? FontWeight.w700 : FontWeight.w500,
+                                        color: kInkText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Priority Selection
-                      Text('FLOOR PRIORITY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: kMutedText)),
+                      // Assign Quality Checker (Optional)
+                      Text(
+                        'ASSIGN QUALITY CHECKER (OPTIONAL)',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: kMutedText,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Row(
-                        children: _priorities.map((p) {
-                          final isSel = _selectedPriority == p;
-                          Color badgeColor = kPrimaryBrand;
-                          if (p == 'RUSH') badgeColor = const Color(0xFFD97706);
-                          if (p == 'CRITICAL') badgeColor = const Color(0xFFE11D48);
-
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: InkWell(
-                                onTap: () => setState(() => _selectedPriority = p),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? badgeColor : kCardBg,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: isSel ? badgeColor : kBorderColor),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    p,
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSel ? Colors.white : kInkText,
-                                    ),
-                                  ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: kCardBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: kBorderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: availableCheckers.any((w) => w.id == _assignedWorkerId) ? _assignedWorkerId : '',
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kPrimaryBrand),
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: '',
+                                child: Text(
+                                  'Unassigned (Queue in Incoming Pool)',
+                                  style: GoogleFonts.publicSans(fontSize: 12, color: kInkText),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                              ...availableCheckers.map((w) {
+                                final roleLabel = w.role == 'BOTH' ? 'Checker & Packer' : 'Checker';
+                                return DropdownMenuItem<String>(
+                                  value: w.id,
+                                  child: Text(
+                                    '${w.workerName} ($roleLabel) • ${w.shift}',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: kInkText,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                            onChanged: (v) {
+                              setState(() => _assignedWorkerId = v);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tip: You can add workers with the "+ Add Worker" button and assign them to this lot anytime!',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          color: const Color(0xFFC2410C), // Amber/Orange tip matching web
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -606,7 +579,7 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
               ),
             ),
 
-            // Footer
+            // Footer (Cancel & Inward Lot for Inspection)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -624,7 +597,10 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    child: Text('Cancel', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: kMutedText)),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: kInkText),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -632,9 +608,9 @@ class _InwardInspectionLotModalState extends ConsumerState<InwardInspectionLotMo
                       onPressed: _isSubmitting ? null : _submit,
                       icon: _isSubmitting
                           ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('📦', style: TextStyle(fontSize: 14)),
+                          : const Icon(Icons.all_inbox_rounded, size: 16),
                       label: Text(
-                        _isSubmitting ? 'Inwarding...' : 'Inward Lot for QC Check',
+                        _isSubmitting ? 'Inwarding...' : 'Inward Lot for Inspection',
                         style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700),
                       ),
                       style: ElevatedButton.styleFrom(

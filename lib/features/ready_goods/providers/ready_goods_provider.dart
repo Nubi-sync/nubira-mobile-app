@@ -187,6 +187,8 @@ class ReadyGoodsNotifier extends StateNotifier<ReadyGoodsState> {
     required bool hasEmbroidery,
     required String printEmbSummary,
     required String priority,
+    String? assignedWorkerId,
+    String? assignedWorkerName,
   }) async {
     final newTask = FinishingInspectionTask(
       id: 'fit-${DateTime.now().millisecondsSinceEpoch}',
@@ -202,7 +204,9 @@ class ReadyGoodsNotifier extends StateNotifier<ReadyGoodsState> {
       hasPrinting: hasPrinting,
       hasEmbroidery: hasEmbroidery,
       printEmbSummary: printEmbSummary,
-      status: 'PENDING_CHECK',
+      status: assignedWorkerId != null && assignedWorkerId.isNotEmpty ? 'IN_CHECKING' : 'PENDING_CHECK',
+      checkedByWorkerId: assignedWorkerId,
+      checkedByWorkerName: assignedWorkerName,
       priority: priority,
       createdAt: DateTime.now(),
     );
