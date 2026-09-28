@@ -101,11 +101,13 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
               // a. Breadcrumb Row
               // ==========================================
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 5,
+                      runSpacing: 2,
                       children: [
                         InkWell(
                           onTap: () => Navigator.pop(context),
@@ -118,13 +120,11 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
                         const Text('/', style: TextStyle(color: kBorderColor, fontSize: 12)),
-                        const SizedBox(width: 6),
                         Text(
                           '12. Dispatch & Logistics Hub',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: kInkText,
                           ),
@@ -132,8 +132,9 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Container(
+                    constraints: const BoxConstraints(maxWidth: 140),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: kBluePastelBg,
@@ -142,12 +143,12 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
                     ),
                     child: Text(
                       state.organizationName,
-                      style: GoogleFonts.jetBrainsMono(
+                      style: GoogleFonts.publicSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: kBluePastelText,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -555,15 +556,20 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  label,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: isAlert ? const Color(0xFFBE123C) : kMutedText,
-                    letterSpacing: 0.5,
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: isAlert ? const Color(0xFFBE123C) : kMutedText,
+                      letterSpacing: 0.4,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 4),
                 Container(
                   width: 32,
                   height: 32,
