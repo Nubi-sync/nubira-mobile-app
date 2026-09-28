@@ -2239,7 +2239,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Challan / Slip #', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink)),
+                                    Text('Challan / Slip # *', style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink)),
                                     const SizedBox(height: 6),
                                     TextField(
                                       controller: challanNoController,
@@ -2938,6 +2938,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               onPressed: isSubmitting
                                   ? null
                                   : () async {
+                                      if (challanNoController.text.trim().isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter Challan / Slip Number.'), backgroundColor: Colors.redAccent),
+                                        );
+                                        return;
+                                      }
                                       if (items.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(content: Text('Please add at least 1 item from the challan.'), backgroundColor: Colors.redAccent),
