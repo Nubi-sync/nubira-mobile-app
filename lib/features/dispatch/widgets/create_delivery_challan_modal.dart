@@ -4,6 +4,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/dispatch_provider.dart';
 
+class ChallanFormItemRow {
+  String articleId;
+  final TextEditingController colorCtrl;
+  final TextEditingController sizeCtrl;
+  final TextEditingController quantityCtrl;
+
+  ChallanFormItemRow({
+    required this.articleId,
+    required String color,
+    required String size,
+    required int quantity,
+  })  : colorCtrl = TextEditingController(text: color),
+        sizeCtrl = TextEditingController(text: size),
+        quantityCtrl = TextEditingController(text: quantity > 0 ? quantity.toString() : '');
+
+  int get quantity => int.tryParse(quantityCtrl.text.trim()) ?? 0;
+
+  void dispose() {
+    colorCtrl.dispose();
+    sizeCtrl.dispose();
+    quantityCtrl.dispose();
+  }
+}
+
 class CreateDeliveryChallanModal extends ConsumerStatefulWidget {
   const CreateDeliveryChallanModal({super.key});
 
@@ -30,7 +54,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
   final _vehicleNoCtrl = TextEditingController();
   final _driverPhoneCtrl = TextEditingController();
 
-  List<Map<String, dynamic>> _itemRows = [];
+  final List<ChallanFormItemRow> _itemRows = [];
   bool _isSubmitting = false;
 
   @override
@@ -41,14 +65,14 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
     _challanNoCtrl.text = 'CH-$year-$rng';
 
     final articles = ref.read(dispatchProvider).articles;
-    _itemRows = [
-      {
-        'article_id': articles.isNotEmpty ? articles.first.id : '',
-        'color': TextEditingController(text: 'Navy Blue'),
-        'size': TextEditingController(text: 'L / 32'),
-        'quantity': TextEditingController(text: '100'),
-      }
-    ];
+    _itemRows.add(
+      ChallanFormItemRow(
+        articleId: articles.isNotEmpty ? articles.first.id : '',
+        color: 'Navy Blue',
+        size: 'L / 32',
+        quantity: 100,
+      ),
+    );
   }
 
   @override
@@ -60,31 +84,26 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
     _vehicleNoCtrl.dispose();
     _driverPhoneCtrl.dispose();
     for (var r in _itemRows) {
-      (r['color'] as TextEditingController).dispose();
-      (r['size'] as TextEditingController).dispose();
-      (r['quantity'] as TextEditingController).dispose();
+      r.dispose();
     }
     super.dispose();
   }
 
   int _calculateTotalPieces() {
-    int total = 0;
-    for (var r in _itemRows) {
-      final qCtrl = r['quantity'] as TextEditingController;
-      total += int.tryParse(qCtrl.text.trim()) ?? 0;
-    }
-    return total;
+    return _itemRows.fold<int>(0, (sum, r) => sum + r.quantity);
   }
 
   void _addRow() {
     final articles = ref.read(dispatchProvider).articles;
     setState(() {
-      _itemRows.add({
-        'article_id': articles.isNotEmpty ? articles.first.id : '',
-        'color': TextEditingController(text: 'Standard'),
-        'size': TextEditingController(text: 'L'),
-        'quantity': TextEditingController(text: '100'),
-      });
+      _itemRows.add(
+        ChallanFormItemRow(
+          articleId: articles.isNotEmpty ? articles.first.id : '',
+          color: 'Standard',
+          size: 'L',
+          quantity: 100,
+        ),
+      );
     });
   }
 
@@ -92,9 +111,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
     if (_itemRows.length > 1) {
       setState(() {
         final removed = _itemRows.removeAt(index);
-        (removed['color'] as TextEditingController).dispose();
-        (removed['size'] as TextEditingController).dispose();
-        (removed['quantity'] as TextEditingController).dispose();
+        removed.dispose();
       });
     }
   }
@@ -104,10 +121,10 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
 
     final formattedItems = _itemRows.map((r) {
       return {
-        'article_id': r['article_id'],
-        'color': (r['color'] as TextEditingController).text.trim(),
-        'size': (r['size'] as TextEditingController).text.trim(),
-        'quantity': int.tryParse((r['quantity'] as TextEditingController).text.trim()) ?? 0,
+        'article_id': r.articleId,
+        'color': r.colorCtrl.text.trim(),
+        'size': r.sizeCtrl.text.trim(),
+        'quantity': r.quantity,
       };
     }).toList();
 
@@ -535,8 +552,8 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                                           ),
                                           child: DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
-                                              value: articles.any((a) => a.id == row['article_id'])
-                                                  ? row['article_id']
+                                              value: articles.any((a) => a.id == row.articleId)
+                                                  ? row.articleId
                                                   : (articles.isNotEmpty ? articles.first.id : ''),
                                               isExpanded: true,
                                               items: articles.map((a) {
@@ -555,7 +572,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                                                 );
                                               }).toList(),
                                               onChanged: (v) {
-                                                setState(() => row['article_id'] = v ?? '');
+                                                setState(() => row.articleId = v ?? '');
                                               },
                                             ),
                                           ),
@@ -604,7 +621,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                                         ),
                                         const SizedBox(height: 4),
                                         TextFormField(
-                                          controller: row['color'] as TextEditingController,
+                                          controller: row.colorCtrl,
                                           style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w500, color: kInkText),
                                           decoration: _itemInputDecoration('e.g. Navy Blue'),
                                         ),
@@ -629,7 +646,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                                         ),
                                         const SizedBox(height: 4),
                                         TextFormField(
-                                          controller: row['size'] as TextEditingController,
+                                          controller: row.sizeCtrl,
                                           textAlign: TextAlign.center,
                                           style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: kInkText),
                                           decoration: _itemInputDecoration('L / 32'),
@@ -655,7 +672,7 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                                         ),
                                         const SizedBox(height: 4),
                                         TextFormField(
-                                          controller: row['quantity'] as TextEditingController,
+                                          controller: row.quantityCtrl,
                                           keyboardType: TextInputType.number,
                                           textAlign: TextAlign.right,
                                           onChanged: (_) => setState(() {}),
