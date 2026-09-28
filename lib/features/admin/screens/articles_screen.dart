@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart';
 import '../providers/admin_providers.dart';
 
@@ -69,12 +70,31 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
               }
 
               try {
-                await supabase.from('articles').insert({
+                String? companyName;
+                try {
+                  final currentUser = supabase.auth.currentUser;
+                  if (currentUser != null) {
+                    final tenant = await TenantResolverService.resolveUserTenant(currentUser);
+                    if (tenant.companyName.trim().isNotEmpty) {
+                      companyName = tenant.companyName.trim();
+                    }
+                  }
+                } catch (_) {}
+
+                final payload = <String, dynamic>{
                   'art_no': artNo,
                   'description': descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
                   'stitching_rate': rate,
                   'is_active': true,
-                });
+                };
+                if (companyName != null && companyName.isNotEmpty) {
+                  payload['size_rates'] = {
+                    'company_name': companyName,
+                    '_meta': {'company_name': companyName},
+                  };
+                }
+
+                await supabase.from('articles').insert(payload);
 
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);

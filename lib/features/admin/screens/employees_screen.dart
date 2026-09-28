@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart';
 import '../providers/admin_providers.dart';
 
@@ -85,11 +86,24 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 }
 
                 try {
-                  // Attempt creating profile record
+                  // Resolve current tenant company name for tagging
+                  String? companyName;
+                  try {
+                    final currentUser = supabase.auth.currentUser;
+                    if (currentUser != null) {
+                      final tenant = await TenantResolverService.resolveUserTenant(currentUser);
+                      if (tenant.companyName.trim().isNotEmpty) {
+                        companyName = tenant.companyName.trim();
+                      }
+                    }
+                  } catch (_) {}
+
+                  // Attempt creating profile record with company_name stamp
                   await supabase.from('profiles').insert({
                     'username': uname,
                     'role': selectedRole,
                     'is_active': true,
+                    if (companyName != null) 'company_name': companyName,
                   });
 
                   if (!ctx.mounted) return;

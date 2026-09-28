@@ -246,7 +246,7 @@ class TenantResolverService {
         } catch (_) {}
       }
 
-      if (tenantRow == null && (userEmail.contains('nubira') || userEmail == 'team.anga9@gmail.com' || userEmail == 'creationnubira@gmail.com' || userEmail.startsWith('admin'))) {
+      if (tenantRow == null && (userEmail.contains('nubira') || userEmail == 'team.anga9@gmail.com' || userEmail == 'creationnubira@gmail.com' || userEmail == 'aj@nubiracreation.com' || userEmail.startsWith('aj@'))) {
         try {
           final res = await supabase
               .from('platform_tenant_factories')
@@ -399,7 +399,8 @@ class TenantResolverService {
         userEmail == 'admin@nubira.local' ||
         userEmail.endsWith('@nubira.local') ||
         userEmail == 'creationnubira@gmail.com' ||
-        userEmail.startsWith('admin') ||
+        userEmail == 'aj@nubiracreation.com' ||
+        userEmail.startsWith('aj@') ||
         metadata['company'] == 'Nubira Creation' ||
         profileCompany.toLowerCase() == 'nubira creation');
 

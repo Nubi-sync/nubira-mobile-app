@@ -39,6 +39,7 @@ import '../../iron/screens/iron_floor_screen.dart';
 import '../../iron/screens/iron_notifications_screen.dart';
 import '../../iron/screens/iron_zigza_ai_screen.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
+import '../../store/screens/central_store_godown_screen.dart';
 import '../../dispatch/screens/dispatch_logistics_hub_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
@@ -338,6 +339,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isWashing = activeRoute.startsWith('/washing');
     final isIron = activeRoute.startsWith('/iron');
     final isReadyGoods = activeRoute.startsWith('/ready-goods');
+    final isStore = activeRoute.startsWith('/store');
     final isDispatch = activeRoute.startsWith('/dispatch');
 
     List<Widget> navChildren;
@@ -970,6 +972,118 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/ready-goods/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isStore) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('10. CENTRAL STORE & GODOWN'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.store_mall_directory_outlined,
+          title: 'Central Hub (Cloth Stock)',
+          isActive: activeRoute == '/store',
+          onTap: () {
+            if (activeRoute == '/store') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const CentralStoreGodownScreen());
+            }
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.business_center_outlined,
+          title: 'Merchandise Store',
+          isActive: activeRoute == '/store/merchandise',
+          onTap: () {
+            _navigateTo(context, const CentralStoreGodownScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.content_cut_outlined,
+          title: 'Cutting Floor Store',
+          isActive: activeRoute == '/store/cutting',
+          onTap: () {
+            _navigateTo(context, const CuttingRollsStoreScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.print_outlined,
+          title: 'Printing Floor Store',
+          isActive: activeRoute == '/store/printing',
+          onTap: () {
+            _navigateTo(context, const PrintingStoreScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.auto_awesome_outlined,
+          title: 'Embroidery Floor Store',
+          isActive: activeRoute == '/store/embroidery',
+          onTap: () {
+            _navigateTo(context, const EmbroideryStoreScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.layers_outlined,
+          title: 'Sewing Floor Store',
+          isActive: activeRoute == '/store/sewing',
+          onTap: () {
+            _navigateTo(context, const CentralStoreGodownScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.waves_outlined,
+          title: 'Washing Floor Store',
+          isActive: activeRoute == '/store/washing',
+          onTap: () {
+            _navigateTo(context, const WashingFloorScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.air_rounded,
+          title: 'Ironing Floor Store',
+          isActive: activeRoute == '/store/iron',
+          onTap: () {
+            _navigateTo(context, const IronFloorScreen());
+          },
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.smart_toy_outlined,
+          title: 'Zigza AI Copilot',
+          isActive: activeRoute == '/store/zigza-ai',
+          onTap: () {
+            _navigateTo(context, const CuttingZigzaAiScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/store/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];

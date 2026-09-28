@@ -190,8 +190,8 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
 
       final articles = rawArticles.map((e) => ArticleOption.fromJson(e as Map<String, dynamic>)).toList();
 
-      // 2. Fetch Delivery Challans with Items
-      final List<dynamic> rawChallans = await supabase
+      // 2. Fetch Delivery Challans with Items (TENANT-SCOPED)
+      var challanQuery = supabase
           .from('delivery_challans')
           .select('''
             id,
@@ -222,19 +222,14 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
               quantity,
               article:articles(art_no, description)
             )
-          ''')
+          ''');
+      if (targetComp != null && targetComp.isNotEmpty) {
+        challanQuery = challanQuery.or('company_name.ilike.%$targetComp%,buyer_name.ilike.%$targetComp%,billed_to_name.ilike.%$targetComp%');
+      }
+      final List<dynamic> rawChallans = await challanQuery
           .order('created_at', ascending: false);
 
-      bool isTargetMatch(dynamic row) {
-        if (targetComp == null || targetComp.isEmpty) return true;
-        final bName = row['buyer_name']?.toString().toLowerCase() ?? '';
-        final comp = row['company_name']?.toString().toLowerCase() ?? '';
-        final billed = row['billed_to_name']?.toString().toLowerCase() ?? '';
-        return bName.contains(targetComp) || comp.contains(targetComp) || billed.contains(targetComp) || targetComp.contains('nubira');
-      }
-
-      final filteredChallansRaw = rawChallans.where(isTargetMatch).toList();
-      final deliveryChallans = filteredChallansRaw.map((e) => DeliveryChallanModel.fromJson(e as Map<String, dynamic>)).toList();
+      final deliveryChallans = rawChallans.map((e) => DeliveryChallanModel.fromJson(e as Map<String, dynamic>)).toList();
 
       // 3. Fetch Counting Reports
       final List<dynamic> rawCounting = await supabase

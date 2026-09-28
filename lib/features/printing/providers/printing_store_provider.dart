@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 
 // ============================================================================
 // Printing Store Models (1:1 with Web Admin ModuleStoreDashboard)
@@ -271,43 +273,66 @@ class PrintingStoreNotifier extends StateNotifier<PrintingStoreState> {
     try {
       final client = Supabase.instance.client;
 
-      // 1. Fetch receipts for PRINTING division joined with issue details
+      // Resolve tenant for company-scoped queries
+      String? companyFilter;
+      try {
+        final currentUser = client.auth.currentUser;
+        if (currentUser != null) {
+          final tenant = await TenantResolverService.resolveUserTenant(currentUser);
+          if (!tenant.isPlatformAdmin && tenant.role != 'PLATFORM_SUPERADMIN' && tenant.companyName.trim().isNotEmpty) {
+            companyFilter = tenant.companyName.trim();
+          }
+        }
+      } catch (_) {
+        debugPrint('[PrintingStoreNotifier] Tenant resolution notice');
+      }
+
+      // 1. Fetch receipts for PRINTING division joined with issue details (TENANT-SCOPED)
       List<MaterialReceiptItem> fetchedReceipts = [];
       try {
-        final recRes = await client
+        var recQuery = client
             .from('central_material_receipts')
             .select('*, issue:central_material_issues(*)')
-            .eq('division_code', 'PRINTING')
-            .order('received_at', ascending: false);
+            .eq('division_code', 'PRINTING');
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          recQuery = recQuery.ilike('company_name', companyFilter);
+        }
+        final recRes = await recQuery.order('received_at', ascending: false);
 
         if (recRes.isNotEmpty) {
           fetchedReceipts = (recRes as List).map((r) => MaterialReceiptItem.fromJson(Map<String, dynamic>.from(r as Map))).toList();
         }
       } catch (_) {}
 
-      // 2. Fetch outward issues from PRINTING division
+      // 2. Fetch outward issues from PRINTING division (TENANT-SCOPED)
       List<MaterialIssueItem> fetchedIssues = [];
       try {
-        final issRes = await client
+        var issQuery = client
             .from('central_material_issues')
             .select('*')
-            .eq('from_division', 'PRINTING')
-            .order('created_at', ascending: false);
+            .eq('from_division', 'PRINTING');
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          issQuery = issQuery.ilike('company_name', companyFilter);
+        }
+        final issRes = await issQuery.order('created_at', ascending: false);
 
         if (issRes.isNotEmpty) {
           fetchedIssues = (issRes as List).map((i) => MaterialIssueItem.fromJson(Map<String, dynamic>.from(i as Map))).toList();
         }
       } catch (_) {}
 
-      // 3. Fetch pending inwards destined for PRINTING (status != 'RECEIVED')
+      // 3. Fetch pending inwards destined for PRINTING (TENANT-SCOPED)
       List<MaterialIssueItem> fetchedPending = [];
       try {
-        final pendRes = await client
+        var pendQuery = client
             .from('central_material_issues')
             .select('*')
             .eq('to_division', 'PRINTING')
-            .neq('status', 'RECEIVED')
-            .order('created_at', ascending: false);
+            .neq('status', 'RECEIVED');
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          pendQuery = pendQuery.ilike('company_name', companyFilter);
+        }
+        final pendRes = await pendQuery.order('created_at', ascending: false);
 
         if (pendRes.isNotEmpty) {
           fetchedPending = (pendRes as List).map((p) => MaterialIssueItem.fromJson(Map<String, dynamic>.from(p as Map))).toList();

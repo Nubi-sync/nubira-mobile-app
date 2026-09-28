@@ -586,7 +586,7 @@ final plantOperationsProvider =
     }).toList();
 
     dispatchRaw = dispatchRaw.where((d) {
-      final party = (d['party_name']?.toString() ?? d['brand']?.toString() ?? '').toLowerCase();
+      final party = (d['buyer_name']?.toString() ?? d['party_name']?.toString() ?? d['brand']?.toString() ?? '').toLowerCase();
       final comp = (d['company_name']?.toString() ?? '').toLowerCase();
       return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
     }).toList();

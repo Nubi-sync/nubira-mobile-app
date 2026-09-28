@@ -12,7 +12,7 @@ import '../../printing/screens/printing_studio_screen.dart';
 import '../../embroidery/screens/embroidery_studio_screen.dart';
 import '../../washing/screens/washing_floor_screen.dart';
 import '../../iron/screens/iron_floor_screen.dart';
-import '../../dashboard/store_dashboard.dart';
+import '../../store/screens/central_store_godown_screen.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/dispatch_dashboard.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
@@ -121,7 +121,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         destination = const AdminShell();
         break;
       case 'store':
-        destination = const StoreDashboard();
+        destination = const CentralStoreGodownScreen();
         break;
       case 'alter':
         destination = const MendingDashboard();
