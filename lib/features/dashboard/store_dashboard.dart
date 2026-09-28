@@ -14,6 +14,8 @@ import '../../../main.dart'; // supabase client
 
 class _AccessoryChallanItem {
   TextEditingController nameController;
+  TextEditingController vendorController;
+  TextEditingController priceController;
   TextEditingController sizeController;
   TextEditingController qtyController;
   TextEditingController shortageController;
@@ -23,6 +25,8 @@ class _AccessoryChallanItem {
 
   _AccessoryChallanItem({
     required String name,
+    String vendor = '',
+    String price = '',
     String size = '',
     String qty = '',
     this.unit = 'pcs',
@@ -30,23 +34,38 @@ class _AccessoryChallanItem {
     String shortage = '',
     String remarks = '',
   })  : nameController = TextEditingController(text: name),
+        vendorController = TextEditingController(text: vendor),
+        priceController = TextEditingController(text: price),
         sizeController = TextEditingController(text: size),
         qtyController = TextEditingController(text: qty),
         shortageController = TextEditingController(text: shortage),
         remarksController = TextEditingController(text: remarks);
 
-  Map<String, dynamic> toMap() => {
-    'item_name': nameController.text.trim(),
-    'size_color': sizeController.text.trim(),
-    'challan_qty': int.tryParse(qtyController.text.trim()) ?? 0,
-    'unit': unit,
-    'status': status,
-    'shortage_qty': int.tryParse(shortageController.text.trim()) ?? 0,
-    'remarks': remarksController.text.trim(),
-  };
+  Map<String, dynamic> toMap() {
+    final qty = int.tryParse(qtyController.text.trim()) ?? 0;
+    final unitPrice = double.tryParse(priceController.text.trim()) ?? 0.0;
+    final sizeVal = sizeController.text.trim();
+
+    return {
+      'item_name': nameController.text.trim(),
+      'vendor_name': vendorController.text.trim(),
+      'unit_price': unitPrice,
+      'total_price': qty * unitPrice,
+      'size_color': sizeVal,
+      'size_label': sizeVal,
+      'challan_qty': qty,
+      'quantity': qty,
+      'unit': unit,
+      'status': status,
+      'shortage_qty': int.tryParse(shortageController.text.trim()) ?? 0,
+      'remarks': remarksController.text.trim(),
+    };
+  }
 
   void dispose() {
     nameController.dispose();
+    vendorController.dispose();
+    priceController.dispose();
     sizeController.dispose();
     qtyController.dispose();
     shortageController.dispose();
@@ -2168,7 +2187,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         children: [
                           // SECTION 1: SUPPLIER & SLIP DETAILS
                           Text(
-                            'Supplier / Brand Name *',
+                            'Consolidated Supplier / Consignor (Optional)',
                             style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
                           ),
                           const SizedBox(height: 6),
@@ -2176,7 +2195,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                             controller: partyController,
                             style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.ink),
                             decoration: InputDecoration(
-                              hintText: 'Enter your brand name',
+                              hintText: 'e.g. Multi-Vendor / Sourced / Transporter',
                               hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
                               prefixIcon: const Icon(Icons.business_rounded, size: 18, color: AppTheme.inkSoft),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -2621,6 +2640,51 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                         ),
                                       ],
                                     ),
+                                    const SizedBox(height: 8),
+
+                                    // Vendor override & Unit Rate row
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 3,
+                                          child: TextField(
+                                            controller: item.vendorController,
+                                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                                            decoration: InputDecoration(
+                                              labelText: 'Vendor (e.g. YKK / Vardhman)',
+                                              hintText: 'Leave blank to use supplier',
+                                              labelStyle: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
+                                              isDense: true,
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 2,
+                                          child: TextField(
+                                            controller: item.priceController,
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                            decoration: InputDecoration(
+                                              labelText: 'Rate (₹/unit)',
+                                              hintText: '0.00',
+                                              labelStyle: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
+                                              isDense: true,
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 10),
 
                                     // Verification Status Pills
@@ -2874,19 +2938,20 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               onPressed: isSubmitting
                                   ? null
                                   : () async {
-                                      final supplierName = partyController.text.trim();
-                                      if (supplierName.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please enter Supplier / Brand Name.'), backgroundColor: Colors.redAccent),
-                                        );
-                                        return;
-                                      }
                                       if (items.isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(content: Text('Please add at least 1 item from the challan.'), backgroundColor: Colors.redAccent),
                                         );
                                         return;
                                       }
+
+                                      final firstVendor = items.firstWhere(
+                                        (it) => it.vendorController.text.trim().isNotEmpty,
+                                        orElse: () => items.first,
+                                      ).vendorController.text.trim();
+                                      final supplierName = partyController.text.trim().isNotEmpty
+                                          ? partyController.text.trim()
+                                          : (firstVendor.isNotEmpty ? firstVendor : 'Multi-Vendor Inward');
 
                                       setModalState(() => isSubmitting = true);
                                       final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -2948,9 +3013,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                               try {
                                                 final itemQty = int.tryParse(it.qtyController.text.trim()) ?? 0;
                                                 final itemSize = it.sizeController.text.trim();
+                                                final itemVendor = it.vendorController.text.trim();
+                                                final unitPrice = double.tryParse(it.priceController.text.trim()) ?? 0.0;
                                                 await supabase.from('truck_inward_items').insert({
                                                   'truck_inward_id': savedTruckInwardId,
                                                   'item_name': it.nameController.text.trim(),
+                                                  'vendor_name': itemVendor.isNotEmpty ? itemVendor : null,
+                                                  'unit_price': unitPrice > 0 ? unitPrice : null,
+                                                  'total_price': unitPrice > 0 ? (itemQty * unitPrice) : null,
                                                   'quantity': itemQty,
                                                   'challan_qty': itemQty,
                                                   'unit': it.unit,
@@ -2973,14 +3043,17 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                                           if (qty <= 0) continue;
                                           try {
                                             final sizeSuffix = it.sizeController.text.trim().isNotEmpty ? ' (${it.sizeController.text.trim()})' : '';
+                                            final itemVendor = it.vendorController.text.trim().isNotEmpty ? it.vendorController.text.trim() : supplierName;
+                                            final unitPrice = double.tryParse(it.priceController.text.trim()) ?? 0.0;
+                                            final priceNote = unitPrice > 0 ? ' • Rate: ₹$unitPrice/unit (Total: ₹${(qty * unitPrice).toStringAsFixed(2)})' : '';
                                             await supabase.from('accessories').insert({
                                               'item_name': it.nameController.text.trim() + sizeSuffix,
                                               'action': 'IN',
                                               'quantity': qty,
                                               'unit': it.unit,
-                                              'party_name': supplierName,
+                                              'party_name': itemVendor,
                                               'entry_date': selectedDateStr,
-                                              'notes': 'Challan #${challanNoController.text.trim()} • Art ${articleController.text.trim()} • $grnNo',
+                                              'notes': 'Challan #${challanNoController.text.trim()} • Art ${articleController.text.trim()} • $grnNo$priceNote',
                                             });
                                           } catch (_) {}
                                         }
