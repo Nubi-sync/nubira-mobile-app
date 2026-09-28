@@ -273,166 +273,92 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // ----------------------------------------------------
-                      // Section 1: Basic Identifiers (3 Fields)
+                      // Section 1: Identifiers & Details (Clean 2-Column Pairs)
                       // ----------------------------------------------------
-                      LayoutBuilder(
-                        builder: (ctx, constraints) {
-                          final isNarrow = constraints.maxWidth < 480;
-                          if (isNarrow) {
-                            return Column(
-                              children: [
-                                _buildFormField(
-                                  label: 'CHALLAN NUMBER *',
-                                  child: TextFormField(
-                                    controller: _challanNoCtrl,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: kInkText),
-                                    decoration: _inputDecoration('CH-2026-XXXX'),
-                                    validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildFormField(
-                                  label: 'BUYER / CONSIGNEE NAME *',
-                                  child: TextFormField(
-                                    controller: _buyerNameCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: kInkText),
-                                    decoration: _inputDecoration('Enter Buyer / Consignee Name'),
-                                    validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildFormField(
-                                  label: 'MANUFACTURING VENDOR / UNIT',
-                                  child: TextFormField(
-                                    controller: _vendorNameCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('Enter Vendor / Unit Name'),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'CHALLAN NUMBER *',
-                                  child: TextFormField(
-                                    controller: _challanNoCtrl,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: kInkText),
-                                    decoration: _inputDecoration('CH-2026-XXXX'),
-                                    validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                  ),
-                                ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'CHALLAN NUMBER *',
+                              child: TextFormField(
+                                controller: _challanNoCtrl,
+                                style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: kInkText),
+                                decoration: _inputDecoration('CH-2026-XXXX'),
+                                validator: (v) => v!.trim().isEmpty ? 'Required' : null,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'BUYER / CONSIGNEE NAME *',
-                                  child: TextFormField(
-                                    controller: _buyerNameCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: kInkText),
-                                    decoration: _inputDecoration('Enter Buyer / Consignee Name'),
-                                    validator: (v) => v!.trim().isEmpty ? 'Required' : null,
-                                  ),
-                                ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'BUYER / CONSIGNEE NAME *',
+                              child: TextFormField(
+                                controller: _buyerNameCtrl,
+                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: kInkText),
+                                decoration: _inputDecoration('e.g. Zara Logistics'),
+                                validator: (v) => v!.trim().isEmpty ? 'Required' : null,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'MANUFACTURING VENDOR / UNIT',
-                                  child: TextFormField(
-                                    controller: _vendorNameCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('Enter Vendor / Unit Name'),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
-                      // ----------------------------------------------------
-                      // Section 2: Logistics Parameters (3 Fields)
-                      // ----------------------------------------------------
-                      LayoutBuilder(
-                        builder: (ctx, constraints) {
-                          final isNarrow = constraints.maxWidth < 480;
-                          if (isNarrow) {
-                            return Column(
-                              children: [
-                                _buildFormField(
-                                  label: 'DESTINATION CITY',
-                                  child: TextFormField(
-                                    controller: _destinationCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('Bhiwandi Godown'),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildFormField(
-                                  label: 'VEHICLE / TRUCK NO',
-                                  child: TextFormField(
-                                    controller: _vehicleNoCtrl,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: kInkText),
-                                    decoration: _inputDecoration('WB-04-AB-1234'),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildFormField(
-                                  label: 'DRIVER PHONE',
-                                  child: TextFormField(
-                                    controller: _driverPhoneCtrl,
-                                    keyboardType: TextInputType.phone,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('9876543210'),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'DESTINATION CITY',
-                                  child: TextFormField(
-                                    controller: _destinationCtrl,
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('Bhiwandi Godown'),
-                                  ),
-                                ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'MANUFACTURING VENDOR / UNIT',
+                              child: TextFormField(
+                                controller: _vendorNameCtrl,
+                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w500, color: kInkText),
+                                decoration: _inputDecoration('Enter Vendor / Unit'),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'VEHICLE / TRUCK NO',
-                                  child: TextFormField(
-                                    controller: _vehicleNoCtrl,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700, color: kInkText),
-                                    decoration: _inputDecoration('WB-04-AB-1234'),
-                                  ),
-                                ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'DESTINATION CITY',
+                              child: TextFormField(
+                                controller: _destinationCtrl,
+                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w500, color: kInkText),
+                                decoration: _inputDecoration('Bhiwandi Godown'),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildFormField(
-                                  label: 'DRIVER PHONE',
-                                  child: TextFormField(
-                                    controller: _driverPhoneCtrl,
-                                    keyboardType: TextInputType.phone,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w500, color: kInkText),
-                                    decoration: _inputDecoration('9876543210'),
-                                  ),
-                                ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'VEHICLE / TRUCK NO',
+                              child: TextFormField(
+                                controller: _vehicleNoCtrl,
+                                style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w700, color: kInkText),
+                                decoration: _inputDecoration('WB-04-AB-1234'),
                               ),
-                            ],
-                          );
-                        },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildFormField(
+                              label: 'DRIVER PHONE',
+                              child: TextFormField(
+                                controller: _driverPhoneCtrl,
+                                keyboardType: TextInputType.phone,
+                                style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w500, color: kInkText),
+                                decoration: _inputDecoration('9876543210'),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 18),
 
@@ -702,56 +628,48 @@ class _CreateDeliveryChallanModalState extends ConsumerState<CreateDeliveryChall
             // Modal Footer (Exact Web Match)
             // ==========================================
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(17)),
                 border: Border(top: BorderSide(color: kBorderColor)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Ready for Dispatch Registration',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      color: kMutedText,
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: kInputBorder),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
                     ),
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: kInputBorder),
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
-                        ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryBrand,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryBrand,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                        ),
-                        child: _isSubmitting
-                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : Text(
-                                'Generate & Issue Delivery Challan',
-                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700),
-                              ),
-                      ),
-                    ],
+                      child: _isSubmitting
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(
+                              'Generate & Issue Challan',
+                              style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                    ),
                   ),
                 ],
               ),
