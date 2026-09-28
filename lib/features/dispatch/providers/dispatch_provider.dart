@@ -297,6 +297,7 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
   Future<void> createDeliveryChallan({
     required String challanNo,
     required String buyerName,
+    String? vendorName,
     String? destination,
     String? vehicleNo,
     String? driverName,
@@ -306,7 +307,7 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
     final todayStr = DateTime.now().toIso8601String().split('T')[0];
     final totalPieces = items.fold<int>(0, (sum, i) => sum + (i['quantity'] as int? ?? 0));
 
-    final insertPayload = {
+    final insertPayload = <String, dynamic>{
       'challan_no': challanNo,
       'buyer_name': buyerName,
       'destination': destination,
@@ -317,6 +318,9 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
       'delivery_date': todayStr,
       'status': 'DISPATCHED',
     };
+    if (vendorName != null && vendorName.isNotEmpty) {
+      insertPayload['company_name'] = vendorName;
+    }
 
     final insertedChallan = await supabase.from('delivery_challans').insert(insertPayload).select().single();
     final challanId = insertedChallan['id'].toString();
