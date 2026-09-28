@@ -39,6 +39,7 @@ import '../../iron/screens/iron_floor_screen.dart';
 import '../../iron/screens/iron_notifications_screen.dart';
 import '../../iron/screens/iron_zigza_ai_screen.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
+import '../../dispatch/screens/dispatch_logistics_hub_screen.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -337,6 +338,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isWashing = activeRoute.startsWith('/washing');
     final isIron = activeRoute.startsWith('/iron');
     final isReadyGoods = activeRoute.startsWith('/ready-goods');
+    final isDispatch = activeRoute.startsWith('/dispatch');
 
     List<Widget> navChildren;
 
@@ -968,6 +970,46 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.person_outline_rounded,
           title: 'Division Profile',
           isActive: activeRoute == '/ready-goods/profile',
+          onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+        ),
+      ];
+    } else if (isDispatch) {
+      navChildren = [
+        _buildSectionLabel('WORKSPACE HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.grid_view_rounded,
+          title: 'All Modules',
+          isActive: false,
+          onTap: () {
+            _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('12. DISPATCH & LOGISTICS HUB'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.local_shipping_outlined,
+          title: 'Floor Dashboard',
+          isActive: activeRoute == '/dispatch',
+          onTap: () {
+            if (activeRoute == '/dispatch') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const DispatchLogisticsHubScreen());
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('ACCOUNT'),
+        const SizedBox(height: 4),
+        _buildNavItem(
+          context: context,
+          icon: Icons.person_outline_rounded,
+          title: 'Division Profile',
+          isActive: activeRoute == '/dispatch/profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
