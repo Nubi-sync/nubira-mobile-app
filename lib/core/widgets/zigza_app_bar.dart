@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
@@ -19,13 +20,13 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.cardSurface,
       elevation: 0,
       scrolledUnderElevation: 0.5,
       titleSpacing: 0,
       centerTitle: true,
       shape: const Border(
-        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.8),
+        bottom: BorderSide(color: AppTheme.borderLight, width: 0.8),
       ),
       leading: showMenu
           ? Center(
@@ -42,11 +43,11 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
-                  child: const Icon(Icons.menu_rounded, color: Color(0xFF475569), size: 20),
+                  child: const Icon(Icons.menu_rounded, color: AppTheme.headingObsidian, size: 20),
                 ),
               ),
             )
@@ -75,16 +76,16 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
               margin: const EdgeInsets.only(right: 14),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: AppTheme.badgeMintBg,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x26000000)),
+                border: Border.all(color: AppTheme.badgeMintBorder),
               ),
               child: Text(
                 'ERP MES',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 9.5,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF3A3564),
+                  color: AppTheme.badgeMintText,
                   letterSpacing: 0.5,
                 ),
               ),

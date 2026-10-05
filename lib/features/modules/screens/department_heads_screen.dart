@@ -425,7 +425,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: const Color(0xFF332B6B),
+          backgroundColor: AppTheme.headingObsidian,
           content: Text(
             headToEdit != null
                 ? 'Department Head "${headToEdit.displayName}" updated successfully'

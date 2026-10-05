@@ -55,15 +55,15 @@ class AppointDepartmentHeadScreen extends ConsumerStatefulWidget {
 }
 
 class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentHeadScreen> {
-  // Theme Color Constants (Strictly matching specifications)
-  static const Color kBrandIndigo = Color(0xFF332B6B);
-  static const Color kSheetBg = Color(0xFFFFFFFF);
-  static const Color kTextPrimary = Color(0xFF1C1C1A);
-  static const Color kLabelText = Color(0xFF9B9A94);
-  static const Color kPlaceholderText = Color(0xFFB6B4AC);
-  static const Color kInputBorder = Color(0xFFDAD9D3);
-  static const Color kBadgeAmberBg = Color(0xFFFDF0DC);
-  static const Color kBadgeAmberText = Color(0xFF8A6D2F);
+  // Theme Color Constants (Zigza Brand System)
+  static const Color kBrandIndigo = AppTheme.headingObsidian;
+  static const Color kSheetBg = AppTheme.cardSurface;
+  static const Color kTextPrimary = AppTheme.headingObsidian;
+  static const Color kLabelText = AppTheme.faintInk;
+  static const Color kPlaceholderText = AppTheme.faintInk;
+  static const Color kInputBorder = AppTheme.borderLight;
+  static const Color kBadgeAmberBg = AppTheme.badgeAmberBg;
+  static const Color kBadgeAmberText = AppTheme.badgeAmberText;
 
   final _formKey = GlobalKey<FormState>();
 

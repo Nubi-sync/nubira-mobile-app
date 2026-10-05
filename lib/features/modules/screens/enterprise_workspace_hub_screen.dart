@@ -23,26 +23,28 @@ import 'company_profile_screen.dart';
 import 'department_heads_screen.dart';
 import 'generic_division_screen.dart';
 
-/// Design System Tokens strictly based on web_admin/docs_logic/design.md
+import '../../../core/theme/app_theme.dart';
+
+/// Design System Tokens strictly based on Zigza Brand Identity
 class DesignTokens {
-  static const Color brandSteel = Color(0xFF3A3564);
-  static const Color brandSteelHover = Color(0xFF2A2649);
-  static const Color canvasCream = Color(0xFFFAF7F0);
-  static const Color cardWhite = Color(0xFFFFFFFF);
-  static const Color foregroundInk = Color(0xFF0F172A);
-  static const Color mutedInk = Color(0xFF475569);
-  static const Color faintInk = Color(0xFF94A3B8);
-  static const Color standardBorder = Color(0x1A000000); // border-black/10
-  static const Color subtleDivider = Color(0xFFF1F5F9); // slate-100
+  static const Color brandSteel = AppTheme.headingObsidian;
+  static const Color brandSteelHover = AppTheme.headingObsidian;
+  static const Color canvasCream = AppTheme.bgCanvas;
+  static const Color cardWhite = AppTheme.cardSurface;
+  static const Color foregroundInk = AppTheme.headingObsidian;
+  static const Color mutedInk = AppTheme.bodyInk;
+  static const Color faintInk = AppTheme.faintInk;
+  static const Color standardBorder = AppTheme.borderLight;
+  static const Color subtleDivider = AppTheme.subtleDivider;
 
   // Badges
-  static const Color badgeExecutiveBg = Color(0xFFFEF3C7); // amber-100
-  static const Color badgeExecutiveText = Color(0xFFB45309); // amber-700
-  static const Color badgeExecutiveBorder = Color(0xFFFDE68A);
+  static const Color badgeExecutiveBg = AppTheme.badgeAmberBg;
+  static const Color badgeExecutiveText = AppTheme.badgeAmberText;
+  static const Color badgeExecutiveBorder = AppTheme.badgeAmberBorder;
 
-  static const Color badgeLiveGreenBg = Color(0xFFECFDF5);
-  static const Color badgeLiveGreenText = Color(0xFF047857);
-  static const Color badgeLiveGreenBorder = Color(0xFFA7F3D0);
+  static const Color badgeLiveGreenBg = AppTheme.badgeEmeraldBg;
+  static const Color badgeLiveGreenText = AppTheme.badgeEmeraldText;
+  static const Color badgeLiveGreenBorder = AppTheme.badgeEmeraldBorder;
 }
 
 class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {

@@ -7,6 +7,7 @@ import '../screens/enterprise_workspace_hub_screen.dart';
 import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/ph_settings_screen.dart';
@@ -176,7 +177,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF332B6B),
+                        color: AppTheme.headingObsidian,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -187,16 +188,16 @@ class WorkspaceHubDrawer extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF6E9),
+                  color: AppTheme.badgeMintBg,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x26000000)),
+                  border: Border.all(color: AppTheme.badgeMintBorder),
                 ),
                 child: Text(
                   'ERP MES',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF332B6B),
+                    color: AppTheme.headingObsidian,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -212,9 +213,9 @@ class WorkspaceHubDrawer extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
-              child: const Icon(Icons.close_rounded, color: Color(0xFF475569), size: 18),
+              child: const Icon(Icons.close_rounded, color: AppTheme.bodyInk, size: 18),
             ),
           ),
         ],
@@ -236,7 +237,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             width: 38,
             height: 38,
             decoration: const BoxDecoration(
-              color: Color(0xFF332B6B),
+              color: AppTheme.headingObsidian,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -265,7 +266,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   style: GoogleFonts.publicSans(
                     fontSize: 12.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -275,28 +276,28 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                       isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
                       style: GoogleFonts.publicSans(
                         fontSize: 11,
-                        color: const Color(0xFF6B6A65),
+                        color: AppTheme.bodyInk,
                       ),
                     ),
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Profile',
-                            style: GoogleFonts.publicSans(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF332B6B),
+                              color: AppTheme.brandRoyalBlue,
                             ),
                           ),
-                          const SizedBox(width: 2),
-                          const Icon(
+                          SizedBox(width: 2),
+                          Icon(
                             Icons.arrow_outward_rounded,
                             size: 11,
-                            color: Color(0xFF332B6B),
+                            color: AppTheme.brandRoyalBlue,
                           ),
                         ],
                       ),
@@ -309,7 +310,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
           // Logout Icon Button
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFF6B6A65), size: 20),
+            icon: const Icon(Icons.logout_rounded, color: AppTheme.bodyInk, size: 20),
             tooltip: 'Sign Out',
             onPressed: () => _showSignOutDialog(context, ref),
           ),
@@ -1472,7 +1473,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 3),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFAF6E9) : Colors.transparent,
+        color: isActive ? AppTheme.badgeMintBg : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: InkWell(
@@ -1482,14 +1483,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             border: isActive
-                ? const Border(left: BorderSide(color: Color(0xFF332B6B), width: 3.0))
+                ? const Border(left: BorderSide(color: AppTheme.headingObsidian, width: 3.0))
                 : null,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isActive ? const Color(0xFF332B6B) : const Color(0xFF6B6A65),
+                color: isActive ? AppTheme.headingObsidian : AppTheme.bodyInk,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -1499,7 +1500,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                   style: GoogleFonts.publicSans(
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                    color: isActive ? const Color(0xFF332B6B) : const Color(0xFF3C3A35),
+                    color: isActive ? AppTheme.headingObsidian : AppTheme.headingObsidian.withValues(alpha: 0.85),
                   ),
                 ),
               ),
