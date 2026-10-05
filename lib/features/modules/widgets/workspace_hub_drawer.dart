@@ -155,54 +155,46 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0x1A000000), width: 1)),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppTheme.borderLight, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/new_icon.png',
-                height: 26,
+                'assets/images/icon.png',
+                height: 30,
+                width: 30,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Image.asset(
-                  'assets/images/zigza_icon.png',
-                  height: 26,
+                  'assets/images/new_icon.png',
+                  height: 30,
+                  width: 30,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
               const SizedBox(width: 8),
               Image.asset(
-                'assets/images/zigza_new_logo.png',
-                height: 19,
+                'assets/images/z_i_g_z_a.png',
+                height: 22,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  'Zigza',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.headingObsidian,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                decoration: BoxDecoration(
-                  color: AppTheme.badgeMintBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.badgeMintBorder),
-                ),
-                child: Text(
-                  'ERP MES',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.headingObsidian,
-                    letterSpacing: 0.5,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/zigza_new_logo.png',
+                  height: 22,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Text(
+                    'ZIGZA',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.headingObsidian,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),

@@ -43,55 +43,55 @@ class AdminDrawer extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/icon.png',
-                      width: 44,
-                      height: 44,
+                  Image.asset(
+                    'assets/images/icon.png',
+                    width: 38,
+                    height: 38,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/images/new_icon.png',
+                      width: 38,
+                      height: 38,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppTheme.steel,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.business_rounded, color: Colors.white, size: 22),
-                      ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Zigza MES',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.ink,
+                        Image.asset(
+                          'assets/images/z_i_g_z_a.png',
+                          height: 20,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Text(
+                            'ZIGZA',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.ink,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
                             Container(
-                              width: 8,
-                              height: 8,
+                              width: 7,
+                              height: 7,
                               decoration: const BoxDecoration(
                                 color: AppTheme.green,
                                 shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             Expanded(
                               child: Text(
                                 authState.cachedUsername ?? (isCustom ? 'Nubira Custom Suite' : 'Standard Sewing'),
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.publicSans(
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
                                   color: AppTheme.inkSoft,
                                 ),
