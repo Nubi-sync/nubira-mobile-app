@@ -62,6 +62,13 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     );
   }
 
+  String _formatPhone(String raw) {
+    final clean = raw.trim();
+    if (clean.isEmpty) return '';
+    if (clean.startsWith('+')) return clean;
+    return '+91 $clean';
+  }
+
   void _showQuickActionsMenu(BuildContext context) {
     final RenderBox? renderBox = _createButtonKey.currentContext?.findRenderObject() as RenderBox?;
     final size = renderBox?.size ?? const Size(54, 34);
@@ -805,17 +812,19 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      runSpacing: 2,
                       children: [
                         Text(
                           state.ownerName,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 15,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF0B1220),
                           ),
                         ),
-                        const SizedBox(width: 6),
                         Text(
                           '(Company Owner)',
                           style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
@@ -842,9 +851,12 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                       children: [
                         const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF94A3B8)),
                         const SizedBox(width: 4),
-                        Text(
-                          '+91 ${state.ownerPhone}',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                        Expanded(
+                          child: Text(
+                            _formatPhone(state.ownerPhone),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -917,17 +929,19 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 2,
                             children: [
                               Text(
                                 pm.name,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
+                                  fontSize: 14.5,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF0B1220),
                                 ),
                               ),
-                              const SizedBox(width: 6),
                               Text(
                                 '(Production Manager)',
                                 style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
@@ -956,9 +970,12 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                             children: [
                               const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF94A3B8)),
                               const SizedBox(width: 4),
-                              Text(
-                                '+91 ${pm.phone}',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                              Expanded(
+                                child: Text(
+                                  _formatPhone(pm.phone),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -1008,19 +1025,22 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           : Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Production Manager',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
-                    ),
-                    Text(
-                      'No Production Manager appointed yet',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Production Manager',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                      ),
+                      Text(
+                        'No Production Manager appointed yet',
+                        style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () async {
                     final result = await AppointDepartmentHeadScreen.show(
@@ -1059,67 +1079,73 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Text(
-                  'Factory Departments',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0B1220),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    '${filteredDivisions.length}',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0B1220),
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              'Factory Departments',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0B1220),
+              ),
             ),
-            Row(
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _expandedRoutes.addAll(state.divisions.map((d) => d.route));
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text('Expand All', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569))),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                '${filteredDivisions.length}',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0B1220),
                 ),
-                const SizedBox(width: 6),
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _expandedRoutes.clear();
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text('Collapse All', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569))),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _expandedRoutes.addAll(state.divisions.map((d) => d.route));
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-              ],
+                child: Text(
+                  'Expand All',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _expandedRoutes.clear();
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'Collapse All',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                ),
+              ),
             ),
           ],
         ),
@@ -1236,17 +1262,25 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                 if (head != null) ...[
                                   Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF14C8B4), shape: BoxShape.circle)),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    head.displayName,
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
-                                  ),
-                                  if (head.phone.isNotEmpty) ...[
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '+91 ${head.phone}',
-                                      style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                                  Expanded(
+                                    child: Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 6,
+                                      children: [
+                                        Text(
+                                          head.displayName,
+                                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (head.phone.isNotEmpty)
+                                          Text(
+                                            _formatPhone(head.phone),
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ] else ...[
                                   Text(
                                     'Not Assigned',
