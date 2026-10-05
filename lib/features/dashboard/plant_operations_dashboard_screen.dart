@@ -490,26 +490,30 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LIVE PRODUCTION FLOW',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LIVE PRODUCTION FLOW',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Current pieces across all manufacturing stages',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Current pieces across all manufacturing stages',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -611,35 +615,41 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DAILY SEWING OUTPUT (7-DAY TREND)',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DAILY SEWING OUTPUT (7-DAY TREND)',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Stitched pieces per day • Avg: ${_format(dailyAvg)} pcs/day',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Stitched pieces/day • Avg: ${_format(dailyAvg)} pcs',
+                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF14C8B4), shape: BoxShape.circle)),
-                  const SizedBox(width: 4),
-                  Text('Stitched', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF64748B))),
-                  const SizedBox(width: 8),
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle)),
-                  const SizedBox(width: 4),
-                  Text('Today', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFFB45309))),
+                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF14C8B4), shape: BoxShape.circle)),
+                  const SizedBox(width: 3),
+                  Text('Stitched', style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF64748B))),
+                  const SizedBox(width: 6),
+                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle)),
+                  const SizedBox(width: 3),
+                  Text('Today', style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFFB45309))),
                 ],
               ),
             ],
@@ -725,26 +735,30 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'QUALITY CONTROL RATE',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'QUALITY CONTROL RATE',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '3-Stage QC inspection pass vs scrap',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      '3-Stage QC inspection pass vs scrap',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -914,26 +928,31 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BUYER ORDERS FULFILLMENT',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BUYER ORDERS FULFILLMENT',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Delivered vs target pieces by active contract',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Delivered vs target pieces',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: () {
                   Navigator.push(
@@ -942,6 +961,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   );
                 },
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Manage POs',
@@ -1070,26 +1090,31 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'FABRIC STOCK IN GODOWN',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'FABRIC STOCK IN GODOWN',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Meters on hand by raw material',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      'Meters on hand by raw material',
+                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               InkWell(
                 onTap: () {
                   Navigator.push(
@@ -1098,6 +1123,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   );
                 },
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Store Ledger',
