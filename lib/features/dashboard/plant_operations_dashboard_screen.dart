@@ -1458,26 +1458,31 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DIVISION HEARTBEAT (${heartbeats.length} DEPARTMENTS)',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.8,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DIVISION HEARTBEAT (${heartbeats.length} DEPARTMENTS)',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF64748B),
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Verified active department status and direct navigation',
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    'Verified active status & direct navigation',
+                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             InkWell(
               onTap: () {
                 Navigator.push(
@@ -1486,6 +1491,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 );
               },
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'All Modules',
