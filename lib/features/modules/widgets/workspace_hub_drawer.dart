@@ -8,7 +8,7 @@ import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../dashboard/lineman_dashboard.dart';
+import '../../dashboard/plant_operations_dashboard_screen.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/ph_settings_screen.dart';
@@ -1332,7 +1332,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           icon: Icons.dashboard_outlined,
           title: 'Dashboard',
           isActive: activeRoute == '/dashboard' || activeRoute == '/stitching-sewing/dashboard',
-          onTap: () => _navigateTo(context, const LinemanDashboard()),
+          onTap: () => _navigateTo(context, const PlantOperationsDashboardScreen()),
         ),
         _buildNavItem(
           context: context,
