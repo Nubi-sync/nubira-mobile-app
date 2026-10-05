@@ -41,6 +41,12 @@ import '../../iron/screens/iron_zigza_ai_screen.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../../store/screens/central_store_godown_screen.dart';
 import '../../dispatch/screens/dispatch_logistics_hub_screen.dart';
+import '../../admin/screens/admin_shell.dart';
+import '../../admin/screens/employees_screen.dart';
+import '../../admin/screens/articles_screen.dart';
+import '../../admin/screens/reports_screen.dart';
+import '../../admin/screens/dispatch_screen.dart';
+import '../../dashboard/store_dashboard.dart';
 
 class WorkspaceHubDrawer extends ConsumerWidget {
   final String activeRoute;
@@ -336,6 +342,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final isCutting = activeRoute.startsWith('/cutting');
     final isPrinting = activeRoute.startsWith('/printing');
     final isEmbroidery = activeRoute.startsWith('/embroidery');
+    final isStitching = activeRoute.startsWith('/stitching') || activeRoute.startsWith('/sewing') || activeRoute.startsWith('/admin');
     final isWashing = activeRoute.startsWith('/washing');
     final isIron = activeRoute.startsWith('/iron');
     final isReadyGoods = activeRoute.startsWith('/ready-goods');
@@ -803,6 +810,239 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
+    } else if (isStitching) {
+      final isCustom = tenant?.isCustomStitching ?? true;
+      if (isCustom) {
+        navChildren = [
+          _buildSectionLabel('WORKSPACE HUB'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.grid_view_rounded,
+            title: 'All Modules',
+            isActive: false,
+            onTap: () {
+              _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionLabel('6. SEWING FLOOR OPERATIONS'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.dashboard_outlined,
+            title: 'Master Floor Dashboard',
+            isActive: activeRoute == '/stitching-sewing/dashboard' || activeRoute == '/stitching-sewing' || activeRoute == '/admin',
+            onTap: () {
+              if (activeRoute == '/stitching-sewing/dashboard' || activeRoute == '/stitching-sewing' || activeRoute == '/admin') {
+                Navigator.pop(context);
+              } else {
+                _navigateTo(context, const AdminShell());
+              }
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.notifications_none_rounded,
+            title: 'Notifications & Alerts',
+            isActive: activeRoute == '/stitching-sewing/notifications',
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new stitching floor alerts')),
+              );
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.assignment_ind_outlined,
+            title: 'Supervisor Desk',
+            isActive: activeRoute == '/stitching-sewing/supervisor-desk',
+            onTap: () {
+              if (activeRoute == '/stitching-sewing/supervisor-desk') {
+                Navigator.pop(context);
+              } else {
+                _navigateTo(context, const SupervisorFloorStationsScreen());
+              }
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.storefront_outlined,
+            title: 'Store Dashboard',
+            isActive: activeRoute == '/stitching-sewing/store',
+            onTap: () {
+              if (activeRoute == '/stitching-sewing/store') {
+                Navigator.pop(context);
+              } else {
+                _navigateTo(context, const StoreDashboard());
+              }
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.smart_toy_outlined,
+            title: 'Zigza AI Floor Copilot',
+            isActive: activeRoute == '/stitching-sewing/zigza-ai',
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Zigza AI Sewing Copilot is active on the floor')),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionLabel('PRODUCTION EXECUTION'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.layers_outlined,
+            title: 'Production Chart & Orders',
+            isActive: activeRoute == '/stitching-sewing/production-orders',
+            onTap: () {
+              _navigateTo(context, const AdminShell());
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.assignment_outlined,
+            title: 'Target Allotments',
+            isActive: activeRoute == '/stitching-sewing/allotments',
+            onTap: () {
+              _navigateTo(context, const AdminShell());
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.warehouse_outlined,
+            title: 'Godown & Inventory',
+            isActive: activeRoute == '/stitching-sewing/inventory',
+            onTap: () {
+              _navigateTo(context, const AdminShell());
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.local_shipping_outlined,
+            title: 'Dispatch & Challans',
+            isActive: activeRoute == '/dispatch',
+            onTap: () {
+              _navigateTo(context, const DispatchScreen());
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionLabel('FACTORY MANAGEMENT'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.badge_outlined,
+            title: 'Division Profile',
+            isActive: activeRoute == '/stitching-sewing/profile',
+            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.store_outlined,
+            title: 'Brands & Vendors',
+            isActive: activeRoute == '/stitching-sewing/vendors',
+            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.people_outline,
+            title: 'Employee Roster & Wages',
+            isActive: activeRoute == '/stitching-sewing/employees',
+            onTap: () => _navigateTo(context, const EmployeesScreen()),
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.style_outlined,
+            title: 'Articles & Style Tech Packs',
+            isActive: activeRoute == '/stitching-sewing/articles',
+            onTap: () => _navigateTo(context, const ArticlesScreen()),
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.analytics_outlined,
+            title: 'Reports & Analytics',
+            isActive: activeRoute == '/stitching-sewing/reports',
+            onTap: () => _navigateTo(context, const ReportsScreen()),
+          ),
+        ];
+      } else {
+        navChildren = [
+          _buildSectionLabel('WORKSPACE HUB'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.grid_view_rounded,
+            title: 'All Modules',
+            isActive: false,
+            onTap: () {
+              _navigateTo(context, const EnterpriseWorkspaceHubScreen());
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionLabel('6. SEWING OPERATIONS'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.dashboard_outlined,
+            title: 'Floor Dashboard',
+            isActive: activeRoute == '/stitching-sewing/dashboard' || activeRoute == '/stitching-sewing',
+            onTap: () {
+              if (activeRoute == '/stitching-sewing/dashboard' || activeRoute == '/stitching-sewing') {
+                Navigator.pop(context);
+              } else {
+                _navigateTo(context, const AdminShell());
+              }
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.notifications_none_rounded,
+            title: 'Notification',
+            isActive: activeRoute == '/stitching-sewing/notifications',
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new notifications')),
+              );
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.storefront_outlined,
+            title: 'Floor Store (Bundles)',
+            isActive: activeRoute == '/stitching-sewing/store',
+            onTap: () {
+              _navigateTo(context, const StoreDashboard());
+            },
+          ),
+          _buildNavItem(
+            context: context,
+            icon: Icons.smart_toy_outlined,
+            title: 'Zigza AI Copilot',
+            isActive: activeRoute == '/stitching-sewing/zigza-ai',
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Zigza AI Sewing Copilot is active')),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionLabel('ACCOUNT'),
+          const SizedBox(height: 4),
+          _buildNavItem(
+            context: context,
+            icon: Icons.person_outline_rounded,
+            title: 'Division Profile',
+            isActive: activeRoute == '/stitching-sewing/profile',
+            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+          ),
+        ];
+      }
     } else if (isWashing) {
       navChildren = [
         _buildSectionLabel('WORKSPACE HUB'),

@@ -72,6 +72,14 @@ class ResolvedTenantProfile {
         comp == 'nubira creation';
   }
 
+  bool get isCustomStitching {
+    return TenantResolverService.isCustomStitchingUser(
+      userEmail: userEmail,
+      subscriptionTier: subscriptionTier,
+      companyName: companyName,
+    );
+  }
+
   int get operatingUnitsCount => allowedDivisions.length;
 
   Map<String, dynamic> toJson() => {
@@ -125,6 +133,38 @@ class ResolvedTenantProfile {
 
 /// Central service that mirrors `web_admin/src/lib/tenant-context.ts`
 class TenantResolverService {
+  /// Checks whether a tenant user is entitled to the Custom Deep Manufacturing Stitching Suite (Division 06)
+  static bool isCustomStitchingUser({
+    required String? userEmail,
+    required String? subscriptionTier,
+    required String? companyName,
+  }) {
+    final email = userEmail?.toLowerCase().trim() ?? '';
+    final company = companyName?.toLowerCase().trim() ?? '';
+    final tier = subscriptionTier?.toUpperCase().trim() ?? '';
+
+    return tier == 'CUSTOM' ||
+        company.contains('nubira') ||
+        email == 'aj@nubiracreation.com' ||
+        email == 'team.anga9@gmail.com' ||
+        email == 'admin@zigza.in' ||
+        email.contains('nubira') ||
+        email.startsWith('aj@');
+  }
+
+  /// Resolves piece-rate wage using size_rates JSONB matrix with fallback to base stitching_rate
+  static double resolveStitchingRate({
+    required Map<String, dynamic>? sizeRates,
+    required String size,
+    required double? defaultStitchingRate,
+  }) {
+    if (sizeRates != null && sizeRates.containsKey(size)) {
+      final rate = sizeRates[size];
+      if (rate is num) return rate.toDouble();
+    }
+    return defaultStitchingRate ?? 0.0;
+  }
+
   static Future<ResolvedTenantProfile> resolveUserTenant(User user, [Map<String, dynamic>? cachedProfile]) async {
     final userEmail = (user.email ?? '').trim().toLowerCase();
     final metadata = user.userMetadata ?? {};

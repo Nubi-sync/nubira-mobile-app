@@ -8,14 +8,10 @@ import '../screens/employees_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
 import '../screens/profile_screen.dart';
-import '../screens/security_screen.dart';
 import '../screens/dispatch_screen.dart';
-import '../../dashboard/lineman_dashboard.dart';
-import '../../dashboard/mending_dashboard.dart';
-import '../../dashboard/qc_dashboard.dart';
 import '../../dashboard/store_dashboard.dart';
-import '../../dashboard/dispatch_dashboard.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
+import '../../modules/screens/supervisor_floor_stations_screen.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
@@ -30,6 +26,8 @@ class AdminDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final tenant = authState.tenantProfile;
+    final isCustom = tenant?.isCustomStitching ?? true;
 
     return Drawer(
       backgroundColor: AppTheme.bg,
@@ -88,12 +86,15 @@ class AdminDrawer extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              authState.cachedUsername ?? 'Admin Portal',
-                              style: GoogleFonts.publicSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppTheme.inkSoft,
+                            Expanded(
+                              child: Text(
+                                authState.cachedUsername ?? (isCustom ? 'Nubira Custom Suite' : 'Standard Sewing'),
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.inkSoft,
+                                ),
                               ),
                             ),
                           ],
@@ -109,221 +110,9 @@ class AdminDrawer extends ConsumerWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                children: [
-                  _buildSectionHeader('ENTERPRISE WORKSPACE'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.apps_outlined,
-                    activeIcon: Icons.apps_rounded,
-                    title: 'Workspace Hub (Modules)',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 12),
-                  _buildSectionHeader('STITCHING & SEWING FLOOR'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.dashboard_outlined,
-                    activeIcon: Icons.dashboard,
-                    title: 'Dashboard Overview',
-                    isSelected: activeIndex == 0,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onTabSelected(0);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.layers_outlined,
-                    activeIcon: Icons.layers,
-                    title: 'Challan Hub',
-                    isSelected: activeIndex == 1,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onTabSelected(1);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.assignment_outlined,
-                    activeIcon: Icons.assignment,
-                    title: 'Target Allotments',
-                    isSelected: activeIndex == 2,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onTabSelected(2);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.warehouse_outlined,
-                    activeIcon: Icons.warehouse,
-                    title: 'Godown & Inventory',
-                    isSelected: activeIndex == 3,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onTabSelected(3);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.local_shipping_outlined,
-                    activeIcon: Icons.local_shipping,
-                    title: 'Dispatch & Challans',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const DispatchScreen()),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('FLOOR SUPERVISOR STATIONS (OVERRIDE)'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.content_cut_outlined,
-                    activeIcon: Icons.content_cut,
-                    title: 'Lineman Stitching Desk',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LinemanDashboard()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.build_outlined,
-                    activeIcon: Icons.build,
-                    title: 'Mending & Verification Desk',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MendingDashboard()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.verified_outlined,
-                    activeIcon: Icons.verified,
-                    title: 'QC Inspection Desk',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const QcDashboard()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.storefront_outlined,
-                    activeIcon: Icons.storefront,
-                    title: 'Store Godown Desk',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const StoreDashboard()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.local_shipping_outlined,
-                    activeIcon: Icons.local_shipping,
-                    title: 'Dispatch Gate Desk',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const DispatchDashboard()),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('MANAGEMENT'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.people_outline,
-                    activeIcon: Icons.people,
-                    title: 'Employees & Roles',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const EmployeesScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.sell_outlined,
-                    activeIcon: Icons.sell,
-                    title: 'Articles & Piece Rates',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ArticlesScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.analytics_outlined,
-                    activeIcon: Icons.analytics,
-                    title: 'Reports & Analytics',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('ADMIN & SETTINGS'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.person_outline,
-                    activeIcon: Icons.person,
-                    title: 'Factory Profile',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                      );
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.security_outlined,
-                    activeIcon: Icons.security,
-                    title: 'Security & Access',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SecurityScreen()),
-                      );
-                    },
-                  ),
-                ],
+                children: isCustom
+                    ? _buildCustomNavItems(context)
+                    : _buildBasicNavItems(context),
               ),
             ),
 
@@ -368,6 +157,292 @@ class AdminDrawer extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildCustomNavItems(BuildContext context) {
+    return [
+      _buildSectionHeader('WORKSPACE HUB'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.grid_view_rounded,
+        activeIcon: Icons.grid_view_rounded,
+        title: 'All Modules',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+          );
+        },
+      ),
+
+      const SizedBox(height: 12),
+      _buildSectionHeader('6. SEWING OPERATIONS'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        title: 'Floor Dashboard',
+        isSelected: activeIndex == 0,
+        onTap: () {
+          Navigator.pop(context);
+          onTabSelected(0);
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.notifications_none_rounded,
+        activeIcon: Icons.notifications,
+        title: 'Notification',
+        onTap: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No new stitching floor alerts')),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.assignment_ind_outlined,
+        activeIcon: Icons.assignment_ind,
+        title: 'Supervisor Desk',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.storefront_outlined,
+        activeIcon: Icons.storefront,
+        title: 'Store Dashboard',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreDashboard()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.smart_toy_outlined,
+        activeIcon: Icons.smart_toy,
+        title: 'Zigza AI Copilot',
+        onTap: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Zigza AI Sewing Copilot is active on the floor')),
+          );
+        },
+      ),
+
+      const SizedBox(height: 14),
+      _buildSectionHeader('PRODUCTION EXECUTION'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.layers_outlined,
+        activeIcon: Icons.layers,
+        title: 'Production Chart & Orders',
+        isSelected: activeIndex == 1,
+        onTap: () {
+          Navigator.pop(context);
+          onTabSelected(1);
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.assignment_outlined,
+        activeIcon: Icons.assignment,
+        title: 'Target Allotments',
+        isSelected: activeIndex == 2,
+        onTap: () {
+          Navigator.pop(context);
+          onTabSelected(2);
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.warehouse_outlined,
+        activeIcon: Icons.warehouse,
+        title: 'Godown & Inventory',
+        isSelected: activeIndex == 3,
+        onTap: () {
+          Navigator.pop(context);
+          onTabSelected(3);
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.local_shipping_outlined,
+        activeIcon: Icons.local_shipping,
+        title: 'Dispatch & Challans',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const DispatchScreen()),
+          );
+        },
+      ),
+
+      const SizedBox(height: 14),
+      _buildSectionHeader('FACTORY MANAGEMENT'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.badge_outlined,
+        activeIcon: Icons.badge,
+        title: 'Division Profile',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.store_outlined,
+        activeIcon: Icons.store,
+        title: 'Brands & Vendors',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.people_outline,
+        activeIcon: Icons.people,
+        title: 'Employee Roster & Wages',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EmployeesScreen()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.style_outlined,
+        activeIcon: Icons.style,
+        title: 'Articles & Style Tech Packs',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ArticlesScreen()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.analytics_outlined,
+        activeIcon: Icons.analytics,
+        title: 'Reports & Analytics',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ReportsScreen()),
+          );
+        },
+      ),
+    ];
+  }
+
+  List<Widget> _buildBasicNavItems(BuildContext context) {
+    return [
+      _buildSectionHeader('WORKSPACE HUB'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.grid_view_rounded,
+        activeIcon: Icons.grid_view_rounded,
+        title: 'All Modules',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+          );
+        },
+      ),
+
+      const SizedBox(height: 12),
+      _buildSectionHeader('6. SEWING OPERATIONS'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        title: 'Floor Dashboard',
+        isSelected: activeIndex == 0,
+        onTap: () {
+          Navigator.pop(context);
+          onTabSelected(0);
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.notifications_none_rounded,
+        activeIcon: Icons.notifications,
+        title: 'Notification',
+        onTap: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No new notifications')),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.storefront_outlined,
+        activeIcon: Icons.storefront,
+        title: 'Floor Store (Bundles)',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StoreDashboard()),
+          );
+        },
+      ),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.smart_toy_outlined,
+        activeIcon: Icons.smart_toy,
+        title: 'Zigza AI Copilot',
+        onTap: () {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Zigza AI Sewing Copilot is active')),
+          );
+        },
+      ),
+
+      const SizedBox(height: 14),
+      _buildSectionHeader('ACCOUNT'),
+      _buildDrawerItem(
+        context: context,
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+        title: 'Division Profile',
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          );
+        },
+      ),
+    ];
   }
 
   Widget _buildSectionHeader(String title) {
