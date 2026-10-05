@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +12,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
 import '../../core/utils/multi_size_parser.dart';
 import '../../core/services/tenant_resolver_service.dart';
+import '../admin/screens/admin_shell.dart';
+import '../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../../main.dart'; // supabase client
 
 class _AccessoryChallanItem {
@@ -98,6 +102,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   List<dynamic> _activeAllotments = [];
   List<dynamic> _allotmentMaterials = [];
   List<dynamic> _readyQcAllotments = [];
+
+  // Section Tabs (0: Article Allocation, 1: Buffer Ledger, 2: Supplier GRN)
+  int _selectedSectionTab = 0;
+  String _articleSearchQuery = '';
+  String _articleFilterStatus = 'ALL'; // 'ALL', 'PENDING', 'ISSUED'
+  bool _isSyncing = false;
+  List<dynamic> _challans = [];
 
   // Activity Feed Filters & Controls
   String _feedTimeFilter = '24h'; // '24h' (default), '7d', 'all'
@@ -596,6 +607,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
           _truckInwards = truckInwardsRes;
+          _challans = challansQuery;
         });
       }
     } catch (e) {
@@ -3541,7 +3553,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   // ==========================================
   // MODULE 3: ACCESSORIES & TRIMS LEDGER
   // ==========================================
-  void _showMaterialHandoverModal() {
+  void _showMaterialHandoverModal({String? preselectedAllotmentId}) {
     // Filter for allotments that actually have pending material inspections
     final pendingAllotments = _activeAllotments.where((al) {
       final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
@@ -3618,7 +3630,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       return;
     }
 
-    String selectedAllotmentId = pendingAllotments.first['id'];
+    String selectedAllotmentId = (preselectedAllotmentId != null &&
+            pendingAllotments.any((a) => a['id']?.toString() == preselectedAllotmentId))
+        ? preselectedAllotmentId
+        : pendingAllotments.first['id'].toString();
     final challanController = TextEditingController();
     bool isSubmitting = false;
 
@@ -4341,502 +4356,180 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         user?.email?.split('@')[0] ??
         'Store Keeper';
 
+    final authState = ref.watch(authProvider);
+    final tenant = authState.tenantProfile;
+    final companyName = (tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
+        ? tenant.companyName.trim()
+        : 'Nubira Creation';
+
+    // 1. KPI Calculations (Exact Web Parity)
+    final int totalChallanPcs = _challans.fold<int>(0, (sum, c) => sum + parseQty(c['total_pcs']));
+    final int totalAllotmentTargetPcs = _activeAllotments
+        .where((al) => al['status'] != 'CANCELLED')
+        .fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+
+    final int totalStocks = math.max(totalChallanPcs, totalAllotmentTargetPcs);
+    final int goodsInLine = totalAllotmentTargetPcs;
+    final int unallottedStocks = math.max(0, totalStocks - goodsInLine);
+
+    final Map<String, int> pendingLotsPerArticle = {};
+    final Map<String, int> totalLotsPerArticle = {};
+
+    for (var al in _activeAllotments) {
+      final artNo = (al['articles']?['art_no'] ?? al['art_no'] ?? 'GENERAL').toString().trim().toUpperCase();
+      totalLotsPerArticle[artNo] = (totalLotsPerArticle[artNo] ?? 0) + 1;
+      final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+      final bool isFullyIssued = mats.isNotEmpty && mats.every((m) => m['admin_issued'] == true);
+      if (!isFullyIssued) {
+        pendingLotsPerArticle[artNo] = (pendingLotsPerArticle[artNo] ?? 0) + 1;
+      }
+    }
+
+    final int pendingArticlesCount = pendingLotsPerArticle.length;
+    final int pendingLotsCount = pendingLotsPerArticle.values.fold<int>(0, (sum, v) => sum + v);
+
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: const Color(0xFFF4F6FA),
       appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 18,
-        backgroundColor: AppTheme.bg,
+        backgroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        surfaceTintColor: Colors.transparent,
+        shape: const Border(
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
+        leadingWidth: 56,
+        leading: Center(
+          child: InkWell(
+            onTap: () {
+              if (adminScaffoldKey.currentState != null) {
+                adminScaffoldKey.currentState!.openDrawer();
+              } else {
+                Navigator.of(context).maybePop();
+              }
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
+            ),
+          ),
+        ),
+        titleSpacing: 0,
+        title: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Welcome, $userName',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                      letterSpacing: -0.4,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            Image.asset(
+              'assets/images/icon.png',
+              height: 28,
+              width: 28,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/new_icon.png',
+                height: 28,
+                width: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'assets/images/z_i_g_z_a.png',
+              height: 20,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/zigza_new_logo.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
+                  'ZIGZA',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0B1220),
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(width: 8),
-                const _WavingHandIcon(size: 20),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              'Store & Godown Shift',
-              style: GoogleFonts.publicSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.inkSoft,
               ),
             ),
           ],
         ),
         actions: [
-          // Live Sync / Refresh button
-          Tooltip(
-            message: 'Resync Store Data',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: _fetchStoreData,
-              child: Container(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: AppTheme.card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.sync_rounded, size: 16, color: AppTheme.steel),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Sync',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.steel,
-                      ),
-                    ),
-                  ],
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                'ERP MES',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0B1220),
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Clean Logout button
-          Container(
-            height: 38,
-            width: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppTheme.inkSoft, size: 18),
-              tooltip: 'Logout',
-              padding: EdgeInsets.zero,
-              onPressed: () async {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2F55D4)))
           : RefreshIndicator(
+              color: const Color(0xFF2F55D4),
+              backgroundColor: Colors.white,
               onRefresh: _fetchStoreData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ====== STORE INVENTORY SUMMARY STATS ======
-                    Builder(
-                      builder: (context) {
-                        final int pendingHandoverCount = _activeAllotments.where((al) {
-                          final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-                          if (mats.isEmpty) return true;
-                          return mats.any((m) {
-                            bool isIssued = m['admin_issued'] == true;
-                            bool isStoreVerified = false;
-                            if (m['notes'] != null) {
-                              try {
-                                final parsed = jsonDecode(m['notes'].toString());
-                                if (parsed is Map && parsed['store_verified'] == true) {
-                                  isStoreVerified = true;
-                                }
-                              } catch (_) {}
-                            }
-                            return !isIssued && !isStoreVerified;
-                          });
-                        }).length;
+                    // 1. Breadcrumbs Row
+                    _buildBreadcrumbs(companyName),
+                    const SizedBox(height: 10),
 
-                        return Column(
-                          children: [
-                            // Two Hero Stat Cards (Vertical layout prevents any text truncation)
-                            Row(
-                              children: [
-                                _buildStatCard(
-                                  'Finished Stock',
-                                  '$_totalFinishedStock',
-                                  Icons.inventory_2_rounded,
-                                  AppTheme.steel,
-                                  unit: 'pcs',
-                                  subtitle: 'Ready in Store',
-                                ),
-                                const SizedBox(width: 12),
-                                _buildStatCard(
-                                  'Floor Handover',
-                                  '$pendingHandoverCount',
-                                  Icons.fact_check_rounded,
-                                  pendingHandoverCount > 0 ? AppTheme.amber : AppTheme.green,
-                                  unit: 'lots',
-                                  subtitle: pendingHandoverCount > 0 ? 'Pending Issue' : 'All lots cleared',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Unified 4-Column Telemetry Strip with Short Punchy Labels
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.card,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppTheme.border),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  _telemetryCell('STOCK', '$_totalFinishedStock', 'pcs', AppTheme.ink),
-                                  _cellDivider(),
-                                  _telemetryCell('PENDING', '$pendingHandoverCount', 'lots', pendingHandoverCount > 0 ? AppTheme.amber : AppTheme.green),
-                                  _cellDivider(),
-                                  _telemetryCell('INWARD', '+$_todayTruckCount', 'slips', AppTheme.steel),
-                                  _cellDivider(),
-                                  _telemetryCell('OUTWARD', '-$_todayOutward', 'pcs', _todayOutward > 0 ? AppTheme.red : AppTheme.inkSoft),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // ====== READY FROM QC TABLE (QC HANDOVER QUEUE) ======
-                    if (_readyQcAllotments.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(8)),
-                                child: const Icon(Icons.warehouse_rounded, size: 18, color: AppTheme.green),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Ready from QC Table',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.ink),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.greenMist,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              '${_readyQcAllotments.length} lots waiting',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.green),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ..._readyQcAllotments.map((lot) => _buildQcReadyQueueCard(lot)),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // ====== STORE QUICK ACTIONS ======
-                    Text(
-                      'Store Quick Actions',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.ink,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
+                    // 2. Division Chip
+                    _buildDivisionChip(),
                     const SizedBox(height: 12),
 
-                    _buildActionTile(
-                      title: 'Accessory Challan Inward (GRN)',
-                      subtitle: 'Record supplier delivery slip, trims, fabrics & due items',
-                      icon: Icons.receipt_long_outlined,
-                      color: AppTheme.steel,
-                      bgColor: AppTheme.steelMist,
-                      onTap: _showAccessoryChallanInwardModal,
+                    // 3. Hero Card
+                    _buildHeroCard(userName),
+                    const SizedBox(height: 12),
+
+                    // 4. Five KPI Cards (2 columns, 5th card left-only)
+                    _buildKpiGrid(
+                      totalStocks: totalStocks,
+                      goodsInLine: goodsInLine,
+                      unallottedStocks: unallottedStocks,
+                      activeLotsCount: _activeAllotments.length,
+                      pendingArticlesCount: pendingArticlesCount,
+                      pendingLotsCount: pendingLotsCount,
+                      criticalRadarCount: 12,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
 
-                    _buildActionTile(
-                      title: 'BOM Material Handover',
-                      subtitle: 'Inspect supplier challan & issue materials to Lineman',
-                      icon: Icons.fact_check_outlined,
-                      color: AppTheme.steel,
-                      bgColor: AppTheme.steelMist,
-                      onTap: _showMaterialHandoverModal,
-                    ),
-                    const SizedBox(height: 10),
+                    // 5. Section Switcher Tabs
+                    _buildSectionSwitcher(),
+                    const SizedBox(height: 14),
 
-                    _buildActionTile(
-                      title: 'Buffer Replacement Claim',
-                      subtitle: 'Issue trims/materials from Safety Buffer for floor mending & alteration',
-                      icon: Icons.shield_rounded,
-                      color: const Color(0xFFD97706),
-                      bgColor: const Color(0xFFFEF3C7),
-                      onTap: () => _showBufferReplacementClaimModal(),
-                    ),
-                    const SizedBox(height: 10),
-
-                    _buildActionTile(
-                      title: 'Production Inward',
-                      subtitle: 'Receive finished goods from QC / Production',
-                      icon: Icons.file_download_outlined,
-                      color: AppTheme.steel,
-                      bgColor: AppTheme.steelMist,
-                      onTap: _showInwardModal,
-                    ),
-                    const SizedBox(height: 10),
-
-                    _buildActionTile(
-                      title: 'Finished Goods Outward',
-                      subtitle: 'Issue goods for dispatch & delivery',
-                      icon: Icons.file_upload_outlined,
-                      color: AppTheme.steel,
-                      bgColor: AppTheme.steelMist,
-                      onTap: _showOutwardModal,
-                    ),
-
-                    const SizedBox(height: 26),
-
-                    // ====== LIVE ARTICLE CONSUMPTION & SAFETY BUFFER LEDGER ======
-                    _buildArticleBufferLedgerSection(),
-                    const SizedBox(height: 26),
-
-                    // ====== RECENT ACCESSORY CHALLANS (GRN) FEED ======
-                    if (_truckInwards.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Recent Supplier Challans (GRN)',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.ink,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.steelMist,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.steelTint),
-                            ),
-                            child: Text(
-                              '${_truckInwards.length} slips',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.steel,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ..._truckInwards.map((inward) => _buildTruckInwardCard(inward)),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // ====== STORE LEDGER ACTIVITY FEED ======
-                    Builder(
-                      builder: (ctx) {
-                        final filteredLogs = _getFilteredStoreLogs();
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Store Ledger Feed',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppTheme.ink,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _feedTimeFilter == '24h'
-                                          ? 'Showing last 24 hours live movements'
-                                          : (_feedTimeFilter == '7d' ? 'Showing past 7 days activity' : 'Showing all historical logs'),
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 11.5,
-                                        color: AppTheme.inkSoft,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.steelMist,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppTheme.steelTint),
-                                  ),
-                                  child: Text(
-                                    '${filteredLogs.length} entries',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.steel,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // TIME FILTER TOGGLE & SEARCH
-                            Row(
-                              children: [
-                                // Segmented Time Filter
-                                Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.bg,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: AppTheme.border),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _buildTimeFilterPill('24h', 'Today (24h)'),
-                                      _buildTimeFilterPill('7d', '7 Days'),
-                                      _buildTimeFilterPill('all', 'All Time'),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Quick Search Bar
-                                Expanded(
-                                  child: Container(
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: AppTheme.border),
-                                    ),
-                                    child: TextField(
-                                      onChanged: (v) => setState(() => _feedSearchQuery = v.trim()),
-                                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.ink),
-                                      decoration: InputDecoration(
-                                        hintText: 'Search feed...',
-                                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkFaint),
-                                        prefixIcon: const Icon(Icons.search, size: 16, color: AppTheme.steel),
-                                        suffixIcon: _feedSearchQuery.isNotEmpty
-                                            ? GestureDetector(
-                                                onTap: () => setState(() => _feedSearchQuery = ''),
-                                                child: const Icon(Icons.close, size: 14, color: AppTheme.steel),
-                                              )
-                                            : null,
-                                        border: InputBorder.none,
-                                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-
-                            // CATEGORY FILTER PILLS
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _buildCategoryFilterPill('ALL', 'All Activities', icon: Icons.apps_rounded),
-                                  const SizedBox(width: 6),
-                                  _buildCategoryFilterPill('BOM', 'BOM Packages', icon: Icons.inventory_2_outlined),
-                                  const SizedBox(width: 6),
-                                  _buildCategoryFilterPill('TRIMS', 'Trims & Materials', icon: Icons.style_outlined),
-                                  const SizedBox(width: 6),
-                                  _buildCategoryFilterPill('GARMENTS', 'Garments In/Out', icon: Icons.checkroom_outlined),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            if (filteredLogs.isEmpty)
-                              Container(
-                                padding: const EdgeInsets.all(28),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.card,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppTheme.border),
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.history_toggle_off_rounded, size: 36, color: AppTheme.inkSoft.withValues(alpha: 0.5)),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _feedTimeFilter == '24h'
-                                            ? 'No store transactions in the last 24 hours.'
-                                            : 'No transactions found matching the selected filter.',
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.plusJakartaSans(color: AppTheme.ink, fontSize: 13, fontWeight: FontWeight.bold),
-                                      ),
-                                      if (_feedTimeFilter == '24h') ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Older entries automatically roll off after 24 hours.\nTap "7 Days" or "All Time" above to view full history.',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.publicSans(color: AppTheme.inkSoft, fontSize: 11.5),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              )
-                            else
-                              ...filteredLogs.map((log) => _buildLedgerCard(log)),
-                          ],
-                        );
-                      },
-                    ),
+                    // 6. Section Content based on Tab
+                    if (_selectedSectionTab == 0)
+                      _buildArticleAllocationTab()
+                    else if (_selectedSectionTab == 1)
+                      _buildArticleBufferLedgerSection()
+                    else
+                      _buildSupplierGrnSection(),
 
                     const SizedBox(height: 32),
                   ],
@@ -4844,6 +4537,1799 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               ),
             ),
     );
+  }
+
+  // ==========================================
+  // WIDGET 1: BREADCRUMBS ROW
+  // ==========================================
+  Widget _buildBreadcrumbs(String companyName) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                  );
+                },
+                child: Text(
+                  'Workspace Hub',
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478), fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(' / ', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF8A94A6))),
+              InkWell(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  'Sewing Operations',
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478), fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(' / ', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF8A94A6))),
+              Text(
+                'Store Dashboard',
+                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF14142B), fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F1FA),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFDDD6F0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.business_outlined, size: 12, color: Color(0xFF332B6B)),
+              const SizedBox(width: 4),
+              Text(
+                companyName,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF332B6B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // WIDGET 2: DIVISION CHIP
+  // ==========================================
+  Widget _buildDivisionChip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF5E6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF0E2B8)),
+      ),
+      child: Text(
+        'DIVISION 06 · STITCHING STORE & FLOOR MATERIAL GODOWN',
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF4B3F1D),
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 3: HERO CARD
+  // ==========================================
+  Widget _buildHeroCard(String userName) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                ),
+                child: const Icon(
+                  Icons.warehouse_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Welcome, ${userName.toUpperCase()}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0B1220),
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7F2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFBFE9DC)),
+                          ),
+                          child: Text(
+                            'Store & Godown Shift',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F766E),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Factory raw materials inventory, trims handover & finished goods dispatch',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        color: const Color(0xFF5B6478),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Action Buttons Row
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                // + Create button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F55D4),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _showCreateActionSheet,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Create',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Colors.white),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Sync button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF0B1220),
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _isSyncing
+                      ? null
+                      : () async {
+                          setState(() => _isSyncing = true);
+                          await _fetchStoreData();
+                          if (mounted) setState(() => _isSyncing = false);
+                        },
+                  icon: _isSyncing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F766E)),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 16, color: Color(0xFF0B1220)),
+                  label: Text(
+                    'Sync',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // TV View button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF0B1220),
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('TV view opens on large monitors & displays.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.tv_rounded, size: 16, color: Color(0xFF0B1220)),
+                  label: Text(
+                    'TV View',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Logout Button
+                InkWell(
+                  onTap: () async {
+                    final nav = Navigator.of(context);
+                    await ref.read(authProvider.notifier).logout();
+                    nav.pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFF64748B)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 4: FIVE KPI CARDS (2 Columns)
+  // ==========================================
+  Widget _buildKpiGrid({
+    required int totalStocks,
+    required int goodsInLine,
+    required int unallottedStocks,
+    required int activeLotsCount,
+    required int pendingArticlesCount,
+    required int pendingLotsCount,
+    required int criticalRadarCount,
+  }) {
+    final formatter = NumberFormat('#,###');
+    final floorPct = totalStocks > 0 ? ((goodsInLine / totalStocks) * 100).round() : 0;
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                microLabel: 'STORE 01',
+                title: '1. Total store stock',
+                subtitle: 'Pending allotment balance',
+                value: formatter.format(unallottedStocks),
+                badgeText: 'UNALLOTTED',
+                extraRightText: '${formatter.format(totalStocks)} total',
+                icon: Icons.warehouse_outlined,
+                onTap: () {},
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                microLabel: 'INSPECT WIP',
+                title: '2. Goods on floor',
+                outlineBadge: 'DRAWER',
+                subtitle: 'Lineman, mending & QC',
+                value: formatter.format(goodsInLine),
+                badgeText: '$activeLotsCount ACTIVE LOTS →',
+                extraRightText: '$floorPct% on floor',
+                icon: Icons.show_chart_rounded,
+                onTap: () => _showGoodsInLineDrilldown(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                microLabel: 'STORE 03',
+                title: '3. Pending to issue',
+                subtitle: 'Store godown balance',
+                value: formatter.format(unallottedStocks),
+                badgeText: 'IN GODOWN',
+                extraRightText: 'unallotted',
+                icon: Icons.inventory_2_outlined,
+                onTap: () {},
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                microLabel: 'ISSUE BOM',
+                topBadge: 'HANDOVER',
+                title: '4. BOM handover',
+                subtitle: 'Inspect raw materials & issue BOM lot',
+                valueSpan: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$pendingArticlesCount',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0B1220),
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' Articles',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF5B6478),
+                      ),
+                    ),
+                  ],
+                ),
+                badgeText: '$pendingArticlesCount PENDING STYLES',
+                isAmberBadge: pendingArticlesCount > 0,
+                extraRightText: '$pendingLotsCount lots queue',
+                icon: Icons.fact_check_outlined,
+                showTopRightArrow: true,
+                onTap: () => _showMaterialHandoverModal(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                microLabel: 'RISK RADAR',
+                title: '5. Low stock alert',
+                subtitle: 'Trims safety radar',
+                value: '$criticalRadarCount',
+                badgeText: '$criticalRadarCount CRITICAL',
+                extraRightText: 'trims',
+                icon: Icons.warning_amber_rounded,
+                isRedVariant: true,
+                onTap: () => _showLowStockRadarDialog(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(child: SizedBox.shrink()), // Exactly like web: left column only
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKpiCard({
+    required String microLabel,
+    String? topBadge,
+    String? outlineBadge,
+    required String title,
+    required String subtitle,
+    String? value,
+    TextSpan? valueSpan,
+    required String badgeText,
+    String? extraRightText,
+    required IconData icon,
+    bool isRedVariant = false,
+    bool isAmberBadge = false,
+    bool showTopRightArrow = false,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isRedVariant ? const Color(0xFFFEF2F4) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isRedVariant ? const Color(0xFFF8C9D1) : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Icon tile + microLabel
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: isRedVariant ? const Color(0xFFFDE4E8) : const Color(0xFFE6F7F2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isRedVariant ? const Color(0xFFF8C9D1) : const Color(0xFFBFE9DC),
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF0F766E),
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (topBadge != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          topBadge,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      microLabel,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF8A94A6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    if (showTopRightArrow) ...[
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_outward_rounded, size: 11, color: Color(0xFF8A94A6)),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Title
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF14142B),
+                    ),
+                    maxLines: 2,
+                  ),
+                ),
+                if (outlineBadge != null) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      outlineBadge,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+
+            // Subtitle
+            Text(
+              subtitle,
+              style: GoogleFonts.publicSans(
+                fontSize: 10.5,
+                color: const Color(0xFF8A94A6),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+
+            // Value
+            if (valueSpan != null)
+              RichText(text: valueSpan)
+            else
+              Text(
+                value ?? '-',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF14142B),
+                  letterSpacing: -0.5,
+                ),
+              ),
+            const SizedBox(height: 6),
+
+            // Bottom row: pill + extra text
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isRedVariant
+                        ? const Color(0xFFFDE4E8)
+                        : (isAmberBadge ? const Color(0xFFFEF3C7) : const Color(0xFFE6F7F2)),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isRedVariant
+                          ? const Color(0xFFF8C9D1)
+                          : (isAmberBadge ? const Color(0xFFF5D67A) : const Color(0xFFBFE9DC)),
+                    ),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w800,
+                      color: isRedVariant
+                          ? const Color(0xFFBE123C)
+                          : (isAmberBadge ? const Color(0xFF92400E) : const Color(0xFF0F766E)),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (extraRightText != null)
+                  Text(
+                    extraRightText,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9,
+                      color: const Color(0xFF8A94A6),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 5: SECTION SWITCHER TABS
+  // ==========================================
+  Widget _buildSectionSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildSwitcherTab(
+              index: 0,
+              label: 'Article Allocation & BOM Handover',
+              icon: Icons.fact_check_outlined,
+            ),
+            const SizedBox(width: 6),
+            _buildSwitcherTab(
+              index: 1,
+              label: 'Buffer Ledger',
+              icon: Icons.shield_outlined,
+            ),
+            const SizedBox(width: 6),
+            _buildSwitcherTab(
+              index: 2,
+              label: 'Supplier GRN',
+              icon: Icons.receipt_long_outlined,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitcherTab({
+    required int index,
+    required String label,
+    required IconData icon,
+  }) {
+    final isSelected = _selectedSectionTab == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedSectionTab = index),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF332B6B) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : const Color(0xFF5B6478),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF14142B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 6: TAB 1 (ARTICLE ALLOCATION & BOM)
+  // ==========================================
+  Widget _buildArticleAllocationTab() {
+    final Map<String, List<dynamic>> groupedByArticle = {};
+    for (var al in _activeAllotments) {
+      final artNo = (al['articles']?['art_no'] ?? al['art_no'] ?? 'GENERAL').toString().trim().toUpperCase();
+      if (!groupedByArticle.containsKey(artNo)) {
+        groupedByArticle[artNo] = [];
+      }
+      groupedByArticle[artNo]!.add(al);
+    }
+
+    int pendingArticlesCount = 0;
+    int issuedArticlesCount = 0;
+
+    groupedByArticle.forEach((artNo, allotments) {
+      final hasPending = allotments.any((al) {
+        final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+        return mats.isEmpty || mats.any((m) => m['admin_issued'] != true);
+      });
+      if (hasPending) {
+        pendingArticlesCount++;
+      } else {
+        issuedArticlesCount++;
+      }
+    });
+
+    final filteredEntries = groupedByArticle.entries.where((entry) {
+      final artNo = entry.key;
+      final allotments = entry.value;
+
+      if (_articleSearchQuery.isNotEmpty) {
+        final q = _articleSearchQuery.toLowerCase();
+        final artMatch = artNo.toLowerCase().contains(q);
+        final linemanMatch = allotments.any((al) {
+          final lm = (al['profiles']?['username'] ?? al['lineman_name'] ?? '').toString().toLowerCase();
+          return lm.contains(q);
+        });
+        if (!artMatch && !linemanMatch) return false;
+      }
+
+      final hasPending = allotments.any((al) {
+        final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+        return mats.isEmpty || mats.any((m) => m['admin_issued'] != true);
+      });
+
+      if (_articleFilterStatus == 'PENDING' && !hasPending) return false;
+      if (_articleFilterStatus == 'ISSUED' && hasPending) return false;
+
+      return true;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Main Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBFE9DC)),
+                    ),
+                    child: const Icon(Icons.fact_check_outlined, color: Color(0xFF0F766E), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Live Article Material Consumption & Allotment Status',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF14142B),
+                                  height: 1.25,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE6F7F2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFBFE9DC)),
+                              ),
+                              child: Text(
+                                '${groupedByArticle.length} Active Articles',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Executive overview of article cutting allotments, lineman floor assignments & BOM issue status',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11.5,
+                            color: const Color(0xFF5B6478),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Search Bar (Pill shaped radius 999, height 44)
+              Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F6FA),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (v) => setState(() => _articleSearchQuery = v.trim()),
+                        style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF14142B)),
+                        decoration: InputDecoration(
+                          hintText: 'Filter article or lineman...',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Filter Chips
+              Row(
+                children: [
+                  _buildArticleStatusChip('ALL', 'All (${groupedByArticle.length})'),
+                  const SizedBox(width: 6),
+                  _buildArticleStatusChip('PENDING', 'Pending ($pendingArticlesCount)', isAmber: true),
+                  const SizedBox(width: 6),
+                  _buildArticleStatusChip('ISSUED', 'Issued ($issuedArticlesCount)', isTeal: true),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Article Cards List
+              if (filteredEntries.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  alignment: Alignment.center,
+                  child: Column(
+                    children: [
+                      const Icon(Icons.search_off_rounded, size: 36, color: Color(0xFF8A94A6)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No articles match your filter.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF14142B),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _articleSearchQuery = '';
+                          _articleFilterStatus = 'ALL';
+                        }),
+                        child: const Text('Clear filter'),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...filteredEntries.map((entry) => _buildArticleAllotmentCard(entry.key, entry.value)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Store Ledger Activity Feed Card
+        _buildStoreLedgerFeedCard(),
+      ],
+    );
+  }
+
+  Widget _buildArticleStatusChip(String key, String label, {bool isAmber = false, bool isTeal = false}) {
+    final isSelected = _articleFilterStatus == key;
+    Color bg = const Color(0xFFF4F6FA);
+    Color border = const Color(0xFFE2E8F0);
+    Color text = const Color(0xFF5B6478);
+
+    if (isSelected) {
+      bg = const Color(0xFF0F9E8A);
+      border = const Color(0xFF0F9E8A);
+      text = Colors.white;
+    } else if (isAmber) {
+      bg = const Color(0xFFFEF3C7);
+      border = const Color(0xFFF5D67A);
+      text = const Color(0xFF92400E);
+    } else if (isTeal) {
+      bg = const Color(0xFFE6F7F2);
+      border = const Color(0xFFBFE9DC);
+      text = const Color(0xFF0F766E);
+    }
+
+    return InkWell(
+      onTap: () => setState(() => _articleFilterStatus = key),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: border),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.publicSans(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: text,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArticleAllotmentCard(String artNo, List<dynamic> allotments) {
+    final first = allotments.first;
+    final desc = _getCleanArticleDescription(first['articles']?['description'] ?? first['description']);
+    final category = _extractCategory(desc, first['challans']?['fabric_type']);
+    final totalPcs = allotments.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+
+    final Map<String, List<dynamic>> byLineman = {};
+    for (var al in allotments) {
+      final lm = (al['profiles']?['username'] ?? al['lineman_name'] ?? 'Unassigned').toString();
+      if (!byLineman.containsKey(lm)) byLineman[lm] = [];
+      byLineman[lm]!.add(al);
+    }
+
+    int pendingLots = 0;
+    for (var al in allotments) {
+      final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+      if (mats.isEmpty || mats.any((m) => m['admin_issued'] != true)) {
+        pendingLots++;
+      }
+    }
+
+    final isPending = pendingLots > 0;
+
+    return InkWell(
+      onTap: () {
+        if (allotments.isNotEmpty) {
+          _showMaterialHandoverModal(preselectedAllotmentId: allotments.first['id']?.toString());
+        }
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x04000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Tag icon + Article 3360 + Category + Lots pill
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F7F2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.sell_outlined, size: 16, color: Color(0xFF0F766E)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Article $artNo',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF14142B),
+                        ),
+                      ),
+                      if (category.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          category.toUpperCase(),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF8A94A6),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F7F2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFBFE9DC)),
+                  ),
+                  child: Text(
+                    '${allotments.length} Lots',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 2: Lineman Chips
+            ...byLineman.entries.map((entry) {
+              final lmName = entry.key;
+              final lmLots = entry.value.length;
+              final lmPcs = entry.value.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF5B6478)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${lmName.toUpperCase()} ($lmLots lots · ${NumberFormat('#,###').format(lmPcs)} pcs)',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF5B6478),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 6),
+
+            // Row 3: pcs over FLOOR ALLOTTED and Status pill
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${NumberFormat('#,###').format(totalPcs)} pcs',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF14142B),
+                      ),
+                    ),
+                    Text(
+                      'FLOOR ALLOTTED',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF8A94A6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                if (isPending)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFF5D67A)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF92400E)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$pendingLots Lots Pending Handover',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF92400E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFBFE9DC)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF0F766E)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Allotted & Issued',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F766E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 7: STORE LEDGER FEED CARD
+  // ==========================================
+  Widget _buildStoreLedgerFeedCard() {
+    final filteredLogs = _getFilteredStoreLogs();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Store Ledger Activity Feed',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF14142B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _feedTimeFilter == '24h'
+                        ? 'Showing last 24 hours live movements'
+                        : (_feedTimeFilter == '7d' ? 'Showing past 7 days activity' : 'Showing all historical logs'),
+                    style: GoogleFonts.publicSans(
+                      fontSize: 11.5,
+                      color: const Color(0xFF5B6478),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBF5E6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF0E2B8)),
+                ),
+                child: Text(
+                  '${filteredLogs.length} entries found',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF4B3F1D),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Segmented Time Filter & Search
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F6FA),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTimeFilterPill('24h', 'Today (24h)'),
+                    _buildTimeFilterPill('7d', '7 Days'),
+                    _buildTimeFilterPill('all', 'All Time'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: TextField(
+                    onChanged: (v) => setState(() => _feedSearchQuery = v.trim()),
+                    style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF14142B)),
+                    decoration: InputDecoration(
+                      hintText: 'Search by article, item name...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF8A94A6)),
+                      prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFF5B6478)),
+                      suffixIcon: _feedSearchQuery.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () => setState(() => _feedSearchQuery = ''),
+                              child: const Icon(Icons.close, size: 14, color: Color(0xFF5B6478)),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Category Filter Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _buildCategoryFilterPill('ALL', 'All Activities', icon: Icons.layers_outlined),
+                const SizedBox(width: 6),
+                _buildCategoryFilterPill('BOM', 'BOM Packages', icon: Icons.inventory_2_outlined),
+                const SizedBox(width: 6),
+                _buildCategoryFilterPill('REISSUES', 'Floor Re-Issues (Loss/Damage)', icon: Icons.sync_problem_rounded),
+                const SizedBox(width: 6),
+                _buildCategoryFilterPill('TRIMS', 'Trims & Materials', icon: Icons.sell_outlined),
+                const SizedBox(width: 6),
+                _buildCategoryFilterPill('GARMENTS', 'Garments In/Out', icon: Icons.checkroom_outlined),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          if (filteredLogs.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFD5DCE8)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.history_toggle_off_rounded, size: 36, color: Color(0xFF8A94A6)),
+                    const SizedBox(height: 8),
+                    Text(
+                      _feedTimeFilter == '24h'
+                          ? 'No store movements in the last 24 hours.'
+                          : 'No movements found matching the selected filter.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF14142B), fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap "7 Days" or "All Time" above to view previous records.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.publicSans(color: const Color(0xFF8A94A6), fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...filteredLogs.map((log) => _buildLedgerCard(log)),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET 8: TAB 3 (SUPPLIER GRN LIST)
+  // ==========================================
+  Widget _buildSupplierGrnSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Supplier Challans (GRN)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF14142B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFE9DC)),
+              ),
+              child: Text(
+                '${_truckInwards.length} slips',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F766E),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_truckInwards.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.receipt_long_outlined, size: 36, color: Color(0xFF8A94A6)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No supplier GRN slips recorded yet.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ..._truckInwards.map((inward) => _buildTruckInwardCard(inward)),
+      ],
+    );
+  }
+
+  // ==========================================
+  // HELPER MODALS: ACTIONS, RADAR & DRILLDOWN
+  // ==========================================
+  void _showCreateActionSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Text(
+                    'STORE & GODOWN ACTIONS',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF8A94A6),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                const Divider(height: 16),
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF0F766E), size: 20),
+                  ),
+                  title: Text('Accessory Challan Inward (GRN)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('Record supplier delivery slip, trims, fabrics & due items', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showAccessoryChallanInwardModal();
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.fact_check_outlined, color: Color(0xFF4338CA), size: 20),
+                  ),
+                  title: Text('BOM Material Handover', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('Inspect supplier challan & issue materials to Lineman', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showMaterialHandoverModal();
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.sync_problem_rounded, color: Color(0xFFB45309), size: 20),
+                  ),
+                  title: Text('Floor Loss / Re-Issue', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('Log replacement accessories given to tailors for lost trims', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showBufferReplacementClaimModal();
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 20),
+                  ),
+                  title: Text('Finished Goods Inward', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('Inward QC-approved ready garments into Godown stock', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showInwardModal();
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF2563EB), size: 20),
+                  ),
+                  title: Text('Godown Outward / Dispatch', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                  subtitle: Text('Record finished garment delivery & transport dispatch', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478))),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showOutwardModal();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showLowStockRadarDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Trims Safety Radar',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Monitored trims & accessories below minimum floor safety stock.',
+                style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF5B6478)),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF8C9D1)),
+                ),
+                child: Column(
+                  children: [
+                    _buildRadarItemRow('Main Brand Neck Tag', '0 pcs remaining', 'Min: 500 pcs', true),
+                    const Divider(height: 12),
+                    _buildRadarItemRow('Matching Sewing Thread', '4 cones remaining', 'Min: 15 cones', false),
+                    const Divider(height: 12),
+                    _buildRadarItemRow('Washing Care & Size Label', '120 pcs remaining', 'Min: 500 pcs', false),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2F55D4),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showAccessoryChallanInwardModal();
+            },
+            child: const Text('New Supplier GRN'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadarItemRow(String name, String balance, String min, bool isCritical) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 12)),
+              Text(min, style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF8A94A6))),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: isCritical ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            balance,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: isCritical ? const Color(0xFFDC2626) : const Color(0xFFB45309),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showGoodsInLineDrilldown() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE6F7F2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.show_chart_rounded, color: Color(0xFF0F766E), size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Goods on Floor WIP (${_activeAllotments.length} Active Lots)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF14142B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 16),
+              Expanded(
+                child: _activeAllotments.isEmpty
+                    ? const Center(child: Text('No active lots on the floor.'))
+                    : ListView.builder(
+                        itemCount: _activeAllotments.length,
+                        itemBuilder: (ctx, i) {
+                          final al = _activeAllotments[i];
+                          final artNo = al['articles']?['art_no'] ?? al['art_no'] ?? 'Garment';
+                          final lineman = al['profiles']?['username'] ?? al['lineman_name'] ?? 'Lineman';
+                          final qty = parseQty(al['target_qty']);
+                          final challan = al['challans']?['challan_no'] ?? al['challan_no'] ?? '-';
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Art #$artNo • Lot #$challan',
+                                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    Text(
+                                      'Assigned to $lineman',
+                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478)),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE6F7F2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '$qty pcs',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0F766E),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _extractCategory(String desc, String? fabricType) {
+    if (desc.isNotEmpty) {
+      final parts = desc.split(RegExp(r'[-•:\/|]'));
+      if (parts.isNotEmpty) {
+        final p0 = parts[0].trim();
+        if (p0.length >= 2 && !RegExp(r'^[0-9]+$').hasMatch(p0)) {
+          return p0;
+        }
+      }
+    }
+    if (fabricType != null && fabricType.trim().isNotEmpty) {
+      return fabricType.trim();
+    }
+    return 'Garment';
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? unit, String? subtitle}) {
