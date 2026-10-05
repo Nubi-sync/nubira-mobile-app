@@ -5775,41 +5775,48 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Store Ledger Activity Feed',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF14142B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Store Ledger Activity Feed',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF14142B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _feedTimeFilter == '24h'
-                        ? 'Showing last 24 hours live movements'
-                        : (_feedTimeFilter == '7d' ? 'Showing past 7 days activity' : 'Showing all historical logs'),
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11.5,
-                      color: const Color(0xFF5B6478),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      _feedTimeFilter == '24h'
+                          ? 'Showing last 24 hours live movements'
+                          : (_feedTimeFilter == '7d' ? 'Showing past 7 days activity' : 'Showing all historical logs'),
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11,
+                        color: const Color(0xFF5B6478),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFBF5E6),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFF0E2B8)),
                 ),
                 child: Text(
-                  '${filteredLogs.length} entries found',
+                  '${filteredLogs.length} entries',
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF4B3F1D),
                   ),
@@ -5823,7 +5830,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(3),
+                padding: const EdgeInsets.all(2.5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F6FA),
                   borderRadius: BorderRadius.circular(10),
@@ -5838,7 +5845,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Container(
                   height: 36,
@@ -5849,11 +5856,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   ),
                   child: TextField(
                     onChanged: (v) => setState(() => _feedSearchQuery = v.trim()),
-                    style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF14142B)),
+                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF14142B)),
                     decoration: InputDecoration(
-                      hintText: 'Search by article, item name...',
-                      hintStyle: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF8A94A6)),
-                      prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFF5B6478)),
+                      hintText: 'Search feed...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF8A94A6)),
+                      prefixIcon: const Icon(Icons.search, size: 15, color: Color(0xFF5B6478)),
                       suffixIcon: _feedSearchQuery.isNotEmpty
                           ? GestureDetector(
                               onTap: () => setState(() => _feedSearchQuery = ''),
