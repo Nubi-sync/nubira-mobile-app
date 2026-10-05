@@ -20,6 +20,7 @@ class PlantOperationsScreen extends ConsumerStatefulWidget {
 class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
   bool _isManualSyncing = false;
   String _trendMode = 'Monthly'; // 'Monthly' or 'Weekly'
+  final String _selectedMonthPeriod = 'All-Time Period';
 
   void _triggerManualSync() async {
     setState(() => _isManualSyncing = true);
@@ -173,86 +174,83 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 24),
-          tooltip: 'Menu',
-          onPressed: () => adminScaffoldKey.currentState?.openDrawer(),
+        shape: const Border(
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
+        leadingWidth: 56,
+        leading: Center(
+          child: InkWell(
+            onTap: () => adminScaffoldKey.currentState?.openDrawer(),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
+            ),
+          ),
         ),
         titleSpacing: 0,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'ZIGZA',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFF0B1220),
-                letterSpacing: 0.5,
+            Image.asset(
+              'assets/images/icon.png',
+              height: 28,
+              width: 28,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/new_icon.png',
+                height: 28,
+                width: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0x26000000)),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0B1220),
-                  letterSpacing: 0.5,
+            Image.asset(
+              'assets/images/z_i_g_z_a.png',
+              height: 20,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/zigza_new_logo.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
+                  'ZIGZA',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0B1220),
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
           ],
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: _triggerManualSync,
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9F7EE),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF2FAE66).withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: _isManualSyncing ? const Color(0xFFEF9F27) : const Color(0xFF10B981),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _isManualSyncing ? 'Syncing...' : 'Live sync',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1B7A43),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    RotationTransition(
-                      turns: _isManualSyncing ? const AlwaysStoppedAnimation(0.5) : const AlwaysStoppedAnimation(0),
-                      child: const Icon(
-                        Icons.refresh_rounded,
-                        size: 13,
-                        color: Color(0xFF1B7A43),
-                      ),
-                    ),
-                  ],
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0x26000000)),
+              ),
+              child: Text(
+                'ERP MES',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0B1220),
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
@@ -327,11 +325,11 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         children: [
           // 1. Title Header Card
           _buildHeaderCard(context, companyName),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // 2. Filter Section
           _buildFiltersSection(context, ref, data, filterState),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // 3. Six-Stage Stats Grid (2 columns x 3 rows)
           _buildSixStageGrid(context, data),
@@ -377,7 +375,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -395,11 +393,11 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x26000000)),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
                 child: const Icon(
                   Icons.grid_view_rounded,
-                  color: Color(0xFF0B1220),
+                  color: Color(0xFF14C8B4),
                   size: 22,
                 ),
               ),
@@ -414,25 +412,26 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                           TextSpan(
                             text: 'Stitching & ',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF0B1220),
-                              letterSpacing: -0.3,
+                              letterSpacing: -0.4,
                             ),
                           ),
                           TextSpan(
-                            text: 'Sewing Floor',
+                            text: 'Sewing\nFloor',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF1D4ED8),
-                              letterSpacing: -0.3,
+                              letterSpacing: -0.4,
+                              height: 1.15,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
@@ -442,7 +441,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0x26000000)),
+                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             'FLOOR OPS LIVE',
@@ -482,7 +481,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
             'Real-time 6-stage garment manufacturing floor throughput and inventory lifecycle',
             style: GoogleFonts.publicSans(
               fontSize: 12.5,
-              color: const Color(0xFF64748B),
+              color: const Color(0xFF475569),
               height: 1.35,
             ),
           ),
@@ -594,7 +593,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -702,60 +701,96 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Date Range Container + Refresh Button
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 38,
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0x26000000)),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildDateChip(
-                        label: 'Today',
-                        isSelected: filterState.dateFilter == PlantDateFilter.today,
-                        onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.today)),
-                      ),
-                      _buildDateChip(
-                        label: 'This Week',
-                        isSelected: filterState.dateFilter == PlantDateFilter.week,
-                        onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.week)),
-                      ),
-                      _buildDateChip(
-                        label: 'This Month',
-                        isSelected: filterState.dateFilter == PlantDateFilter.month,
-                        onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.month)),
-                      ),
-                      _buildDateChip(
-                        label: 'All Time',
-                        isSelected: filterState.dateFilter == PlantDateFilter.all,
-                        onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.all)),
-                      ),
-                    ],
+          // All-Time Period Dropdown
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _selectedMonthPeriod,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: _triggerManualSync,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0x26000000)),
-                  ),
-                  child: const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF0B1220)),
+                const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF64748B)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Date Range Container
+          Container(
+            height: 38,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x26000000)),
+            ),
+            child: Row(
+              children: [
+                _buildDateChip(
+                  label: 'Today',
+                  isSelected: filterState.dateFilter == PlantDateFilter.today,
+                  onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.today)),
                 ),
+                _buildDateChip(
+                  label: 'This Week',
+                  isSelected: filterState.dateFilter == PlantDateFilter.week,
+                  onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.week)),
+                ),
+                _buildDateChip(
+                  label: 'This Month',
+                  isSelected: filterState.dateFilter == PlantDateFilter.month,
+                  onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.month)),
+                ),
+                _buildDateChip(
+                  label: 'All Time',
+                  isSelected: filterState.dateFilter == PlantDateFilter.all,
+                  onTap: () => ref.read(plantOperationsFilterProvider.notifier).update((s) => s.copyWith(dateFilter: PlantDateFilter.all)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Refresh circular button
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: _isManualSyncing ? null : _triggerManualSync,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                ),
+                child: _isManualSyncing
+                    ? const Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF14C8B4),
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF0B1220)),
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -767,7 +802,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF0B1220) : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -968,7 +1003,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0x26000000)),
+                    border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                   ),
                   child: Icon(icon, size: 18, color: const Color(0xFF0B1220)),
                 ),
@@ -1080,7 +1115,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -1097,9 +1132,9 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x26000000)),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
-                child: const Icon(Icons.trending_up_rounded, size: 18, color: Color(0xFF0B1220)),
+                child: const Icon(Icons.trending_up_rounded, size: 18, color: Color(0xFF14C8B4)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1316,7 +1351,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -1533,7 +1568,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -1719,7 +1754,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -1883,7 +1918,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
@@ -2142,7 +2177,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x06000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
