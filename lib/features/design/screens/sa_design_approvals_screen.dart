@@ -862,7 +862,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -881,33 +881,39 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                label,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
-                  letterSpacing: 0.8,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF64748B),
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0x26000000)),
                 ),
-                child: Icon(icon, color: const Color(0xFF0B1220), size: 16),
+                child: Icon(icon, color: const Color(0xFF0B1220), size: 14),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
             '$count',
             style: GoogleFonts.jetBrainsMono(
-              fontSize: 26,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF0B1220),
             ),
@@ -956,6 +962,48 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D4ED8),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add, size: 14, color: Colors.white),
+                  Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Colors.white),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCCFBF1)),
+              ),
+              child: const Icon(Icons.notifications_none_rounded, size: 16, color: Color(0xFF0F766E)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCCFBF1)),
+              ),
+              child: const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF0F766E)),
+            ),
+          ],
+        ),
       ),
       drawer: const WorkspaceHubDrawer(activeRoute: '/all-designs'),
       body: RefreshIndicator(
@@ -1116,7 +1164,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 1.55,
+              childAspectRatio: 1.45,
               children: [
                 _buildKpiCard(
                   label: 'TOTAL DESIGNS',
