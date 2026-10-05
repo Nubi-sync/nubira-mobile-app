@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../auth/screens/login_screen.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
@@ -18,34 +17,7 @@ import '../../dashboard/dispatch_dashboard.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../models/module_card_model.dart';
 import '../widgets/workspace_hub_drawer.dart';
-import 'supervisor_floor_stations_screen.dart';
-import 'company_profile_screen.dart';
-import 'department_heads_screen.dart';
 import 'generic_division_screen.dart';
-
-import '../../../core/theme/app_theme.dart';
-
-/// Design System Tokens strictly based on Zigza Brand Identity
-class DesignTokens {
-  static const Color brandSteel = AppTheme.headingObsidian;
-  static const Color brandSteelHover = AppTheme.headingObsidian;
-  static const Color canvasCream = AppTheme.bgCanvas;
-  static const Color cardWhite = AppTheme.cardSurface;
-  static const Color foregroundInk = AppTheme.headingObsidian;
-  static const Color mutedInk = AppTheme.bodyInk;
-  static const Color faintInk = AppTheme.faintInk;
-  static const Color standardBorder = AppTheme.borderLight;
-  static const Color subtleDivider = AppTheme.subtleDivider;
-
-  // Badges
-  static const Color badgeExecutiveBg = AppTheme.badgeAmberBg;
-  static const Color badgeExecutiveText = AppTheme.badgeAmberText;
-  static const Color badgeExecutiveBorder = AppTheme.badgeAmberBorder;
-
-  static const Color badgeLiveGreenBg = AppTheme.badgeEmeraldBg;
-  static const Color badgeLiveGreenText = AppTheme.badgeEmeraldText;
-  static const Color badgeLiveGreenBorder = AppTheme.badgeEmeraldBorder;
-}
 
 class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {
   const EnterpriseWorkspaceHubScreen({super.key});
@@ -56,7 +28,9 @@ class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {
 
 class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspaceHubScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController _searchController = TextEditingController();
   String? _launchingId;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -66,23 +40,22 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     });
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   bool _isModuleAllowed(String modRoute, List<String> allowedDivisions) {
-    if (allowedDivisions.isEmpty) return false;
+    if (allowedDivisions.isEmpty || allowedDivisions.contains('/modules')) return true;
+    if (modRoute == '/ready-goods' && (allowedDivisions.contains('/ready-goods') || allowedDivisions.contains('/alter'))) {
+      return true;
+    }
     final r = modRoute.replaceAll(RegExp(r'/+$'), '');
     return allowedDivisions.any((allowed) {
       final a = allowed.replaceAll(RegExp(r'/+$'), '');
       return a == r || r.startsWith('$a/') || a.startsWith('$r/');
     });
-  }
-
-  bool _canAccessDepartmentHeads(String role, bool isSuperAdmin) {
-    final r = role.toUpperCase();
-    return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PLATFORM_SUPERADMIN';
-  }
-
-  bool _canAccessSupervisor(String role, bool isSuperAdmin) {
-    final r = role.toUpperCase();
-    return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PRODUCTION_MANAGER' || r == 'SUPERVISOR' || r == 'PLATFORM_SUPERADMIN';
   }
 
   void _handleLaunch(ModuleCardData mod) async {
@@ -92,7 +65,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
       _launchingId = mod.id;
     });
 
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 250));
 
     if (!mounted) return;
 
@@ -149,78 +122,20 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     );
   }
 
-  void _showSignOutConfirmDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: DesignTokens.cardWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Sign Out',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: DesignTokens.foregroundInk,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to end your current session and sign out of Zigza MES?',
-          style: GoogleFonts.publicSans(
-            fontSize: 13,
-            color: DesignTokens.mutedInk,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: DesignTokens.mutedInk,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE11D48),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              elevation: 0,
-            ),
-            onPressed: () async {
-              final nav = Navigator.of(context);
-              Navigator.pop(ctx);
-              await ref.read(authProvider.notifier).logout();
-              if (mounted) {
-                nav.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            child: Text(
-              'Sign Out',
-              style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final tenant = authState.tenantProfile;
     final role = authState.userRole ?? 'STAFF';
     final isSuperAdmin = tenant?.isSuperAdmin ?? false;
+
+    // Strict tenant company name resolution
+    final rawCompanyName = tenant?.companyName;
+    final resolvedCompany = (rawCompanyName != null &&
+            rawCompanyName.trim().isNotEmpty &&
+            rawCompanyName != 'Account Deactivated')
+        ? rawCompanyName.trim()
+        : '';
 
     // Strict multi-tenant division resolution
     final rawAllowed = tenant?.allowedDivisions.isNotEmpty == true
@@ -238,33 +153,49 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         ? rawAllowed
         : (isAdminUser ? allEnterpriseModules.map((m) => m.route).toList() : const ['/stitching-sewing', '/store']);
 
-    final visibleModules = allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList();
+    final visibleModules = (rawAllowed.isNotEmpty && !rawAllowed.contains('/modules'))
+        ? allEnterpriseModules.where((m) => _isModuleAllowed(m.route, allowed)).toList()
+        : allEnterpriseModules;
 
     final operatingUnitsCount = visibleModules.length;
-    final canHeads = _canAccessDepartmentHeads(role, isSuperAdmin);
-    final canSupervisor = _canAccessSupervisor(role, isSuperAdmin);
+
+    // Search filter
+    final query = _searchQuery.toLowerCase().trim();
+    final filteredModules = query.isEmpty
+        ? visibleModules
+        : visibleModules.where((m) {
+            return m.title.toLowerCase().contains(query) ||
+                m.subtitle.toLowerCase().contains(query) ||
+                m.badge.toLowerCase().contains(query) ||
+                m.statusText.toLowerCase().contains(query) ||
+                m.features.any((f) => f.toLowerCase().contains(query));
+          }).toList();
+
+    final headingSubtitle = resolvedCompany.isNotEmpty
+        ? 'Central manufacturing execution and floor operations hub for $resolvedCompany'
+        : 'Central manufacturing execution hub across ${visibleModules.length == allEnterpriseModules.length ? 'all 11 apparel production divisions' : 'your authorized division modules'}';
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: DesignTokens.canvasCream, // Warm Canvas Background (#FAF7F0)
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/modules'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ==========================================
-            // LAYER 2: ENCAPSULATED TOP HEADER CARD
+            // 1. PAGE HEADER CARD (Matching Web Admin)
             // ==========================================
-              Container(
-              padding: const EdgeInsets.all(20),
+            Container(
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: DesignTokens.cardWhite,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: DesignTokens.standardBorder, width: 1),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x06000000),
@@ -279,48 +210,66 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 48x48px Icon Container with #FAF7F0 bg
+                      // 44x44 Icon Box with #F0FDFA bg and subtle border
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: DesignTokens.canvasCream,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x14000000)),
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
                         child: const Center(
-                          child: Icon(Icons.grid_view_rounded, color: DesignTokens.brandSteel, size: 22),
+                          child: Icon(
+                            Icons.grid_view_rounded,
+                            color: Color(0xFF0B1220),
+                            size: 22,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Enterprise Workspace\nHub',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 21,
-                                fontWeight: FontWeight.w800,
-                                color: DesignTokens.foregroundInk,
-                                height: 1.18,
-                                letterSpacing: -0.5,
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: resolvedCompany.isNotEmpty ? 'Welcome, ' : 'Enterprise ',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF0B1220),
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: resolvedCompany.isNotEmpty ? resolvedCompany : 'Workspace Hub',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF1D4ED8),
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: DesignTokens.canvasCream,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0x14000000)),
+                                color: const Color(0xFFF0FDFA),
+                                borderRadius: BorderRadius.circular(9999),
+                                border: Border.all(color: const Color(0x26000000)),
                               ),
                               child: Text(
                                 '$operatingUnitsCount OPERATING UNITS',
                                 style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
-                                  color: DesignTokens.brandSteel,
+                                  color: const Color(0xFF0B1220),
                                   letterSpacing: 0.6,
                                 ),
                               ),
@@ -330,131 +279,97 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Text(
-                    'Central manufacturing execution hub across your authorized division modules',
+                    headingSubtitle,
                     style: GoogleFonts.publicSans(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                      color: DesignTokens.mutedInk,
-                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF64748B),
+                      height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // Button Row: Primary filled "Department heads" (role-gated) + Outline "Company profile"
-                  Row(
-                    children: [
-                      if (canHeads) ...[
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const DepartmentHeadsScreen()),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: DesignTokens.brandSteel,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.verified_user_outlined, size: 15, color: Colors.white),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Department Heads',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                  // Search Bar
+                  Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        const Icon(
+                          Icons.search,
+                          size: 18,
+                          color: Color(0xFF94A3B8),
                         ),
                         const SizedBox(width: 8),
-                      ],
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: DesignTokens.canvasCream,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x18000000)),
-                          ),
-                          child: Text(
-                            'Company Profile',
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (val) {
+                              setState(() {
+                                _searchQuery = val;
+                              });
+                            },
                             style: GoogleFonts.publicSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.bold,
-                              color: DesignTokens.brandSteel,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF0B1220),
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search modules & divisions...',
+                              hintStyle: GoogleFonts.publicSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Standalone Sign out button matching Web screenshot
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: _showSignOutConfirmDialog,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x22000000)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.logout_rounded, size: 15, color: Color(0xFF0F172A)),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Sign Out',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
+                        if (_searchQuery.isNotEmpty)
+                          InkWell(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(6),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Color(0xFF64748B),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // ==========================================
-            // LAYER 3: FLOOR SUPERVISOR OPERATIONS HUB CARD (Role-Gated)
+            // 2. EQUALIZED MODULE CARDS GRID
             // ==========================================
-            if (canSupervisor) ...[
+            if (filteredModules.isEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: DesignTokens.cardWhite,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: DesignTokens.standardBorder, width: 1),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x06000000),
@@ -464,248 +379,271 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: DesignTokens.canvasCream,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0x14000000)),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.build_rounded, color: DesignTokens.brandSteel, size: 20),
-                          ),
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDFA),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0x26000000)),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.search,
+                          size: 24,
+                          color: Color(0xFF94A3B8),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Floor Supervisor Operations &\nAbsentee Override Hub',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: DesignTokens.foregroundInk,
-                                  height: 1.25,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: DesignTokens.badgeExecutiveBg, // Amber badge
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: DesignTokens.badgeExecutiveBorder),
-                                ),
-                                child: Text(
-                                  'EXECUTIVE CONTROL',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: DesignTokens.badgeExecutiveText,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Direct access to Lineman lines, Mending verification, QC inspection, Store issuance, and Dispatch gates.',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: DesignTokens.mutedInk,
-                        height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    Row(
+                    Text(
+                      'No modules found',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'No operating unit matched "$_searchQuery". Try a different search keyword.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF64748B),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1D4ED8),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x331D4ED8),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Clear Search',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              ...filteredModules.map((mod) {
+                final isLaunching = _launchingId == mod.id;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: isLaunching ? const Color(0xFFF0FDFA).withValues(alpha: 0.4) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
+                      width: isLaunching ? 1.5 : 1.0,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
+                        // Row 1: Bare Outline Icon (left) + Category Tag (right)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0FDFA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0x26000000)),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  mod.icon,
+                                  color: const Color(0xFF0B1220),
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                              decoration: BoxDecoration(
+                                color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFF0FDFA),
+                                borderRadius: BorderRadius.circular(9999),
+                                border: Border.all(
+                                  color: isLaunching ? const Color(0xFF0B1220) : const Color(0x26000000),
+                                ),
+                              ),
+                              child: Text(
+                                isLaunching ? 'OPENING...' : mod.badge,
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: isLaunching ? Colors.white : const Color(0xFF0B1220),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Module Title (Bold Plus Jakarta Sans)
+                        Text(
+                          mod.title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Subtitle
+                        Text(
+                          mod.subtitle,
+                          style: GoogleFonts.publicSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF64748B),
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // 2 Feature Bullets
+                        Column(
+                          children: mod.features.take(2).map((feat) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0B1220).withValues(alpha: 0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      feat,
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF334155),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
-                          },
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Launch Button (Royal Blue full width)
+                        InkWell(
+                          onTap: isLaunching ? null : () => _handleLaunch(mod),
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            width: double.infinity,
+                            height: 44,
                             decoration: BoxDecoration(
-                              color: DesignTokens.brandSteel,
+                              color: const Color(0xFF1D4ED8),
                               borderRadius: BorderRadius.circular(12),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x2E1D4ED8),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                  'Open Floor Stations',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
+                                if (isLaunching) ...[
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Opening...',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    'Launch',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 16,
                                     color: Colors.white,
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                                ],
                               ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+                  ),
+                );
+              }),
             ],
-
-            // ==========================================
-            // LAYER 4: EQUALIZED MODULAR DIVISION CARDS
-            // ==========================================
-            ...visibleModules.map((mod) {
-              final isLaunching = _launchingId == mod.id;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: isLaunching ? const Color(0xFFFAF7F0) : DesignTokens.cardWhite,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isLaunching ? DesignTokens.brandSteel : DesignTokens.standardBorder,
-                    width: isLaunching ? 1.8 : 1.0,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: isLaunching ? null : () => _handleLaunch(mod),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Top Row: Module Icon (left) + Category Badge (right)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0x14000000)),
-                                ),
-                                child: Icon(
-                                  mod.icon,
-                                  color: isLaunching ? Colors.white : DesignTokens.brandSteel,
-                                  size: 22,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                                decoration: BoxDecoration(
-                                  color: isLaunching ? DesignTokens.brandSteel : DesignTokens.canvasCream,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0x14000000)),
-                                ),
-                                child: Text(
-                                  isLaunching ? 'OPENING...' : mod.badge,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: isLaunching ? Colors.white : DesignTokens.mutedInk,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Module Title (Bold Plus Jakarta Sans)
-                          Text(
-                            mod.title,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: isLaunching ? DesignTokens.brandSteel : DesignTokens.foregroundInk,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-
-                          // One-line Plain Description
-                          Text(
-                            mod.subtitle,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w400,
-                              color: DesignTokens.mutedInk,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Bullet Highlights
-                          Column(
-                            children: mod.features.map((feat) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 6.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF94A3B8),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        feat,
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF334155),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
 
             const SizedBox(height: 60),
           ],
@@ -723,11 +661,11 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: DesignTokens.canvasCream,
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: DesignTokens.standardBorder),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
-                    child: const Icon(Icons.smart_toy_rounded, color: DesignTokens.brandSteel, size: 20),
+                    child: const Icon(Icons.smart_toy_rounded, color: Color(0xFF0B1220), size: 20),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -735,14 +673,14 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: DesignTokens.foregroundInk,
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ],
               ),
               content: Text(
                 'Active Plant Intelligence is monitoring shop-floor execution throughput and trims consumption across authorized divisions.',
-                style: GoogleFonts.publicSans(fontSize: 13, color: DesignTokens.mutedInk, height: 1.4),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
               ),
               actions: [
                 TextButton(
@@ -752,7 +690,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                     style: GoogleFonts.publicSans(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: DesignTokens.brandSteel,
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ),
@@ -762,9 +700,9 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: DesignTokens.brandSteel,
+            color: const Color(0xFF0B1220),
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(
@@ -781,13 +719,13 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  const Icon(Icons.smart_toy_outlined, color: Color(0xFFFAF7F0), size: 20),
+                  const Icon(Icons.smart_toy_outlined, color: Color(0xFFFAF7F0), size: 18),
                   Positioned(
                     top: -2,
                     right: -2,
                     child: Container(
-                      width: 8,
-                      height: 8,
+                      width: 7,
+                      height: 7,
                       decoration: const BoxDecoration(
                         color: Color(0xFF10B981),
                         shape: BoxShape.circle,
@@ -800,7 +738,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               Text(
                 'Zigza AI',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                   letterSpacing: -0.2,
