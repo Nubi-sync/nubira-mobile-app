@@ -14,6 +14,8 @@ import '../store/screens/central_store_godown_screen.dart';
 import '../dispatch/screens/dispatch_logistics_hub_screen.dart';
 import '../admin/screens/reports_screen.dart';
 import '../merchandising/screens/active_buyers_screen.dart';
+import '../modules/screens/department_heads_screen.dart';
+import '../design/screens/sa_design_approvals_screen.dart';
 import 'services/plant_operations_dashboard_service.dart';
 
 class PlantOperationsDashboardScreen extends ConsumerStatefulWidget {
@@ -88,6 +90,182 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
+  final GlobalKey _createButtonKey = GlobalKey();
+
+  void _showQuickActionsMenu(BuildContext context) {
+    final RenderBox? renderBox = _createButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final size = renderBox?.size ?? const Size(54, 34);
+    final offset = renderBox?.localToGlobal(Offset.zero) ?? const Offset(200, 50);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx - 170,
+        offset.dy + size.height + 8,
+        MediaQuery.of(context).size.width - offset.dx - size.width,
+        0,
+      ),
+      color: Colors.white,
+      elevation: 10,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+      ),
+      items: <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 28,
+          child: Text(
+            'QUICK ACTIONS',
+            style: GoogleFonts.publicSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF94A3B8),
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        PopupMenuItem<String>(
+          value: 'appoint_head',
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DepartmentHeadsScreen()),
+                );
+              }
+            });
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.people_outline_rounded, color: Color(0xFF10B981), size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Appoint Department Head',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'review_approvals',
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SADesignApprovalsScreen()),
+                );
+              }
+            });
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome_outlined, color: Color(0xFF1D4ED8), size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Review Design Approvals',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'cutting_floor',
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CuttingLayFloorScreen()),
+                );
+              }
+            });
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.content_cut_rounded, color: Color(0xFF64748B), size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Open Cutting Floor',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'sewing_dashboard',
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                );
+              }
+            });
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.layers_outlined, color: Color(0xFF64748B), size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Open Sewing Dashboard',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        PopupMenuItem<String>(
+          value: 'company_profile',
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                );
+              }
+            });
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.business_outlined, color: Color(0xFF64748B), size: 18),
+              const SizedBox(width: 10),
+              Text(
+                'Company Profile & Units',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   PreferredSizeWidget _buildTopBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
@@ -100,13 +278,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       leading: Center(
         child: InkWell(
           onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
@@ -141,60 +319,89 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         ],
       ),
       actions: [
-        // Quick Add Button
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
+        // Royal Blue + v Quick Add Button
+        Center(
           child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-              );
-            },
-            borderRadius: BorderRadius.circular(8),
+            key: _createButtonKey,
+            onTap: () => _showQuickActionsMenu(context),
+            borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0xFF0B1220),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFF1D4ED8), // Vibrant Royal Blue
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.add_rounded, color: Colors.white, size: 14),
-                  const SizedBox(width: 2),
-                  const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 14),
+                children: const [
+                  Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 3),
+                  Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
                 ],
               ),
             ),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
 
-        // Notification Bell
-        IconButton(
-          icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF0B1220), size: 20),
-          tooltip: 'Notifications',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CuttingNotificationsScreen()),
-            );
-          },
-        ),
-
-        // Profile Avatar
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          child: IconButton(
-            icon: const Icon(Icons.person_outline_rounded, color: Color(0xFF0B1220), size: 20),
-            tooltip: 'Profile',
-            onPressed: () {
+        // Mint Tint Notification Bell
+        Center(
+          child: InkWell(
+            onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                MaterialPageRoute(builder: (_) => const CuttingNotificationsScreen()),
               );
             },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDFA), // Light Mint Tint
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
+              ),
+              child: const Center(
+                child: Icon(Icons.notifications_none_rounded, color: Color(0xFF0B1220), size: 19),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Mint Tint Profile Avatar
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA), // Light Mint Tint
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
+                ),
+                child: const Center(
+                  child: Icon(Icons.person_outline_rounded, color: Color(0xFF0B1220), size: 19),
+                ),
+              ),
+            ),
           ),
         ),
       ],
