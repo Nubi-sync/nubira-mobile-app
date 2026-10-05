@@ -108,8 +108,12 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           onTap: () {
             WidgetsBinding.instance.addPostFrameCallback((_) async {
               if (context.mounted) {
-                final companyName = ref.read(supervisorWorkersProvider).companyName;
-                final result = await AppointDepartmentHeadScreen.show(context, companyName: companyName);
+                final state = ref.read(supervisorWorkersProvider);
+                final result = await AppointDepartmentHeadScreen.show(
+                  context,
+                  companyName: state.companyName,
+                  allowedDivisions: state.divisions.map((d) => d.route).toList(),
+                );
                 if (result == true) {
                   ref.read(supervisorWorkersProvider.notifier).fetchData();
                   _showToast('Department Head appointed successfully');

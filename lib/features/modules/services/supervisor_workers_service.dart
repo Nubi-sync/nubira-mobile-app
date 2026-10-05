@@ -442,6 +442,47 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
         }
       }
 
+      // 3. Resolve configured / purchased divisions for this tenant account (Strictly matching Web Admin)
+      List<String> allowedRoutes = [];
+      if (tenant != null && tenant.allowedDivisions.isNotEmpty) {
+        allowedRoutes = List<String>.from(tenant.allowedDivisions);
+      } else if (authState.allowedDivisions.isNotEmpty) {
+        allowedRoutes = List<String>.from(authState.allowedDivisions);
+      }
+
+      if (allowedRoutes.isEmpty && ownerEmail.isNotEmpty) {
+        try {
+          final factoryRes = await client
+              .from('platform_tenant_factories')
+              .select('allowed_divisions')
+              .or('admin_email.ilike.$ownerEmail,company_name.ilike.$companyName')
+              .limit(1)
+              .maybeSingle();
+          if (factoryRes != null && factoryRes['allowed_divisions'] is List) {
+            allowedRoutes = (factoryRes['allowed_divisions'] as List).map((e) => e.toString()).toList();
+          }
+        } catch (_) {}
+      }
+
+      bool isRouteAllowed(String route) {
+        if (allowedRoutes.isEmpty) return true;
+        if (allowedRoutes.contains('/platform-admin') || allowedRoutes.contains('*')) return true;
+        if (allowedRoutes.contains(route)) return true;
+        if ((route == '/fabric-store' || route == '/store') &&
+            (allowedRoutes.contains('/fabric-store') || allowedRoutes.contains('/store'))) {
+          return true;
+        }
+        if ((route == '/stitching' || route == '/stitching-sewing') &&
+            (allowedRoutes.contains('/stitching') || allowedRoutes.contains('/stitching-sewing'))) {
+          return true;
+        }
+        return false;
+      }
+
+      final List<DivisionDef> activeDivisions = (allowedRoutes.isEmpty || allowedRoutes.contains('/platform-admin'))
+          ? kAllDefaultDivisions
+          : kAllDefaultDivisions.where((d) => isRouteAllowed(d.route)).toList();
+
       state = state.copyWith(
         companyName: companyName,
         ownerName: authState.cachedUsername ?? 'Company Owner',
@@ -449,7 +490,7 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
         ownerPhone: tenant?.phone ?? '9876543210',
         productionManagers: pms,
         departmentHeads: heads,
-        divisions: kAllDefaultDivisions,
+        divisions: activeDivisions.isNotEmpty ? activeDivisions : kAllDefaultDivisions,
         workers: workers,
         isLoading: false,
       );
