@@ -13,6 +13,7 @@ import '../../design/screens/design_studio_screen.dart';
 import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/ph_settings_screen.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
+import '../../design/screens/sa_design_approvals_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../merchandising/screens/active_buyers_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
@@ -1365,8 +1366,8 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           context: context,
           icon: Icons.checkroom_outlined,
           title: 'All Designs',
-          isActive: activeRoute == '/design' || activeRoute == '/all-designs',
-          onTap: () => _navigateTo(context, const DesignStudioScreen()),
+          isActive: activeRoute == '/all-designs' || activeRoute == '/design/sa-approvals',
+          onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
         ),
         _buildNavItem(
           context: context,
