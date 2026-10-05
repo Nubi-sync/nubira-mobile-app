@@ -267,7 +267,11 @@ class CuttingNotifier extends StateNotifier<CuttingState> {
       // 3. Fetch Active Buyers & Orders from Database
       List<ActiveBuyer> buyersList = [];
       try {
-        final bRes = await client.from('merchandising_active_buyers').select('*').order('created_at', ascending: false);
+        var bQuery = client.from('merchandising_active_buyers').select('*');
+        if (companyFilter != null && companyFilter.isNotEmpty) {
+          bQuery = bQuery.eq('company_name', companyFilter);
+        }
+        final bRes = await bQuery.order('created_at', ascending: false);
         final rawB = (bRes as List<dynamic>?) ?? [];
         if (rawB.isNotEmpty) {
           var mappedB = rawB.map((b) => ActiveBuyer.fromJson(b as Map<String, dynamic>)).toList();
