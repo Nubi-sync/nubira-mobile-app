@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../main.dart';
 import '../../../core/services/tenant_resolver_service.dart';
 
@@ -409,9 +410,69 @@ class PlantLinemanGroup {
   });
 }
 
+class TrendBarItem {
+  final String label;
+  final int planned;
+  final int production;
+  final int delivered;
+  final int dateVal;
+
+  TrendBarItem({
+    required this.label,
+    required this.planned,
+    required this.production,
+    required this.delivered,
+    required this.dateVal,
+  });
+}
+
+class OrderStatusSegment {
+  final String key;
+  final String label;
+  final int count;
+  final int colorHex;
+  final int pct;
+
+  OrderStatusSegment({
+    required this.key,
+    required this.label,
+    required this.count,
+    required this.colorHex,
+    required this.pct,
+  });
+}
+
+class CategoryVolumeItem {
+  final String label;
+  final int count;
+  final int colorHex;
+
+  CategoryVolumeItem({
+    required this.label,
+    required this.count,
+    required this.colorHex,
+  });
+}
+
+class TopRunningStyleItem {
+  final String artNo;
+  final String description;
+  final int orderQty;
+  final int producedQty;
+
+  TopRunningStyleItem({
+    required this.artNo,
+    required this.description,
+    required this.orderQty,
+    required this.producedQty,
+  });
+}
+
 /// Aggregated metrics computed exactly identical to web dashboard
 class PlantOperationsMetrics {
   final int totalStocks;
+  final int unallottedStocks;
+  final int totalOrderPipeline;
   final int goodsInLine;
   final int mendingChecking;
   final int mendingFloorPcs;
@@ -425,9 +486,14 @@ class PlantOperationsMetrics {
   final int mendingPct;
   final int readyPct;
   final int deliveryPct;
+  final int totalProduced;
+  final int totalQCPassed;
+  final int totalDispatched;
 
   PlantOperationsMetrics({
     this.totalStocks = 0,
+    this.unallottedStocks = 0,
+    this.totalOrderPipeline = 0,
     this.goodsInLine = 0,
     this.mendingChecking = 0,
     this.mendingFloorPcs = 0,
@@ -441,6 +507,9 @@ class PlantOperationsMetrics {
     this.mendingPct = 0,
     this.readyPct = 0,
     this.deliveryPct = 0,
+    this.totalProduced = 0,
+    this.totalQCPassed = 0,
+    this.totalDispatched = 0,
   });
 }
 
@@ -458,6 +527,12 @@ class PlantOperationsData {
   final List<PlantStoreItem> storeTransactions;
   final List<PlantDispatchItem> dispatches;
   final List<PlantLinemanGroup> linemanGroups;
+  final List<TrendBarItem> monthlyTrend;
+  final List<TrendBarItem> weeklyTrend;
+  final List<OrderStatusSegment> orderStatusSegments;
+  final List<CategoryVolumeItem> categoryProduction;
+  final String primarySegmentText;
+  final List<TopRunningStyleItem> topRunningStyles;
 
   PlantOperationsData({
     this.articles = const [],
@@ -472,7 +547,44 @@ class PlantOperationsData {
     this.storeTransactions = const [],
     this.dispatches = const [],
     this.linemanGroups = const [],
+    this.monthlyTrend = const [],
+    this.weeklyTrend = const [],
+    this.orderStatusSegments = const [],
+    this.categoryProduction = const [],
+    this.primarySegmentText = '',
+    this.topRunningStyles = const [],
   }) : metrics = metrics ?? PlantOperationsMetrics();
+}
+
+/// Helper to clean description
+String cleanDesc(String? d) {
+  if (d == null) return '';
+  return d.replaceAll(RegExp(r'\s*\[.*\]'), '').trim();
+}
+
+/// Helper to extract dynamic category from article & challan
+String extractCategory(PlantArticleItem? art, PlantChallanItem? ch) {
+  if (art?.sizeRates != null && art!.sizeRates!['category'] is String && (art.sizeRates!['category'] as String).trim().isNotEmpty) {
+    return (art.sizeRates!['category'] as String).trim();
+  }
+  final d = cleanDesc(art?.description);
+  if (d.isNotEmpty) {
+    final parts = d.split(RegExp(r'[-•:\/|]'));
+    final first = parts[0].trim();
+    if (first.isNotEmpty && !RegExp(r'^[0-9]+$').hasMatch(first) && first.length >= 2) {
+      final cleaned = first.replaceAll(RegExp(r'^(art|article|style|no|#)?\s*[0-9A-Z_-]+\s*[-•:]*\s*', caseSensitive: false), '').trim();
+      if (cleaned.length >= 2 && int.tryParse(cleaned) == null) {
+        return cleaned;
+      }
+      if (int.tryParse(first) == null) {
+        return first;
+      }
+    }
+  }
+  if (ch?.fabricType != null && ch!.fabricType!.trim().isNotEmpty) {
+    return ch.fabricType!.trim();
+  }
+  return 'General';
 }
 
 /// Primary Riverpod Provider for Plant Operations Control Center
@@ -488,7 +600,16 @@ final plantOperationsProvider =
     } catch (_) {}
   }
   final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-  final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+  final email = (currentUser?.email ?? '').toLowerCase();
+  final compName = (tenant?.companyName ?? '').toLowerCase();
+  final isCustomPlant = isPlatformSuper ||
+      compName.contains('nubira') ||
+      email.contains('nubira') ||
+      email == 'aj@nubiracreation.com' ||
+      email == 'team.anga9@gmail.com' ||
+      email == 'admin@zigza.in';
+
+  final targetComp = (!isPlatformSuper && !isCustomPlant && tenant != null && tenant.companyName.trim().isNotEmpty)
       ? tenant.companyName.trim().toLowerCase()
       : null;
 
@@ -511,34 +632,34 @@ final plantOperationsProvider =
       profiles:lineman_id ( id, username ),
       articles:article_id ( id, art_no, description, size_rates, stitching_rate ),
       challans:challan_id ( id, challan_no, brand, fabric_type )
-    ''').order('created_at', ascending: false).limit(200),
+    ''').order('created_at', ascending: false).limit(300),
 
     // 2: Challans
-    supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
+    supabase.from('challans').select('*').order('created_at', ascending: false).limit(200),
 
     // 3: Variants
-    supabase.from('allotment_variants').select('*').limit(500),
+    supabase.from('allotment_variants').select('*').limit(1000),
 
     // 4: Daily Product (Production WIP)
     supabase.from('daily_product').select('''
       id, quantity, entry_date, created_at, article_id, lineman_id,
       article:article_id ( id, art_no, description )
-    ''').order('created_at', ascending: false).limit(200),
+    ''').order('created_at', ascending: false).limit(300),
 
     // 5: QC Logs
     supabase.from('qc_logs').select('''
       id, qty_passed, qty_rejected, stage, defect_type, entry_date, created_at, article_id,
       article:article_id ( id, art_no, description )
-    ''').order('created_at', ascending: false).limit(200),
+    ''').order('created_at', ascending: false).limit(300),
 
     // 6: Store Transactions
     supabase.from('store_transactions').select('''
       id, type, quantity, party_name, created_at,
       article:article_id ( art_no, description )
-    ''').order('created_at', ascending: false).limit(200),
+    ''').order('created_at', ascending: false).limit(300),
 
     // 7: Delivery Challans (Dispatches)
-    supabase.from('delivery_challans').select('*').order('created_at', ascending: false).limit(100),
+    supabase.from('delivery_challans').select('*').order('created_at', ascending: false).limit(200),
   ]);
 
   var articlesRaw = (results[0] as List?) ?? [];
@@ -552,10 +673,8 @@ final plantOperationsProvider =
 
   if (targetComp != null && targetComp.isNotEmpty) {
     challansRaw = challansRaw.where((ch) {
-      final brand = (ch['brand']?.toString() ?? '').toLowerCase();
-      final notes = (ch['notes']?.toString() ?? '').toLowerCase();
       final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
-      return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      return comp == targetComp || comp.contains(targetComp);
     }).toList();
 
     final scopedChallanIds = challansRaw.map((c) => c['id']?.toString()).toSet();
@@ -563,32 +682,27 @@ final plantOperationsProvider =
     allotmentsRaw = allotmentsRaw.where((al) {
       final chId = al['challan_id']?.toString();
       if (chId != null && scopedChallanIds.contains(chId)) return true;
-      final ch = al['challans'] as Map?;
-      final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
       final comp = (al['company_name']?.toString() ?? '').toLowerCase();
-      return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      return comp == targetComp || comp.contains(targetComp);
     }).toList();
 
     articlesRaw = articlesRaw.where((art) {
-      final desc = (art['description']?.toString() ?? '').toLowerCase();
       final rates = art['size_rates'];
       String rateComp = '';
       if (rates is Map) {
         rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
       }
-      return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+      return rateComp == targetComp || rateComp.contains(targetComp);
     }).toList();
 
     storeRaw = storeRaw.where((s) {
-      final party = (s['party_name']?.toString() ?? '').toLowerCase();
       final comp = (s['company_name']?.toString() ?? '').toLowerCase();
-      return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      return comp == targetComp || comp.contains(targetComp);
     }).toList();
 
     dispatchRaw = dispatchRaw.where((d) {
-      final party = (d['buyer_name']?.toString() ?? d['party_name']?.toString() ?? d['brand']?.toString() ?? '').toLowerCase();
       final comp = (d['company_name']?.toString() ?? '').toLowerCase();
-      return party == targetComp || party.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+      return comp == targetComp || comp.contains(targetComp);
     }).toList();
   }
 
@@ -687,7 +801,7 @@ final plantOperationsProvider =
       .where((al) => al.status != 'CANCELLED')
       .fold<int>(0, (sum, al) => sum + al.targetQty);
 
-  final totalStocksBase = challanTotalPcs > totalAllotmentPcs ? challanTotalPcs : totalAllotmentPcs;
+  final totalOrderPipeline = challanTotalPcs > totalAllotmentPcs ? challanTotalPcs : totalAllotmentPcs;
 
   int totalProduced = 0;
   for (var p in filteredProd) {
@@ -718,11 +832,6 @@ final plantOperationsProvider =
     totalDispatched += (d['total_pieces'] as num?)?.toInt() ?? 0;
   }
 
-  // 6-Stage Specific Allocations
-  final stage1TotalStocks = totalStocksBase > (totalProduced + totalDispatched)
-      ? totalStocksBase
-      : (totalProduced + totalDispatched);
-
   // Stage 2: Goods In Line
   final floorSewingAllotments = filteredAllotments.where((al) =>
       al.status != 'CANCELLED' &&
@@ -736,6 +845,11 @@ final plantOperationsProvider =
       ? (activeLinemanAllotmentPcs - totalQCPassed - totalDispatched - totalQCRejected > 0
           ? activeLinemanAllotmentPcs - totalQCPassed - totalDispatched - totalQCRejected
           : 0)
+      : 0;
+
+  // Stage 1: Unallotted Stocks (Pending Allotment Balance)
+  final stage1UnallottedStocks = (totalOrderPipeline - activeLinemanAllotmentPcs) > 0
+      ? (totalOrderPipeline - activeLinemanAllotmentPcs)
       : 0;
 
   // Stage 3: Goods in Mending & Checking
@@ -766,14 +880,16 @@ final plantOperationsProvider =
   final alterationRate = totalChecked > 0 ? ((totalQCRejected / totalChecked) * 100) : 0.0;
 
   // Conversion percentages
-  final base = stage1TotalStocks > 0 ? stage1TotalStocks : 1;
+  final base = totalOrderPipeline > 0 ? totalOrderPipeline : 1;
   final inLinePct = ((stage2GoodsInLine / base) * 100).round().clamp(0, 100);
   final mendingPct = ((stage3MendingChecking / base) * 100).round().clamp(0, 100);
   final readyPct = ((stage4ReadyGoods / base) * 100).round().clamp(0, 100);
   final deliveryPct = ((stage6ReadyDelivery / base) * 100).round().clamp(0, 100);
 
   final metrics = PlantOperationsMetrics(
-    totalStocks: stage1TotalStocks,
+    totalStocks: totalOrderPipeline,
+    unallottedStocks: stage1UnallottedStocks,
+    totalOrderPipeline: totalOrderPipeline,
     goodsInLine: stage2GoodsInLine,
     mendingChecking: stage3MendingChecking,
     mendingFloorPcs: mendingFloorPcs,
@@ -787,6 +903,9 @@ final plantOperationsProvider =
     mendingPct: mendingPct,
     readyPct: readyPct,
     deliveryPct: deliveryPct,
+    totalProduced: totalProduced,
+    totalQCPassed: totalQCPassed,
+    totalDispatched: totalDispatched,
   );
 
   // 5. Synthesize Multi-Stage Activity Stream
@@ -800,7 +919,7 @@ final plantOperationsProvider =
         id: 'prod-${p['id']}',
         type: 'PRODUCTION',
         title: 'Stitching Completed',
-        details: '${p['quantity']} pcs • ${art?['art_no'] ?? 'Article'}',
+        details: '${p['quantity']} pcs produced • Art: ${art?['art_no'] ?? 'Article'}',
         location: 'Floor Line',
         timestamp: dt,
       ),
@@ -815,7 +934,7 @@ final plantOperationsProvider =
         id: 'qc-${q['id']}',
         type: 'QC',
         title: 'QC ${(q['stage']?.toString() ?? 'Final').toUpperCase()}',
-        details: '${q['qty_passed']} passed, ${q['qty_rejected']} rejected (${art?['art_no'] ?? 'Article'})',
+        details: '${q['qty_passed']} passed, ${q['qty_rejected']} rejected • Art: ${art?['art_no'] ?? 'Article'}',
         location: 'QC Station',
         timestamp: dt,
       ),
@@ -843,7 +962,7 @@ final plantOperationsProvider =
           id: 'mending-${al.id}',
           type: 'ALLOTMENT',
           title: 'Handover to Mending Floor',
-          details: '${al.targetQty} pcs • Art ${al.articleNo} (${al.handedToMendingBy ?? 'Lineman'} → ${al.mendingSupervisorName ?? 'Mending Floor'})',
+          details: '${al.targetQty} pcs • Art: ${al.articleNo} (${al.handedToMendingBy ?? 'Lineman'} → ${al.mendingSupervisorName ?? 'Mending Floor'})',
           location: 'Mending Dept',
           timestamp: al.handedToMendingAt ?? al.createdAt,
         ),
@@ -853,8 +972,8 @@ final plantOperationsProvider =
         PlantActivityItem(
           id: 'allot-${al.id}',
           type: 'ALLOTMENT',
-          title: 'Target Allotted',
-          details: '${al.targetQty} pcs of ${al.articleNo} to ${al.linemanName}',
+          title: 'Allotted to ${al.linemanName}',
+          details: '${al.targetQty} pcs of Art: ${al.articleNo}${al.challanNo != null ? ' • Challan ${al.challanNo}' : ''}',
           location: 'Floor Line',
           timestamp: al.createdAt,
         ),
@@ -868,24 +987,177 @@ final plantOperationsProvider =
       PlantActivityItem(
         id: 'dispatch-${d['id']}',
         type: 'DISPATCH',
-        title: 'Challan #${d['challan_no']}',
-        details: '${d['buyer_name'] ?? 'Buyer'} • ${d['total_pieces']} pcs dispatched',
+        title: 'Challan ${d['challan_no']} Dispatched',
+        details: '${d['buyer_name'] ?? 'Buyer'} • ${d['total_pieces']} pcs dispatched via Gate Pass',
         location: 'Dispatch Bay',
         timestamp: dt,
       ),
     );
   }
 
-  // Sort activities reverse-chronological and filter by date if needed
+  // Sort activities reverse-chronological
   activitiesList.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-  final filteredActivities = activitiesList.where((a) => matchesDate(a.timestamp)).take(12).toList();
+  final filteredActivities = activitiesList.where((a) => matchesDate(a.timestamp)).take(20).toList();
 
-  // 6. Build Typed QC, Store, Dispatch lists matching filter
+  // 6. Production Trend Data (Monthly & Weekly)
+  final Map<String, TrendBarItem> monthlyMap = {};
+  for (var c in challans) {
+    final dt = DateTime.tryParse(c.createdAt.toString());
+    if (dt != null) {
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      final label = DateFormat('MMM yyyy').format(dt);
+      monthlyMap.putIfAbsent(key, () => TrendBarItem(label: label, planned: 0, production: 0, delivered: 0, dateVal: DateTime(dt.year, dt.month).millisecondsSinceEpoch));
+      monthlyMap[key] = TrendBarItem(label: label, planned: monthlyMap[key]!.planned + c.totalPcs, production: monthlyMap[key]!.production, delivered: monthlyMap[key]!.delivered, dateVal: monthlyMap[key]!.dateVal);
+    }
+  }
+  for (var p in prodRaw) {
+    final dt = DateTime.tryParse(p['entry_date']?.toString() ?? p['created_at']?.toString() ?? '');
+    if (dt != null) {
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      final label = DateFormat('MMM yyyy').format(dt);
+      final qty = (p['quantity'] as num?)?.toInt() ?? 0;
+      monthlyMap.putIfAbsent(key, () => TrendBarItem(label: label, planned: 0, production: 0, delivered: 0, dateVal: DateTime(dt.year, dt.month).millisecondsSinceEpoch));
+      monthlyMap[key] = TrendBarItem(label: label, planned: monthlyMap[key]!.planned, production: monthlyMap[key]!.production + qty, delivered: monthlyMap[key]!.delivered, dateVal: monthlyMap[key]!.dateVal);
+    }
+  }
+  for (var d in dispatchRaw) {
+    final dt = DateTime.tryParse(d['created_at']?.toString() ?? '');
+    if (dt != null) {
+      final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+      final label = DateFormat('MMM yyyy').format(dt);
+      final qty = (d['total_pieces'] as num?)?.toInt() ?? 0;
+      monthlyMap.putIfAbsent(key, () => TrendBarItem(label: label, planned: 0, production: 0, delivered: 0, dateVal: DateTime(dt.year, dt.month).millisecondsSinceEpoch));
+      monthlyMap[key] = TrendBarItem(label: label, planned: monthlyMap[key]!.planned, production: monthlyMap[key]!.production, delivered: monthlyMap[key]!.delivered + qty, dateVal: monthlyMap[key]!.dateVal);
+    }
+  }
+
+  if (monthlyMap.isEmpty) {
+    final now = DateTime.now();
+    final key = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final label = DateFormat('MMM yyyy').format(now);
+    monthlyMap[key] = TrendBarItem(
+      label: label,
+      planned: totalOrderPipeline,
+      production: totalProduced,
+      delivered: stage6ReadyDelivery,
+      dateVal: now.millisecondsSinceEpoch,
+    );
+  }
+
+  final monthlyTrend = monthlyMap.values.toList()..sort((a, b) => a.dateVal.compareTo(b.dateVal));
+
+  // 7. Order Status Donut Breakdown
+  final inProd = stage2GoodsInLine;
+  final deliv = stage6ReadyDelivery;
+  final mend = metrics.mendingAlterationQty + mendingFloorPcs;
+  final chk = stage3MendingChecking;
+  final rawPend = totalOrderPipeline - (inProd + deliv + mend + chk);
+  final pend = rawPend > 0 ? rawPend : 0;
+  final totalStat = (inProd + deliv + mend + chk + pend) > 0 ? (inProd + deliv + mend + chk + pend) : 1;
+
+  final orderStatusSegments = [
+    OrderStatusSegment(key: 'IN_PROD', label: 'In Production', count: inProd, colorHex: 0xFF0B1220, pct: ((inProd / totalStat) * 100).round()),
+    OrderStatusSegment(key: 'DELIVERED', label: 'Delivered', count: deliv, colorHex: 0xFF14C8B4, pct: ((deliv / totalStat) * 100).round()),
+    OrderStatusSegment(key: 'MENDING', label: 'Mending', count: mend, colorHex: 0xFFE11D48, pct: ((mend / totalStat) * 100).round()),
+    OrderStatusSegment(key: 'CHECKING', label: 'Checking', count: chk, colorHex: 0xFFD97706, pct: ((chk / totalStat) * 100).round()),
+    OrderStatusSegment(key: 'PENDING', label: 'Pending Allotment', count: pend, colorHex: 0xFF94A3B8, pct: ((pend / totalStat) * 100).round()),
+  ];
+
+  // 8. Category Production Breakdown
+  final categoryPalette = [
+    0xFF0B1220, // Obsidian
+    0xFF14C8B4, // Mint
+    0xFF1D4ED8, // Royal Blue
+    0xFFF59E0B, // Amber
+    0xFFEC4899, // Pink
+    0xFF0284C7, // Cyan
+  ];
+
+  final Map<String, int> catCountMap = {};
+  for (var al in filteredAllotments) {
+    if (al.status == 'CANCELLED') continue;
+    final art = articles.where((a) => a.id == al.articleId).firstOrNull;
+    final ch = challans.where((c) => c.id == al.challanId).firstOrNull;
+    final cat = extractCategory(art, ch);
+    catCountMap[cat] = (catCountMap[cat] ?? 0) + al.targetQty;
+  }
+
+  for (var ch in challans) {
+    final cat = extractCategory(null, ch);
+    if (cat != 'General') {
+      catCountMap.putIfAbsent(cat, () => 0);
+      if (catCountMap[cat] == 0 && ch.totalPcs > 0) {
+        catCountMap[cat] = ch.totalPcs;
+      }
+    }
+  }
+
+  if (catCountMap.isEmpty) {
+    for (var art in articles) {
+      final cat = extractCategory(art, null);
+      catCountMap.putIfAbsent(cat, () => 0);
+    }
+  }
+
+  final sortedCats = catCountMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final categoryProduction = <CategoryVolumeItem>[];
+  for (int i = 0; i < sortedCats.length && i < 6; i++) {
+    categoryProduction.add(CategoryVolumeItem(
+      label: sortedCats[i].key,
+      count: sortedCats[i].value,
+      colorHex: categoryPalette[i % categoryPalette.length],
+    ));
+  }
+
+  final catTotal = categoryProduction.fold<int>(0, (s, c) => s + c.count);
+  final topCat = categoryProduction.isNotEmpty ? categoryProduction.first : null;
+  final topPct = (topCat != null && catTotal > 0) ? ((topCat.count / catTotal) * 100).round() : 0;
+  final primarySegmentText = topCat != null ? '${topCat.label} ($topPct%)' : 'All Items';
+
+  // 9. Top Running Styles
+  final Map<String, TopRunningStyleItem> styleMap = {};
+  for (var art in articles) {
+    final aNo = art.artNo.trim();
+    if (aNo.isNotEmpty && !styleMap.containsKey(aNo)) {
+      styleMap[aNo] = TopRunningStyleItem(
+        artNo: aNo,
+        description: cleanDesc(art.description),
+        orderQty: 0,
+        producedQty: 0,
+      );
+    }
+  }
+
+  for (var al in filteredAllotments) {
+    if (al.status == 'CANCELLED') continue;
+    final aNo = al.articleNo.trim();
+    if (styleMap.containsKey(aNo)) {
+      final cur = styleMap[aNo]!;
+      styleMap[aNo] = TopRunningStyleItem(
+        artNo: aNo,
+        description: cur.description.isNotEmpty ? cur.description : cleanDesc(al.articleDescription),
+        orderQty: cur.orderQty + al.targetQty,
+        producedQty: cur.producedQty,
+      );
+    } else {
+      styleMap[aNo] = TopRunningStyleItem(
+        artNo: aNo,
+        description: cleanDesc(al.articleDescription),
+        orderQty: al.targetQty,
+        producedQty: 0,
+      );
+    }
+  }
+
+  final topRunningStyles = styleMap.values.where((s) => s.orderQty > 0 || s.producedQty > 0).toList()
+    ..sort((a, b) => b.orderQty.compareTo(a.orderQty));
+
+  // 10. Typed QC, Store, Dispatch
   final qcLogs = filteredQC.map((q) => PlantQCItem.fromJson(q)).toList();
   final storeTransactions = filteredStore.map((s) => PlantStoreItem.fromJson(s)).toList();
   final dispatches = filteredDispatch.map((d) => PlantDispatchItem.fromJson(d)).toList();
 
-  // 7. Group Goods In Line by Lineman (matching web)
+  // 11. Group Goods In Line by Lineman
   final Map<String, List<PlantAllotmentItem>> linemanMap = {};
   for (var al in floorSewingAllotments) {
     final key = (al.linemanId != null && al.linemanId!.isNotEmpty) ? al.linemanId! : al.linemanName;
@@ -921,7 +1193,6 @@ final plantOperationsProvider =
     );
   });
 
-  // Sort lineman groups by total pieces descending
   linemanGroups.sort((a, b) => b.totalPcs.compareTo(a.totalPcs));
 
   return PlantOperationsData(
@@ -937,6 +1208,12 @@ final plantOperationsProvider =
     storeTransactions: storeTransactions,
     dispatches: dispatches,
     linemanGroups: linemanGroups,
+    monthlyTrend: monthlyTrend,
+    weeklyTrend: const [],
+    orderStatusSegments: orderStatusSegments,
+    categoryProduction: categoryProduction,
+    primarySegmentText: primarySegmentText,
+    topRunningStyles: topRunningStyles.take(5).toList(),
   );
 });
 
