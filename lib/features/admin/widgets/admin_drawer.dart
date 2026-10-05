@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
 import '../screens/employees_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
 import '../screens/profile_screen.dart';
-import '../screens/dispatch_screen.dart';
 import '../../dashboard/store_dashboard.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/screens/supervisor_floor_stations_screen.dart';
@@ -23,45 +21,76 @@ class AdminDrawer extends ConsumerWidget {
     required this.onTabSelected,
   });
 
+  String _getUserInitials(String email, String? username) {
+    if (username != null && username.trim().isNotEmpty) {
+      final parts = username.trim().split(RegExp(r'\s+'));
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      return username.trim().substring(0, username.trim().length >= 2 ? 2 : 1).toUpperCase();
+    }
+    if (email.isNotEmpty) {
+      final prefix = email.split('@').first;
+      if (prefix.toLowerCase() == 'aj') return 'AJ';
+      if (prefix.length >= 2) return prefix.substring(0, 2).toUpperCase();
+      return prefix.toUpperCase();
+    }
+    return 'AJ';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final tenant = authState.tenantProfile;
-    final isCustom = tenant?.isCustomStitching ?? true;
+    final userEmail = tenant?.userEmail ?? authState.cachedUsername ?? 'aj@nubiracreation.com';
+    final userInitials = _getUserInitials(userEmail, authState.cachedUsername);
+    final roleLabel = (tenant?.role != null && tenant!.role.isNotEmpty)
+        ? (tenant.role.toUpperCase() == 'ADMIN' || tenant.role.toUpperCase() == 'SUPERADMIN'
+            ? 'Super Admin'
+            : tenant.role)
+        : 'Super Admin';
 
     return Drawer(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
       child: SafeArea(
         child: Column(
           children: [
-            // Header
+            // ========================================================
+            // 1. TOP HEADER (100% Web Parity)
+            // ========================================================
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: const BoxDecoration(
-                color: AppTheme.card,
-                border: Border(bottom: BorderSide(color: AppTheme.border, width: 1)),
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset(
-                    'assets/images/icon.png',
-                    width: 38,
-                    height: 38,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      'assets/images/new_icon.png',
-                      width: 38,
-                      height: 38,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Image.asset(
-                          'assets/images/z_i_g_z_a.png',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/icon.png',
+                        height: 28,
+                        width: 28,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/new_icon.png',
+                          height: 28,
+                          width: 28,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset(
+                        'assets/images/z_i_g_z_a.png',
+                        height: 20,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/zigza_new_logo.png',
                           height: 20,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => Text(
@@ -69,88 +98,323 @@ class AdminDrawer extends ConsumerWidget {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
-                              color: AppTheme.ink,
+                              color: const Color(0xFF0B1220),
                               letterSpacing: 0.5,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(
-                                color: AppTheme.green,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(
-                                authState.cachedUsername ?? (isCustom ? 'Nubira Custom Suite' : 'Standard Sewing'),
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.inkSoft,
-                                ),
-                              ),
-                            ),
-                          ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                         ),
-                      ],
-                    ),
+                        child: Text(
+                          'ERP MES',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // Navigation Items List
+            // ========================================================
+            // 2. NAVIGATION ITEMS LIST (100% Web Parity)
+            // ========================================================
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                children: isCustom
-                    ? _buildCustomNavItems(context)
-                    : _buildBasicNavItems(context),
+                children: [
+                  // SECTION: WORKSPACE HUB
+                  _buildSectionHeader('WORKSPACE HUB'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.grid_view_outlined,
+                    title: 'All Modules',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+                  // SECTION: 6. SEWING OPERATIONS
+                  _buildSectionHeader('6. SEWING OPERATIONS'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.grid_view_rounded,
+                    title: 'Floor Dashboard',
+                    isSelected: activeIndex == 0,
+                    onTap: () {
+                      Navigator.pop(context);
+                      onTabSelected(0);
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notification',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No new stitching floor alerts')),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.handyman_outlined,
+                    title: 'Supervisor Desk',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.storefront_outlined,
+                    title: 'Store Dashboard',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StoreDashboard()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.smart_toy_outlined,
+                    title: 'Zigza AI',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Zigza AI Sewing Copilot is active on the floor')),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+                  // SECTION: PRODUCTION
+                  _buildSectionHeader('PRODUCTION'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.layers_outlined,
+                    title: 'Production Chart',
+                    isSelected: activeIndex == 1,
+                    onTap: () {
+                      Navigator.pop(context);
+                      onTabSelected(1);
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+                  // SECTION: MANAGE
+                  _buildSectionHeader('MANAGE'),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.person_outline_rounded,
+                    title: 'Profile',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.apartment_outlined,
+                    title: 'Brands & Vendors',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.people_outline_rounded,
+                    title: 'Employees',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EmployeesScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.sell_outlined,
+                    title: 'Articles',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ArticlesScreen()),
+                      );
+                    },
+                  ),
+                  _buildDrawerItem(
+                    context: context,
+                    icon: Icons.description_outlined,
+                    title: 'Reports & Analytics',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
 
-            // Logout Footer
+            // ========================================================
+            // 3. BOTTOM USER PROFILE BLOCK & LOGOUT (100% Web Parity)
+            // ========================================================
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
-                color: AppTheme.card,
-                border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
+                color: Color(0xFFFAFAF8),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
               ),
-              child: InkWell(
-                onTap: () async {
-                  await ref.read(authProvider.notifier).logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                borderRadius: BorderRadius.circular(10),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout, color: AppTheme.red, size: 20),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Sign Out',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.red,
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF0B1220),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        userInitials,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            userEmail,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Row(
+                            children: [
+                              Text(
+                                roleLabel,
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Profile ↗',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0B1220),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await ref.read(authProvider.notifier).logout();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFF64748B)),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -159,302 +423,16 @@ class AdminDrawer extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildCustomNavItems(BuildContext context) {
-    return [
-      _buildSectionHeader('WORKSPACE HUB'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.grid_view_rounded,
-        activeIcon: Icons.grid_view_rounded,
-        title: 'All Modules',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-          );
-        },
-      ),
-
-      const SizedBox(height: 12),
-      _buildSectionHeader('6. SEWING OPERATIONS'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        title: 'Floor Dashboard',
-        isSelected: activeIndex == 0,
-        onTap: () {
-          Navigator.pop(context);
-          onTabSelected(0);
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.notifications_none_rounded,
-        activeIcon: Icons.notifications,
-        title: 'Notification',
-        onTap: () {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No new stitching floor alerts')),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.assignment_ind_outlined,
-        activeIcon: Icons.assignment_ind,
-        title: 'Supervisor Desk',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.storefront_outlined,
-        activeIcon: Icons.storefront,
-        title: 'Store Dashboard',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StoreDashboard()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.smart_toy_outlined,
-        activeIcon: Icons.smart_toy,
-        title: 'Zigza AI Copilot',
-        onTap: () {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Zigza AI Sewing Copilot is active on the floor')),
-          );
-        },
-      ),
-
-      const SizedBox(height: 14),
-      _buildSectionHeader('PRODUCTION EXECUTION'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.layers_outlined,
-        activeIcon: Icons.layers,
-        title: 'Production Chart & Orders',
-        isSelected: activeIndex == 1,
-        onTap: () {
-          Navigator.pop(context);
-          onTabSelected(1);
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.assignment_outlined,
-        activeIcon: Icons.assignment,
-        title: 'Target Allotments',
-        isSelected: activeIndex == 2,
-        onTap: () {
-          Navigator.pop(context);
-          onTabSelected(2);
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.warehouse_outlined,
-        activeIcon: Icons.warehouse,
-        title: 'Godown & Inventory',
-        isSelected: activeIndex == 3,
-        onTap: () {
-          Navigator.pop(context);
-          onTabSelected(3);
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.local_shipping_outlined,
-        activeIcon: Icons.local_shipping,
-        title: 'Dispatch & Challans',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const DispatchScreen()),
-          );
-        },
-      ),
-
-      const SizedBox(height: 14),
-      _buildSectionHeader('FACTORY MANAGEMENT'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.badge_outlined,
-        activeIcon: Icons.badge,
-        title: 'Division Profile',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.store_outlined,
-        activeIcon: Icons.store,
-        title: 'Brands & Vendors',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.people_outline,
-        activeIcon: Icons.people,
-        title: 'Employee Roster & Wages',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const EmployeesScreen()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.style_outlined,
-        activeIcon: Icons.style,
-        title: 'Articles & Style Tech Packs',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ArticlesScreen()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.analytics_outlined,
-        activeIcon: Icons.analytics,
-        title: 'Reports & Analytics',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ReportsScreen()),
-          );
-        },
-      ),
-    ];
-  }
-
-  List<Widget> _buildBasicNavItems(BuildContext context) {
-    return [
-      _buildSectionHeader('WORKSPACE HUB'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.grid_view_rounded,
-        activeIcon: Icons.grid_view_rounded,
-        title: 'All Modules',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-          );
-        },
-      ),
-
-      const SizedBox(height: 12),
-      _buildSectionHeader('6. SEWING OPERATIONS'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        title: 'Floor Dashboard',
-        isSelected: activeIndex == 0,
-        onTap: () {
-          Navigator.pop(context);
-          onTabSelected(0);
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.notifications_none_rounded,
-        activeIcon: Icons.notifications,
-        title: 'Notification',
-        onTap: () {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No new notifications')),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.storefront_outlined,
-        activeIcon: Icons.storefront,
-        title: 'Floor Store (Bundles)',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StoreDashboard()),
-          );
-        },
-      ),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.smart_toy_outlined,
-        activeIcon: Icons.smart_toy,
-        title: 'Zigza AI Copilot',
-        onTap: () {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Zigza AI Sewing Copilot is active')),
-          );
-        },
-      ),
-
-      const SizedBox(height: 14),
-      _buildSectionHeader('ACCOUNT'),
-      _buildDrawerItem(
-        context: context,
-        icon: Icons.person_outline,
-        activeIcon: Icons.person,
-        title: 'Division Profile',
-        onTap: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
-          );
-        },
-      ),
-    ];
-  }
-
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+      padding: const EdgeInsets.only(left: 12, top: 10, bottom: 6),
       child: Text(
         title,
-        style: GoogleFonts.publicSans(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: AppTheme.inkFaint,
-          letterSpacing: 0.8,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF94A3B8),
+          letterSpacing: 1.5,
         ),
       ),
     );
@@ -463,44 +441,63 @@ class AdminDrawer extends ConsumerWidget {
   Widget _buildDrawerItem({
     required BuildContext context,
     required IconData icon,
-    required IconData activeIcon,
     required String title,
     bool isSelected = false,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        color: isSelected ? AppTheme.steelMist : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        dense: true,
-        leading: Icon(
-          isSelected ? activeIcon : icon,
-          color: isSelected ? AppTheme.steel : AppTheme.inkSoft,
-          size: 22,
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.publicSans(
-            fontSize: 13.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.steel : AppTheme.ink,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFF0FDFA) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              if (isSelected)
+                Positioned(
+                  left: 0,
+                  top: 9,
+                  bottom: 9,
+                  child: Container(
+                    width: 3.5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0B1220),
+                      borderRadius: BorderRadius.horizontal(right: Radius.circular(4)),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 19,
+                      color: isSelected ? const Color(0xFF0B1220) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 13.5,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? const Color(0xFF0B1220) : const Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        trailing: isSelected
-            ? Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: AppTheme.steel,
-                  shape: BoxShape.circle,
-                ),
-              )
-            : null,
-        onTap: onTap,
       ),
     );
   }
