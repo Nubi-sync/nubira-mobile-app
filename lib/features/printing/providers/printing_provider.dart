@@ -289,10 +289,11 @@ class PrintingNotifier extends StateNotifier<PrintingState> {
 
     // 2. Fetch from merchandising_active_buyers
     try {
-      final res = await supabase
-          .from('merchandising_active_buyers')
-          .select('*')
-          .order('created_at', ascending: false);
+      var buyerQuery = supabase.from('merchandising_active_buyers').select('*');
+      if (company != null && company.isNotEmpty) {
+        buyerQuery = buyerQuery.eq('company_name', company);
+      }
+      final res = await buyerQuery.order('created_at', ascending: false);
       final raw = (res as List<dynamic>?) ?? [];
       for (final row in raw) {
         if (company != null && company.isNotEmpty) {
