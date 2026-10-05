@@ -57,28 +57,35 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Image.asset(
-            'assets/images/new_icon.png',
+            'assets/images/icon.png',
             height: 28,
+            width: 28,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_icon.png',
+              'assets/images/new_icon.png',
               height: 28,
+              width: 28,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
           const SizedBox(width: 8),
           Image.asset(
-            'assets/images/zigza_new_logo.png',
+            'assets/images/z_i_g_z_a.png',
             height: 21,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Text(
-              'Zigza',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.headingObsidian,
-                letterSpacing: -0.5,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/zigza_new_logo.png',
+              height: 21,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Text(
+                'ZIGZA',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.headingObsidian,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
