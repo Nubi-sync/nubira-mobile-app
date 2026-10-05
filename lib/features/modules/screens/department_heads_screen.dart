@@ -1002,25 +1002,52 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFFCBD5E1)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 9),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () async {
+                    InkWell(
+                      onTap: () async {
                         final ok = await ref.read(supervisorWorkersProvider.notifier).toggleStaffStatus(pm.id, 'PRODUCTION_MANAGER', pm.isActive);
                         if (ok) {
                           _showToast('Status updated to ${pm.isActive ? 'Inactive' : 'Active'}');
                         }
                       },
-                      icon: Icon(Icons.power_settings_new_rounded, size: 18, color: pm.isActive ? const Color(0xFF059669) : const Color(0xFF94A3B8)),
-                      tooltip: pm.isActive ? 'Deactivate' : 'Activate',
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Icon(
+                          pm.isActive ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
+                          size: 18,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
                     ),
-                    IconButton(
-                      onPressed: () => _showDeleteConfirmDialog(pm.id, pm.name, 'PRODUCTION_MANAGER'),
-                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFE11D48)),
-                      tooltip: 'Remove',
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => _showDeleteConfirmDialog(pm.id, pm.name, 'PRODUCTION_MANAGER'),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1F2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECDD3)),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: Color(0xFFE11D48),
+                        ),
+                      ),
                     ),
                   ],
                 ),
