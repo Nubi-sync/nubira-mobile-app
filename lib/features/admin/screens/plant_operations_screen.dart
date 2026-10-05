@@ -1023,30 +1023,40 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0x26000000)),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0B1220),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0x26000000)),
+                    ),
+                    child: Text(
+                      badgeText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
+                      ),
                     ),
                   ),
                 ),
-                if (extraRightText != null)
-                  Text(
-                    extraRightText,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9,
-                      color: const Color(0xFF94A3B8),
+                if (extraRightText != null) ...[
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      extraRightText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 8.5,
+                        color: const Color(0xFF94A3B8),
+                      ),
                     ),
                   ),
+                ],
               ],
             ),
           ],
