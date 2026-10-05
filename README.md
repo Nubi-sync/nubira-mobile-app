@@ -1,16 +1,19 @@
-# mobile_app
+# Zigza MES — Android / Flutter Mobile App
 
-A new Flutter project.
+Enterprise Manufacturing Execution System (MES) mobile application for floor supervisors, station operators, quality inspectors, and department heads.
+
+---
+
+## 🎨 UI Design System & Brand Guidelines
+For the comprehensive visual theme, color palette, typography hierarchy, and component redesign blueprints, consult:
+👉 **[MOBILE_APP_UI_REDESIGN_GUIDELINES.md](file:///c:/Users/shaws/NubiSync/nubira-mobile-app/MOBILE_APP_UI_REDESIGN_GUIDELINES.md)**
+
+---
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is a Flutter application powered by Riverpod and Supabase.
 
-A few resources to get you started if this is your first Flutter project:
+- **Target Platforms**: Android (Phones & Factory Floor Tablets) and iOS
+- **Theme**: Material 3 with Zigza Brand Identity (`AppTheme`)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
