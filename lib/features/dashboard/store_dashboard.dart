@@ -4909,10 +4909,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildKpiCard(
-                microLabel: 'ISSUE BOM',
+                microLabel: '',
                 topBadge: 'HANDOVER',
                 title: '4. BOM handover',
-                subtitle: 'Inspect raw materials & issue BOM lot',
+                subtitle: 'Inspect raw materials & issue',
                 valueSpan: TextSpan(
                   children: [
                     TextSpan(
@@ -5006,13 +5006,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Icon tile + microLabel
+            // Top Row: Icon tile + microLabel / Badge
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: isRedVariant ? const Color(0xFFFDE4E8) : const Color(0xFFE6F7F2),
                     borderRadius: BorderRadius.circular(10),
@@ -5022,46 +5023,55 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   ),
                   child: Icon(
                     icon,
-                    size: 18,
+                    size: 17,
                     color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF0F766E),
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (topBadge != null) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDFA),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          topBadge,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0B1220),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (topBadge != null && topBadge.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            topBadge,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0B1220),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
+                      ],
+                      if (microLabel.isNotEmpty) ...[
+                        if (topBadge != null && topBadge.isNotEmpty) const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            microLabel,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF8A94A6),
+                              letterSpacing: 0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                      if (showTopRightArrow) ...[
+                        const SizedBox(width: 2),
+                        const Icon(Icons.arrow_outward_rounded, size: 11, color: Color(0xFF8A94A6)),
+                      ],
                     ],
-                    Text(
-                      microLabel,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        color: isRedVariant ? const Color(0xFFE11D48) : const Color(0xFF8A94A6),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    if (showTopRightArrow) ...[
-                      const SizedBox(width: 2),
-                      const Icon(Icons.arrow_outward_rounded, size: 11, color: Color(0xFF8A94A6)),
-                    ],
-                  ],
+                  ),
                 ),
               ],
             ),
