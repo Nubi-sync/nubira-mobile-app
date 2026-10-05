@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../main.dart';
-import 'department_heads_screen.dart';
+import '../services/supervisor_workers_service.dart';
 
 // ============================================================================
 // APPOINT DEPARTMENT HEAD FULL-SCREEN FORM SHEET (Strictly matching Web Form)
@@ -125,7 +125,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
       _nameCtrl.text = h.displayName;
       _usernameCtrl.text = h.username;
       _designationCtrl.text = h.designation;
-      _phoneCtrl.text = h.phone ?? '';
+      _phoneCtrl.text = h.phone;
       _passwordCtrl.text = '';
       _selectedModules = List.from(h.allowedModules);
     } else {
