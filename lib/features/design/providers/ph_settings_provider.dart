@@ -58,24 +58,19 @@ class PHSettingsNotifier extends StateNotifier<PHSettingsState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final authState = _ref.read(authProvider);
-      final company = (authState.tenantProfile?.companyName ?? 'Nubira Creation').trim();
-      final isLegacy = company.toLowerCase().contains('nubira') ||
-          company.toLowerCase().contains('demo') ||
-          (authState.tenantProfile?.isSuperAdmin ?? true) ||
-          (authState.tenantProfile?.isPlatformAdmin ?? false);
+      final company = (authState.tenantProfile?.companyName ?? '').trim();
 
       // 1. Body part codes
       List<BodyPartCodeModel> bodyList = [];
       try {
         dynamic bodyResp;
-        if (!isLegacy && company.isNotEmpty) {
+        if (company.isNotEmpty) {
           bodyResp = await supabase
               .from('design_body_part_codes')
               .select('*')
               .eq('company_name', company)
               .order('sort_order', ascending: true);
-        }
-        if (bodyResp == null || (bodyResp is List && bodyResp.isEmpty)) {
+        } else {
           bodyResp = await supabase
               .from('design_body_part_codes')
               .select('*')
@@ -93,14 +88,13 @@ class PHSettingsNotifier extends StateNotifier<PHSettingsState> {
       List<BOMComponentCodeModel> bomList = [];
       try {
         dynamic bomResp;
-        if (!isLegacy && company.isNotEmpty) {
+        if (company.isNotEmpty) {
           bomResp = await supabase
               .from('design_bom_component_codes')
               .select('*')
               .eq('company_name', company)
               .order('sort_order', ascending: true);
-        }
-        if (bomResp == null || (bomResp is List && bomResp.isEmpty)) {
+        } else {
           bomResp = await supabase
               .from('design_bom_component_codes')
               .select('*')

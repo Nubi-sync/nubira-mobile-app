@@ -53,24 +53,19 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final authState = _ref.read(authProvider);
-      final company = (authState.tenantProfile?.companyName ?? 'Nubira Creation').trim();
-      final isLegacy = company.toLowerCase().contains('nubira') ||
-          company.toLowerCase().contains('demo') ||
-          (authState.tenantProfile?.isSuperAdmin ?? true) ||
-          (authState.tenantProfile?.isPlatformAdmin ?? false);
+      final company = (authState.tenantProfile?.companyName ?? '').trim();
 
-      // 1. Fetch briefs with joined submissions and team member info
+      // 1. Fetch briefs with joined submissions and team member info strictly for this company
       List<DesignBriefModel> briefList = [];
       try {
         dynamic briefsResp;
-        if (!isLegacy && company.isNotEmpty) {
+        if (company.isNotEmpty) {
           briefsResp = await supabase
               .from('design_briefs')
               .select('*, design_team_members(*), design_submissions(*)')
               .eq('company_name', company)
               .order('created_at', ascending: false);
-        }
-        if (briefsResp == null || (briefsResp is List && briefsResp.isEmpty)) {
+        } else {
           briefsResp = await supabase
               .from('design_briefs')
               .select('*, design_team_members(*), design_submissions(*)')
@@ -87,30 +82,40 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
           }
         }
       } catch (e) {
-        // Fallback simple query
+        // Fallback simple query strictly filtered by company if set
         try {
-          final simpleResp = await supabase
-              .from('design_briefs')
-              .select('*')
-              .order('created_at', ascending: false);
-          for (final item in (simpleResp as List)) {
-            briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item as Map)));
+          dynamic simpleResp;
+          if (company.isNotEmpty) {
+            simpleResp = await supabase
+                .from('design_briefs')
+                .select('*')
+                .eq('company_name', company)
+                .order('created_at', ascending: false);
+          } else {
+            simpleResp = await supabase
+                .from('design_briefs')
+                .select('*')
+                .order('created_at', ascending: false);
+          }
+          if (simpleResp is List) {
+            for (final item in simpleResp) {
+              briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item as Map)));
+            }
           }
         } catch (_) {}
       }
 
-      // 2. Fetch team members
+      // 2. Fetch team members strictly for this company
       List<DesignTeamMemberModel> teamList = [];
       try {
         dynamic teamResp;
-        if (!isLegacy && company.isNotEmpty) {
+        if (company.isNotEmpty) {
           teamResp = await supabase
               .from('design_team_members')
               .select('*')
               .eq('company_name', company)
               .order('designer_name', ascending: true);
-        }
-        if (teamResp == null || (teamResp is List && teamResp.isEmpty)) {
+        } else {
           teamResp = await supabase
               .from('design_team_members')
               .select('*')
@@ -124,39 +129,36 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
         }
       } catch (_) {}
 
-      // 3. Fetch tech packs
+      // 3. Fetch tech packs strictly for this company
       List<TechPackSummaryModel> tpList = [];
       try {
         dynamic tpResp;
-        // Priority 1: Query with company filter if not legacy
-        if (!isLegacy && company.isNotEmpty) {
+        if (company.isNotEmpty) {
           try {
             tpResp = await supabase
                 .from('design_tech_packs')
                 .select('*, brands(*)')
                 .eq('company_name', company)
                 .order('created_at', ascending: false);
-          } catch (_) {}
-        }
-
-        // Priority 2: Query all with brands join
-        if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
+          } catch (_) {
+            tpResp = await supabase
+                .from('design_tech_packs')
+                .select('*')
+                .eq('company_name', company)
+                .order('created_at', ascending: false);
+          }
+        } else {
           try {
             tpResp = await supabase
                 .from('design_tech_packs')
                 .select('*, brands(*)')
                 .order('created_at', ascending: false);
-          } catch (_) {}
-        }
-
-        // Priority 3: Query plain table without join (bypasses any foreign key / RLS join issues)
-        if (tpResp == null || (tpResp is List && tpResp.isEmpty)) {
-          try {
+          } catch (_) {
             tpResp = await supabase
                 .from('design_tech_packs')
                 .select('*')
                 .order('created_at', ascending: false);
-          } catch (_) {}
+          }
         }
 
         if (tpResp is List) {
@@ -165,9 +167,7 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
               try {
                 final pack = TechPackSummaryModel.fromJson(Map<String, dynamic>.from(raw));
                 tpList.add(pack);
-              } catch (parseErr) {
-                // Log and continue to next item so one bad item never fails the whole list
-              }
+              } catch (_) {}
             }
           }
         }
