@@ -8,11 +8,11 @@ import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../dashboard/lineman_dashboard.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../design/screens/design_team_management_screen.dart';
 import '../../design/screens/ph_settings_screen.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
-import '../../design/screens/sa_design_approvals_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../merchandising/screens/active_buyers_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
@@ -62,21 +62,6 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     this.onOpenTeam,
     this.onOpenSettings,
   });
-
-  bool _canAccessDepartmentHeads(String role, bool isSuperAdmin, bool isHead) {
-    final r = role.toUpperCase();
-    return isSuperAdmin || isHead || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PLATFORM_SUPERADMIN';
-  }
-
-  bool _canAccessSupervisor(String role, bool isSuperAdmin) {
-    final r = role.toUpperCase();
-    return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PRODUCTION_MANAGER' || r == 'SUPERVISOR' || r == 'PLATFORM_SUPERADMIN';
-  }
-
-  bool _canAccessSAApprovals(String role, bool isSuperAdmin) {
-    final r = role.toUpperCase();
-    return isSuperAdmin || r == 'ADMIN' || r == 'SUPERADMIN' || r == 'PLATFORM_SUPERADMIN';
-  }
 
   void _showSignOutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -219,96 +204,79 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildDrawerFooter(BuildContext context, WidgetRef ref, String initials, String userEmail, bool isSuperAdmin, String role) {
+  Widget _buildDrawerFooter(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0x1A000000), width: 1)),
+        color: Color(0xFFF8FAFC),
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // User Avatar Circle
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              color: AppTheme.headingObsidian,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+          InkWell(
+            onTap: () => _navigateTo(context, const CompanyProfileScreen()),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.business_rounded, size: 20, color: Color(0xFF64748B)),
+                  const SizedBox(width: 14),
+                  Text(
+                    'Company Profile & Settings',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 10),
-
-          // User Info & Profile Link
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  userEmail,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.publicSans(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.headingObsidian,
+          InkWell(
+            onTap: () => _navigateTo(context, const CuttingNotificationsScreen()),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.notifications_none_rounded, size: 20, color: Color(0xFF64748B)),
+                  const SizedBox(width: 14),
+                  Text(
+                    'Floor Notifications',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(
-                      isSuperAdmin ? 'Super Admin' : (role == 'ADMIN' ? 'Admin' : 'Operator'),
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        color: AppTheme.bodyInk,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => _navigateTo(context, const CompanyProfileScreen()),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Profile',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.brandRoyalBlue,
-                            ),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(
-                            Icons.arrow_outward_rounded,
-                            size: 11,
-                            color: AppTheme.brandRoyalBlue,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-
-          // Logout Icon Button
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppTheme.bodyInk, size: 20),
-            tooltip: 'Sign Out',
-            onPressed: () => _showSignOutDialog(context, ref),
+          const SizedBox(height: 2),
+          InkWell(
+            onTap: () => _showSignOutDialog(context, ref),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.logout_rounded, size: 20, color: Color(0xFFE11D48)),
+                  const SizedBox(width: 14),
+                  Text(
+                    'Sign Out',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFE11D48),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -321,17 +289,6 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     final tenant = authState.tenantProfile;
     final role = authState.userRole ?? 'STAFF';
     final isSuperAdmin = tenant?.isSuperAdmin ?? false;
-    final userEmail = tenant?.userEmail ?? authState.cachedUsername ?? 'staff@factory.local';
-    final adminDisplayName = tenant?.adminDisplayName ?? authState.cachedUsername ?? 'User';
-
-    final canHeads = _canAccessDepartmentHeads(role, isSuperAdmin, false);
-    final canSupervisor = _canAccessSupervisor(role, isSuperAdmin);
-    final canSAApprovals = _canAccessSAApprovals(role, isSuperAdmin);
-
-    // User Initials
-    final initials = adminDisplayName.trim().isNotEmpty
-        ? adminDisplayName.trim().split(' ').map((s) => s.isNotEmpty ? s[0].toUpperCase() : '').take(2).join()
-        : 'Z';
 
     // Check if inside Design Studio, Merchandising, Cutting, or Printing
     final isDesignStudio = activeRoute.startsWith('/design') && activeRoute != '/design/sa-approvals';
@@ -1366,8 +1323,17 @@ class WorkspaceHubDrawer extends ConsumerWidget {
       ];
     } else {
       navChildren = [
-        _buildSectionLabel('WORKSPACE HUB'),
-        const SizedBox(height: 4),
+        _buildWorkspaceCard(tenant, isSuperAdmin, role),
+        const SizedBox(height: 10),
+        _buildSectionLabel('MAIN NAVIGATION'),
+        const SizedBox(height: 6),
+        _buildNavItem(
+          context: context,
+          icon: Icons.dashboard_outlined,
+          title: 'Dashboard',
+          isActive: activeRoute == '/dashboard' || activeRoute == '/stitching-sewing/dashboard',
+          onTap: () => _navigateTo(context, const LinemanDashboard()),
+        ),
         _buildNavItem(
           context: context,
           icon: Icons.grid_view_rounded,
@@ -1381,41 +1347,53 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             }
           },
         ),
-        if (canHeads)
-          _buildNavItem(
-            context: context,
-            icon: Icons.shield_outlined,
-            title: 'Department Heads',
-            isActive: activeRoute == '/access-control' ||
-                activeRoute == '/department-heads' ||
-                activeRoute == '/modules/access-control',
-            onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
-          ),
-        if (canSupervisor)
-          _buildNavItem(
-            context: context,
-            icon: Icons.build_outlined,
-            title: 'Supervisor Operations',
-            isActive: activeRoute == '/supervisor-desk' ||
-                activeRoute == '/supervisor-hub' ||
-                activeRoute == '/modules/supervisor-desk',
-            onTap: () => _navigateTo(context, const SupervisorFloorStationsScreen()),
-          ),
-        if (canSAApprovals)
-          _buildNavItem(
-            context: context,
-            icon: Icons.verified_user_outlined,
-            title: 'SA Design Approvals',
-            isActive: activeRoute == '/design/sa-approvals' || activeRoute == '/sa-approvals',
-            onTap: () => _navigateTo(context, const SADesignApprovalsScreen()),
-          ),
         _buildNavItem(
           context: context,
-          icon: Icons.business_outlined,
+          icon: Icons.store_mall_directory_outlined,
+          title: 'Buyers & Vendors',
+          isActive: activeRoute == '/merchandising/buyers' || activeRoute == '/vendors',
+          onTap: () => _navigateTo(context, const ActiveBuyersScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.people_outline_rounded,
+          title: 'Supervisor & Workers',
+          isActive: activeRoute == '/access-control' || activeRoute == '/department-heads' || activeRoute == '/modules/access-control',
+          onTap: () => _navigateTo(context, const DepartmentHeadsScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.checkroom_outlined,
+          title: 'All Designs',
+          isActive: activeRoute == '/design' || activeRoute == '/all-designs',
+          onTap: () => _navigateTo(context, const DesignStudioScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.layers_outlined,
+          title: 'Fabric & Store',
+          isActive: activeRoute == '/store' || activeRoute == '/stitching-sewing/store',
+          onTap: () => _navigateTo(context, const CentralStoreGodownScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.auto_awesome_outlined,
+          title: 'Zigza AI',
+          isActive: activeRoute == '/cutting/zigza-ai',
+          onTap: () => _navigateTo(context, const CuttingZigzaAiScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.description_outlined,
+          title: 'Reports',
+          isActive: activeRoute == '/reports',
+          onTap: () => _navigateTo(context, const ReportsScreen()),
+        ),
+        _buildNavItem(
+          context: context,
+          icon: Icons.badge_outlined,
           title: 'Company Profile',
-          isActive: activeRoute == '/profile' ||
-              activeRoute == '/company-profile' ||
-              activeRoute == '/modules/profile',
+          isActive: activeRoute == '/profile' || activeRoute == '/company-profile',
           onTap: () => _navigateTo(context, const CompanyProfileScreen()),
         ),
       ];
@@ -1423,7 +1401,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
     return Drawer(
       backgroundColor: Colors.white,
-      width: MediaQuery.of(context).size.width * 0.82,
+      width: MediaQuery.of(context).size.width * 0.84,
       child: SafeArea(
         child: Column(
           children: [
@@ -1432,28 +1410,92 @@ class WorkspaceHubDrawer extends ConsumerWidget {
             // DRAWER NAVIGATION LIST
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 children: navChildren,
               ),
             ),
 
-            _buildDrawerFooter(context, ref, initials, userEmail, isSuperAdmin, role),
+            _buildDrawerFooter(context, ref),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildWorkspaceCard(dynamic tenant, bool isSuperAdmin, String role) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6, top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDFA), // Light Mint Tint
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'WORKSPACE',
+                  style: GoogleFonts.publicSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF94A3B8),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tenant?.companyName ?? 'Nubira Creation',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0B1220),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFCCFBF1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              isSuperAdmin ? 'SUPERADMIN' : (role == 'ADMIN' ? 'ADMIN' : role),
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F766E),
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+      padding: const EdgeInsets.only(left: 6, top: 6, bottom: 4),
       child: Text(
         label,
-        style: GoogleFonts.jetBrainsMono(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+        style: GoogleFonts.publicSans(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
           color: const Color(0xFF94A3B8),
-          letterSpacing: 0.8,
+          letterSpacing: 1.1,
         ),
       ),
     );
@@ -1467,38 +1509,52 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 3),
+      margin: const EdgeInsets.only(bottom: 5),
       decoration: BoxDecoration(
-        color: isActive ? AppTheme.badgeMintBg : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        color: isActive ? const Color(0xFFF0FDFA) : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        border: isActive
+            ? Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.45), width: 1.2)
+            : null,
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            border: isActive
-                ? const Border(left: BorderSide(color: AppTheme.headingObsidian, width: 3.0))
-                : null,
-          ),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: isActive ? AppTheme.headingObsidian : AppTheme.bodyInk,
-                size: 20,
+              // Rounded Icon Container Box
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF0B1220) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Icon(
+                    icon,
+                    color: isActive ? Colors.white : const Color(0xFF475569),
+                    size: 19,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.publicSans(
-                    fontSize: 13,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                    color: isActive ? AppTheme.headingObsidian : AppTheme.headingObsidian.withValues(alpha: 0.85),
+                    color: isActive ? const Color(0xFF0B1220) : const Color(0xFF1E293B),
                   ),
                 ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isActive ? const Color(0xFF0D9488) : const Color(0xFFCBD5E1),
+                size: 19,
               ),
             ],
           ),
@@ -1507,3 +1563,4 @@ class WorkspaceHubDrawer extends ConsumerWidget {
     );
   }
 }
+
