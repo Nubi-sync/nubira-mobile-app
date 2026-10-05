@@ -52,20 +52,37 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             )
           : null,
-      title: Image.asset(
-        'assets/images/z_i_g_z_a.png',
-        height: 34,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Image.asset(
-          'assets/images/zigza_logo.png',
-          height: 34,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
-            'assets/images/zigza_main_logo.png',
-            height: 34,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/images/new_icon.png',
+            height: 28,
             fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/zigza_icon.png',
+              height: 28,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Image.asset(
+            'assets/images/zigza_new_logo.png',
+            height: 21,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Text(
+              'Zigza',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.headingObsidian,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+        ],
       ),
       actions: [
         if (trailing != null)
