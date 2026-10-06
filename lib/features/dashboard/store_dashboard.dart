@@ -9474,31 +9474,34 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE6F7F2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.show_chart_rounded, color: Color(0xFF0F766E), size: 18),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Goods on Floor WIP (${_activeAllotments.length} Active Lots)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF14142B),
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.show_chart_rounded, color: Color(0xFF0F766E), size: 18),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Goods on Floor WIP (${_activeAllotments.length} Active Lots)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF14142B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    splashRadius: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
