@@ -110,6 +110,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   bool _isSyncing = false;
   List<dynamic> _challans = [];
 
+  // Performance & Indexing Caches (O(1) lookups instead of O(N*M))
+  Map<String, List<dynamic>> _materialsByAllotmentMap = {};
+  Map<String, bool> _allotmentPendingMap = {};
+  int _visibleArticleCount = 25;
+  int _visibleFeedCount = 20;
+
   // Activity Feed Filters & Controls
   String _feedTimeFilter = '24h'; // '24h' (default), '7d', 'all'
   String _feedCategoryFilter = 'ALL'; // 'ALL', 'BOM', 'TRIMS', 'GARMENTS'
@@ -618,6 +624,23 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         return tB.compareTo(tA);
       });
 
+      // Build fast O(1) indexing maps
+      final Map<String, List<dynamic>> matsByAllot = {};
+      for (var m in allotMatsRes) {
+        final aId = m['allotment_id']?.toString() ?? '';
+        if (aId.isNotEmpty) {
+          matsByAllot.putIfAbsent(aId, () => []).add(m);
+        }
+      }
+
+      final Map<String, bool> allotPending = {};
+      for (var al in activeAllotsRes) {
+        final aId = al['id']?.toString() ?? '';
+        final mats = matsByAllot[aId] ?? [];
+        final isPending = mats.isEmpty || mats.any((m) => m['admin_issued'] != true);
+        allotPending[aId] = isPending;
+      }
+
       if (mounted) {
         setState(() {
           _articles = articlesRes;
@@ -629,6 +652,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _allotmentVariants = variantsRes;
           _activeAllotments = activeAllotsRes;
           _allotmentMaterials = allotMatsRes;
+          _materialsByAllotmentMap = matsByAllot;
+          _allotmentPendingMap = allotPending;
           _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
           _truckInwards = truckInwardsRes;
@@ -4403,9 +4428,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     for (var al in _activeAllotments) {
       final artNo = (al['articles']?['art_no'] ?? al['art_no'] ?? 'GENERAL').toString().trim().toUpperCase();
       totalLotsPerArticle[artNo] = (totalLotsPerArticle[artNo] ?? 0) + 1;
-      final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-      final bool isFullyIssued = mats.isNotEmpty && mats.every((m) => m['admin_issued'] == true);
-      if (!isFullyIssued) {
+      final isPending = _allotmentPendingMap[al['id']?.toString()] ?? false;
+      if (isPending) {
         pendingLotsPerArticle[artNo] = (pendingLotsPerArticle[artNo] ?? 0) + 1;
       }
     }
@@ -5309,10 +5333,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     int issuedArticlesCount = 0;
 
     groupedByArticle.forEach((artNo, allotments) {
-      final hasPending = allotments.any((al) {
-        final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-        return mats.isEmpty || mats.any((m) => m['admin_issued'] != true);
-      });
+      final hasPending = allotments.any((al) => _allotmentPendingMap[al['id']?.toString()] == true);
       if (hasPending) {
         pendingArticlesCount++;
       } else {
@@ -5334,10 +5355,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         if (!artMatch && !linemanMatch) return false;
       }
 
-      final hasPending = allotments.any((al) {
-        final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-        return mats.isEmpty || mats.any((m) => m['admin_issued'] != true);
-      });
+      final hasPending = allotments.any((al) => _allotmentPendingMap[al['id']?.toString()] == true);
 
       if (_articleFilterStatus == 'PENDING' && !hasPending) return false;
       if (_articleFilterStatus == 'ISSUED' && hasPending) return false;
@@ -5450,7 +5468,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFFF0FDFA).withOpacity(0.6),
+                  fillColor: const Color(0xFFF0FDFA).withValues(alpha: 0.6),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
@@ -5516,8 +5534,30 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               ],
             ),
           )
-        else
-          ...filteredEntries.map((entry) => _buildArticleAllotmentCard(entry.key, entry.value)),
+        else ...[
+          ...filteredEntries.take(_visibleArticleCount).map((entry) => _buildArticleAllotmentCard(entry.key, entry.value)),
+          if (filteredEntries.length > _visibleArticleCount)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
+              child: Center(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0F766E),
+                    side: const BorderSide(color: Color(0xFFBFE9DC)),
+                    backgroundColor: const Color(0xFFE6F7F2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  onPressed: () => setState(() => _visibleArticleCount += 25),
+                  icon: const Icon(Icons.expand_more_rounded, size: 18),
+                  label: Text(
+                    'Show More Articles (${filteredEntries.length - _visibleArticleCount} remaining)',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+        ],
 
         const SizedBox(height: 16),
 
@@ -5584,8 +5624,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
     int pendingLots = 0;
     for (var al in allotments) {
-      final mats = _allotmentMaterials.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-      if (mats.isEmpty || mats.any((m) => m['admin_issued'] != true)) {
+      if (_allotmentPendingMap[al['id']?.toString()] == true) {
         pendingLots++;
       }
     }
@@ -5978,8 +6017,29 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 ),
               ),
             )
-          else
-            ...filteredLogs.map((log) => _buildLedgerCard(log)),
+          else ...[
+            ...filteredLogs.take(_visibleFeedCount).map((log) => _buildLedgerCard(log)),
+            if (filteredLogs.length > _visibleFeedCount)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Center(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF332B6B),
+                      side: const BorderSide(color: Color(0xFFDDD6F0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    onPressed: () => setState(() => _visibleFeedCount += 25),
+                    icon: const Icon(Icons.expand_more_rounded, size: 18),
+                    label: Text(
+                      'Load More (${filteredLogs.length - _visibleFeedCount} remaining)',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
