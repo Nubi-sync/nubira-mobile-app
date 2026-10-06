@@ -173,9 +173,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         } catch (_) {}
       }
       final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      final String targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
           ? tenant.companyName.trim().toLowerCase()
-          : null;
+          : '';
 
       // 1. Fetch Articles
       final articlesRes = await supabase
@@ -199,7 +199,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       List<dynamic> allotMatsRes = [];
       List<dynamic> allotQuery = [];
       List<dynamic> profilesQuery = [];
-      List<dynamic> articlesQuery = [];
       List<dynamic> challansQuery = [];
 
       try {
@@ -222,14 +221,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       }
 
       try {
-        articlesQuery = await supabase
-            .from('articles')
-            .select('id, art_no, description, stitching_rate, size_rates');
-      } catch (e) {
-        debugPrint('Articles fetch error: $e');
-      }
-
-      try {
         challansQuery = await supabase
             .from('challans')
             .select('*')
@@ -246,50 +237,19 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         debugPrint('Allotment materials fetch error: $e');
       }
 
-      final isCustomPlant = isPlatformSuper ||
-          (tenant?.companyName.toLowerCase().contains('nubira') ?? false) ||
-          (currentUser?.email?.toLowerCase().contains('nubira') ?? false) ||
-          currentUser?.email?.toLowerCase() == 'aj@nubiracreation.com' ||
-          currentUser?.email?.toLowerCase() == 'team.anga9@gmail.com' ||
-          currentUser?.email?.toLowerCase() == 'admin@zigza.in';
-
       bool isTargetMatch(List<dynamic> values) {
-        if (targetComp == null || targetComp.isEmpty || isCustomPlant) return true;
+        if (targetComp.isEmpty) return false;
         for (var v in values) {
           if (v == null) continue;
           final s = v.toString().trim().toLowerCase();
           if (s == targetComp ||
               s.contains('[company:$targetComp]') ||
               s.contains('[company: $targetComp]') ||
-              s.contains(targetComp)) {
+              (targetComp.isNotEmpty && s.contains(targetComp))) {
             return true;
           }
         }
         return false;
-      }
-
-      if (targetComp != null && targetComp.isNotEmpty && !isCustomPlant) {
-        allotQuery = allotQuery.where((al) {
-          final comp = (al['company_name']?.toString() ?? '').toLowerCase();
-          return isTargetMatch([comp]);
-        }).toList();
-
-        challansQuery = challansQuery.where((ch) {
-          final brand = (ch['brand']?.toString() ?? '').toLowerCase();
-          final notes = (ch['notes']?.toString() ?? '').toLowerCase();
-          final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
-          return isTargetMatch([brand, notes, comp]);
-        }).toList();
-
-        articlesQuery = articlesQuery.where((art) {
-          final desc = (art['description']?.toString() ?? '').toLowerCase();
-          final rates = art['size_rates'];
-          String rateComp = '';
-          if (rates is Map) {
-            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
-          }
-          return isTargetMatch([rateComp, desc]);
-        }).toList();
       }
 
       final Map<String, dynamic> profMap = {};
@@ -298,7 +258,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       }
 
       final Map<String, dynamic> artMap = {};
-      for (var a in articlesQuery) {
+      for (var a in articlesRes) {
         artMap[a['id'].toString()] = a;
       }
 
@@ -319,7 +279,32 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         }
       }
 
-      for (var al in allotQuery) {
+      // Filter active allotments strictly matching web_admin
+      final rawActiveAllots = allotQuery.where((al) {
+        final matNotes = allotMatsRes
+            .where((m) => m['allotment_id']?.toString() == al['id']?.toString())
+            .map((m) => m['notes']?.toString() ?? '')
+            .join(' ');
+        final ch = challansQuery.firstWhere(
+          (c) => c['id']?.toString() == al['challan_id']?.toString(),
+          orElse: () => <String, dynamic>{},
+        );
+        final prof = profMap[al['lineman_id']?.toString() ?? ''] ?? {};
+        final linemanComp = (prof['company_name']?.toString() ?? '').toLowerCase();
+
+        return isTargetMatch([
+          ch['brand'],
+          ch['notes'],
+          al['company_name'],
+          linemanComp,
+          matNotes,
+        ]) ||
+        linemanComp.isEmpty ||
+        linemanComp == targetComp ||
+        (targetComp.isNotEmpty && linemanComp.contains(targetComp));
+      }).toList();
+
+      for (var al in rawActiveAllots) {
         final aId = al['article_id']?.toString() ?? '';
         final lId = al['lineman_id']?.toString() ?? '';
         final chId = al['challan_id']?.toString() ?? '';
@@ -369,8 +354,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         });
       }
 
-      // 1.3 Fetch QC Ready Allotments for Godown Inward Handshake (Only Admin Approved lots)
+      // 1.3 Fetch QC Ready Allotments for Godown Inward Handshake
       List<dynamic> readyQcRes = [];
+      List<dynamic> rawReadyQcAllots = [];
       try {
         final qcAllots = await supabase
             .from('allotments')
@@ -379,7 +365,31 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             .neq('store_inward_status', 'INWARDED')
             .order('created_at', ascending: false);
 
-        for (var al in qcAllots) {
+        rawReadyQcAllots = qcAllots.where((al) {
+          final matNotes = allotMatsRes
+              .where((m) => m['allotment_id']?.toString() == al['id']?.toString())
+              .map((m) => m['notes']?.toString() ?? '')
+              .join(' ');
+          final ch = challansQuery.firstWhere(
+            (c) => c['id']?.toString() == al['challan_id']?.toString(),
+            orElse: () => <String, dynamic>{},
+          );
+          final prof = profMap[al['lineman_id']?.toString() ?? ''] ?? {};
+          final linemanComp = (prof['company_name']?.toString() ?? '').toLowerCase();
+
+          return isTargetMatch([
+            ch['brand'],
+            ch['notes'],
+            al['company_name'],
+            linemanComp,
+            matNotes,
+          ]) ||
+          linemanComp.isEmpty ||
+          linemanComp == targetComp ||
+          (targetComp.isNotEmpty && linemanComp.contains(targetComp));
+        }).toList();
+
+        for (var al in rawReadyQcAllots) {
           final aId = al['article_id']?.toString() ?? '';
           final lId = al['lineman_id']?.toString() ?? '';
           final chId = al['challan_id']?.toString() ?? '';
@@ -452,63 +462,168 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       });
 
       // 2. Fetch All Store Transactions (for stock calculation & recent feed)
-      List<dynamic> txRes = await supabase
-          .from('store_transactions')
-          .select('''
-            id,
-            entry_date,
-            created_at,
-            type,
-            quantity,
-            party_name,
-            color,
-            size,
-            challan_no,
-            transport_no,
-            notes,
-            article:articles ( id, art_no, description )
-          ''')
-          .order('created_at', ascending: false)
-          .limit(100);
+      List<dynamic> txRes = [];
+      try {
+        txRes = await supabase
+            .from('store_transactions')
+            .select('''
+              id,
+              entry_date,
+              created_at,
+              type,
+              quantity,
+              party_name,
+              color,
+              size,
+              challan_no,
+              transport_no,
+              notes,
+              allotment_id,
+              article:articles ( id, art_no, description )
+            ''')
+            .order('created_at', ascending: false)
+            .limit(300);
+      } catch (e) {
+        debugPrint('Store transactions fetch warning: $e');
+      }
 
       // 3. Fetch Accessories Transactions
-      List<dynamic> accRes = await supabase
-          .from('accessories')
-          .select('''
-            id,
-            item_name,
-            action,
-            quantity,
-            unit,
-            party_name,
-            notes,
-            entry_date,
-            created_at
-          ''')
-          .order('created_at', ascending: false)
-          .limit(100);
-
-      if (targetComp != null && targetComp.isNotEmpty) {
-        txRes = txRes.where((t) {
-          final party = (t['party_name']?.toString() ?? '').toLowerCase();
-          return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
-        }).toList();
-
-        accRes = accRes.where((a) {
-          final party = (a['party_name']?.toString() ?? '').toLowerCase();
-          return party == targetComp || party.contains(targetComp) || targetComp.contains('nubira');
-        }).toList();
+      List<dynamic> accRes = [];
+      try {
+        accRes = await supabase
+            .from('accessories')
+            .select('''
+              id,
+              item_name,
+              action,
+              quantity,
+              unit,
+              party_name,
+              notes,
+              entry_date,
+              created_at
+            ''')
+            .order('created_at', ascending: false)
+            .limit(300);
+      } catch (e) {
+        debugPrint('Accessories fetch warning: $e');
       }
+
+      // 3.1 Fetch Truck Inwards (GRN)
+      List<dynamic> truckInwardsRes = [];
+      try {
+        truckInwardsRes = await supabase
+            .from('truck_inwards')
+            .select('''
+              id,
+              grn_no,
+              party_name,
+              article_no,
+              garment_type,
+              challan_no,
+              inward_date,
+              truck_no,
+              challan_photo_url,
+              receiver_name,
+              status,
+              total_items,
+              due_items_count,
+              shortage_items_count,
+              notes,
+              line_items,
+              created_at
+            ''')
+            .order('created_at', ascending: false)
+            .limit(100);
+      } catch (e) {
+        debugPrint('Truck inwards fetch warning: $e');
+      }
+
+      // Multi-tenant Scoping Filters (100% Web Parity)
+      final Set<String> validAllotmentIds = {};
+      for (var al in rawActiveAllots) {
+        validAllotmentIds.add(al['id'].toString());
+      }
+      for (var al in rawReadyQcAllots) {
+        validAllotmentIds.add(al['id'].toString());
+      }
+
+      final filteredTx = txRes.where((tx) {
+        final aId = tx['allotment_id']?.toString();
+        if (aId != null && validAllotmentIds.contains(aId)) return true;
+        return isTargetMatch([tx['party_name'], tx['notes'], tx['company_name']]);
+      }).toList();
+
+      final filteredAcc = accRes.where((ac) {
+        if (isTargetMatch([ac['party_name'], ac['notes'], ac['company_name']])) return true;
+        final notes = (ac['notes']?.toString() ?? '');
+        for (final id in validAllotmentIds) {
+          if (notes.contains(id)) return true;
+        }
+        return false;
+      }).toList();
+
+      final filteredTruckInwards = truckInwardsRes.where((t) {
+        return isTargetMatch([t['party_name'], t['receiver_name'], t['notes'], t['company_name']]);
+      }).toList();
+
+      // Multi-tenant article scope matching web
+      final Set<String> validArticleIds = {};
+      final Set<String> validArtNos = {};
+
+      for (var al in rawActiveAllots) {
+        final aId = al['article_id']?.toString() ?? '';
+        final art = artMap[aId] ?? {};
+        final artNo = (art['art_no'] ?? '').toString().trim().toUpperCase();
+        if (aId.isNotEmpty) validArticleIds.add(aId);
+        if (artNo.isNotEmpty) validArtNos.add(artNo);
+      }
+      for (var al in rawReadyQcAllots) {
+        final aId = al['article_id']?.toString() ?? '';
+        final art = artMap[aId] ?? {};
+        final artNo = (art['art_no'] ?? '').toString().trim().toUpperCase();
+        if (aId.isNotEmpty) validArticleIds.add(aId);
+        if (artNo.isNotEmpty) validArtNos.add(artNo);
+      }
+      for (var t in filteredTruckInwards) {
+        final artNo = (t['article_no'] ?? '').toString().trim().toUpperCase();
+        if (artNo.isNotEmpty) validArtNos.add(artNo);
+      }
+
+      final filteredArticles = articlesRes.where((art) {
+        final rates = art['size_rates'];
+        String rateComp = '';
+        if (rates is Map) {
+          rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').trim().toLowerCase();
+        }
+        if (rateComp.isNotEmpty && rateComp == targetComp) return true;
+        if (isTargetMatch([art['description']])) return true;
+        if (validArticleIds.contains(art['id']?.toString() ?? '')) return true;
+        final aNo = (art['art_no'] ?? '').toString().trim().toUpperCase();
+        if (aNo.isNotEmpty && validArtNos.contains(aNo)) return true;
+        return false;
+      }).toList();
+
+      // Natural alphanumeric sort (700, 2953, 3293, 3360, 4510, 4800, 5240, 5252, 5306, 6001...)
+      filteredArticles.sort((a, b) {
+        final sA = (a['art_no'] ?? '').toString().trim();
+        final sB = (b['art_no'] ?? '').toString().trim();
+        final numA = int.tryParse(sA.replaceAll(RegExp(r'[^0-9]'), ''));
+        final numB = int.tryParse(sB.replaceAll(RegExp(r'[^0-9]'), ''));
+        if (numA != null && numB != null && numA != numB) {
+          return numA.compareTo(numB);
+        }
+        return sA.compareTo(sB);
+      });
 
       // 4. Calculate Finished Goods Stock
       int totalIn = 0;
       int totalOut = 0;
       int tOutward = 0;
       final Map<String, int> stockMap = {};
-
       final Map<String, int> varStockMap = {};
 
-      for (var tx in txRes) {
+      for (var tx in filteredTx) {
         final qty = parseQty(tx['quantity']);
         final type = tx['type'] as String? ?? 'INWARD';
         final artId = tx['article']?['id'] as String? ?? 'UNKNOWN';
@@ -533,7 +648,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
       // 5. Calculate Distinct Accessories count
       final Set<String> distinctAcc = {};
-      for (var acc in accRes) {
+      for (var acc in filteredAcc) {
         final name = (acc['item_name'] as String?)?.trim();
         if (name != null && name.isNotEmpty) distinctAcc.add(name);
       }
@@ -542,16 +657,14 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       final Map<String, Map<String, dynamic>> groupedBOMMap = {};
       final List<Map<String, dynamic>> combinedLogs = [];
 
-      for (var acc in accRes) {
+      for (var acc in filteredAcc) {
         final notes = (acc['notes']?.toString() ?? '');
         final isBOM = notes.contains('BOM Handover') || notes.contains('BOM Package');
 
         if (isBOM) {
-          // Extract UUID or allotment identifier
           final uuidMatch = RegExp(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').firstMatch(notes);
           final allotmentId = uuidMatch != null ? uuidMatch.group(0)! : (acc['party_name'] ?? '');
 
-          // Extract Challan # if present
           final chMatch = RegExp(r'Challan #([^\s•]+)').firstMatch(notes);
           final challanStr = chMatch != null ? chMatch.group(1)! : '';
 
@@ -612,7 +725,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       }
 
       // Add Garment Inward/Outward Transactions
-      for (var tx in txRes) {
+      for (var tx in filteredTx) {
         combinedLogs.add({
           'isGroupedBOM': false,
           'isAccessory': false,
@@ -630,20 +743,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         });
       }
 
-      // 3.1 Fetch Truck Inwards (GRN)
-      List<dynamic> truckInwardsRes = [];
-      try {
-        truckInwardsRes = await supabase
-            .from('truck_inwards')
-            .select('*')
-            .order('created_at', ascending: false)
-            .limit(50);
-      } catch (e) {
-        debugPrint('Truck inwards fetch warning: $e');
-      }
-
       int tTruckCount = 0;
-      for (var ti in truckInwardsRes) {
+      for (var ti in filteredTruckInwards) {
         final iDate = ti['inward_date']?.toString() ?? '';
         if (iDate == today) tTruckCount++;
       }
@@ -673,7 +774,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
       if (mounted) {
         setState(() {
-          _articles = articlesRes;
+          _articles = filteredArticles;
           _totalFinishedStock = currentStock;
           _todayOutward = tOutward;
           _todayTruckCount = tTruckCount;
@@ -686,9 +787,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _allotmentPendingMap = allotPending;
           _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
-          _truckInwards = truckInwardsRes;
-          _accessories = accRes;
-          _storeTransactions = txRes;
+          _truckInwards = filteredTruckInwards;
+          _accessories = filteredAcc;
+          _storeTransactions = filteredTx;
           _challans = challansQuery;
         });
       }
