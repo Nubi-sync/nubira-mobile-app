@@ -11447,14 +11447,19 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Showing ${filteredMasterArticles.length} of ${masterArticleGroups.length} Master Articles • Live Sync',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11.5,
-                    color: const Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    'Showing ${filteredMasterArticles.length} of ${masterArticleGroups.length} Master Articles • Live Sync',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 11,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
@@ -11511,12 +11516,15 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '$emoji $title',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    color: isSelected ? Colors.white : const Color(0xFF475569),
+                Flexible(
+                  child: Text(
+                    '$emoji $title',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? Colors.white : const Color(0xFF475569),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
@@ -11595,7 +11603,10 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
                           Text(
                             'Article $artNo',
@@ -11605,8 +11616,7 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
                               color: const Color(0xFF0F172A),
                             ),
                           ),
-                          if (totalLots > 1) ...[
-                            const SizedBox(width: 6),
+                          if (totalLots > 1)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -11622,7 +11632,6 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
                                 ),
                               ),
                             ),
-                          ],
                         ],
                       ),
                       if (description.isNotEmpty) ...[
@@ -11634,11 +11643,14 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
                             color: const Color(0xFF64748B),
                             fontWeight: FontWeight.w600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -11766,74 +11778,68 @@ class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3A3564),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : 'W',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3A3564),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'W',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            name,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          if (challans.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: Text(
-                                challans.map((c) => 'Challan #$c').join(', '),
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (lotsCount > 1) ...[
-                            const SizedBox(width: 4),
-                            Text(
-                              '($lotsCount batches)',
-                              style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    if (challans.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAF7F0),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          challans.map((c) => 'Challan #$c').join(', '),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF3A3564),
+                          ),
+                        ),
+                      ),
+                    if (lotsCount > 1)
+                      Text(
+                        '($lotsCount batches)',
+                        style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
