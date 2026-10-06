@@ -5427,33 +5427,44 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               ),
               const SizedBox(height: 14),
 
-              // Search Bar (Pill shaped radius 999, height 44)
-              Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F6FA),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+              // Search Input (Web 1:1 rounded-xl)
+              TextField(
+                onChanged: (v) => setState(() => _articleSearchQuery = v.trim()),
+                style: GoogleFonts.publicSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF14142B),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        onChanged: (v) => setState(() => _articleSearchQuery = v.trim()),
-                        style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF14142B)),
-                        decoration: InputDecoration(
-                          hintText: 'Filter article or lineman...',
-                          hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-                  ],
+                decoration: InputDecoration(
+                  hintText: 'Filter article or lineman...',
+                  hintStyle: GoogleFonts.publicSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8A94A6),
+                  ),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                  suffixIcon: _articleSearchQuery.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () => setState(() => _articleSearchQuery = ''),
+                          child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF8A94A6)),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF0FDFA).withOpacity(0.6),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -5468,40 +5479,46 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   _buildArticleStatusChip('ISSUED', 'Issued ($issuedArticlesCount)', isTeal: true),
                 ],
               ),
-              const SizedBox(height: 14),
-
-              // Article Cards List
-              if (filteredEntries.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  alignment: Alignment.center,
-                  child: Column(
-                    children: [
-                      const Icon(Icons.search_off_rounded, size: 36, color: Color(0xFF8A94A6)),
-                      const SizedBox(height: 8),
-                      Text(
-                        'No articles match your filter.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF14142B),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _articleSearchQuery = '';
-                          _articleFilterStatus = 'ALL';
-                        }),
-                        child: const Text('Clear filter'),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ...filteredEntries.map((entry) => _buildArticleAllotmentCard(entry.key, entry.value)),
             ],
           ),
         ),
+        const SizedBox(height: 12),
+
+        // Standalone Article Cards List (Exact Web Layout)
+        if (filteredEntries.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            alignment: Alignment.center,
+            child: Column(
+              children: [
+                const Icon(Icons.search_off_rounded, size: 36, color: Color(0xFF8A94A6)),
+                const SizedBox(height: 8),
+                Text(
+                  'No articles match your filter.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF14142B),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _articleSearchQuery = '';
+                    _articleFilterStatus = 'ALL';
+                  }),
+                  child: const Text('Clear filter'),
+                ),
+              ],
+            ),
+          )
+        else
+          ...filteredEntries.map((entry) => _buildArticleAllotmentCard(entry.key, entry.value)),
+
         const SizedBox(height: 16),
 
         // Store Ledger Activity Feed Card
@@ -5872,13 +5889,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               ),
               const SizedBox(width: 6),
               Expanded(
-                child: Container(
+                child: SizedBox(
                   height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
                   child: TextField(
                     onChanged: (v) => setState(() => _feedSearchQuery = v.trim()),
                     style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF14142B)),
@@ -5892,8 +5904,22 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                               child: const Icon(Icons.close, size: 14, color: Color(0xFF5B6478)),
                             )
                           : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      filled: true,
+                      fillColor: Colors.white,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.2),
+                      ),
                     ),
                   ),
                 ),
