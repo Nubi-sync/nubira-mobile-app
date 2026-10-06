@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
+import '../screens/admin_shell.dart';
 import '../screens/employees_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
@@ -13,12 +14,14 @@ import '../../modules/screens/supervisor_floor_stations_screen.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
-  final Function(int) onTabSelected;
+  final Function(int)? onTabSelected;
+  final String? activeRoute;
 
   const AdminDrawer({
     super.key,
-    required this.activeIndex,
-    required this.onTabSelected,
+    this.activeIndex = -1,
+    this.onTabSelected,
+    this.activeRoute,
   });
 
   String _getUserInitials(String email, String? username) {
@@ -160,6 +163,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.grid_view_outlined,
                     title: 'All Modules',
+                    isSelected: activeRoute == '/modules',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -174,18 +178,26 @@ class AdminDrawer extends ConsumerWidget {
                   _buildSectionHeader('6. SEWING OPERATIONS'),
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.grid_view_rounded,
+                    icon: Icons.dashboard_outlined,
                     title: 'Floor Dashboard',
-                    isSelected: activeIndex == 0,
+                    isSelected: activeRoute == '/stitching-sewing/dashboard' || activeIndex == 0,
                     onTap: () {
                       Navigator.pop(context);
-                      onTabSelected(0);
+                      if (onTabSelected != null) {
+                        onTabSelected!(0);
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminShell()),
+                        );
+                      }
                     },
                   ),
                   _buildDrawerItem(
                     context: context,
                     icon: Icons.notifications_none_rounded,
                     title: 'Notification',
+                    isSelected: activeRoute == '/stitching-sewing/notifications',
                     onTap: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,32 +207,39 @@ class AdminDrawer extends ConsumerWidget {
                   ),
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.handyman_outlined,
+                    icon: Icons.assignment_ind_outlined,
                     title: 'Supervisor Desk',
+                    isSelected: activeRoute == '/stitching-sewing/supervisor-desk',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
-                      );
+                      if (activeRoute != '/stitching-sewing/supervisor-desk') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
+                        );
+                      }
                     },
                   ),
                   _buildDrawerItem(
                     context: context,
                     icon: Icons.storefront_outlined,
                     title: 'Store Dashboard',
+                    isSelected: activeRoute == '/stitching-sewing/store',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const StoreDashboard()),
-                      );
+                      if (activeRoute != '/stitching-sewing/store') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const StoreDashboard()),
+                        );
+                      }
                     },
                   ),
                   _buildDrawerItem(
                     context: context,
                     icon: Icons.smart_toy_outlined,
                     title: 'Zigza AI',
+                    isSelected: activeRoute == '/stitching-sewing/zigza-ai',
                     onTap: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,10 +255,17 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.layers_outlined,
                     title: 'Production Chart',
-                    isSelected: activeIndex == 1,
+                    isSelected: activeRoute == '/stitching-sewing/production-orders' || activeIndex == 1,
                     onTap: () {
                       Navigator.pop(context);
-                      onTabSelected(1);
+                      if (onTabSelected != null) {
+                        onTabSelected!(1);
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminShell()),
+                        );
+                      }
                     },
                   ),
 
@@ -250,6 +276,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.person_outline_rounded,
                     title: 'Profile',
+                    isSelected: activeRoute == '/stitching-sewing/profile',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -262,6 +289,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.apartment_outlined,
                     title: 'Brands & Vendors',
+                    isSelected: activeRoute == '/stitching-sewing/vendors',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -274,6 +302,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.people_outline_rounded,
                     title: 'Employees',
+                    isSelected: activeRoute == '/stitching-sewing/employees',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -286,6 +315,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.sell_outlined,
                     title: 'Articles',
+                    isSelected: activeRoute == '/stitching-sewing/articles',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -298,6 +328,7 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.description_outlined,
                     title: 'Reports & Analytics',
+                    isSelected: activeRoute == '/stitching-sewing/reports',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(

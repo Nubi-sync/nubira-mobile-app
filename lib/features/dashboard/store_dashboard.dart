@@ -13,6 +13,7 @@ import '../../core/utils/parser_utils.dart';
 import '../../core/utils/multi_size_parser.dart';
 import '../../core/services/tenant_resolver_service.dart';
 import '../admin/screens/admin_shell.dart';
+import '../admin/widgets/admin_drawer.dart';
 import '../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../../main.dart'; // supabase client
 
@@ -85,6 +86,7 @@ class StoreDashboard extends ConsumerStatefulWidget {
 }
 
 class _StoreDashboardState extends ConsumerState<StoreDashboard> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int parseQty(dynamic val, [int fallback = 0]) => ParserUtils.parseQty(val, fallback);
   bool _isLoading = true;
 
@@ -4549,7 +4551,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final int pendingLotsCount = pendingLotsPerArticle.values.fold<int>(0, (sum, v) => sum + v);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: const Color(0xFFF4F6FA),
+      drawer: const AdminDrawer(activeRoute: '/stitching-sewing/store'),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -4561,10 +4565,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         leading: Center(
           child: InkWell(
             onTap: () {
-              if (adminScaffoldKey.currentState != null) {
+              if (_scaffoldKey.currentState != null) {
+                _scaffoldKey.currentState!.openDrawer();
+              } else if (adminScaffoldKey.currentState != null) {
                 adminScaffoldKey.currentState!.openDrawer();
-              } else {
-                Navigator.of(context).maybePop();
               }
             },
             borderRadius: BorderRadius.circular(10),
