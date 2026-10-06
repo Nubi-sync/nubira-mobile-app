@@ -861,7 +861,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
     Color textColor = const Color(0xFF232028),
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(14),
@@ -878,25 +878,29 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF7A7488),
-                  letterSpacing: 0.8,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF7A7488),
+                    letterSpacing: 0.4,
+                  ),
                 ),
               ),
-              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 4),
+              Icon(icon, size: 15, color: textColor),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.jetBrainsMono(
-              fontSize: 20,
+              fontSize: 19,
               fontWeight: FontWeight.w900,
               color: textColor,
             ),
@@ -904,8 +908,10 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           const SizedBox(height: 2),
           Text(
             caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.publicSans(
-              fontSize: 10.5,
+              fontSize: 10,
               color: const Color(0xFF7A7488),
               fontWeight: FontWeight.w500,
             ),
@@ -924,7 +930,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -941,19 +947,23 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'ARTICLE STYLES',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF7A7488),
-                    letterSpacing: 0.8,
+                Expanded(
+                  child: Text(
+                    'ARTICLE STYLES',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF7A7488),
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE5EDF9),
                     borderRadius: BorderRadius.circular(4),
@@ -962,7 +972,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   child: Text(
                     'Explorer ↗',
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 8.5,
+                      fontSize: 8,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF2E5AA8),
                     ),
@@ -974,26 +984,26 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             Text(
               '$count',
               style: GoogleFonts.jetBrainsMono(
-                fontSize: 20,
+                fontSize: 19,
                 fontWeight: FontWeight.w900,
                 color: const Color(0xFF232028),
               ),
             ),
             const SizedBox(height: 2),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     '($variantsCount Variants)',
-                    style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF7A7488)),
+                    style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF7A7488)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 2),
                 Text(
-                  'View Ledger →',
+                  'Ledger →',
                   style: GoogleFonts.publicSans(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF2E5AA8),
                   ),
