@@ -76,6 +76,10 @@ flutter:
   # Assets declaration
   assets:
     - assets/images/
+    - assets/images/factory_bg_tinted_sketch.jpg
+    - assets/images/factory_handshake_art.jpg
+    - assets/images/icon.png
+    - assets/images/z_i_g_z_a.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
