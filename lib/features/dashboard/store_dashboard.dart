@@ -6075,10 +6075,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Row 3: pcs over FLOOR ALLOTTED + Status Badge
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  // Row 3: pcs over FLOOR ALLOTTED + Status Badge (Responsive wrap)
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -6173,13 +6175,16 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Text(
                         'Floor Lineman Assignments & Color Breakdown',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 11.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF334155),
                         ),
@@ -6187,7 +6192,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       Text(
                         'Consolidated Summary',
                         style: GoogleFonts.publicSans(
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF94A3B8),
                         ),
