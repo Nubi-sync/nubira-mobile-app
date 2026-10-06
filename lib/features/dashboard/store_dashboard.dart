@@ -5286,55 +5286,62 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final dispatchCount = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').length;
     final inwardCount = _truckInwards.length + _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').length;
 
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: [
-            _buildSwitcherTab(
-              index: 0,
-              label: 'Article Allocation & BOM Handover',
-              icon: Icons.ssid_chart_rounded,
+    final tabs = [
+      {'index': 0, 'label': 'Article Allocation & BOM', 'short': 'BOM Handover', 'count': null, 'icon': Icons.ssid_chart_rounded, 'desc': 'Allotments, Lineman floor assignments & BOM issue status'},
+      {'index': 1, 'label': 'Finished Goods', 'short': 'Finished Goods', 'count': finishedCount, 'icon': Icons.inventory_2_outlined, 'desc': 'Inventory matrix by article, sizes and godown status'},
+      {'index': 2, 'label': 'Supplier GRN', 'short': 'Supplier GRN', 'count': challanCount, 'icon': Icons.description_outlined, 'desc': 'Inward truck delivery challans, bills & slip photos'},
+      {'index': 3, 'label': 'Raw Materials', 'short': 'Raw Materials', 'count': accessoriesCount, 'icon': Icons.widgets_outlined, 'desc': 'Trims, threads, polybags, zippers & stock buffer levels'},
+      {'index': 4, 'label': 'Dispatch & Outward', 'short': 'Dispatch', 'count': dispatchCount, 'icon': Icons.local_shipping_outlined, 'desc': 'Outward shipments to warehouses & distributors'},
+      {'index': 5, 'label': 'Inward Receipts', 'short': 'Inwards', 'count': inwardCount, 'icon': Icons.check_circle_outline_rounded, 'desc': 'Verified fabric & trim gate inward entries'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          // Quick Jump Menu Pill
+          InkWell(
+            onTap: () => _showSectionPickerSheet(tabs),
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1.5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.dashboard_customize_outlined, size: 15, color: Color(0xFF332B6B)),
+                  SizedBox(width: 4),
+                  Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF64748B)),
+                ],
+              ),
             ),
-            const SizedBox(width: 4),
+          ),
+
+          // Tab Pills
+          for (var t in tabs) ...[
             _buildSwitcherTab(
-              index: 1,
-              label: 'Finished Goods Matrix ($finishedCount)',
-              icon: Icons.inventory_2_outlined,
+              index: t['index'] as int,
+              label: t['label'] as String,
+              icon: t['icon'] as IconData,
+              count: t['count'] as int?,
             ),
-            const SizedBox(width: 4),
-            _buildSwitcherTab(
-              index: 2,
-              label: 'Supplier Challans & GRN ($challanCount)',
-              icon: Icons.description_outlined,
-            ),
-            const SizedBox(width: 4),
-            _buildSwitcherTab(
-              index: 3,
-              label: 'Raw Materials & Trims ($accessoriesCount)',
-              icon: Icons.widgets_outlined,
-            ),
-            const SizedBox(width: 4),
-            _buildSwitcherTab(
-              index: 4,
-              label: 'Dispatch & Challans ($dispatchCount)',
-              icon: Icons.local_shipping_outlined,
-            ),
-            const SizedBox(width: 4),
-            _buildSwitcherTab(
-              index: 5,
-              label: 'Inward Receipts ($inwardCount)',
-              icon: Icons.check_circle_outline_rounded,
-            ),
+            const SizedBox(width: 6),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -5343,34 +5350,244 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     required int index,
     required String label,
     required IconData icon,
+    int? count,
   }) {
     final isSelected = _selectedSectionTab == index;
     return InkWell(
       onTap: () => setState(() => _selectedSectionTab = index),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8.5),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF332B6B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF332B6B) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF332B6B).withValues(alpha: 0.22),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1.5),
+                  ),
+                ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 16,
-              color: isSelected ? Colors.white : const Color(0xFF5B6478),
+              size: 15,
+              color: isSelected ? Colors.white : const Color(0xFF64748B),
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF14142B),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF334155),
               ),
             ),
+            if (count != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected ? Colors.white : const Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSectionPickerSheet(List<Map<String, dynamic>> tabs) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F1FA),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.dashboard_customize_rounded, size: 20, color: Color(0xFF332B6B)),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Store Dashboard Sections',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      'Select a tab view to inspect live store floor data',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 10),
+            for (var t in tabs) ...[
+              InkWell(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _selectedSectionTab = t['index'] as int);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  margin: const EdgeInsets.symmetric(vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _selectedSectionTab == t['index']
+                        ? const Color(0xFFF4F1FA)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _selectedSectionTab == t['index']
+                          ? const Color(0xFFDDD6F0)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _selectedSectionTab == t['index']
+                              ? const Color(0xFF332B6B)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          t['icon'] as IconData,
+                          size: 18,
+                          color: _selectedSectionTab == t['index']
+                              ? Colors.white
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  t['label'] as String,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5,
+                                    fontWeight: _selectedSectionTab == t['index']
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: _selectedSectionTab == t['index']
+                                        ? const Color(0xFF332B6B)
+                                        : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                if (t['count'] != null) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${t['count']}',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF475569),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              t['desc'] as String,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_selectedSectionTab == t['index'])
+                        const Icon(Icons.check_circle_rounded, size: 20, color: Color(0xFF332B6B))
+                      else
+                        const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFCBD5E1)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
