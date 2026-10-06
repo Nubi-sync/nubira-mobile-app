@@ -393,7 +393,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         keyboardType: TextInputType.emailAddress,
                         style: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          hintText: 'name@company.com',
+                          hintText: 'Enter your email',
                           hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
@@ -1138,7 +1138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (_inputError != null) setState(() => _inputError = null);
                                 },
                                 decoration: InputDecoration(
-                                  hintText: 'name@company.com',
+                                  hintText: 'Enter your email',
                                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                                   prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
                                   border: InputBorder.none,
