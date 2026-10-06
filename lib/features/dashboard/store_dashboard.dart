@@ -172,8 +172,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         allotQuery = await supabase
             .from('allotments')
             .select('*')
-            .eq('status', 'IN_PROGRESS')
-            .order('created_at', ascending: false);
+            .inFilter('status', ['IN_PROGRESS', 'PENDING'])
+            .order('created_at', ascending: false)
+            .limit(1000);
       } catch (e) {
         debugPrint('Allotments fetch error in store: $e');
       }
@@ -197,7 +198,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       try {
         challansQuery = await supabase
             .from('challans')
-            .select('id, challan_no, brand, fabric_type, notes, company_name');
+            .select('*')
+            .order('created_at', ascending: false)
+            .limit(500);
       } catch (_) {}
 
       try {
@@ -209,17 +212,39 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         debugPrint('Allotment materials fetch error: $e');
       }
 
-      if (targetComp != null && targetComp.isNotEmpty) {
+      final isCustomPlant = isPlatformSuper ||
+          (tenant?.companyName.toLowerCase().contains('nubira') ?? false) ||
+          (currentUser?.email?.toLowerCase().contains('nubira') ?? false) ||
+          currentUser?.email?.toLowerCase() == 'aj@nubiracreation.com' ||
+          currentUser?.email?.toLowerCase() == 'team.anga9@gmail.com' ||
+          currentUser?.email?.toLowerCase() == 'admin@zigza.in';
+
+      bool isTargetMatch(List<dynamic> values) {
+        if (targetComp == null || targetComp.isEmpty || isCustomPlant) return true;
+        for (var v in values) {
+          if (v == null) continue;
+          final s = v.toString().trim().toLowerCase();
+          if (s == targetComp ||
+              s.contains('[company:$targetComp]') ||
+              s.contains('[company: $targetComp]') ||
+              s.contains(targetComp)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      if (targetComp != null && targetComp.isNotEmpty && !isCustomPlant) {
         allotQuery = allotQuery.where((al) {
           final comp = (al['company_name']?.toString() ?? '').toLowerCase();
-          return comp.isEmpty || comp == targetComp || comp.contains(targetComp);
+          return isTargetMatch([comp]);
         }).toList();
 
         challansQuery = challansQuery.where((ch) {
           final brand = (ch['brand']?.toString() ?? '').toLowerCase();
           final notes = (ch['notes']?.toString() ?? '').toLowerCase();
           final comp = (ch['company_name']?.toString() ?? '').toLowerCase();
-          return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp);
+          return isTargetMatch([brand, notes, comp]);
         }).toList();
 
         articlesQuery = articlesQuery.where((art) {
@@ -229,7 +254,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           if (rates is Map) {
             rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
           }
-          return rateComp == targetComp || rateComp.contains(targetComp) || desc.contains(targetComp) || targetComp.contains('nubira');
+          return isTargetMatch([rateComp, desc]);
         }).toList();
       }
 
