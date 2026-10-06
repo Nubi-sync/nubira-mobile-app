@@ -96,10 +96,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
   Map<String, int> _articleStockMap = {};
   Map<String, int> _variantStockMap = {};
-  int _totalFinishedStock = 0;
-  int _todayOutward = 0;
-  int _todayTruckCount = 0;
-  Map<String, List<dynamic>> _materialsByAllotmentMap = {};
   List<dynamic> _allotmentVariants = [];
   List<dynamic> _activeAllotments = [];
   List<dynamic> _allotmentMaterials = [];
@@ -127,9 +123,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   String _grnSearchQuery = '';
   String _grnStatusFilter = 'ALL'; // 'ALL', 'VERIFIED', 'SHORTAGE_DUE'
 
-  // Tab 3 (Raw Materials & Trims) search & filter
+  // Tab 3 (Raw Materials & Trims) search, filter, sort & pagination
   String _trimsSearchQuery = '';
   String _trimsStatusFilter = 'ALL'; // 'ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'
+  int _trimsCurrentPage = 1;
+  static const int _trimsPageSize = 10;
+  String _trimsSortCol = 'default'; // 'item_name', 'total_in', 'balance', 'default'
+  String _trimsSortOrder = 'desc'; // 'asc', 'desc'
 
   // Tab 4 (Dispatch & Challans) search
   String _dispatchSearchQuery = '';
@@ -161,8 +161,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   Future<void> _fetchStoreData() async {
     setState(() => _isLoading = true);
     try {
-      final today = DateTime.now().toIso8601String().split('T')[0];
-
       final currentUser = supabase.auth.currentUser;
       ResolvedTenantProfile? tenant;
       if (currentUser != null) {
@@ -615,9 +613,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       });
 
       // 4. Calculate Finished Goods Stock
-      int totalIn = 0;
-      int totalOut = 0;
-      int tOutward = 0;
       final Map<String, int> stockMap = {};
       final Map<String, int> varStockMap = {};
 
@@ -628,21 +623,15 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         final color = (tx['color'] as String?)?.toLowerCase().trim() ?? '';
         final size = (tx['size'] as String?)?.toLowerCase().trim() ?? '';
         final varKey = '${artId}_${color}_$size';
-        final entryDate = (tx['entry_date'] as String?) ?? (tx['created_at'] != null ? tx['created_at'].toString().split('T')[0] : '');
 
         if (type == 'INWARD') {
-          totalIn += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) + qty;
           varStockMap[varKey] = (varStockMap[varKey] ?? 0) + qty;
         } else if (type == 'OUTWARD') {
-          totalOut += qty;
           stockMap[artId] = (stockMap[artId] ?? 0) - qty;
           varStockMap[varKey] = (varStockMap[varKey] ?? 0) - qty;
-          if (entryDate == today) tOutward += qty;
         }
       }
-
-      final currentStock = (totalIn - totalOut).clamp(0, 9999999);
 
       // 5. Calculate Distinct Accessories count
       final Set<String> distinctAcc = {};
@@ -741,12 +730,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         });
       }
 
-      int tTruckCount = 0;
-      for (var ti in filteredTruckInwards) {
-        final iDate = ti['inward_date']?.toString() ?? '';
-        if (iDate == today) tTruckCount++;
-      }
-
       combinedLogs.sort((a, b) {
         final tA = a['created_at']?.toString() ?? '';
         final tB = b['created_at']?.toString() ?? '';
@@ -773,15 +756,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       if (mounted) {
         setState(() {
           _articles = filteredArticles;
-          _totalFinishedStock = currentStock;
-          _todayOutward = tOutward;
-          _todayTruckCount = tTruckCount;
           _articleStockMap = stockMap;
           _variantStockMap = varStockMap;
           _allotmentVariants = variantsRes;
           _activeAllotments = activeAllotsRes;
           _allotmentMaterials = allotMatsRes;
-          _materialsByAllotmentMap = matsByAllot;
           _allotmentPendingMap = allotPending;
           _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
@@ -5384,7 +5363,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   Widget _buildSectionSwitcher() {
     final finishedCount = _articles.length;
     final challanCount = _truckInwards.length;
-    final accessoriesCount = _accessories.length;
+    final accessoriesCount = _accessories
+        .map((a) => (a['item_name'] ?? '').toString().trim())
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .length;
     final dispatchCount = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').length;
     final inwardCount = _truckInwards.length + _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').length;
 
@@ -7909,8 +7892,125 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   // ==========================================
-  // WIDGET: TAB 3 (RAW MATERIALS & TRIMS)
+  // WIDGET: TAB 3 (RAW MATERIALS & TRIMS - WEB 1:1 TABLE & FLOW)
   // ==========================================
+  Future<void> _deleteAccessoryByName(String itemName, int balance, String unit, int totalIn) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Delete Trim / Raw Material',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete all entries for "$itemName"?',
+              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Current Balance: ${NumberFormat('#,###').format(balance)} $unit • Total Received: +${NumberFormat('#,###').format(totalIn)}',
+              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFEDD5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFEA580C), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This will permanently remove this trim from inventory ledger.',
+                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF9A3412)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.publicSans(color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Delete', style: GoogleFonts.publicSans(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      setState(() => _isLoading = true);
+      await supabase.from('accessories').delete().eq('item_name', itemName);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Trim "$itemName" deleted successfully'),
+            backgroundColor: const Color(0xFF0F766E),
+          ),
+        );
+      }
+      await _fetchStoreData();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting trim: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleTrimsSort(String column) {
+    setState(() {
+      if (_trimsSortCol == column) {
+        _trimsSortOrder = _trimsSortOrder == 'asc' ? 'desc' : 'asc';
+      } else {
+        _trimsSortCol = column;
+        _trimsSortOrder = 'desc';
+      }
+    });
+  }
+
   Widget _buildRawMaterialsTrimsSection() {
     final Map<String, Map<String, dynamic>> trimMap = {};
 
@@ -7949,11 +8049,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final lowStockTrimsCount = list.where((it) => (it['balance'] as int) > 0 && (it['balance'] as int) < 10).length;
     final outStockTrimsCount = list.where((it) => (it['balance'] as int) <= 0).length;
 
+    // Search filter
     if (_trimsSearchQuery.trim().isNotEmpty) {
       final q = _trimsSearchQuery.toLowerCase().trim();
       list = list.where((it) => (it['item_name'] as String).toLowerCase().contains(q)).toList();
     }
 
+    // Status filter
     if (_trimsStatusFilter == 'IN_STOCK') {
       list = list.where((it) => (it['balance'] as int) >= 10).toList();
     } else if (_trimsStatusFilter == 'LOW_STOCK') {
@@ -7961,6 +8063,32 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     } else if (_trimsStatusFilter == 'OUT_OF_STOCK') {
       list = list.where((it) => (it['balance'] as int) <= 0).toList();
     }
+
+    // Sort matching Web
+    if (_trimsSortCol == 'item_name') {
+      list.sort((a, b) {
+        final res = (a['item_name'] as String).compareTo(b['item_name'] as String);
+        return _trimsSortOrder == 'asc' ? res : -res;
+      });
+    } else if (_trimsSortCol == 'total_in') {
+      list.sort((a, b) {
+        final res = (a['totalIn'] as int).compareTo(b['totalIn'] as int);
+        return _trimsSortOrder == 'asc' ? res : -res;
+      });
+    } else if (_trimsSortCol == 'balance') {
+      list.sort((a, b) {
+        final res = (a['balance'] as int).compareTo(b['balance'] as int);
+        return _trimsSortOrder == 'asc' ? res : -res;
+      });
+    }
+
+    // Pagination
+    final totalItems = list.length;
+    final totalPages = (totalItems / _trimsPageSize).ceil().clamp(1, 9999);
+    final currentPageClamped = _trimsCurrentPage.clamp(1, totalPages);
+    final startIdx = (currentPageClamped - 1) * _trimsPageSize;
+    final paginatedList = list.skip(startIdx).take(_trimsPageSize).toList();
+    final endIdx = (startIdx + paginatedList.length);
 
     final totalStockBalance = _articleStockMap.values.fold<int>(0, (sum, val) => sum + val);
     final totalInwardQty = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').fold<int>(0, (sum, t) => sum + parseQty(t['quantity']));
@@ -8111,7 +8239,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             Expanded(
               child: _buildWebKpiOverviewCard(
                 title: 'ACCESSORIES TRIMS',
-                value: '${_accessories.length}',
+                value: '$totalTrimTypes',
                 unit: 'items',
                 caption: trimsCaption,
                 icon: Icons.widgets_outlined,
@@ -8167,9 +8295,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             children: [
               // Search Input
               TextField(
-                onChanged: (val) => setState(() => _trimsSearchQuery = val),
+                onChanged: (val) => setState(() {
+                  _trimsSearchQuery = val;
+                  _trimsCurrentPage = 1;
+                }),
                 decoration: InputDecoration(
-                  hintText: 'Search trim item name...',
+                  hintText: 'Search article, buyer, trims...',
                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
                   prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
                   filled: true,
@@ -8190,13 +8321,25 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [
-                    _buildWebStatusFilterChip('ALL', 'All ($totalTrimTypes)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('ALL', 'All ($totalTrimTypes)', _trimsStatusFilter, (v) => setState(() {
+                      _trimsStatusFilter = v;
+                      _trimsCurrentPage = 1;
+                    })),
                     const SizedBox(width: 6),
-                    _buildWebStatusFilterChip('IN_STOCK', 'In Stock ($inStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('IN_STOCK', 'In Stock ($inStockTrimsCount)', _trimsStatusFilter, (v) => setState(() {
+                      _trimsStatusFilter = v;
+                      _trimsCurrentPage = 1;
+                    })),
                     const SizedBox(width: 6),
-                    _buildWebStatusFilterChip('LOW_STOCK', 'Low Stock ($lowStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('LOW_STOCK', 'Low Stock ($lowStockTrimsCount)', _trimsStatusFilter, (v) => setState(() {
+                      _trimsStatusFilter = v;
+                      _trimsCurrentPage = 1;
+                    })),
                     const SizedBox(width: 6),
-                    _buildWebStatusFilterChip('OUT_OF_STOCK', 'Out of Stock ($outStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('OUT_OF_STOCK', 'Out of Stock ($outStockTrimsCount)', _trimsStatusFilter, (v) => setState(() {
+                      _trimsStatusFilter = v;
+                      _trimsCurrentPage = 1;
+                    })),
                   ],
                 ),
               ),
@@ -8205,6 +8348,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         ),
         const SizedBox(height: 12),
 
+        // ==========================================
+        // 4. DATA TABLE / MATRIX (Web 1:1 Parity)
+        // ==========================================
         if (list.isEmpty)
           Container(
             padding: const EdgeInsets.all(28),
@@ -8227,138 +8373,419 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             ),
           )
         else
-          ...list.map((trim) => _buildTrimItemCard(trim)),
-      ],
-    );
-  }
-
-  Widget _buildTrimItemCard(Map<String, dynamic> trim) {
-    final name = trim['item_name'] as String;
-    final unit = trim['unit'] as String;
-    final totalIn = trim['totalIn'] as int;
-    final totalOut = trim['totalOut'] as int;
-    final balance = trim['balance'] as int;
-    final lastMovement = trim['lastMovement'] as String;
-
-    final isPositive = balance >= 10;
-    final isLow = balance > 0 && balance < 10;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE6F7F2),
-                        borderRadius: BorderRadius.circular(8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Horizontal Scroll Table
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 720),
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(const Color(0xFFF0FDFA)),
+                      headingRowHeight: 44,
+                      dataRowMinHeight: 48,
+                      dataRowMaxHeight: 56,
+                      horizontalMargin: 16,
+                      columnSpacing: 20,
+                      dividerThickness: 1,
+                      border: const TableBorder(
+                        horizontalInside: BorderSide(color: Color(0xFFF1F5F9), width: 1),
                       ),
-                      child: const Icon(Icons.widgets_outlined, size: 16, color: Color(0xFF0F766E)),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF14142B),
+                      columns: [
+                        DataColumn(
+                          onSort: (idx, asc) => _handleTrimsSort('item_name'),
+                          label: InkWell(
+                            onTap: () => _handleTrimsSort('item_name'),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'ITEM NAME / TRIM',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF334155),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  _trimsSortCol == 'item_name'
+                                      ? (_trimsSortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward)
+                                      : Icons.unfold_more,
+                                  size: 14,
+                                  color: _trimsSortCol == 'item_name' ? const Color(0xFF0F766E) : const Color(0xFF94A3B8),
+                                ),
+                              ],
                             ),
                           ),
-                          Text(
-                            'Unit: $unit',
-                            style: GoogleFonts.publicSans(
+                        ),
+                        DataColumn(
+                          label: Text(
+                            'UNIT',
+                            style: GoogleFonts.jetBrainsMono(
                               fontSize: 11,
-                              color: const Color(0xFF5B6478),
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF334155),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => _handleTrimsSort('total_in'),
+                          label: InkWell(
+                            onTap: () => _handleTrimsSort('total_in'),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'TOTAL RECEIVED (IN)',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF047857),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  _trimsSortCol == 'total_in'
+                                      ? (_trimsSortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward)
+                                      : Icons.unfold_more,
+                                  size: 14,
+                                  color: _trimsSortCol == 'total_in' ? const Color(0xFF047857) : const Color(0xFF94A3B8),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          label: Text(
+                            'TOTAL ISSUED (OUT)',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFB45309),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          numeric: true,
+                          onSort: (idx, asc) => _handleTrimsSort('balance'),
+                          label: InkWell(
+                            onTap: () => _handleTrimsSort('balance'),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'CURRENT BALANCE',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF334155),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  _trimsSortCol == 'balance'
+                                      ? (_trimsSortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward)
+                                      : Icons.unfold_more,
+                                  size: 14,
+                                  color: _trimsSortCol == 'balance' ? const Color(0xFF0F766E) : const Color(0xFF94A3B8),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Center(
+                            child: Text(
+                              'STATUS',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF334155),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataColumn(
+                          label: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              'ACTIONS',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF334155),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      rows: paginatedList.map((row) {
+                        final name = row['item_name'] as String;
+                        final unit = row['unit'] as String;
+                        final totalIn = row['totalIn'] as int;
+                        final totalOut = row['totalOut'] as int;
+                        final balance = row['balance'] as int;
+                        final isOut = balance <= 0;
+                        final isLow = balance > 0 && balance < 10;
+
+                        return DataRow(
+                          cells: [
+                            // 1. Item Name
+                            DataCell(
+                              Text(
+                                name,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            // 2. Unit
+                            DataCell(
+                              Text(
+                                unit,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 12,
+                                  color: const Color(0xFF475569),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            // 3. Total Received (IN)
+                            DataCell(
+                              Text(
+                                '+${NumberFormat('#,###').format(totalIn)}',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF059669),
+                                ),
+                              ),
+                            ),
+                            // 4. Total Issued (OUT)
+                            DataCell(
+                              Text(
+                                '-${NumberFormat('#,###').format(totalOut)}',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFFD97706),
+                                ),
+                              ),
+                            ),
+                            // 5. Current Balance Badge
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: isOut
+                                      ? const Color(0xFFFFF1F2)
+                                      : (isLow ? const Color(0xFFFEF3C7) : const Color(0xFFF0FDFA)),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isOut
+                                        ? const Color(0xFFFECDD3)
+                                        : (isLow ? const Color(0xFFFDE68A) : const Color(0xFFBFE9DC)),
+                                  ),
+                                ),
+                                child: Text(
+                                  '${NumberFormat('#,###').format(balance)} $unit',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: isOut
+                                        ? const Color(0xFFBE123C)
+                                        : (isLow ? const Color(0xFF92400E) : const Color(0xFF0F766E)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 6. Status Pill
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isOut
+                                      ? const Color(0xFFFFF1F2)
+                                      : (isLow ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5)),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isOut
+                                        ? const Color(0xFFFECDD3)
+                                        : (isLow ? const Color(0xFFFDE68A) : const Color(0xFFA7F3D0)),
+                                  ),
+                                ),
+                                child: Text(
+                                  isOut ? 'Out of Stock' : (isLow ? 'Low Stock' : 'In Stock'),
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isOut
+                                        ? const Color(0xFFBE123C)
+                                        : (isLow ? const Color(0xFF92400E) : const Color(0xFF065F46)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 7. Actions (Delete Button)
+                            DataCell(
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
+                                  hoverColor: const Color(0xFFFEF2F2),
+                                  splashRadius: 18,
+                                  tooltip: 'Delete $name',
+                                  onPressed: () => _deleteAccessoryByName(name, balance, unit, totalIn),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+
+                // Pagination Bar (Web 1:1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAFAFA),
+                    border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Showing ${startIdx + 1}-$endIdx of $totalItems items',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          // Prev Page Button
+                          InkWell(
+                            onTap: currentPageClamped > 1
+                                ? () => setState(() => _trimsCurrentPage = currentPageClamped - 1)
+                                : null,
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                              ),
+                              child: Icon(
+                                Icons.chevron_left_rounded,
+                                size: 18,
+                                color: currentPageClamped > 1 ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Page Numbers
+                          for (int p = 1; p <= totalPages; p++) ...[
+                            if (totalPages <= 5 || p == 1 || p == totalPages || (p >= currentPageClamped - 1 && p <= currentPageClamped + 1)) ...[
+                              InkWell(
+                                onTap: () => setState(() => _trimsCurrentPage = p),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: p == currentPageClamped ? const Color(0xFF0B1220) : Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: p == currentPageClamped ? const Color(0xFF0B1220) : const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '$p',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: p == currentPageClamped ? Colors.white : const Color(0xFF334155),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ] else if (p == 2 && currentPageClamped > 3) ...[
+                              Text('...', style: GoogleFonts.publicSans(color: const Color(0xFF94A3B8))),
+                              const SizedBox(width: 4),
+                            ] else if (p == totalPages - 1 && currentPageClamped < totalPages - 2) ...[
+                              Text('...', style: GoogleFonts.publicSans(color: const Color(0xFF94A3B8))),
+                              const SizedBox(width: 4),
+                            ],
+                          ],
+
+                          const SizedBox(width: 2),
+                          // Next Page Button
+                          InkWell(
+                            onTap: currentPageClamped < totalPages
+                                ? () => setState(() => _trimsCurrentPage = currentPageClamped + 1)
+                                : null,
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                              ),
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: currentPageClamped < totalPages ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$balance $unit',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: isPositive ? const Color(0xFF0F766E) : (isLow ? const Color(0xFFD97706) : const Color(0xFFE11D48)),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isPositive
-                          ? const Color(0xFFE6F7F2)
-                          : (isLow ? const Color(0xFFFEF3C7) : const Color(0xFFFEF2F4)),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isPositive
-                            ? const Color(0xFFBFE9DC)
-                            : (isLow ? const Color(0xFFF5D67A) : const Color(0xFFF8C9D1)),
-                      ),
-                    ),
-                    child: Text(
-                      isPositive ? 'IN STOCK' : (isLow ? 'LOW STOCK' : 'OUT OF STOCK'),
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w800,
-                        color: isPositive
-                            ? const Color(0xFF0F766E)
-                            : (isLow ? const Color(0xFF92400E) : const Color(0xFFBE123C)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Inward: +$totalIn • Outward: -$totalOut',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10.5,
-                  color: const Color(0xFF5B6478),
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              Text(
-                'Last: $lastMovement',
-                style: GoogleFonts.publicSans(
-                  fontSize: 10,
-                  color: const Color(0xFF8A94A6),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -10462,8 +10889,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 }
 
 class _WavingHandIcon extends StatefulWidget {
-  final double size;
-  const _WavingHandIcon({this.size = 20});
+  const _WavingHandIcon();
 
   @override
   State<_WavingHandIcon> createState() => _WavingHandIconState();
@@ -10508,10 +10934,10 @@ class _WavingHandIconState extends State<_WavingHandIcon> with SingleTickerProvi
           child: child,
         );
       },
-      child: Icon(
+      child: const Icon(
         Icons.waving_hand_outlined,
         color: AppTheme.steel,
-        size: widget.size,
+        size: 20,
       ),
     );
   }
