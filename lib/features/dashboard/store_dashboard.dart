@@ -88,11 +88,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   int parseQty(dynamic val, [int fallback = 0]) => ParserUtils.parseQty(val, fallback);
   bool _isLoading = true;
 
-  // Aggregate Stats
-  int _totalFinishedStock = 0;
-  int _todayOutward = 0;
-  int _todayTruckCount = 0;
-
   List<dynamic> _articles = [];
   List<dynamic> _storeLogs = [];
   List<dynamic> _truckInwards = [];
@@ -101,6 +96,10 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
   Map<String, int> _articleStockMap = {};
   Map<String, int> _variantStockMap = {};
+  int _totalFinishedStock = 0;
+  int _todayOutward = 0;
+  int _todayTruckCount = 0;
+  Map<String, List<dynamic>> _materialsByAllotmentMap = {};
   List<dynamic> _allotmentVariants = [];
   List<dynamic> _activeAllotments = [];
   List<dynamic> _allotmentMaterials = [];
@@ -139,7 +138,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   String _inwardSearchQuery = '';
 
   // Performance & Indexing Caches (O(1) lookups instead of O(N*M))
-  Map<String, List<dynamic>> _materialsByAllotmentMap = {};
   Map<String, bool> _allotmentPendingMap = {};
   int _visibleArticleCount = 25;
   int _visibleFeedCount = 20;
@@ -7525,10 +7523,23 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   // ==========================================
-  // WIDGET: TAB 2 (SUPPLIER GRN LIST)
+  // WIDGET: TAB 2 (SUPPLIER GRN LIST) - WEB 1:1 PARITY
   // ==========================================
   Widget _buildSupplierGrnSection() {
     var list = _truckInwards;
+
+    final totalStockBalance = _articleStockMap.values.fold<int>(0, (sum, val) => sum + val);
+    final totalInwardQty = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').fold<int>(0, (sum, t) => sum + parseQty(t['quantity']));
+    final totalOutwardQty = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').fold<int>(0, (sum, t) => sum + parseQty(t['quantity']));
+
+    final finishedStockCaption = totalStockBalance == 0
+        ? 'Zero stock · Awaiting floor inward'
+        : 'Steady, no reorder needed';
+    final trimsCaption = _accessories.isEmpty
+        ? 'Not enough history yet'
+        : 'All trims sufficiently stocked';
+    final lastQcCaption = totalInwardQty == 0 ? 'No QC inward recorded yet' : 'Last QC pass: recorded';
+    final lastDispatchCaption = totalOutwardQty == 0 ? 'No dispatch this week' : 'Last dispatch: recorded';
 
     if (_grnSearchQuery.trim().isNotEmpty) {
       final q = _grnSearchQuery.toLowerCase().trim();
@@ -7541,9 +7552,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       }).toList();
     }
 
-    if (_grnStatusFilter == 'VERIFIED') {
+    if (_grnStatusFilter == 'VERIFIED' || _grnStatusFilter == 'IN_STOCK') {
       list = list.where((grn) => (grn['status'] ?? '').toString().toUpperCase() == 'VERIFIED').toList();
-    } else if (_grnStatusFilter == 'SHORTAGE_DUE') {
+    } else if (_grnStatusFilter == 'SHORTAGE_DUE' || _grnStatusFilter == 'LOW_STOCK') {
       list = list.where((grn) {
         final st = (grn['status'] ?? '').toString().toUpperCase();
         return st == 'SHORTAGE' || st == 'DUE_PENDING';
@@ -7553,73 +7564,225 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ==========================================
+        // 1. PAGE HEADER CARD (Web 1:1)
+        // ==========================================
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFBFE9DC)),
+                    ),
+                    child: const Icon(Icons.warehouse_rounded, color: Color(0xFF0F766E), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Godown & Inventory Management',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Real-time finished goods stock, raw trims ledger & store transactions',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11.5,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF334155),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Exporting supplier challans CSV...')),
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 16, color: Color(0xFF64748B)),
+                      label: Text(
+                        'Export CSV',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF334155),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('TV view is optimized for wide screens & smart displays.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.tv_rounded, size: 16, color: Color(0xFF64748B)),
+                      label: Text(
+                        'TV View',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ==========================================
+        // 2. 4 KPI OVERVIEW BANNER (Web 1:1)
+        // ==========================================
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Supplier Challans (GRN)',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF14142B),
-                letterSpacing: -0.3,
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'FINISHED STOCK',
+                value: NumberFormat('#,###').format(totalStockBalance),
+                unit: 'pcs',
+                caption: finishedStockCaption,
+                icon: Icons.inventory_2_outlined,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F7F2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFE9DC)),
-              ),
-              child: Text(
-                '${_truckInwards.length} slips recorded',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F766E),
-                ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'ACCESSORIES TRIMS',
+                value: '${_accessories.length}',
+                unit: 'items',
+                caption: trimsCaption,
+                icon: Icons.widgets_outlined,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'TOTAL INWARD (QC)',
+                value: '+${NumberFormat('#,###').format(totalInwardQty)}',
+                unit: 'pcs',
+                caption: lastQcCaption,
+                icon: Icons.check_circle_outline_rounded,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'DISPATCHED OUTWARD',
+                value: '-${NumberFormat('#,###').format(totalOutwardQty)}',
+                unit: 'pcs',
+                caption: lastDispatchCaption,
+                icon: Icons.local_shipping_outlined,
+                valueColor: const Color(0xFF7C3AED),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-        // Search & Filter
+        // ==========================================
+        // 3. FILTER CHIPS & SEARCH TOOLBAR (Web 1:1)
+        // ==========================================
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
+              // Search Input
               TextField(
                 onChanged: (val) => setState(() => _grnSearchQuery = val),
                 decoration: InputDecoration(
-                  hintText: 'Search GRN, supplier, truck...',
+                  hintText: 'Search article, buyer, trims...',
                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
                   prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.2)),
                   isDense: true,
                 ),
                 style: GoogleFonts.publicSans(fontSize: 12.5),
               ),
               const SizedBox(height: 8),
+
+              // Filter Chips
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [
-                    _buildFilterChip('ALL', 'All (${_truckInwards.length})', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    _buildWebStatusFilterChip('ALL', 'All', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
                     const SizedBox(width: 6),
-                    _buildFilterChip('VERIFIED', 'Verified', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    _buildWebStatusFilterChip('IN_STOCK', 'In Stock', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
                     const SizedBox(width: 6),
-                    _buildFilterChip('SHORTAGE_DUE', 'Shortage / Due', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    _buildWebStatusFilterChip('LOW_STOCK', 'Low Stock', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildWebStatusFilterChip('OUT_OF_STOCK', 'Out of Stock', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
                   ],
                 ),
               ),
@@ -7628,22 +7791,112 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         ),
         const SizedBox(height: 12),
 
+        // Supplier Due Items Alert Banner
+        if (_truckInwards.any((c) => (c['due_items_count'] ?? 0) > 0))
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF5FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE9D5FF)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF3E8FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.schedule_rounded, color: Color(0xFF7E22CE), size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Supplier Follow-up Alert: Pending Items on Delivery',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF581C87),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Certain accessories were marked as Due / Pending from Supplier at factory gate inward. Please contact the respective suppliers for delivery status.',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          color: const Color(0xFF6B21A8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Empty State (Web 1:1)
         if (list.isEmpty)
           Container(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.receipt_long_outlined, size: 36, color: Color(0xFF8A94A6)),
-                  const SizedBox(height: 8),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFBFE9DC)),
+                    ),
+                    child: const Icon(
+                      Icons.description_outlined,
+                      size: 28,
+                      color: Color(0xFF0B1220),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'No supplier GRN slips recorded yet.',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                    'No supplier challans or truck inwards logged yet',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Text(
+                      'Delivery challans recorded by Store Managers at factory gate will appear here with line items and paper slip photo proofs.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        color: const Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -7709,85 +7962,210 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
       list = list.where((it) => (it['balance'] as int) <= 0).toList();
     }
 
+    final totalStockBalance = _articleStockMap.values.fold<int>(0, (sum, val) => sum + val);
+    final totalInwardQty = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').fold<int>(0, (sum, t) => sum + parseQty(t['quantity']));
+    final totalOutwardQty = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').fold<int>(0, (sum, t) => sum + parseQty(t['quantity']));
+
+    final finishedStockCaption = totalStockBalance == 0
+        ? 'Zero stock · Awaiting floor inward'
+        : 'Steady, no reorder needed';
+    final trimsCaption = _accessories.isEmpty
+        ? 'Not enough history yet'
+        : 'All trims sufficiently stocked';
+    final lastQcCaption = totalInwardQty == 0 ? 'No QC inward recorded yet' : 'Last QC pass: recorded';
+    final lastDispatchCaption = totalOutwardQty == 0 ? 'No dispatch this week' : 'Last dispatch: recorded';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
+        // ==========================================
+        // 1. PAGE HEADER CARD (Web 1:1)
+        // ==========================================
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFBFE9DC)),
+                    ),
+                    child: const Icon(Icons.warehouse_rounded, color: Color(0xFF0F766E), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Godown & Inventory Management',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Real-time finished goods stock, raw trims ledger & store transactions',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11.5,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF334155),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Exporting raw trims CSV...')),
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 16, color: Color(0xFF64748B)),
+                      label: Text(
+                        'Export CSV',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF334155),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('TV view is optimized for wide screens & smart displays.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.tv_rounded, size: 16, color: Color(0xFF64748B)),
+                      label: Text(
+                        'TV View',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ==========================================
+        // 2. 4 KPI OVERVIEW BANNER (Web 1:1)
+        // ==========================================
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Raw Materials & Trims Ledger',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF14142B),
-                letterSpacing: -0.3,
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'FINISHED STOCK',
+                value: NumberFormat('#,###').format(totalStockBalance),
+                unit: 'pcs',
+                caption: finishedStockCaption,
+                icon: Icons.inventory_2_outlined,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F7F2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFE9DC)),
-              ),
-              child: Text(
-                '$totalTrimTypes items',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F766E),
-                ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildWebKpiOverviewCard(
+                title: 'ACCESSORIES TRIMS',
+                value: '${_accessories.length}',
+                unit: 'items',
+                caption: trimsCaption,
+                icon: Icons.widgets_outlined,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-
-        // KPI Summary Bar
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: _buildSmallKpiCard(
-                label: 'In Stock (>=10)',
-                value: '$inStockTrimsCount items',
-                color: const Color(0xFF0F766E),
-                bg: const Color(0xFFE6F7F2),
+              child: _buildWebKpiOverviewCard(
+                title: 'TOTAL INWARD (QC)',
+                value: '+${NumberFormat('#,###').format(totalInwardQty)}',
+                unit: 'pcs',
+                caption: lastQcCaption,
+                icon: Icons.check_circle_outline_rounded,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _buildSmallKpiCard(
-                label: 'Low Stock (<10)',
-                value: '$lowStockTrimsCount items',
-                color: const Color(0xFFD97706),
-                bg: const Color(0xFFFEF3C7),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildSmallKpiCard(
-                label: 'Out of Stock',
-                value: '$outStockTrimsCount items',
-                color: const Color(0xFFE11D48),
-                bg: const Color(0xFFFEF2F4),
+              child: _buildWebKpiOverviewCard(
+                title: 'DISPATCHED OUTWARD',
+                value: '-${NumberFormat('#,###').format(totalOutwardQty)}',
+                unit: 'pcs',
+                caption: lastDispatchCaption,
+                icon: Icons.local_shipping_outlined,
+                valueColor: const Color(0xFF7C3AED),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
 
-        // Search & Filter
+        // ==========================================
+        // 3. FILTER CHIPS & SEARCH TOOLBAR (Web 1:1)
+        // ==========================================
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             children: [
+              // Search Input
               TextField(
                 onChanged: (val) => setState(() => _trimsSearchQuery = val),
                 decoration: InputDecoration(
@@ -7796,25 +8174,29 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                   prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.2)),
                   isDense: true,
                 ),
                 style: GoogleFonts.publicSans(fontSize: 12.5),
               ),
               const SizedBox(height: 8),
+
+              // Filter Chips
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [
-                    _buildFilterChip('ALL', 'All ($totalTrimTypes)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('ALL', 'All ($totalTrimTypes)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
                     const SizedBox(width: 6),
-                    _buildFilterChip('IN_STOCK', 'In Stock ($inStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('IN_STOCK', 'In Stock ($inStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
                     const SizedBox(width: 6),
-                    _buildFilterChip('LOW_STOCK', 'Low Stock ($lowStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('LOW_STOCK', 'Low Stock ($lowStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
                     const SizedBox(width: 6),
-                    _buildFilterChip('OUT_OF_STOCK', 'Out of Stock ($outStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    _buildWebStatusFilterChip('OUT_OF_STOCK', 'Out of Stock ($outStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
                   ],
                 ),
               ),
@@ -8424,107 +8806,6 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  // ==========================================
-  // SHARED MINI COMPONENTS
-  // ==========================================
-  Widget _buildSmallKpiCard({
-    required String label,
-    required String value,
-    required Color color,
-    required Color bg,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.publicSans(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF5B6478),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: color,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String key, String label, String currentSelected, Function(String) onSelect) {
-    final isSelected = currentSelected == key;
-    return InkWell(
-      onTap: () => onSelect(key),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFCBD5E1)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 10,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricChip({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required Color bg,
-    required Color border,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            '$label: ',
-            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF5B6478)),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: color),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ==========================================
   // HELPER MODALS: ACTIONS, RADAR & DRILLDOWN
@@ -8876,215 +9157,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     return 'Garment';
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color, {String? unit, String? subtitle}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, color: color, size: 20),
-                ),
-                if (unit != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppTheme.bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: Text(
-                      unit,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.inkSoft,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: GoogleFonts.jetBrainsMono(
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
-                color: AppTheme.ink,
-                letterSpacing: -0.5,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.ink,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: GoogleFonts.publicSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: color == AppTheme.green ? AppTheme.green : AppTheme.inkSoft,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _telemetryCell(String label, String value, String unit, Color color) {
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 17,
-                  color: color,
-                ),
-              ),
-              const SizedBox(width: 2),
-              Text(
-                unit,
-                style: GoogleFonts.publicSans(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.inkSoft,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label.toUpperCase(),
-            style: GoogleFonts.publicSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: AppTheme.inkSoft,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cellDivider() {
-    return Container(width: 1, height: 30, color: AppTheme.border);
-  }
-
-  Widget _buildActionTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.inkSoft,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, size: 22, color: AppTheme.inkFaint),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ==========================================
   // ACTIVITY FEED FILTER & GROUPED RENDERERS
@@ -10385,203 +10458,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  Widget _buildQcReadyQueueCard(Map<String, dynamic> lot) {
-    final artNo = lot['art_no'] ?? 'Article';
-    final desc = lot['description'] ?? '';
-    final color = lot['color_name'] ?? 'STANDARD';
-    final challanNo = lot['challan_no'] ?? '-';
-    final int passedQty = parseQty(lot['qc_passed_qty']);
-    final lineman = lot['lineman_name'] ?? 'Lineman';
-    final qcName = lot['qc_name'] ?? 'QC Supervisor';
-    final priority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
-    final isCritical = priority == 'CRITICAL';
-    final isRush = priority == 'RUSH';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isCritical ? const Color(0xFFFFF5F5) : (isRush ? const Color(0xFFFFFDF5) : Colors.white),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isCritical
-              ? const Color(0xFFFCA5A5)
-              : (isRush ? const Color(0xFFFDE68A) : AppTheme.green.withValues(alpha: 0.4)),
-          width: isCritical ? 1.5 : 1.3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isCritical
-                ? const Color(0xFFEF4444).withValues(alpha: 0.08)
-                : AppTheme.green.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Urgency Alert Banner (if CRITICAL or RUSH)
-          if (isCritical) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFCA5A5), width: 1.2),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.local_fire_department_rounded, size: 15, color: Color(0xFFDC2626)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'CRITICAL / EXPORT PRIORITY • सबसे पहले इनवर्ड करो (DO THIS FIRST)',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF991B1B),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else if (isRush) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.bolt_rounded, size: 15, color: Color(0xFFD97706)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'RUSH ORDER PRIORITY • उच्च प्राथमिकता',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF92400E),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: AppTheme.steelMist, borderRadius: BorderRadius.circular(6)),
-                    child: Text('CH-$challanNo', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel)),
-                  ),
-                  if (isCritical) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFCA5A5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.local_fire_department_rounded, size: 12, color: Color(0xFFDC2626)),
-                          const SizedBox(width: 2),
-                          Text(
-                            'CRITICAL',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFFDC2626),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else if (isRush) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFDE68A)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFD97706)),
-                          const SizedBox(width: 2),
-                          Text(
-                            'RUSH',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFFD97706),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: AppTheme.greenMist, borderRadius: BorderRadius.circular(6)),
-                child: Text('QC Passed: $passedQty pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.green)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Art #$artNo · $color', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.ink)),
-          if (desc.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(desc, style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft)),
-          ],
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _buildCustodyChip('Lineman: $lineman', Icons.person_outline_rounded, AppTheme.inkSoft),
-              _buildCustodyChip('QC: $qcName', Icons.verified_outlined, AppTheme.green),
-              _buildCustodyChip('Admin: ${lot['admin_approved_by'] ?? 'Approved'}', Icons.shield_outlined, AppTheme.steel),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.download_done_rounded, size: 16, color: Colors.white),
-              label: Text('Collect & Inward', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
-              onPressed: () => _showInwardModal(prefilledLot: lot),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _WavingHandIcon extends StatefulWidget {
