@@ -24,7 +24,9 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
       } catch (_) {}
     }
     final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-    final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+    final isCustomPlant = tenant?.isCustomStitching == true || tenant?.companyName.toLowerCase().contains('nubira') == true;
+    final isProvisionedTenant = tenant?.isProvisionedTenant == true;
+    final targetComp = (tenant != null && tenant.companyName.trim().isNotEmpty)
         ? tenant.companyName.trim().toLowerCase()
         : null;
 
@@ -42,6 +44,7 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
       // 1: Allotments with Lineman & Article joins
       supabase.from('allotments').select('''
         id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
+        production_order_no, client_challan_no,
         mending_status, mending_total_counted, qc_status, qc_total_passed, qc_total_alter,
         created_at,
         profiles:lineman_id ( id, username ),
@@ -80,8 +83,8 @@ final adminDashboardProvider = FutureProvider.autoDispose<AdminFactoryKpi>((ref)
     var storeData = (results[6] as List?) ?? [];
     var dispatchData = (results[7] as List?) ?? [];
 
-    // Apply strict tenant scoping
-    if (targetComp != null && targetComp.isNotEmpty) {
+    // Apply tenant scoping for isolated multi-tenant provisioned clients
+    if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
       challansData = challansData.where((ch) {
         final brand = (ch['brand']?.toString() ?? '').toLowerCase();
         final notes = (ch['notes']?.toString() ?? '').toLowerCase();
@@ -244,7 +247,9 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       } catch (_) {}
     }
     final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-    final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+    final isCustomPlant = tenant?.isCustomStitching == true || tenant?.companyName.toLowerCase().contains('nubira') == true;
+    final isProvisionedTenant = tenant?.isProvisionedTenant == true;
+    final targetComp = (tenant != null && tenant.companyName.trim().isNotEmpty)
         ? tenant.companyName.trim().toLowerCase()
         : null;
 
@@ -252,17 +257,20 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
       supabase.from('allotments').select('''
         id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
+        production_order_no, client_challan_no, created_at,
         profiles:lineman_id ( id, username ),
-        articles:article_id ( id, art_no, description, size_rates, stitching_rate )
+        articles ( id, art_no, description, size_rates, stitching_rate )
       ''').order('created_at', ascending: true),
+      supabase.from('allotment_materials').select('allotment_id, notes, item_name, required_qty'),
       supabase.from('allotment_variants').select('allotment_id, color, size, quantity, completed_qty'),
     ]);
 
     var challansRaw = (results[0] as List?) ?? [];
     final allotmentsRaw = (results[1] as List?) ?? [];
-    final variantsRaw = (results[2] as List?) ?? [];
+    final materialsRaw = (results[2] as List?) ?? [];
+    final variantsRaw = (results[3] as List?) ?? [];
 
-    if (targetComp != null && targetComp.isNotEmpty) {
+    if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
       challansRaw = challansRaw.where((ch) {
         final brand = (ch['brand']?.toString() ?? '').toLowerCase();
         final notes = (ch['notes']?.toString() ?? '').toLowerCase();
@@ -335,8 +343,17 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                       break;
                     }
                   } else {
-                    matchingAl = al;
-                    break;
+                    // Check material notes for color
+                    final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+                    final hasMatColor = alMats.any((m) {
+                      final itemName = (m['item_name']?.toString() ?? '').toUpperCase();
+                      final notes = (m['notes']?.toString() ?? '').toUpperCase();
+                      return itemName.contains(colorPattern.toUpperCase()) || notes.contains(colorPattern.toUpperCase());
+                    });
+                    if (hasMatColor || alMats.isEmpty) {
+                      matchingAl = al;
+                      break;
+                    }
                   }
                 }
 
@@ -359,8 +376,16 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                           break;
                         }
                       } else {
-                        matchingAl = al;
-                        break;
+                        final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+                        final hasMatColor = alMats.any((m) {
+                          final itemName = (m['item_name']?.toString() ?? '').toUpperCase();
+                          final notes = (m['notes']?.toString() ?? '').toUpperCase();
+                          return itemName.contains(colorPattern.toUpperCase()) || notes.contains(colorPattern.toUpperCase());
+                        });
+                        if (hasMatColor || alMats.isEmpty) {
+                          matchingAl = al;
+                          break;
+                        }
                       }
                     }
                   }
