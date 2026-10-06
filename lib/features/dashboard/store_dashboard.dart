@@ -331,6 +331,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         }
 
         activeAllotsRes.add({
+          ...Map<String, dynamic>.from(al),
           'id': al['id'],
           'priority': lotPriority,
           'challan_id': chId,
@@ -9462,112 +9463,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.8,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F7F2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.show_chart_rounded, color: Color(0xFF0F766E), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Goods on Floor WIP (${_activeAllotments.length} Active Lots)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF14142B),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20),
-                    visualDensity: VisualDensity.compact,
-                    splashRadius: 18,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              Expanded(
-                child: _activeAllotments.isEmpty
-                    ? const Center(child: Text('No active lots on the floor.'))
-                    : ListView.builder(
-                        itemCount: _activeAllotments.length,
-                        itemBuilder: (ctx, i) {
-                          final al = _activeAllotments[i];
-                          final artNo = al['articles']?['art_no'] ?? al['art_no'] ?? 'Garment';
-                          final lineman = al['profiles']?['username'] ?? al['lineman_name'] ?? 'Lineman';
-                          final qty = parseQty(al['target_qty']);
-                          final challan = al['challans']?['challan_no'] ?? al['challan_no'] ?? '-';
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Art #$artNo • Lot #$challan',
-                                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13),
-                                    ),
-                                    Text(
-                                      'Assigned to $lineman',
-                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF5B6478)),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE6F7F2),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '$qty pcs',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0F766E),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _GoodsInLineDrawerSheet(activeAllotments: _activeAllotments),
     );
   }
 
@@ -10941,6 +10838,1106 @@ class _WavingHandIconState extends State<_WavingHandIcon> with SingleTickerProvi
         Icons.waving_hand_outlined,
         color: AppTheme.steel,
         size: 20,
+      ),
+    );
+  }
+}
+
+// ====================================================================
+// COMPONENT: GOODS IN LINE (LIVE FLOOR WIP) SLIDE-OVER DRAWER (Web 1:1)
+// ====================================================================
+class _GoodsInLineDrawerSheet extends StatefulWidget {
+  final List<dynamic> activeAllotments;
+  const _GoodsInLineDrawerSheet({required this.activeAllotments});
+
+  @override
+  State<_GoodsInLineDrawerSheet> createState() => _GoodsInLineDrawerSheetState();
+}
+
+class _GoodsInLineDrawerSheetState extends State<_GoodsInLineDrawerSheet> {
+  String _searchQuery = '';
+  String _selectedStage = 'ALL'; // 'ALL', 'STITCHING', 'MENDING', 'QC', 'READY_STORE'
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _getBaseMasterArticleNo(String? rawArtNo) {
+    if (rawArtNo == null || rawArtNo.trim().isEmpty) return 'Garment';
+    final trimmed = rawArtNo.trim().toUpperCase();
+    final match1 = RegExp(r'^(\d+)[A-Z_\-\/\s]').firstMatch(trimmed) ?? RegExp(r'^(\d+)[A-Z]+$').firstMatch(trimmed);
+    if (match1 != null) return match1.group(1)!;
+    final match2 = RegExp(r'^(\d+)$').firstMatch(trimmed);
+    if (match2 != null) return match2.group(1)!;
+    final match3 = RegExp(r'^(?:ART|ARTICLE|STYLE)?\s*[-#:]?\s*(\d+)', caseSensitive: false).firstMatch(trimmed);
+    if (match3 != null) return match3.group(1)!;
+    return trimmed;
+  }
+
+  int _parseQty(dynamic val, [int fallback = 0]) => ParserUtils.parseQty(val, fallback);
+
+  Map<String, dynamic> _resolveStage(Map<String, dynamic> al) {
+    final storeInwardStatus = (al['store_inward_status'] ?? '').toString();
+    final qcStatus = (al['qc_status'] ?? '').toString();
+    final mendingStatus = (al['mending_status'] ?? '').toString();
+    final handedToQcAt = al['handed_to_qc_at'];
+    final handedToMendingAt = al['handed_to_mending_at'];
+    final qcTotalPassed = _parseQty(al['qc_total_passed']);
+    final qcTotalAlter = _parseQty(al['qc_total_alter']);
+    final mendingTotalCounted = _parseQty(al['mending_total_counted']);
+    final targetQty = _parseQty(al['target_qty']);
+    final qcSupervisor = (al['qc_supervisor_name'] ?? '').toString();
+    final mendingSupervisor = (al['mending_supervisor_name'] ?? '').toString();
+    final linemanName = (al['profiles']?['username'] ?? al['lineman_name'] ?? 'Floor').toString();
+
+    if (storeInwardStatus == 'INWARDED') {
+      return {
+        'stageKey': 'READY_STORE',
+        'stageLabel': 'Store Inward Done',
+        'bgColor': const Color(0xFFD1FAE5),
+        'textColor': const Color(0xFF065F46),
+        'borderColor': const Color(0xFFA7F3D0),
+        'details': 'Verified and inwarded into Godown stock.',
+        'supervisor': qcSupervisor.isNotEmpty ? qcSupervisor : 'Store Inward',
+      };
+    }
+    if (qcStatus == 'APPROVED_FOR_STORE' || qcStatus == 'READY_FOR_STORE') {
+      return {
+        'stageKey': 'READY_STORE',
+        'stageLabel': 'Ready for Store Inward',
+        'bgColor': const Color(0xFFD1FAE5),
+        'textColor': const Color(0xFF065F46),
+        'borderColor': const Color(0xFFA7F3D0),
+        'details': 'QC Passed (${qcTotalPassed > 0 ? qcTotalPassed : targetQty} pcs). Ready for store inward.',
+        'supervisor': qcSupervisor.isNotEmpty ? qcSupervisor : 'QC Supervisor',
+      };
+    }
+    if (qcStatus == 'IN_INSPECTION' || qcStatus == 'IN_PROGRESS' || handedToQcAt != null || qcTotalPassed > 0) {
+      return {
+        'stageKey': 'QC',
+        'stageLabel': 'In QC Inspection',
+        'bgColor': const Color(0xFFF3E8FF),
+        'textColor': const Color(0xFF6B21A8),
+        'borderColor': const Color(0xFFE9D5FF),
+        'details': 'Passed: $qcTotalPassed pcs • Alterations: $qcTotalAlter pcs',
+        'supervisor': qcSupervisor.isNotEmpty ? qcSupervisor : 'QC Inspector',
+      };
+    }
+    if (mendingStatus == 'IN_MENDING' || mendingStatus == 'IN_PROGRESS' || handedToMendingAt != null || mendingTotalCounted > 0) {
+      return {
+        'stageKey': 'MENDING',
+        'stageLabel': 'In Mending & Alteration',
+        'bgColor': const Color(0xFFFEF3C7),
+        'textColor': const Color(0xFF92400E),
+        'borderColor': const Color(0xFFFDE68A),
+        'details': 'Under repair & checking (${mendingTotalCounted > 0 ? mendingTotalCounted : targetQty} pcs).',
+        'supervisor': mendingSupervisor.isNotEmpty ? mendingSupervisor : 'Mending Table',
+      };
+    }
+    return {
+      'stageKey': 'STITCHING',
+      'stageLabel': 'Stitching in Progress',
+      'bgColor': const Color(0xFFE0F2FE),
+      'textColor': const Color(0xFF0369A1),
+      'borderColor': const Color(0xFFBAE6FD),
+      'details': 'Active sewing on machines under Lineman $linemanName.',
+      'supervisor': linemanName,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. Master Article Aggregation with Lineman Consolidation
+    final Map<String, Map<String, dynamic>> artMap = {};
+
+    for (var rawAl in widget.activeAllotments) {
+      final al = Map<String, dynamic>.from(rawAl as Map);
+      final rawArt = (al['articles']?['art_no'] ?? al['art_no'] ?? 'Garment').toString();
+      final artNo = _getBaseMasterArticleNo(rawArt);
+      String desc = (al['articles']?['description'] ?? al['description'] ?? '').toString();
+      desc = desc.replaceAll(RegExp(r'\[.*?\]'), '').trim();
+      final stageInfo = _resolveStage(al);
+      final targetQty = _parseQty(al['target_qty']);
+      final linemanName = (al['profiles']?['username'] ?? al['lineman_name'] ?? 'Lineman').toString();
+      final challanNo = (al['challans']?['challan_no'] ?? al['challan_no'] ?? '').toString();
+      final rawDate = al['allotment_date'] ?? al['created_at'];
+      final allotmentDate = rawDate != null ? rawDate.toString().split('T')[0] : 'Recent';
+      final createdAtMs = DateTime.tryParse(al['created_at']?.toString() ?? '')?.millisecondsSinceEpoch ?? 0;
+
+      if (!artMap.containsKey(artNo)) {
+        artMap[artNo] = {
+          'artNo': artNo,
+          'rawArtSet': <String>{},
+          'description': desc,
+          'totalPcs': 0,
+          'totalLots': 0,
+          'stitchingPcs': 0,
+          'mendingPcs': 0,
+          'qcPcs': 0,
+          'readyPcs': 0,
+          'latestCreatedAt': createdAtMs,
+          'linemanMap': <String, Map<String, dynamic>>{},
+        };
+      }
+
+      final artGroup = artMap[artNo]!;
+      (artGroup['rawArtSet'] as Set<String>).add(rawArt);
+      if ((artGroup['description'] as String).isEmpty && desc.isNotEmpty) {
+        artGroup['description'] = desc;
+      }
+      artGroup['totalPcs'] = (artGroup['totalPcs'] as int) + targetQty;
+      artGroup['totalLots'] = (artGroup['totalLots'] as int) + 1;
+      if (createdAtMs > (artGroup['latestCreatedAt'] as int)) {
+        artGroup['latestCreatedAt'] = createdAtMs;
+      }
+
+      final stageKey = stageInfo['stageKey'] as String;
+      if (stageKey == 'STITCHING') {
+        artGroup['stitchingPcs'] = (artGroup['stitchingPcs'] as int) + targetQty;
+      } else if (stageKey == 'MENDING') {
+        artGroup['mendingPcs'] = (artGroup['mendingPcs'] as int) + targetQty;
+      } else if (stageKey == 'QC') {
+        artGroup['qcPcs'] = (artGroup['qcPcs'] as int) + targetQty;
+      } else if (stageKey == 'READY_STORE') {
+        artGroup['readyPcs'] = (artGroup['readyPcs'] as int) + targetQty;
+      }
+
+      final linemanKey = '${linemanName}_$stageKey';
+      final lMap = artGroup['linemanMap'] as Map<String, Map<String, dynamic>>;
+
+      if (!lMap.containsKey(linemanKey)) {
+        lMap[linemanKey] = {
+          'linemanName': linemanName,
+          'challanSet': <String>{},
+          'totalPcs': 0,
+          'lotsCount': 0,
+          'stageKey': stageKey,
+          'stageLabel': stageInfo['stageLabel'],
+          'bgColor': stageInfo['bgColor'],
+          'textColor': stageInfo['textColor'],
+          'borderColor': stageInfo['borderColor'],
+          'supervisor': stageInfo['supervisor'],
+          'details': stageInfo['details'],
+          'latestDate': allotmentDate,
+          'variantsMap': <String, int>{},
+        };
+      }
+
+      final lEntry = lMap[linemanKey]!;
+      lEntry['totalPcs'] = (lEntry['totalPcs'] as int) + targetQty;
+      lEntry['lotsCount'] = (lEntry['lotsCount'] as int) + 1;
+      if (challanNo.isNotEmpty && challanNo != '-') {
+        (lEntry['challanSet'] as Set<String>).add(challanNo);
+      }
+      if (allotmentDate.compareTo(lEntry['latestDate'] as String) > 0) {
+        lEntry['latestDate'] = allotmentDate;
+      }
+
+      final variants = al['variants'] as List<dynamic>? ?? al['allotment_variants'] as List<dynamic>? ?? [];
+      final vMap = lEntry['variantsMap'] as Map<String, int>;
+      if (variants.isNotEmpty) {
+        for (var v in variants) {
+          final color = (v['color'] ?? '').toString().trim();
+          final size = (v['size'] ?? '').toString().trim();
+          final vKey = '$color $size'.trim().isEmpty ? 'Standard' : '$color $size'.trim();
+          final vQty = _parseQty(v['quantity']);
+          vMap[vKey] = (vMap[vKey] ?? 0) + vQty;
+        }
+      } else {
+        vMap['Standard'] = (vMap['Standard'] ?? 0) + targetQty;
+      }
+    }
+
+    final List<Map<String, dynamic>> masterArticleGroups = [];
+    artMap.forEach((artNo, g) {
+      final List<Map<String, dynamic>> linemenSummary = [];
+      final lMap = g['linemanMap'] as Map<String, Map<String, dynamic>>;
+      lMap.forEach((key, l) {
+        final List<Map<String, dynamic>> colorSizes = [];
+        final vMap = l['variantsMap'] as Map<String, int>;
+        vMap.forEach((label, qty) {
+          colorSizes.add({'label': label, 'qty': qty});
+        });
+
+        linemenSummary.add({
+          'linemanName': l['linemanName'],
+          'challans': (l['challanSet'] as Set<String>).toList(),
+          'totalPcs': l['totalPcs'],
+          'lotsCount': l['lotsCount'],
+          'stageKey': l['stageKey'],
+          'stageLabel': l['stageLabel'],
+          'bgColor': l['bgColor'],
+          'textColor': l['textColor'],
+          'borderColor': l['borderColor'],
+          'supervisor': l['supervisor'],
+          'details': l['details'],
+          'latestDate': l['latestDate'],
+          'colorSizes': colorSizes,
+        });
+      });
+
+      linemenSummary.sort((a, b) => (b['totalPcs'] as int).compareTo(a['totalPcs'] as int));
+
+      masterArticleGroups.add({
+        'artNo': artNo,
+        'rawArtNos': (g['rawArtSet'] as Set<String>).toList(),
+        'description': g['description'],
+        'totalPcs': g['totalPcs'],
+        'totalLots': g['totalLots'],
+        'stitchingPcs': g['stitchingPcs'],
+        'mendingPcs': g['mendingPcs'],
+        'qcPcs': g['qcPcs'],
+        'readyPcs': g['readyPcs'],
+        'latestCreatedAt': g['latestCreatedAt'],
+        'linemenSummary': linemenSummary,
+      });
+    });
+
+    masterArticleGroups.sort((a, b) {
+      final tA = a['latestCreatedAt'] as int;
+      final tB = b['latestCreatedAt'] as int;
+      if (tB != tA) return tB.compareTo(tA);
+      return (b['totalPcs'] as int).compareTo(a['totalPcs'] as int);
+    });
+
+    // 2. Telemetry Totals
+    int totalPcs = 0;
+    int stitchingPcs = 0;
+    int mendingPcs = 0;
+    int qcPcs = 0;
+    int readyPcs = 0;
+    int stitchingLotsCount = 0;
+    int mendingLotsCount = 0;
+    int qcLotsCount = 0;
+    int readyLotsCount = 0;
+
+    for (var g in masterArticleGroups) {
+      totalPcs += g['totalPcs'] as int;
+      stitchingPcs += g['stitchingPcs'] as int;
+      mendingPcs += g['mendingPcs'] as int;
+      qcPcs += g['qcPcs'] as int;
+      readyPcs += g['readyPcs'] as int;
+      final lList = g['linemenSummary'] as List<Map<String, dynamic>>;
+      for (var l in lList) {
+        final sKey = l['stageKey'] as String;
+        final count = l['lotsCount'] as int;
+        if (sKey == 'STITCHING') {
+          stitchingLotsCount += count;
+        } else if (sKey == 'MENDING') {
+          mendingLotsCount += count;
+        } else if (sKey == 'QC') {
+          qcLotsCount += count;
+        } else if (sKey == 'READY_STORE') {
+          readyLotsCount += count;
+        }
+      }
+    }
+
+    // 3. Filtered Master Articles
+    final q = _searchQuery.trim().toLowerCase();
+    final List<Map<String, dynamic>> filteredMasterArticles = [];
+
+    for (var group in masterArticleGroups) {
+      final rawLinemen = group['linemenSummary'] as List<Map<String, dynamic>>;
+      final matchingLinemen = rawLinemen.where((l) {
+        if (_selectedStage != 'ALL' && l['stageKey'] != _selectedStage) {
+          return false;
+        }
+        if (q.isNotEmpty) {
+          final artNo = (group['artNo'] as String).toLowerCase();
+          final rawArtNos = (group['rawArtNos'] as List<String>).map((s) => s.toLowerCase()).toList();
+          final lName = (l['linemanName'] as String).toLowerCase();
+          final challans = (l['challans'] as List<String>).map((s) => s.toLowerCase()).toList();
+          final supervisor = (l['supervisor'] as String).toLowerCase();
+          final desc = (group['description'] as String).toLowerCase();
+
+          final matchArt = artNo.contains(q) || rawArtNos.any((r) => r.contains(q));
+          final matchLineman = lName.contains(q);
+          final matchChallan = challans.any((c) => c.contains(q));
+          final matchSupervisor = supervisor.contains(q);
+          final matchDesc = desc.contains(q);
+
+          if (!matchArt && !matchLineman && !matchChallan && !matchSupervisor && !matchDesc) {
+            return false;
+          }
+        }
+        return true;
+      }).toList();
+
+      if (matchingLinemen.isEmpty) continue;
+
+      final currentTotalPcs = matchingLinemen.fold<int>(0, (sum, l) => sum + (l['totalPcs'] as int));
+      final currentTotalLots = matchingLinemen.fold<int>(0, (sum, l) => sum + (l['lotsCount'] as int));
+
+      filteredMasterArticles.add({
+        ...group,
+        'totalPcs': currentTotalPcs,
+        'totalLots': currentTotalLots,
+        'linemenSummary': matchingLinemen,
+      });
+    }
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.92,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ==========================================
+          // 1. FIXED DRAWER HEADER
+          // ==========================================
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF0FDFA),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F3EA),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: const Icon(Icons.show_chart_rounded, color: Color(0xFF1F8A5A), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Goods in Line (Live Floor WIP)',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDFA),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFBFE9DC)),
+                            ),
+                            child: Text(
+                              '${NumberFormat('#,###').format(totalPcs)} pcs • ${masterArticleGroups.length} Master Articles',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F766E),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Consolidated floor summary by Master Article across Linemen, Mending & QC tables',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 10.5,
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF64748B)),
+                      visualDensity: VisualDensity.compact,
+                      splashRadius: 18,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // 2x2 Telemetry Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStageTelemetryCard(
+                        key: 'STITCHING',
+                        emoji: '🧵',
+                        title: '1. Stitching',
+                        lotsCount: stitchingLotsCount,
+                        pcs: stitchingPcs,
+                        activeColor: const Color(0xFF3B82F6),
+                        activeBadgeColor: const Color(0xFF1D4ED8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildStageTelemetryCard(
+                        key: 'MENDING',
+                        emoji: '🔧',
+                        title: '2. Mending',
+                        lotsCount: mendingLotsCount,
+                        pcs: mendingPcs,
+                        activeColor: const Color(0xFFF59E0B),
+                        activeBadgeColor: const Color(0xFFB45309),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStageTelemetryCard(
+                        key: 'QC',
+                        emoji: '🔍',
+                        title: '3. QC Table',
+                        lotsCount: qcLotsCount,
+                        pcs: qcPcs,
+                        activeColor: const Color(0xFF8B5CF6),
+                        activeBadgeColor: const Color(0xFF6D28D9),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildStageTelemetryCard(
+                        key: 'READY_STORE',
+                        emoji: '📦',
+                        title: '4. Store Inward',
+                        lotsCount: readyLotsCount,
+                        pcs: readyPcs,
+                        activeColor: const Color(0xFF10B981),
+                        activeBadgeColor: const Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ==========================================
+          // 2. FIXED SEARCH TOOLBAR
+          // ==========================================
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    decoration: InputDecoration(
+                      hintText: 'Search by Master Article #, Lineman name, Challan #, Mending/QC supervisor...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF8A94A6)),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF8A94A6)),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFFFAF7F0),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.2)),
+                      isDense: true,
+                    ),
+                    style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                if (_selectedStage != 'ALL' || _searchQuery.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      _searchController.clear();
+                      setState(() {
+                        _selectedStage = 'ALL';
+                        _searchQuery = '';
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Reset',
+                        style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // ==========================================
+          // 3. SCROLLABLE MASTER ARTICLES BODY
+          // ==========================================
+          Expanded(
+            child: filteredMasterArticles.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.inventory_2_outlined, size: 40, color: Color(0xFFCBD5E1)),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No Master Articles Match Your Search',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Try searching with another article #, lineman name or reset stage filter.',
+                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(14),
+                    itemCount: filteredMasterArticles.length,
+                    itemBuilder: (ctx, i) => _buildMasterArticleCard(filteredMasterArticles[i]),
+                  ),
+          ),
+
+          // ==========================================
+          // 4. FIXED DRAWER FOOTER
+          // ==========================================
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF7F0),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Showing ${filteredMasterArticles.length} of ${masterArticleGroups.length} Master Articles • Live Sync',
+                  style: GoogleFonts.publicSans(
+                    fontSize: 11.5,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3A3564),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(
+                    'Close Drawer',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageTelemetryCard({
+    required String key,
+    required String emoji,
+    required String title,
+    required int lotsCount,
+    required int pcs,
+    required Color activeColor,
+    required Color activeBadgeColor,
+  }) {
+    final isSelected = _selectedStage == key;
+
+    return InkWell(
+      onTap: () => setState(() => _selectedStage = isSelected ? 'ALL' : key),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? activeColor : const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$emoji $title',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: isSelected ? Colors.white : const Color(0xFF475569),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: isSelected ? activeBadgeColor : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '$lotsCount lots',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : const Color(0xFF334155),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${NumberFormat('#,###').format(pcs)} pcs',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: isSelected ? Colors.white : const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMasterArticleCard(Map<String, dynamic> group) {
+    final artNo = group['artNo'] as String;
+    final description = group['description'] as String;
+    final totalPcs = group['totalPcs'] as int;
+    final totalLots = group['totalLots'] as int;
+    final stitchingPcs = group['stitchingPcs'] as int;
+    final mendingPcs = group['mendingPcs'] as int;
+    final qcPcs = group['qcPcs'] as int;
+    final readyPcs = group['readyPcs'] as int;
+    final linemenSummary = group['linemenSummary'] as List<Map<String, dynamic>>;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Card Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAF7F0),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Article $artNo',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          if (totalLots > 1) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3A3564),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$totalLots Lots',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          description,
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (stitchingPcs > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        child: Text(
+                          '🧵 ${NumberFormat('#,###').format(stitchingPcs)} pcs Stitching',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0369A1),
+                          ),
+                        ),
+                      ),
+                    if (mendingPcs > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Text(
+                          '🔧 ${NumberFormat('#,###').format(mendingPcs)} pcs Mending',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    if (qcPcs > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3E8FF),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE9D5FF)),
+                        ),
+                        child: Text(
+                          '🔍 ${NumberFormat('#,###').format(qcPcs)} pcs QC',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B21A8),
+                          ),
+                        ),
+                      ),
+                    if (readyPcs > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD1FAE5),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Text(
+                          '📦 ${NumberFormat('#,###').format(readyPcs)} pcs Ready',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF065F46),
+                          ),
+                        ),
+                      ),
+                    Text(
+                      NumberFormat('#,###').format(totalPcs),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      'Total WIP',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Worker Rows
+          for (int idx = 0; idx < linemenSummary.length; idx++) ...[
+            if (idx > 0) const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+            _buildWorkerRow(linemenSummary[idx]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkerRow(Map<String, dynamic> lineman) {
+    final name = lineman['linemanName'] as String;
+    final challans = lineman['challans'] as List<String>;
+    final totalPcs = lineman['totalPcs'] as int;
+    final lotsCount = lineman['lotsCount'] as int;
+    final stageLabel = lineman['stageLabel'] as String;
+    final bgColor = lineman['bgColor'] as Color;
+    final textColor = lineman['textColor'] as Color;
+    final borderColor = lineman['borderColor'] as Color;
+    final supervisor = lineman['supervisor'] as String;
+    final details = lineman['details'] as String;
+    final latestDate = lineman['latestDate'] as String;
+    final colorSizes = lineman['colorSizes'] as List<Map<String, dynamic>>;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A3564),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'W',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          if (challans.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAF7F0),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Text(
+                                challans.map((c) => 'Challan #$c').join(', '),
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF3A3564),
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (lotsCount > 1) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '($lotsCount batches)',
+                              style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Text(
+                      stageLabel.toUpperCase(),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${NumberFormat('#,###').format(totalPcs)} pcs',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Note Line
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF7F0),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFF1EADE)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Table / Supervisor: $supervisor • $details',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 10,
+                      color: const Color(0xFF475569),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Allotted: $latestDate',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Sizes Wrap Chips
+          if (colorSizes.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'SIZES:',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+                for (var cs in colorSizes)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      '${cs['label']} (${NumberFormat('#,###').format(cs['qty'])} pcs)',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
