@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
+import 'dart:math';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +85,7 @@ class StoreDashboard extends ConsumerStatefulWidget {
 }
 
 class _StoreDashboardState extends ConsumerState<StoreDashboard> {
+  int parseQty(dynamic val, [int fallback = 0]) => ParserUtils.parseQty(val, fallback);
   bool _isLoading = true;
 
   // Aggregate Stats
@@ -95,6 +96,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   List<dynamic> _articles = [];
   List<dynamic> _storeLogs = [];
   List<dynamic> _truckInwards = [];
+  List<dynamic> _accessories = [];
+  List<dynamic> _storeTransactions = [];
 
   Map<String, int> _articleStockMap = {};
   Map<String, int> _variantStockMap = {};
@@ -103,12 +106,36 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   List<dynamic> _allotmentMaterials = [];
   List<dynamic> _readyQcAllotments = [];
 
-  // Section Tabs (0: Article Allocation, 1: Buffer Ledger, 2: Supplier GRN)
+  // Section Tabs:
+  // 0: Article Allocation & BOM Handover
+  // 1: Finished Goods Matrix
+  // 2: Supplier Challans & GRN
+  // 3: Raw Materials & Trims
+  // 4: Dispatch & Challans
+  // 5: Inward Receipts
   int _selectedSectionTab = 0;
   String _articleSearchQuery = '';
   String _articleFilterStatus = 'ALL'; // 'ALL', 'PENDING', 'ISSUED'
   bool _isSyncing = false;
   List<dynamic> _challans = [];
+
+  // Tab 1 (Finished Goods Matrix) search & filter
+  String _finishedSearchQuery = '';
+  String _finishedStatusFilter = 'ALL'; // 'ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'
+
+  // Tab 2 (Supplier GRN) search & filter
+  String _grnSearchQuery = '';
+  String _grnStatusFilter = 'ALL'; // 'ALL', 'VERIFIED', 'SHORTAGE_DUE'
+
+  // Tab 3 (Raw Materials & Trims) search & filter
+  String _trimsSearchQuery = '';
+  String _trimsStatusFilter = 'ALL'; // 'ALL', 'IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'
+
+  // Tab 4 (Dispatch & Challans) search
+  String _dispatchSearchQuery = '';
+
+  // Tab 5 (Inward Receipts) search
+  String _inwardSearchQuery = '';
 
   // Performance & Indexing Caches (O(1) lookups instead of O(N*M))
   Map<String, List<dynamic>> _materialsByAllotmentMap = {};
@@ -657,6 +684,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           _readyQcAllotments = readyQcRes;
           _storeLogs = combinedLogs;
           _truckInwards = truckInwardsRes;
+          _accessories = accRes;
+          _storeTransactions = txRes;
           _challans = challansQuery;
         });
       }
@@ -4418,9 +4447,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         .where((al) => al['status'] != 'CANCELLED')
         .fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
 
-    final int totalStocks = math.max(totalChallanPcs, totalAllotmentTargetPcs);
+    final int totalStocks = max<int>(totalChallanPcs, totalAllotmentTargetPcs);
     final int goodsInLine = totalAllotmentTargetPcs;
-    final int unallottedStocks = math.max(0, totalStocks - goodsInLine);
+    final int unallottedStocks = max<int>(0, totalStocks - goodsInLine);
 
     final Map<String, int> pendingLotsPerArticle = {};
     final Map<String, int> totalLotsPerArticle = {};
@@ -4576,9 +4605,17 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                     if (_selectedSectionTab == 0)
                       _buildArticleAllocationTab()
                     else if (_selectedSectionTab == 1)
-                      _buildArticleBufferLedgerSection()
+                      _buildFinishedGoodsMatrixSection()
+                    else if (_selectedSectionTab == 2)
+                      _buildSupplierGrnSection()
+                    else if (_selectedSectionTab == 3)
+                      _buildRawMaterialsTrimsSection()
+                    else if (_selectedSectionTab == 4)
+                      _buildDispatchChallansSection()
+                    else if (_selectedSectionTab == 5)
+                      _buildInwardReceiptsSection()
                     else
-                      _buildSupplierGrnSection(),
+                      _buildArticleBufferLedgerSection(),
 
                     const SizedBox(height: 32),
                   ],
@@ -5243,6 +5280,12 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   // WIDGET 5: SECTION SWITCHER TABS
   // ==========================================
   Widget _buildSectionSwitcher() {
+    final finishedCount = _articles.length;
+    final challanCount = _truckInwards.length;
+    final accessoriesCount = _accessories.length;
+    final dispatchCount = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').length;
+    final inwardCount = _truckInwards.length + _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').length;
+
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -5258,19 +5301,37 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             _buildSwitcherTab(
               index: 0,
               label: 'Article Allocation & BOM Handover',
-              icon: Icons.fact_check_outlined,
+              icon: Icons.ssid_chart_rounded,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             _buildSwitcherTab(
               index: 1,
-              label: 'Buffer Ledger',
-              icon: Icons.shield_outlined,
+              label: 'Finished Goods Matrix ($finishedCount)',
+              icon: Icons.inventory_2_outlined,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             _buildSwitcherTab(
               index: 2,
-              label: 'Supplier GRN',
-              icon: Icons.receipt_long_outlined,
+              label: 'Supplier Challans & GRN ($challanCount)',
+              icon: Icons.description_outlined,
+            ),
+            const SizedBox(width: 4),
+            _buildSwitcherTab(
+              index: 3,
+              label: 'Raw Materials & Trims ($accessoriesCount)',
+              icon: Icons.widgets_outlined,
+            ),
+            const SizedBox(width: 4),
+            _buildSwitcherTab(
+              index: 4,
+              label: 'Dispatch & Challans ($dispatchCount)',
+              icon: Icons.local_shipping_outlined,
+            ),
+            const SizedBox(width: 4),
+            _buildSwitcherTab(
+              index: 5,
+              label: 'Inward Receipts ($inwardCount)',
+              icon: Icons.check_circle_outline_rounded,
             ),
           ],
         ),
@@ -6046,17 +6107,120 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   }
 
   // ==========================================
-  // WIDGET 8: TAB 3 (SUPPLIER GRN LIST)
+  // WIDGET: TAB 1 (FINISHED GOODS MATRIX)
   // ==========================================
-  Widget _buildSupplierGrnSection() {
+  Widget _buildFinishedGoodsMatrixSection() {
+    // 1. Calculate in-line target and QC-passed quantities
+    final Map<String, int> inLineMap = {};
+    final Map<String, int> qcPassedMap = {};
+
+    final allFloorLots = [..._activeAllotments, ..._readyQcAllotments];
+    final Set<String> seenLotIds = {};
+
+    for (var al in allFloorLots) {
+      final id = (al['id'] ?? '').toString();
+      if (id.isEmpty || seenLotIds.contains(id)) continue;
+      seenLotIds.add(id);
+
+      final rawArt = (al['articles']?['art_no'] ?? al['art_no'] ?? '').toString().trim();
+      if (rawArt.isEmpty) continue;
+
+      final target = parseQty(al['target_qty']);
+      final passed = parseQty(al['qc_total_passed']);
+      final remainingInLine = max<int>(0, target - passed);
+
+      inLineMap[rawArt] = (inLineMap[rawArt] ?? 0) + remainingInLine;
+      qcPassedMap[rawArt] = (qcPassedMap[rawArt] ?? 0) + passed;
+    }
+
+    final Map<String, Map<String, dynamic>> map = {};
+
+    for (var art in _articles) {
+      final artNo = (art['art_no'] ?? 'Unknown').toString().trim();
+      final desc = (art['description'] ?? '-').toString().trim();
+      final autoQc = qcPassedMap[artNo] ?? 0;
+      map[artNo] = {
+        'art_no': artNo,
+        'description': desc,
+        'inLineQty': inLineMap[artNo] ?? 0,
+        'totalInward': autoQc,
+        'totalOutward': 0,
+        'balance': autoQc,
+        'variants': <String, Map<String, int>>{},
+      };
+    }
+
+    for (var tx in _storeTransactions) {
+      final artNo = (tx['article']?['art_no'] ?? tx['art_no'] ?? 'Unknown').toString().trim();
+      final desc = (tx['article']?['description'] ?? '-').toString().trim();
+      final color = (tx['color'] ?? 'Standard').toString().trim();
+      final size = (tx['size'] ?? 'Free').toString().trim();
+      final variantKey = '$color / $size';
+      final type = (tx['type'] ?? 'INWARD').toString().toUpperCase();
+      final qty = parseQty(tx['quantity']);
+
+      if (!map.containsKey(artNo)) {
+        final autoQc = qcPassedMap[artNo] ?? 0;
+        map[artNo] = {
+          'art_no': artNo,
+          'description': desc,
+          'inLineQty': inLineMap[artNo] ?? 0,
+          'totalInward': autoQc,
+          'totalOutward': 0,
+          'balance': autoQc,
+          'variants': <String, Map<String, int>>{},
+        };
+      }
+
+      final variants = map[artNo]!['variants'] as Map<String, Map<String, int>>;
+      if (!variants.containsKey(variantKey)) {
+        variants[variantKey] = {'in': 0, 'out': 0, 'balance': 0};
+      }
+
+      if (type == 'INWARD') {
+        map[artNo]!['totalInward'] = (map[artNo]!['totalInward'] as int) + qty;
+        map[artNo]!['balance'] = (map[artNo]!['balance'] as int) + qty;
+        variants[variantKey]!['in'] = (variants[variantKey]!['in'] ?? 0) + qty;
+        variants[variantKey]!['balance'] = (variants[variantKey]!['balance'] ?? 0) + qty;
+      } else if (type == 'OUTWARD') {
+        map[artNo]!['totalOutward'] = (map[artNo]!['totalOutward'] as int) + qty;
+        map[artNo]!['balance'] = (map[artNo]!['balance'] as int) - qty;
+        variants[variantKey]!['out'] = (variants[variantKey]!['out'] ?? 0) + qty;
+        variants[variantKey]!['balance'] = (variants[variantKey]!['balance'] ?? 0) - qty;
+      }
+    }
+
+    var list = map.values.toList();
+
+    final totalGodownBalance = list.fold<int>(0, (sum, item) => sum + (item['balance'] as int));
+    final inStockArticlesCount = list.where((item) => (item['balance'] as int) > 0).length;
+    final lowStockArticlesCount = list.where((item) => (item['balance'] as int) <= 0).length;
+
+    if (_finishedSearchQuery.trim().isNotEmpty) {
+      final q = _finishedSearchQuery.toLowerCase().trim();
+      list = list.where((item) =>
+        (item['art_no'] as String).toLowerCase().contains(q) ||
+        (item['description'] as String).toLowerCase().contains(q)
+      ).toList();
+    }
+
+    if (_finishedStatusFilter == 'IN_STOCK') {
+      list = list.where((item) => (item['balance'] as int) > 0).toList();
+    } else if (_finishedStatusFilter == 'LOW_STOCK') {
+      list = list.where((item) => (item['balance'] as int) > 0 && (item['balance'] as int) <= 50).toList();
+    } else if (_finishedStatusFilter == 'OUT_OF_STOCK') {
+      list = list.where((item) => (item['balance'] as int) <= 0).toList();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent Supplier Challans (GRN)',
+              'Finished Goods Matrix',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -6072,7 +6236,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 border: Border.all(color: const Color(0xFFBFE9DC)),
               ),
               child: Text(
-                '${_truckInwards.length} slips',
+                '${map.length} styles',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -6082,8 +6246,411 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: 10),
+
+        // Quick KPI Stats Bar
+        Row(
+          children: [
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'Total Godown Stock',
+                value: '$totalGodownBalance pcs',
+                color: const Color(0xFF332B6B),
+                bg: const Color(0xFFF4F3FA),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'In Stock Articles',
+                value: '$inStockArticlesCount styles',
+                color: const Color(0xFF0F766E),
+                bg: const Color(0xFFE6F7F2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'Zero / Low Stock',
+                value: '$lowStockArticlesCount styles',
+                color: const Color(0xFFE11D48),
+                bg: const Color(0xFFFEF2F4),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
-        if (_truckInwards.isEmpty)
+
+        // Search & Filter
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              TextField(
+                onChanged: (val) => setState(() => _finishedSearchQuery = val),
+                decoration: InputDecoration(
+                  hintText: 'Search by article no. or description...',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  isDense: true,
+                ),
+                style: GoogleFonts.publicSans(fontSize: 12.5),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildFilterChip('ALL', 'All (${map.length})', _finishedStatusFilter, (v) => setState(() => _finishedStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('IN_STOCK', 'In Stock ($inStockArticlesCount)', _finishedStatusFilter, (v) => setState(() => _finishedStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('LOW_STOCK', 'Low Stock (<=50)', _finishedStatusFilter, (v) => setState(() => _finishedStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('OUT_OF_STOCK', 'Out of Stock ($lowStockArticlesCount)', _finishedStatusFilter, (v) => setState(() => _finishedStatusFilter = v)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Articles List
+        if (list.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.inventory_2_outlined, size: 36, color: Color(0xFF8A94A6)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No finished stock matched filter.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...list.map((item) => _buildFinishedArticleCard(item)),
+      ],
+    );
+  }
+
+  Widget _buildFinishedArticleCard(Map<String, dynamic> item) {
+    final artNo = item['art_no'] as String;
+    final desc = item['description'] as String;
+    final inLineQty = item['inLineQty'] as int;
+    final totalInward = item['totalInward'] as int;
+    final totalOutward = item['totalOutward'] as int;
+    final balance = item['balance'] as int;
+    final variants = item['variants'] as Map<String, Map<String, int>>;
+
+    final isPositive = balance > 0;
+    final isLow = isPositive && balance <= 50;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Article No + Balance Pill
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      artNo,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF14142B),
+                      ),
+                    ),
+                    if (desc.isNotEmpty && desc != '-') ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        desc,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          color: const Color(0xFF5B6478),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$balance pcs',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: isPositive ? (isLow ? const Color(0xFFD97706) : const Color(0xFF0F766E)) : const Color(0xFF8A94A6),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isPositive
+                          ? (isLow ? const Color(0xFFFEF3C7) : const Color(0xFFE6F7F2))
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isPositive
+                            ? (isLow ? const Color(0xFFF5D67A) : const Color(0xFFBFE9DC))
+                            : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    child: Text(
+                      isPositive ? (isLow ? 'LOW STOCK' : 'IN STOCK') : 'OUT OF STOCK',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        color: isPositive
+                            ? (isLow ? const Color(0xFF92400E) : const Color(0xFF0F766E))
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Row 2: Metrics chips
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (inLineQty > 0)
+                _buildMetricChip(
+                  icon: Icons.precision_manufacturing_outlined,
+                  label: 'In Line',
+                  value: '$inLineQty pcs',
+                  color: const Color(0xFF0F766E),
+                  bg: const Color(0xFFE6F7F2),
+                  border: const Color(0xFFBFE9DC),
+                ),
+              _buildMetricChip(
+                icon: Icons.arrow_downward_rounded,
+                label: 'Inward (QC)',
+                value: '+$totalInward',
+                color: const Color(0xFF059669),
+                bg: const Color(0xFFECFDF5),
+                border: const Color(0xFFA7F3D0),
+              ),
+              _buildMetricChip(
+                icon: Icons.arrow_upward_rounded,
+                label: 'Outward (Dispatch)',
+                value: '-$totalOutward',
+                color: const Color(0xFF332B6B),
+                bg: const Color(0xFFF4F3FA),
+                border: const Color(0xFFDDD6F0),
+              ),
+            ],
+          ),
+
+          // Row 3: Variants breakdown if present
+          if (variants.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Color / Size Variants (${variants.length})',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5B6478),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: variants.entries.map((entry) {
+                      final vKey = entry.key;
+                      final vBal = entry.value['balance'] ?? 0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: Text(
+                          '$vKey: $vBal',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: vBal > 0 ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET: TAB 2 (SUPPLIER GRN LIST)
+  // ==========================================
+  Widget _buildSupplierGrnSection() {
+    var list = _truckInwards;
+
+    if (_grnSearchQuery.trim().isNotEmpty) {
+      final q = _grnSearchQuery.toLowerCase().trim();
+      list = list.where((grn) {
+        final gNo = (grn['grn_no'] ?? '').toString().toLowerCase();
+        final pName = (grn['party_name'] ?? '').toString().toLowerCase();
+        final artNo = (grn['article_no'] ?? '').toString().toLowerCase();
+        final tNo = (grn['truck_no'] ?? '').toString().toLowerCase();
+        return gNo.contains(q) || pName.contains(q) || artNo.contains(q) || tNo.contains(q);
+      }).toList();
+    }
+
+    if (_grnStatusFilter == 'VERIFIED') {
+      list = list.where((grn) => (grn['status'] ?? '').toString().toUpperCase() == 'VERIFIED').toList();
+    } else if (_grnStatusFilter == 'SHORTAGE_DUE') {
+      list = list.where((grn) {
+        final st = (grn['status'] ?? '').toString().toUpperCase();
+        return st == 'SHORTAGE' || st == 'DUE_PENDING';
+      }).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Supplier Challans (GRN)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF14142B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFE9DC)),
+              ),
+              child: Text(
+                '${_truckInwards.length} slips recorded',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F766E),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Search & Filter
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              TextField(
+                onChanged: (val) => setState(() => _grnSearchQuery = val),
+                decoration: InputDecoration(
+                  hintText: 'Search GRN, supplier, truck...',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  isDense: true,
+                ),
+                style: GoogleFonts.publicSans(fontSize: 12.5),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildFilterChip('ALL', 'All (${_truckInwards.length})', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('VERIFIED', 'Verified', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('SHORTAGE_DUE', 'Shortage / Due', _grnStatusFilter, (v) => setState(() => _grnStatusFilter = v)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        if (list.isEmpty)
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
@@ -6105,8 +6672,879 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             ),
           )
         else
-          ..._truckInwards.map((inward) => _buildTruckInwardCard(inward)),
+          ...list.map((inward) => _buildTruckInwardCard(inward)),
       ],
+    );
+  }
+
+  // ==========================================
+  // WIDGET: TAB 3 (RAW MATERIALS & TRIMS)
+  // ==========================================
+  Widget _buildRawMaterialsTrimsSection() {
+    final Map<String, Map<String, dynamic>> trimMap = {};
+
+    for (var acc in _accessories) {
+      final name = (acc['item_name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final unit = (acc['unit'] ?? 'pcs').toString().trim();
+      final date = (acc['entry_date'] ?? acc['created_at']?.toString().split('T')[0] ?? '-').toString();
+      final action = (acc['action'] ?? 'IN').toString().toUpperCase();
+      final qty = parseQty(acc['quantity']);
+
+      if (!trimMap.containsKey(name)) {
+        trimMap[name] = {
+          'item_name': name,
+          'unit': unit,
+          'totalIn': 0,
+          'totalOut': 0,
+          'balance': 0,
+          'lastMovement': date,
+        };
+      }
+
+      if (action == 'IN') {
+        trimMap[name]!['totalIn'] = (trimMap[name]!['totalIn'] as int) + qty;
+        trimMap[name]!['balance'] = (trimMap[name]!['balance'] as int) + qty;
+      } else if (action == 'OUT') {
+        trimMap[name]!['totalOut'] = (trimMap[name]!['totalOut'] as int) + qty;
+        trimMap[name]!['balance'] = (trimMap[name]!['balance'] as int) - qty;
+      }
+    }
+
+    var list = trimMap.values.toList();
+
+    final totalTrimTypes = list.length;
+    final inStockTrimsCount = list.where((it) => (it['balance'] as int) >= 10).length;
+    final lowStockTrimsCount = list.where((it) => (it['balance'] as int) > 0 && (it['balance'] as int) < 10).length;
+    final outStockTrimsCount = list.where((it) => (it['balance'] as int) <= 0).length;
+
+    if (_trimsSearchQuery.trim().isNotEmpty) {
+      final q = _trimsSearchQuery.toLowerCase().trim();
+      list = list.where((it) => (it['item_name'] as String).toLowerCase().contains(q)).toList();
+    }
+
+    if (_trimsStatusFilter == 'IN_STOCK') {
+      list = list.where((it) => (it['balance'] as int) >= 10).toList();
+    } else if (_trimsStatusFilter == 'LOW_STOCK') {
+      list = list.where((it) => (it['balance'] as int) > 0 && (it['balance'] as int) < 10).toList();
+    } else if (_trimsStatusFilter == 'OUT_OF_STOCK') {
+      list = list.where((it) => (it['balance'] as int) <= 0).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Raw Materials & Trims Ledger',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF14142B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFE9DC)),
+              ),
+              child: Text(
+                '$totalTrimTypes items',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F766E),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // KPI Summary Bar
+        Row(
+          children: [
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'In Stock (>=10)',
+                value: '$inStockTrimsCount items',
+                color: const Color(0xFF0F766E),
+                bg: const Color(0xFFE6F7F2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'Low Stock (<10)',
+                value: '$lowStockTrimsCount items',
+                color: const Color(0xFFD97706),
+                bg: const Color(0xFFFEF3C7),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildSmallKpiCard(
+                label: 'Out of Stock',
+                value: '$outStockTrimsCount items',
+                color: const Color(0xFFE11D48),
+                bg: const Color(0xFFFEF2F4),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Search & Filter
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              TextField(
+                onChanged: (val) => setState(() => _trimsSearchQuery = val),
+                decoration: InputDecoration(
+                  hintText: 'Search trim item name...',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  isDense: true,
+                ),
+                style: GoogleFonts.publicSans(fontSize: 12.5),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildFilterChip('ALL', 'All ($totalTrimTypes)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('IN_STOCK', 'In Stock ($inStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('LOW_STOCK', 'Low Stock ($lowStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                    const SizedBox(width: 6),
+                    _buildFilterChip('OUT_OF_STOCK', 'Out of Stock ($outStockTrimsCount)', _trimsStatusFilter, (v) => setState(() => _trimsStatusFilter = v)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        if (list.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.widgets_outlined, size: 36, color: Color(0xFF8A94A6)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No trims or accessories matched.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...list.map((trim) => _buildTrimItemCard(trim)),
+      ],
+    );
+  }
+
+  Widget _buildTrimItemCard(Map<String, dynamic> trim) {
+    final name = trim['item_name'] as String;
+    final unit = trim['unit'] as String;
+    final totalIn = trim['totalIn'] as int;
+    final totalOut = trim['totalOut'] as int;
+    final balance = trim['balance'] as int;
+    final lastMovement = trim['lastMovement'] as String;
+
+    final isPositive = balance >= 10;
+    final isLow = balance > 0 && balance < 10;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6F7F2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.widgets_outlined, size: 16, color: Color(0xFF0F766E)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF14142B),
+                            ),
+                          ),
+                          Text(
+                            'Unit: $unit',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11,
+                              color: const Color(0xFF5B6478),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$balance $unit',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: isPositive ? const Color(0xFF0F766E) : (isLow ? const Color(0xFFD97706) : const Color(0xFFE11D48)),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isPositive
+                          ? const Color(0xFFE6F7F2)
+                          : (isLow ? const Color(0xFFFEF3C7) : const Color(0xFFFEF2F4)),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isPositive
+                            ? const Color(0xFFBFE9DC)
+                            : (isLow ? const Color(0xFFF5D67A) : const Color(0xFFF8C9D1)),
+                      ),
+                    ),
+                    child: Text(
+                      isPositive ? 'IN STOCK' : (isLow ? 'LOW STOCK' : 'OUT OF STOCK'),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        color: isPositive
+                            ? const Color(0xFF0F766E)
+                            : (isLow ? const Color(0xFF92400E) : const Color(0xFFBE123C)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Inward: +$totalIn • Outward: -$totalOut',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  color: const Color(0xFF5B6478),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                'Last: $lastMovement',
+                style: GoogleFonts.publicSans(
+                  fontSize: 10,
+                  color: const Color(0xFF8A94A6),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET: TAB 4 (DISPATCH & CHALLANS)
+  // ==========================================
+  Widget _buildDispatchChallansSection() {
+    var list = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'OUTWARD').toList();
+
+    final totalDispatchedPcs = list.fold<int>(0, (sum, tx) => sum + parseQty(tx['quantity']));
+
+    if (_dispatchSearchQuery.trim().isNotEmpty) {
+      final q = _dispatchSearchQuery.toLowerCase().trim();
+      list = list.where((tx) {
+        final artNo = (tx['article']?['art_no'] ?? tx['art_no'] ?? '').toString().toLowerCase();
+        final party = (tx['party_name'] ?? '').toString().toLowerCase();
+        final chNo = (tx['challan_no'] ?? '').toString().toLowerCase();
+        final trNo = (tx['transport_no'] ?? '').toString().toLowerCase();
+        final notes = (tx['notes'] ?? '').toString().toLowerCase();
+        return artNo.contains(q) || party.contains(q) || chNo.contains(q) || trNo.contains(q) || notes.contains(q);
+      }).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Dispatch & Challans Outward',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF14142B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F3FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDDD6F0)),
+              ),
+              child: Text(
+                '$totalDispatchedPcs pcs dispatched',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF332B6B),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Search
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: TextField(
+            onChanged: (val) => setState(() => _dispatchSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'Search dispatch challan, article, party, vehicle...',
+              hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              isDense: true,
+            ),
+            style: GoogleFonts.publicSans(fontSize: 12.5),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        if (list.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.local_shipping_outlined, size: 36, color: Color(0xFF8A94A6)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No outward dispatch records recorded yet.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...list.map((tx) => _buildDispatchCard(tx)),
+      ],
+    );
+  }
+
+  Widget _buildDispatchCard(dynamic tx) {
+    final artNo = (tx['article']?['art_no'] ?? tx['art_no'] ?? '-').toString();
+    final color = (tx['color'] ?? '').toString();
+    final size = (tx['size'] ?? '').toString();
+    final qty = parseQty(tx['quantity']);
+    final party = (tx['party_name'] ?? 'Buyer / Destination').toString();
+    final chNo = (tx['challan_no'] ?? '-').toString();
+    final trNo = (tx['transport_no'] ?? '-').toString();
+    final date = (tx['entry_date'] ?? tx['created_at']?.toString().split('T')[0] ?? '-').toString();
+    final notes = (tx['notes'] ?? '').toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F3FA),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.local_shipping_outlined, size: 16, color: Color(0xFF332B6B)),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        artNo,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF14142B),
+                        ),
+                      ),
+                      if (color.isNotEmpty || size.isNotEmpty)
+                        Text(
+                          '$color $size',
+                          style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF5B6478)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F3FA),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDDD6F0)),
+                ),
+                child: Text(
+                  '-$qty pcs',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF332B6B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.storefront_outlined, size: 13, color: Color(0xFF8A94A6)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  party,
+                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF14142B)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Challan: $chNo • Vehicle: $trNo',
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF5B6478)),
+              ),
+              Text(
+                date,
+                style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF8A94A6)),
+              ),
+            ],
+          ),
+          if (notes.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              notes,
+              style: GoogleFonts.publicSans(fontSize: 10.5, fontStyle: FontStyle.italic, color: const Color(0xFF8A94A6)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // WIDGET: TAB 5 (INWARD RECEIPTS)
+  // ==========================================
+  Widget _buildInwardReceiptsSection() {
+    var list = _storeTransactions.where((t) => (t['type'] ?? '').toString().toUpperCase() == 'INWARD').toList();
+
+    final totalInwardPcs = list.fold<int>(0, (sum, tx) => sum + parseQty(tx['quantity']));
+
+    if (_inwardSearchQuery.trim().isNotEmpty) {
+      final q = _inwardSearchQuery.toLowerCase().trim();
+      list = list.where((tx) {
+        final artNo = (tx['article']?['art_no'] ?? tx['art_no'] ?? '').toString().toLowerCase();
+        final party = (tx['party_name'] ?? '').toString().toLowerCase();
+        final chNo = (tx['challan_no'] ?? '').toString().toLowerCase();
+        final notes = (tx['notes'] ?? '').toString().toLowerCase();
+        return artNo.contains(q) || party.contains(q) || chNo.contains(q) || notes.contains(q);
+      }).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Inward Receipts (QC & Godown)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF14142B),
+                letterSpacing: -0.3,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F7F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFE9DC)),
+              ),
+              child: Text(
+                '+$totalInwardPcs pcs inwarded',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F766E),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Search
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: TextField(
+            onChanged: (val) => setState(() => _inwardSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'Search inward receipts, articles, parties...',
+              hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF8A94A6)),
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF8A94A6)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              isDense: true,
+            ),
+            style: GoogleFonts.publicSans(fontSize: 12.5),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        if (list.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, size: 36, color: Color(0xFF8A94A6)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No inward receipts recorded yet.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...list.map((tx) => _buildInwardCard(tx)),
+      ],
+    );
+  }
+
+  Widget _buildInwardCard(dynamic tx) {
+    final artNo = (tx['article']?['art_no'] ?? tx['art_no'] ?? '-').toString();
+    final color = (tx['color'] ?? '').toString();
+    final size = (tx['size'] ?? '').toString();
+    final qty = parseQty(tx['quantity']);
+    final party = (tx['party_name'] ?? 'Production Line / QC').toString();
+    final chNo = (tx['challan_no'] ?? '-').toString();
+    final date = (tx['entry_date'] ?? tx['created_at']?.toString().split('T')[0] ?? '-').toString();
+    final notes = (tx['notes'] ?? '').toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF0F766E)),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        artNo,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF14142B),
+                        ),
+                      ),
+                      if (color.isNotEmpty || size.isNotEmpty)
+                        Text(
+                          '$color $size',
+                          style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF5B6478)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F7F2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBFE9DC)),
+                ),
+                child: Text(
+                  '+$qty pcs',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0F766E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.person_outline_rounded, size: 13, color: Color(0xFF8A94A6)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  party,
+                  style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF14142B)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Challan Ref: $chNo',
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF5B6478)),
+              ),
+              Text(
+                date,
+                style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF8A94A6)),
+              ),
+            ],
+          ),
+          if (notes.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              notes,
+              style: GoogleFonts.publicSans(fontSize: 10.5, fontStyle: FontStyle.italic, color: const Color(0xFF8A94A6)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // SHARED MINI COMPONENTS
+  // ==========================================
+  Widget _buildSmallKpiCard({
+    required String label,
+    required String value,
+    required Color color,
+    required Color bg,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.publicSans(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF5B6478),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String key, String label, String currentSelected, Function(String) onSelect) {
+    final isSelected = currentSelected == key;
+    return InkWell(
+      onTap: () => onSelect(key),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFCBD5E1)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricChip({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    required Color bg,
+    required Color border,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF5B6478)),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
     );
   }
 
