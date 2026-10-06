@@ -116,6 +116,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
   int _selectedSectionTab = 0;
   String _articleSearchQuery = '';
   String _articleFilterStatus = 'ALL'; // 'ALL', 'PENDING', 'ISSUED'
+  String? _expandedArticleNo;
   bool _isSyncing = false;
   List<dynamic> _challans = [];
 
@@ -363,6 +364,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           'profiles': prof,
           'articles': art,
           'assigned_color_label': assignedColorLabel,
+          'variants': allotVars,
+          'colors': distinctColors.toList(),
         });
       }
 
@@ -5892,6 +5895,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     final desc = _getCleanArticleDescription(first['articles']?['description'] ?? first['description']);
     final category = _extractCategory(desc, first['challans']?['fabric_type']);
     final totalPcs = allotments.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+    final isExpanded = _expandedArticleNo == artNo;
 
     final Map<String, List<dynamic>> byLineman = {};
     for (var al in allotments) {
@@ -5909,207 +5913,559 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
     final isPending = pendingLots > 0;
 
-    return InkWell(
-      onTap: () {
-        if (allotments.isNotEmpty) {
-          _showMaterialHandoverModal(preselectedAllotmentId: allotments.first['id']?.toString());
-        }
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x04000000),
-              blurRadius: 3,
-              offset: Offset(0, 1),
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isExpanded ? const Color(0xFF0F766E).withValues(alpha: 0.4) : const Color(0xFFE2E8F0),
+          width: isExpanded ? 1.4 : 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row 1: Tag icon + Article 3360 + Category + Lots pill
-            Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F7F2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.sell_outlined, size: 16, color: Color(0xFF0F766E)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header / Summary Row (Tap to expand/collapse 1:1 like Web)
+          InkWell(
+            onTap: () {
+              setState(() {
+                _expandedArticleNo = isExpanded ? null : artNo;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: Tag icon + Article 3360 + Category + Lots pill + Chevron
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        'Article $artNo',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF14142B),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFBFE9DC)),
+                        ),
+                        child: const Icon(Icons.sell_outlined, size: 17, color: Color(0xFF0F766E)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Article $artNo',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF14142B),
+                                  ),
+                                ),
+                                if (category.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      category.toUpperCase(),
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      if (category.isNotEmpty) ...[
-                        const SizedBox(height: 1),
-                        Text(
-                          category.toUpperCase(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFBFE9DC)),
+                        ),
+                        child: Text(
+                          '${allotments.length} Lots',
                           style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF8A94A6),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F7F2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFBFE9DC)),
-                  ),
-                  child: Text(
-                    '${allotments.length} Lots',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F766E),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Row 2: Lineman Chips
-            ...byLineman.entries.map((entry) {
-              final lmName = entry.key;
-              final lmLots = entry.value.length;
-              final lmPcs = entry.value.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.person_outline_rounded, size: 14, color: Color(0xFF5B6478)),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${lmName.toUpperCase()} ($lmLots lots · ${NumberFormat('#,###').format(lmPcs)} pcs)',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF5B6478),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 6),
-
-            // Row 3: pcs over FLOOR ALLOTTED and Status pill
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${NumberFormat('#,###').format(totalPcs)} pcs',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF14142B),
-                      ),
-                    ),
-                    Text(
-                      'FLOOR ALLOTTED',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF8A94A6),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                if (isPending)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFF5D67A)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF92400E)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$pendingLots Lots Pending Handover',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF92400E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F7F2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFBFE9DC)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF0F766E)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Allotted & Issued',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
                             color: const Color(0xFF0F766E),
                           ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDFA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Icon(
+                          isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
+                          size: 18,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Row 2: Lineman Chips Strip (Web 1:1)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: byLineman.entries.map((entry) {
+                      final lmName = entry.key;
+                      final lmLots = entry.value.length;
+                      final lmPcs = entry.value.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.person_outline_rounded, size: 12, color: Color(0xFF64748B)),
+                            const SizedBox(width: 4),
+                            Text(
+                              lmName.toUpperCase(),
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF334155),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '($lmLots lots · ${NumberFormat('#,###').format(lmPcs)} pcs)',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Row 3: pcs over FLOOR ALLOTTED + Status Badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${NumberFormat('#,###').format(totalPcs)} pcs',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF14142B),
+                            ),
+                          ),
+                          Text(
+                            'FLOOR ALLOTTED',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF8A94A6),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isPending)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFF5D67A)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF92400E)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$pendingLots Lots Pending Handover',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF92400E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7F2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFBFE9DC)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF0F766E)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Allotted & Issued',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ==============================================================
+          // EXPANDED ACCORDION: Lineman Breakdown Table (Web 1:1 match)
+          // ==============================================================
+          if (isExpanded)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Floor Lineman Assignments & Color Breakdown',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF334155),
+                        ),
+                      ),
+                      Text(
+                        'Consolidated Summary',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Responsive Table / Card Container
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 540),
+                        child: DataTable(
+                          headingRowHeight: 34,
+                          dataRowMinHeight: 44,
+                          dataRowMaxHeight: 56,
+                          columnSpacing: 16,
+                          horizontalMargin: 12,
+                          headingRowColor: WidgetStateProperty.all(const Color(0xFFF0FDFA)),
+                          columns: [
+                            DataColumn(
+                              label: Text(
+                                'LINEMAN',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Text(
+                                'ASSIGNED COLORS',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              numeric: true,
+                              label: Text(
+                                'LOTS',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              numeric: true,
+                              label: Text(
+                                'TARGET QUANTITY',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Text(
+                                'HANDOVER STATUS',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                          ],
+                          rows: byLineman.entries.map((entry) {
+                            final lmName = entry.key;
+                            final lmAllots = entry.value;
+                            final lmLots = lmAllots.length;
+                            final lmPcs = lmAllots.fold<int>(0, (sum, al) => sum + parseQty(al['target_qty']));
+
+                            // Extract assigned colors
+                            final Set<String> lmColors = {};
+                            for (var al in lmAllots) {
+                              if (al['colors'] is List) {
+                                for (var c in al['colors']) {
+                                  if (c != null && c.toString().trim().isNotEmpty) {
+                                    lmColors.add(c.toString().trim().toUpperCase());
+                                  }
+                                }
+                              }
+                              if (al['assigned_color_label'] != null && al['assigned_color_label'].toString().isNotEmpty) {
+                                final raw = al['assigned_color_label'].toString().replaceAll(' LINE', '').trim();
+                                if (raw.isNotEmpty) {
+                                  for (var p in raw.split(',')) {
+                                    if (p.trim().isNotEmpty) lmColors.add(p.trim().toUpperCase());
+                                  }
+                                }
+                              }
+                              if (al['variants'] is List) {
+                                for (var v in al['variants']) {
+                                  if (v['color'] != null && v['color'].toString().trim().isNotEmpty) {
+                                    lmColors.add(v['color'].toString().trim().toUpperCase());
+                                  }
+                                }
+                              }
+                            }
+
+                            int lmPendingLots = 0;
+                            String? firstPendingAllotId;
+                            for (var al in lmAllots) {
+                              final isAlPending = _allotmentPendingMap[al['id']?.toString()] == true;
+                              if (isAlPending) {
+                                lmPendingLots++;
+                                firstPendingAllotId ??= al['id']?.toString();
+                              }
+                            }
+
+                            final isLmFullyIssued = lmPendingLots == 0;
+                            final targetAllotId = firstPendingAllotId ?? lmAllots.first['id']?.toString();
+
+                            return DataRow(
+                              cells: [
+                                // 1. Lineman Name
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.person_rounded, size: 14, color: Color(0xFF0F766E)),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        lmName.toUpperCase(),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // 2. Assigned Colors
+                                DataCell(
+                                  lmColors.isEmpty
+                                      ? Text('-', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF94A3B8)))
+                                      : Wrap(
+                                          spacing: 4,
+                                          children: lmColors.map((col) {
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF0FDFA),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: const Color(0xFFBFE9DC)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.palette_outlined, size: 10, color: Color(0xFF0F766E)),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    col,
+                                                    style: GoogleFonts.jetBrainsMono(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: const Color(0xFF0B1220),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                ),
+
+                                // 3. Lots
+                                DataCell(
+                                  Text(
+                                    '$lmLots',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF334155),
+                                    ),
+                                  ),
+                                ),
+
+                                // 4. Target Quantity
+                                DataCell(
+                                  Text(
+                                    '${NumberFormat('#,###').format(lmPcs)} pcs',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+
+                                // 5. Handover Status (Actionable Pill Button!)
+                                DataCell(
+                                  InkWell(
+                                    onTap: () {
+                                      if (targetAllotId != null) {
+                                        _showMaterialHandoverModal(preselectedAllotmentId: targetAllotId);
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: isLmFullyIssued
+                                        ? Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE6F7F2),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: const Color(0xFFBFE9DC)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF0F766E)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Issued ($lmLots/$lmLots)',
+                                                  style: GoogleFonts.publicSans(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(0xFF0F766E),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        : Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEF3C7),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: const Color(0xFFF5D67A)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF92400E)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Pending ($lmPendingLots lots)',
+                                                  style: GoogleFonts.publicSans(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(0xFF92400E),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 2),
+                                                const Icon(Icons.arrow_forward_ios_rounded, size: 9, color: Color(0xFF92400E)),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
