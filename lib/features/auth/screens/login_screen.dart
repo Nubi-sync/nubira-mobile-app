@@ -393,7 +393,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         keyboardType: TextInputType.emailAddress,
                         style: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          hintText: 'Enter your registered email',
+                          hintText: 'name@company.com',
                           hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
@@ -876,7 +876,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
 
           // ==========================================
-          // 2. MAIN SCROLLABLE CONTENT (MATCHES WEB 1:1)
+          // 2. MAIN SCROLLABLE CONTENT
           // ==========================================
           SafeArea(
             child: Center(
@@ -887,84 +887,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // --- TOP HEADER BAR ---
+                    // --- TOP HEADER: BRAND LOGO (CLEAN & CENTERED/LEFT) ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 6.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          // ZIGZA Brand Logo
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Image.asset(
-                                'assets/images/icon.png',
-                                height: 32,
-                                width: 32,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(width: 8),
-                              Image.asset(
-                                'assets/images/z_i_g_z_a.png',
-                                height: 18,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Text(
-                                  'ZIGZA',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0F172A),
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Image.asset(
+                            'assets/images/icon.png',
+                            height: 32,
+                            width: 32,
+                            fit: BoxFit.contain,
                           ),
-
-                          // White Back Button (matches web 1:1)
-                          InkWell(
-                            onTap: () {
-                              if (Navigator.canPop(context)) {
-                                Navigator.pop(context);
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.0),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x0A000000),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.arrow_back_rounded, size: 14, color: Color(0xFF0F172A)),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    'Back',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ],
+                          const SizedBox(width: 8),
+                          Image.asset(
+                            'assets/images/z_i_g_z_a.png',
+                            height: 18,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Text(
+                              'ZIGZA',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF0F172A),
+                                letterSpacing: 1.5,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     // --- CENTERED WHITE CARD (CONTAINING FACTORY PHOTO & FORM) ---
                     Container(
@@ -985,7 +938,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // 1. Factory Photo Banner inside Card (Vintage Indian Garment Manufacturing Floor)
+                          // 1. Factory Photo Banner inside Card (Indian Garment Manufacturing Floor)
                           Container(
                             height: 165,
                             decoration: BoxDecoration(
@@ -1185,7 +1138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (_inputError != null) setState(() => _inputError = null);
                                 },
                                 decoration: InputDecoration(
-                                  hintText: 'aj@nubiracreation.com',
+                                  hintText: 'name@company.com',
                                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                                   prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
                                   border: InputBorder.none,
