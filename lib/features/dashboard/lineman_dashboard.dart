@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../admin/widgets/admin_drawer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
 import '../../../main.dart';
@@ -19,6 +20,7 @@ class LinemanDashboard extends ConsumerStatefulWidget {
 
 class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   static const int overdueThresholdMinutes = 120;
 
   int _selectedTabIndex = 0; // 0: Live Floor, 1: Lot History
@@ -2570,52 +2572,99 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
-    final userName = user?.email?.split('@')[0] ?? 'Lineman';
-
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xFFFAFAF8),
+      drawer: const AdminDrawer(activeRoute: '/stitching-sewing/lineman'),
       appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 18,
-        backgroundColor: AppTheme.bg,
+        toolbarHeight: 64,
+        titleSpacing: 0,
+        backgroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        surfaceTintColor: Colors.transparent,
+        shape: const Border(
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
+        leadingWidth: 56,
+        leading: Center(
+          child: InkWell(
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
+            ),
+          ),
+        ),
+        title: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    'Welcome, $userName',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.ink,
-                      letterSpacing: -0.4,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            Image.asset(
+              'assets/images/new_icon.png',
+              height: 28,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/icon.png',
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF0B1220), size: 24),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Image.asset(
+              'assets/images/zigza_new_logo.png',
+              height: 20,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Image.asset(
+                'assets/images/z_i_g_z_a.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
+                  'ZIGZA',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0B1220),
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(width: 8),
-                const _WavingHandIcon(size: 20),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              'Line Supervisor • Active Floor Shift',
-              style: GoogleFonts.publicSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.inkSoft,
               ),
             ),
           ],
         ),
         actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              'STITCHING MES',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0B1220),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           // Interactive Resync / Refresh button
           Tooltip(
             message: 'Resync Floor Data',
@@ -2623,24 +2672,24 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               borderRadius: BorderRadius.circular(10),
               onTap: _fetchDashboardData,
               child: Container(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 9),
                 decoration: BoxDecoration(
-                  color: AppTheme.card,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.sync_rounded, size: 16, color: AppTheme.steel),
-                    const SizedBox(width: 5),
+                    const Icon(Icons.sync_rounded, size: 15, color: Color(0xFF0B1220)),
+                    const SizedBox(width: 4),
                     Text(
                       'Sync',
                       style: GoogleFonts.publicSans(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.steel,
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                   ],
@@ -2650,27 +2699,30 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           ),
           const SizedBox(width: 8),
           // Clean Logout Button
-          Container(
-            height: 38,
-            width: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppTheme.inkSoft, size: 18),
-              tooltip: 'Logout',
-              padding: EdgeInsets.zero,
-              onPressed: () async {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) {
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-                }
-              },
+          InkWell(
+            onTap: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              height: 34,
+              width: 34,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 16),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
         ],
       ),
       body: _isLoading
@@ -5825,24 +5877,4 @@ class _BouncyTapState extends State<_BouncyTap> {
   }
 }
 
-// ==========================================
-// CLEAN STATIC HAND ICON WIDGET
-// ==========================================
-class _WavingHandIcon extends StatefulWidget {
-  final double size;
-  const _WavingHandIcon({this.size = 20});
 
-  @override
-  State<_WavingHandIcon> createState() => _WavingHandIconState();
-}
-
-class _WavingHandIconState extends State<_WavingHandIcon> {
-  @override
-  Widget build(BuildContext context) {
-    return Icon(
-      Icons.waving_hand_rounded,
-      color: AppTheme.steel,
-      size: widget.size,
-    );
-  }
-}

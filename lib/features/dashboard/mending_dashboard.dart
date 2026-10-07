@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../admin/widgets/admin_drawer.dart';
 import '../../core/services/tenant_resolver_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../../main.dart';
@@ -19,6 +20,7 @@ class MendingDashboard extends ConsumerStatefulWidget {
 
 class _MendingDashboardState extends ConsumerState<MendingDashboard>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
   List<Map<String, dynamic>> _lots = [];
   Map<String, dynamic>? _selectedLot;
@@ -1777,11 +1779,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgCanvas,
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xFFFAFAF8),
+      drawer: const AdminDrawer(activeRoute: '/stitching-sewing/mending'),
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar with Web Logo branding and Sign Out button
+            // Top App Bar with Web Logo branding, Hamburger button, and Sign Out button
             _buildTopNavbar(),
 
             // Encapsulated Top Header Card
@@ -1861,7 +1865,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     );
   }
 
-  // Top App Bar with Zigza Web Logo branding and Sign Out button
+  // Top App Bar with Zigza Web Logo branding, Hamburger button, MENDING MES badge, and Sign Out button
   Widget _buildTopNavbar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1871,6 +1875,29 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drawer Hamburger Button
+              InkWell(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
+                ),
+              ),
+              const SizedBox(width: 10),
               Image.asset(
                 'assets/images/new_icon.png',
                 height: 28,
@@ -1882,30 +1909,35 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 'assets/images/zigza_new_logo.png',
                 height: 20,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  'Zigza.',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.headingObsidian,
-                    letterSpacing: -0.4,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/z_i_g_z_a.png',
+                  height: 20,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Text(
+                    'ZIGZA',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0B1220),
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.borderLight),
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  'ERP MES',
+                  'MENDING MES',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.bodyInk,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1920,11 +1952,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               onTap: () => _showSignOutDialog(context),
               borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.borderLight),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.02),
@@ -1941,11 +1973,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       size: 14,
                       color: Color(0xFFDC2626),
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 4),
                     Text(
                       'Sign Out',
                       style: GoogleFonts.publicSans(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFFDC2626),
                       ),
