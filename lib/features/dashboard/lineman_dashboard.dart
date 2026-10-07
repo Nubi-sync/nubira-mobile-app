@@ -319,14 +319,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           return (b['allotment_date'] ?? '').toString().compareTo((a['allotment_date'] ?? '').toString());
         });
 
-        // Group individual active lots into consolidated Article + Challan groups (100% Web Parity)
+        // Group individual active lots into consolidated Article groups (100% Consolidated Style Parity)
         final Map<String, Map<String, dynamic>> groupMap = {};
 
         for (var lot in enrichedActive) {
           final art = lot['articles'];
           final rawArt = (art?['art_no'] ?? 'GENERAL').toString().trim().toUpperCase();
-          final chId = lot['challan_id']?.toString() ?? '-';
-          final groupKey = '${rawArt}__$chId';
+          final groupKey = (lot['article_id'] != null && lot['article_id'].toString().isNotEmpty)
+              ? lot['article_id'].toString()
+              : rawArt;
 
           final lotTarget = parseQty(lot['target_qty']);
           final lotAssigned = parseQty(lot['total_assigned']);
@@ -339,6 +340,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               'article_id': lot['article_id'],
               'challan_id': lot['challan_id'],
               'production_order_no': lot['production_order_no'],
+              'po_numbers': <String>[],
               'allotment_date': lot['allotment_date'],
               'due_date': lot['due_date'],
               'manager_name': lot['manager_name'],
@@ -367,6 +369,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           grp['lots_count'] = (grp['lots_count'] as int) + 1;
           (grp['allotment_ids'] as List<String>).add(lot['id'].toString());
           (grp['sub_lots'] as List<dynamic>).add(lot);
+
+          // Track unique PO / Challan labels
+          final lotPo = (lot['production_order_no'] ?? lot['challans']?['challan_no'] ?? '').toString().trim();
+          if (lotPo.isNotEmpty) {
+            final poList = grp['po_numbers'] as List<String>;
+            if (!poList.contains(lotPo)) {
+              poList.add(lotPo);
+            }
+          }
 
           // Priority escalation: CRITICAL > RUSH > NORMAL
           final currentPrio = grp['priority'].toString();
@@ -4390,6 +4401,17 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             }
 
                             if (poNo.isEmpty) {
+                              final poList = (a['po_numbers'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+                              if (poList.isNotEmpty) {
+                                if (poList.length <= 2) {
+                                  poNo = poList.join(' • ');
+                                } else {
+                                  poNo = '${poList.first} +${poList.length - 1} more';
+                                }
+                              }
+                            }
+
+                            if (poNo.isEmpty) {
                               poNo = 'PO-${a['id'].toString().substring(0, 6).toUpperCase()}';
                             }
 
@@ -4923,12 +4945,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                           final lStatus = lot['status']?.toString() ?? 'IN_PROGRESS';
                           final fullLotId = lot['id']?.toString() ?? '';
                           final lId = fullLotId.length > 6 ? fullLotId.substring(0, 6) : fullLotId;
+                          final lotPo = (lot['production_order_no'] ?? lot['challans']?['challan_no'] ?? '').toString().trim();
+                          final poLabel = lotPo.isNotEmpty ? '[$lotPo] ' : '';
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             child: Row(
                               children: [
                                 Text(
-                                  '#${idx + 1} (..$lId)',
+                                  '#${idx + 1} $poLabel(..$lId)',
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
