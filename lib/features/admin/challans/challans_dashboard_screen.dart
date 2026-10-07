@@ -203,7 +203,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
   }
 
   String _formatDateTime(DateTime dt) {
-    return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+    return DateFormat('dd MMM, hh:mm a').format(dt);
   }
 
   @override
@@ -1399,17 +1399,20 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                     Expanded(
                       child: Text(
                         'Challan Date: ${_formatDate(challan.challanDate)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.publicSans(
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF475569),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 4),
                     Text(
                       'Created: ${_formatDateTime(challan.createdAt)}',
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9.5,
+                        fontSize: 8.5,
                         color: const Color(0xFF7A7488),
                       ),
                     ),
@@ -1433,41 +1436,45 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           // Middle: Batch Total Pill & Status Badge
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDFA),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFBFE9DC)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${NumberFormat('#,###').format(challan.totalSets)} Sets | ${NumberFormat('#,###').format(challan.totalPcs)} Pcs',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F766E),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${NumberFormat('#,###').format(challan.totalSets)} Sets | ${NumberFormat('#,###').format(challan.totalPcs)} Pcs',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0F766E),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'GRAND BATCH TOTAL',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F766E),
-                        letterSpacing: 0.5,
+                      Text(
+                        'GRAND BATCH TOTAL',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F766E),
+                          letterSpacing: 0.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 6),
 
                 // Status Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 3),
                   decoration: BoxDecoration(
                     color: isPartiallyAllotted
                         ? const Color(0xFFFBF0DD)
@@ -1502,7 +1509,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                 : isQcPassed
                                     ? Icons.check_circle_rounded
                                     : Icons.local_shipping_rounded,
-                        size: 11,
+                        size: 10,
                         color: isPartiallyAllotted
                             ? const Color(0xFFA56A17)
                             : isPending
@@ -1513,7 +1520,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                         ? const Color(0xFF047857)
                                         : Colors.white,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 3.5),
                       Text(
                         isPartiallyAllotted
                             ? 'Partially Allotted'
@@ -1525,7 +1532,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                         ? 'Ready (QC Passed)'
                                         : 'Dispatched',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 9.5,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.bold,
                           color: isPartiallyAllotted
                               ? const Color(0xFFA56A17)
@@ -1552,6 +1559,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isInProgress || isPartiallyAllotted)
                       OutlinedButton.icon(
@@ -1559,14 +1567,14 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFFFDE68A)),
                           backgroundColor: const Color(0xFFFFFBEB),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                           visualDensity: VisualDensity.compact,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
-                        icon: const Icon(Icons.rotate_left_rounded, size: 13, color: Color(0xFFA56A17)),
-                        label: Text('Recall', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFA56A17))),
+                        icon: const Icon(Icons.rotate_left_rounded, size: 12, color: Color(0xFFA56A17)),
+                        label: Text('Recall', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFA56A17))),
                       ),
-                    if (isInProgress || isPartiallyAllotted) const SizedBox(width: 6),
+                    if (isInProgress || isPartiallyAllotted) const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
                       visualDensity: VisualDensity.compact,
@@ -1577,35 +1585,42 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 ),
 
                 // Trailing Drill-Down Action
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChallanDetailScreen(challan: challan),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE7E1D6)),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          'View Allotment & Color Matrix',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF3A3564),
-                          ),
+                Flexible(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ChallanDetailScreen(challan: challan),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF1F8A5A)),
-                      ],
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF7F0),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE7E1D6)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'View Allotment & Color Matrix',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A3564),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFF1F8A5A)),
+                        ],
+                      ),
                     ),
                   ),
                 ),

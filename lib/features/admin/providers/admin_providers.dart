@@ -253,22 +253,66 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
         ? tenant.companyName.trim().toLowerCase()
         : null;
 
-    final results = await Future.wait([
-      supabase.from('challans').select('*').order('created_at', ascending: false).limit(100),
-      supabase.from('allotments').select('''
-        id, challan_id, lineman_id, article_id, target_qty, status, allotment_date,
-        production_order_no, client_challan_no, created_at,
-        profiles:lineman_id ( id, username ),
-        articles ( id, art_no, description, size_rates, stitching_rate )
-      ''').order('created_at', ascending: true),
-      supabase.from('allotment_materials').select('allotment_id, notes, item_name, required_qty'),
-      supabase.from('allotment_variants').select('allotment_id, color, size, quantity, completed_qty'),
+    List<dynamic> challansRaw = [];
+    List<dynamic> allotmentsRaw = [];
+    List<dynamic> articlesRaw = [];
+    List<dynamic> profilesRaw = [];
+    List<dynamic> materialsRaw = [];
+    List<dynamic> variantsRaw = [];
+
+    await Future.wait([
+      (() async {
+        try {
+          challansRaw = await supabase.from('challans').select('*').order('created_at', ascending: false).limit(200);
+        } catch (e) {
+          debugPrint('Challans fetch error: $e');
+        }
+      })(),
+      (() async {
+        try {
+          allotmentsRaw = await supabase.from('allotments').select('*').order('created_at', ascending: true);
+        } catch (e) {
+          debugPrint('Allotments fetch error: $e');
+        }
+      })(),
+      (() async {
+        try {
+          articlesRaw = await supabase.from('articles').select('id, art_no, description, size_rates, stitching_rate');
+        } catch (e) {
+          debugPrint('Articles fetch error: $e');
+        }
+      })(),
+      (() async {
+        try {
+          profilesRaw = await supabase.from('profiles').select('id, username, role, company_name');
+        } catch (e) {
+          debugPrint('Profiles fetch error: $e');
+        }
+      })(),
+      (() async {
+        try {
+          materialsRaw = await supabase.from('allotment_materials').select('allotment_id, notes, item_name, required_qty');
+        } catch (e) {
+          debugPrint('Materials fetch error: $e');
+        }
+      })(),
+      (() async {
+        try {
+          variantsRaw = await supabase.from('allotment_variants').select('allotment_id, color, size, quantity, completed_qty');
+        } catch (e) {
+          debugPrint('Variants fetch error: $e');
+        }
+      })(),
     ]);
 
-    var challansRaw = (results[0] as List?) ?? [];
-    final allotmentsRaw = (results[1] as List?) ?? [];
-    final materialsRaw = (results[2] as List?) ?? [];
-    final variantsRaw = (results[3] as List?) ?? [];
+    final Map<String, dynamic> articlesMap = {
+      for (var a in articlesRaw)
+        if (a['id'] != null) a['id'].toString(): a,
+    };
+    final Map<String, dynamic> profilesMap = {
+      for (var p in profilesRaw)
+        if (p['id'] != null) p['id'].toString(): p,
+    };
 
     if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
       challansRaw = challansRaw.where((ch) {
@@ -329,7 +373,8 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                 // Match with active floor allotment for this article and color
                 dynamic matchingAl;
                 for (var al in chAllotments) {
-                  final art = al['articles'] as Map?;
+                  final artId = al['article_id']?.toString() ?? '';
+                  final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
                   final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
                   final isArtMatch = alArtNo == cleanArtNo || alArtNo == fullArtCode;
                   if (!isArtMatch) continue;
@@ -360,7 +405,8 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                 // Global fallback matching if allotment was created with client_challan_no for this order
                 if (matchingAl == null) {
                   for (var al in allotmentsRaw) {
-                    final art = al['articles'] as Map?;
+                    final artId = al['article_id']?.toString() ?? '';
+                    final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
                     final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
                     final isArtMatch = alArtNo == cleanArtNo || alArtNo == fullArtCode;
                     if (!isArtMatch) continue;
@@ -414,7 +460,7 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
                   allotmentId = matchingAl['id']?.toString();
                   if (matchingAl['lineman_id'] != null) {
                     linemanId = matchingAl['lineman_id']?.toString();
-                    final prof = matchingAl['profiles'] as Map?;
+                    final prof = profilesMap[linemanId] ?? (matchingAl['profiles'] is Map ? matchingAl['profiles'] : null);
                     linemanName = prof?['username']?.toString() ?? linemanName ?? 'Lineman';
                     lineStatus = matchingAl['status']?.toString().toUpperCase() ?? 'IN_PROGRESS';
                   }
@@ -463,8 +509,10 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       // Fallback if no structured lines in notes: construct from child allotments
       if (parsedLines.isEmpty && chAllotments.isNotEmpty) {
         for (var al in chAllotments) {
-          final art = al['articles'] as Map?;
-          final prof = al['profiles'] as Map?;
+          final artId = al['article_id']?.toString() ?? '';
+          final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
+          final lmId = al['lineman_id']?.toString() ?? '';
+          final prof = profilesMap[lmId] ?? (al['profiles'] is Map ? al['profiles'] : null);
           final aId = al['id']?.toString() ?? '';
           final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == aId).toList();
           final firstVar = alVars.isNotEmpty ? alVars.first : null;
