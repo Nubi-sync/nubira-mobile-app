@@ -34,6 +34,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   int _totalTargetToday = 0;
   int _totalAssignedToday = 0;
   int _totalDoneToday = 0;
+  int _totalLotsCount = 0;
+  final Set<String> _expandedGroupIds = {};
 
   // Search filters
   String _liveSearchQuery = '';
@@ -317,6 +319,157 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           return (b['allotment_date'] ?? '').toString().compareTo((a['allotment_date'] ?? '').toString());
         });
 
+        // Group individual active lots into consolidated Article + Challan groups (100% Web Parity)
+        final Map<String, Map<String, dynamic>> groupMap = {};
+
+        for (var lot in enrichedActive) {
+          final art = lot['articles'];
+          final rawArt = (art?['art_no'] ?? 'GENERAL').toString().trim().toUpperCase();
+          final chId = lot['challan_id']?.toString() ?? '-';
+          final groupKey = '${rawArt}__$chId';
+
+          final lotTarget = parseQty(lot['target_qty']);
+          final lotAssigned = parseQty(lot['total_assigned']);
+          final lotDone = parseQty(lot['total_done']);
+          final lotPriority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
+
+          if (!groupMap.containsKey(groupKey)) {
+            groupMap[groupKey] = {
+              'id': lot['id'], // Primary ID
+              'article_id': lot['article_id'],
+              'challan_id': lot['challan_id'],
+              'production_order_no': lot['production_order_no'],
+              'allotment_date': lot['allotment_date'],
+              'due_date': lot['due_date'],
+              'manager_name': lot['manager_name'],
+              'status': lot['status'],
+              'articles': lot['articles'],
+              'challans': lot['challans'],
+              'priority': lotPriority,
+              'target_qty': 0,
+              'total_assigned': 0,
+              'total_done': 0,
+              'lots_count': 0,
+              'allotment_ids': <String>[],
+              'sub_lots': <dynamic>[],
+              'variants': <dynamic>[],
+              'materials': <dynamic>[],
+              'assignments': <dynamic>[],
+              'reissues': <dynamic>[],
+              'search_index': '',
+            };
+          }
+
+          final grp = groupMap[groupKey]!;
+          grp['target_qty'] = (grp['target_qty'] as int) + lotTarget;
+          grp['total_assigned'] = (grp['total_assigned'] as int) + lotAssigned;
+          grp['total_done'] = (grp['total_done'] as int) + lotDone;
+          grp['lots_count'] = (grp['lots_count'] as int) + 1;
+          (grp['allotment_ids'] as List<String>).add(lot['id'].toString());
+          (grp['sub_lots'] as List<dynamic>).add(lot);
+
+          // Priority escalation: CRITICAL > RUSH > NORMAL
+          final currentPrio = grp['priority'].toString();
+          if (lotPriority == 'CRITICAL' || (lotPriority == 'RUSH' && currentPrio != 'CRITICAL')) {
+            grp['priority'] = lotPriority;
+          }
+
+          // Merge assignments & reissues
+          (grp['assignments'] as List<dynamic>).addAll(lot['assignments'] as List<dynamic>? ?? []);
+          (grp['reissues'] as List<dynamic>).addAll(lot['reissues'] as List<dynamic>? ?? []);
+        }
+
+        // Finalize variants, materials, and search index for each group
+        final List<dynamic> consolidatedActive = [];
+
+        for (var grp in groupMap.values) {
+          final subLots = grp['sub_lots'] as List<dynamic>;
+
+          // Consolidate variants across all lots by (color, size)
+          final Map<String, Map<String, dynamic>> variantMap = {};
+          for (var lot in subLots) {
+            for (var v in (lot['variants'] as List<dynamic>? ?? [])) {
+              final color = (v['color'] ?? 'Default').toString();
+              final size = (v['size'] ?? 'Standard').toString();
+              final key = '$color|||$size';
+              final qty = parseQty(v['quantity']);
+              final cQty = parseQty(v['completed_qty']);
+              if (!variantMap.containsKey(key)) {
+                variantMap[key] = {
+                  'id': v['id'],
+                  'allotment_id': lot['id'],
+                  'color': color,
+                  'size': size,
+                  'quantity': qty,
+                  'completed_qty': cQty,
+                };
+              } else {
+                variantMap[key]!['quantity'] = (variantMap[key]!['quantity'] as int) + qty;
+                variantMap[key]!['completed_qty'] = (variantMap[key]!['completed_qty'] as int) + cQty;
+              }
+            }
+          }
+          grp['variants'] = variantMap.values.toList();
+
+          // Consolidate materials across all lots
+          final Map<String, Map<String, dynamic>> matMap = {};
+          for (var lot in subLots) {
+            for (var m in (lot['materials'] as List<dynamic>? ?? [])) {
+              final name = (m['item_name'] ?? '').toString().trim();
+              if (name.isEmpty) continue;
+              final reqQty = parseQty(m['required_qty']);
+              final isIssued = m['admin_issued'] == true;
+              final isReceived = m['lineman_received'] == true;
+              if (!matMap.containsKey(name)) {
+                matMap[name] = {
+                  'id': m['id'],
+                  'allotment_id': lot['id'],
+                  'item_name': name,
+                  'required_qty': reqQty,
+                  'admin_issued': isIssued,
+                  'lineman_received': isReceived,
+                  'lineman_received_at': m['lineman_received_at'],
+                  'notes': m['notes'],
+                  'allotment_materials_list': [m],
+                };
+              } else {
+                matMap[name]!['required_qty'] = (matMap[name]!['required_qty'] as int) + reqQty;
+                if (!isIssued) matMap[name]!['admin_issued'] = false;
+                if (!isReceived) matMap[name]!['lineman_received'] = false;
+                (matMap[name]!['allotment_materials_list'] as List<dynamic>).add(m);
+              }
+            }
+          }
+          grp['materials'] = matMap.values.toList();
+
+          // Build consolidated search index
+          final art = grp['articles'];
+          final challan = grp['challans'];
+          String sIdx = '${art?['art_no'] ?? ''} ${art?['description'] ?? ''} ${challan?['challan_no'] ?? ''} ${challan?['brand'] ?? ''} ${grp['priority']}';
+          for (var v in (grp['variants'] as List<dynamic>)) {
+            sIdx += ' ${v['color']} ${v['size']}';
+          }
+          for (var a in (grp['assignments'] as List<dynamic>)) {
+            sIdx += ' ${a['worker_name']}';
+          }
+          for (var m in (grp['materials'] as List<dynamic>)) {
+            sIdx += ' ${m['item_name']}';
+          }
+          grp['search_index'] = sIdx.toLowerCase();
+
+          consolidatedActive.add(grp);
+        }
+
+        // Sort consolidated active articles by Priority and Date
+        consolidatedActive.sort((a, b) {
+          final pA = (a['priority'] ?? 'NORMAL').toString().toUpperCase();
+          final pB = (b['priority'] ?? 'NORMAL').toString().toUpperCase();
+          int rank(String p) => p == 'CRITICAL' ? 0 : (p == 'RUSH' ? 1 : 2);
+          final diff = rank(pA).compareTo(rank(pB));
+          if (diff != 0) return diff;
+          return (b['allotment_date'] ?? '').toString().compareTo((a['allotment_date'] ?? '').toString());
+        });
+
         // 5. Fetch active mending tasks assigned to this lineman from QC
         List<dynamic> activeMending = [];
         try {
@@ -363,7 +516,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
         setState(() {
           _activeMendingTasks = activeMending;
-          _activeAllotments = enrichedActive;
+          _activeAllotments = consolidatedActive;
+          _totalLotsCount = enrichedActive.length;
           _completedAllotments = enrichedCompleted;
           _todayAssignments = todayAssignments;
           _mendingSupervisors = mendingSups;
@@ -687,10 +841,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         // Save to persistent archived list
         final prefs = await SharedPreferences.getInstance();
         final List<String> archived = prefs.getStringList('lineman_archived_lots') ?? [];
-        if (!archived.contains(allotmentId)) {
-          archived.add(allotmentId);
-          await prefs.setStringList('lineman_archived_lots', archived);
+        final allTargetIds = (allotment['allotment_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [allotmentId];
+        for (var id in allTargetIds) {
+          if (!archived.contains(id)) {
+            archived.add(id);
+          }
         }
+        await prefs.setStringList('lineman_archived_lots', archived);
 
         final user = supabase.auth.currentUser;
         final currentUsername = user?.email?.split('@')[0] ?? 'Lineman';
@@ -710,7 +867,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 'handed_to_mending_at': nowIso,
                 'mending_handover_notes': notesText.isNotEmpty ? notesText : null,
               })
-              .eq('id', allotmentId);
+              .inFilter('id', allTargetIds);
         } catch (dbErr) {
           debugPrint('Supabase update status warning: $dbErr');
         }
@@ -1042,13 +1199,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     if (confirm == true) {
       try {
         final nowIso = DateTime.now().toUtc().toIso8601String();
+        final allTargetIds = (allotment['allotment_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [allotment['id'].toString()];
         await supabase
             .from('allotment_materials')
             .update({
               'lineman_received': true,
               'lineman_received_at': nowIso,
             })
-            .eq('allotment_id', allotment['id']);
+            .inFilter('allotment_id', allTargetIds);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1983,8 +2141,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 fullNotes += ' $noteText';
                               }
                               fullNotes = fullNotes.trim();
+
+                              String targetLotId = allotment['id'].toString();
+                              if (allotment['sub_lots'] is List && (allotment['sub_lots'] as List).isNotEmpty) {
+                                final subLots = allotment['sub_lots'] as List<dynamic>;
+                                for (var sub in subLots) {
+                                  final sTarget = parseQty(sub['target_qty']);
+                                  final sAssigned = parseQty(sub['total_assigned']);
+                                  if (sTarget > sAssigned) {
+                                    targetLotId = sub['id'].toString();
+                                    break;
+                                  }
+                                }
+                              }
+
                               await _submitWorkerAssignment(
-                                allotmentId: allotment['id'],
+                                allotmentId: targetLotId,
                                 articleId: allotment['article_id'],
                                 workerName: name,
                                 qty: qty,
@@ -3076,8 +3248,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             const SizedBox(width: 6),
                             Text(
                               q.isNotEmpty
-                                  ? 'Showing ${filteredList.length} of ${_activeAllotments.length}'
-                                  : 'Live Floor (${_activeAllotments.length})',
+                                  ? 'Showing ${filteredList.length} of ${_activeAllotments.length} styles'
+                                  : 'Live Floor (${_activeAllotments.length} styles • $_totalLotsCount lots)',
                               style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
                             ),
                           ],
@@ -4320,6 +4492,30 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                       ],
                                     ),
                                   ),
+                                if ((a['lots_count'] ?? 1) > 1)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.layers_rounded, size: 13, color: Color(0xFF1D4ED8)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${a['lots_count']} Lots Combined',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF1D4ED8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
                             );
                           }(),
@@ -4645,6 +4841,130 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     ],
                   ),
                 ),
+                if ((a['lots_count'] ?? 1) > 1) ...[
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () {
+                      final gId = a['id'].toString();
+                      setState(() {
+                        if (_expandedGroupIds.contains(gId)) {
+                          _expandedGroupIds.remove(gId);
+                        } else {
+                          _expandedGroupIds.add(gId);
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.layers_outlined, size: 15, color: AppTheme.steelDark),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${a['lots_count']} Sub-Lots Breakdown',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.steelDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                _expandedGroupIds.contains(a['id'].toString()) ? 'Hide' : 'View',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.steel,
+                                ),
+                              ),
+                              Icon(
+                                _expandedGroupIds.contains(a['id'].toString())
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                size: 18,
+                                color: AppTheme.steel,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_expandedGroupIds.contains(a['id'].toString())) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: (a['sub_lots'] as List<dynamic>? ?? []).length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.border),
+                        itemBuilder: (ctx, idx) {
+                          final lot = (a['sub_lots'] as List<dynamic>)[idx];
+                          final lTarget = parseQty(lot['target_qty']);
+                          final lAssigned = parseQty(lot['total_assigned']);
+                          final lDone = parseQty(lot['total_done']);
+                          final lStatus = lot['status']?.toString() ?? 'IN_PROGRESS';
+                          final fullLotId = lot['id']?.toString() ?? '';
+                          final lId = fullLotId.length > 6 ? fullLotId.substring(0, 6) : fullLotId;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '#${idx + 1} (..$lId)',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.inkSoft,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Target: $lTarget | Assigned: $lAssigned | Done: $lDone',
+                                    style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.ink),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: lDone >= lTarget ? AppTheme.greenMist : AppTheme.steelMist,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    lDone >= lTarget ? 'READY' : lStatus,
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: lDone >= lTarget ? AppTheme.green : AppTheme.steel,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
                 const SizedBox(height: 18),
 
                 // Active SOS Alert Banner (If pending)
