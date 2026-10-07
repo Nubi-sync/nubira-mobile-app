@@ -97,7 +97,22 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                 final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
                 final artNo = art?['art_no']?.toString() ?? '4225';
                 final challan = _asMap(lot['challans']) ?? _asMap(lot['challan']);
-                final challanNo = challan?['challan_no']?.toString() ?? 'CH-${lot['id'].toString().substring(0, 4)}';
+                final rawChallanNo = challan?['challan_no']?.toString() ?? '';
+                final lotIdStr = lot['id']?.toString() ?? '';
+                final shortLotId = lotIdStr.length > 4 ? lotIdStr.substring(0, 4) : lotIdStr;
+                
+                final lineman = _asMap(lot['lineman']) ?? _asMap(lot['profiles']);
+                final linemanName = (lot['handed_to_mending_by']?.toString().isNotEmpty == true)
+                    ? lot['handed_to_mending_by'].toString()
+                    : (lineman?['username']?.toString() ?? '');
+
+                final String challanLabel = rawChallanNo.isNotEmpty 
+                    ? (rawChallanNo.startsWith('CH') ? rawChallanNo : 'CH-$rawChallanNo')
+                    : 'Lot #$shortLotId';
+                
+                final String subtitleText = linemanName.isNotEmpty
+                    ? '$challanLabel • $linemanName'
+                    : challanLabel;
 
                 final target = _parseQty(lot['target_qty']);
                 final counted = _parseQty(lot['total_counted']);
@@ -111,7 +126,7 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                     borderRadius: BorderRadius.circular(16),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      width: 136,
+                      width: 140,
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                       decoration: BoxDecoration(
                         color: isSelected ? const Color(0xFF0B1220) : Colors.white,
@@ -156,9 +171,9 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                challanNo,
+                                subtitleText,
                                 style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10.5,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: isSelected ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                 ),

@@ -344,7 +344,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         }
       }
 
-      final List<Map<String, dynamic>> lots = [];
+      final Map<String, Map<String, dynamic>> dedupedMap = {};
+
       for (var a in allotmentList) {
         final aId = a['id'].toString();
         final status = (a['status'] ?? '').toString().toUpperCase();
@@ -377,14 +378,6 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           totalTarget += _parseQty(v['quantity']);
         }
 
-        int totalAssigned = 0;
-        int totalCounted = 0;
-        for (var m in assigns) {
-          totalAssigned += _parseQty(m['assigned_qty']);
-          final c = _parseQty(m['completed_qty']);
-          totalCounted += c;
-        }
-
         final artMap = _asMap(a['article']) ?? _asMap(a['articles']);
         final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
         final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
@@ -394,19 +387,58 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             ? colPriority
             : (priorityMap[aId] ?? 'NORMAL');
 
-        lots.add({
-          ...a,
-          'priority': lotPriority,
-          'article': artMap,
-          'challans': chalMap,
-          'lineman': lineMap,
-          'variants': vars,
-          'assignments': assigns,
-          'target_qty': totalTarget > 0 ? totalTarget : _parseQty(a['target_qty']),
-          'total_assigned': totalAssigned,
-          'total_counted': totalCounted,
-        });
+        final artIdStr = a['article_id']?.toString() ?? artMap?['id']?.toString() ?? '';
+        final chalIdStr = a['challan_id']?.toString() ?? chalMap?['id']?.toString() ?? '';
+        final groupKey = '${chalIdStr}_$artIdStr';
+
+        if (dedupedMap.containsKey(groupKey)) {
+          // Merge duplicate lot safely without doubling target quantity
+          final existing = dedupedMap[groupKey]!;
+          final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
+          if (!secIds.contains(aId)) secIds.add(aId);
+          existing['secondary_ids'] = secIds;
+
+          final existingAssigns = List<Map<String, dynamic>>.from(existing['assignments'] as List);
+          for (var ass in assigns) {
+            if (!existingAssigns.any((ea) => ea['id'] == ass['id'])) {
+              existingAssigns.add(ass);
+            }
+          }
+          existing['assignments'] = existingAssigns;
+
+          int totalAssigned = 0;
+          int totalCounted = 0;
+          for (var m in existingAssigns) {
+            totalAssigned += _parseQty(m['assigned_qty']);
+            totalCounted += _parseQty(m['completed_qty']);
+          }
+          existing['total_assigned'] = totalAssigned;
+          existing['total_counted'] = totalCounted;
+        } else {
+          int totalAssigned = 0;
+          int totalCounted = 0;
+          for (var m in assigns) {
+            totalAssigned += _parseQty(m['assigned_qty']);
+            totalCounted += _parseQty(m['completed_qty']);
+          }
+
+          dedupedMap[groupKey] = {
+            ...a,
+            'secondary_ids': <String>[],
+            'priority': lotPriority,
+            'article': artMap,
+            'challans': chalMap,
+            'lineman': lineMap,
+            'variants': vars,
+            'assignments': assigns,
+            'target_qty': totalTarget > 0 ? totalTarget : _parseQty(a['target_qty']),
+            'total_assigned': totalAssigned,
+            'total_counted': totalCounted,
+          };
+        }
       }
+
+      final List<Map<String, dynamic>> lots = dedupedMap.values.toList();
 
       // Sort by production priority queue: CRITICAL (0) -> RUSH (1) -> NORMAL (2)
       int priorityWeight(String p) {
@@ -1623,6 +1655,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         'entry_date': todayStr,
       });
 
+      final secIds = (_selectedLot!['secondary_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+      final allTargetIds = [lotId, ...secIds];
+
       // 2. Update allotment status to QC_PENDING with QC supervisor custody metadata
       await supabase.from('allotments').update({
         'mending_status': 'QC_PENDING',
@@ -1634,7 +1669,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         'handed_to_qc_by': senderName,
         'handed_to_qc_at': DateTime.now().toUtc().toIso8601String(),
         'qc_handover_notes': notes.isNotEmpty ? notes : null,
-      }).eq('id', lotId);
+      }).inFilter('id', allTargetIds);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
