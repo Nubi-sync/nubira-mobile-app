@@ -19,11 +19,10 @@ class LinemanDashboard extends ConsumerStatefulWidget {
 
 class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     with SingleTickerProviderStateMixin {
-  // Named Constants
-  static const int searchThreshold = 15;
   static const int overdueThresholdMinutes = 120;
 
   int _selectedTabIndex = 0; // 0: Live Floor, 1: Lot History
+  int _liveFloorSubTab = 0; // 0: Allotments (Cutting / Production Targets), 1: Today's Batches (Worker Assignments & Done)
 
   bool _isLoading = true;
   List<dynamic> _activeMendingTasks = [];
@@ -278,6 +277,17 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           }
           if (lotPriority.isEmpty) lotPriority = 'NORMAL';
 
+          String searchIdx = '${a['articles']?['art_no'] ?? ''} ${a['articles']?['description'] ?? ''} ${a['challans']?['challan_no'] ?? ''} ${a['challans']?['brand'] ?? ''} ${a['challans']?['fabric_type'] ?? ''} $lotPriority';
+          for (var m in lotMaterials) {
+            if (m['notes'] != null) searchIdx += ' ${m['notes']}';
+          }
+          for (var v in lotVariants) {
+            searchIdx += ' ${v['color']} ${v['size']}';
+          }
+          for (var ass in lotAssignments) {
+            searchIdx += ' ${ass['worker_name']}';
+          }
+
           final enriched = {
             ...a,
             'priority': lotPriority,
@@ -287,6 +297,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             'materials': lotMaterials,
             'assignments': lotAssignments,
             'reissues': lotReissues,
+            'search_index': searchIdx.toLowerCase(),
           };
 
           if (isCompletedInDb || isArchivedLocally) {
@@ -2776,150 +2787,254 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   }
 
   // =========================================================================
+  // =========================================================================
   // TAB 1: LIVE FLOOR (ACTIVE ALLOTMENTS & TODAY'S ASSIGNMENTS)
   // =========================================================================
   Widget _buildLiveFloorTab() {
-    return SingleChildScrollView(
+    final q = _liveSearchQuery.trim().toLowerCase();
+    final filteredList = q.isEmpty
+        ? _activeAllotments
+        : _activeAllotments.where((a) {
+            final sIdx = (a['search_index'] as String? ?? '');
+            if (sIdx.isNotEmpty) return sIdx.contains(q);
+            final artNo = (a['articles']?['art_no'] as String? ?? '').toLowerCase();
+            final desc = (a['articles']?['description'] as String? ?? '').toLowerCase();
+            final chNo = (a['challans']?['challan_no'] as String? ?? '').toLowerCase();
+            return artNo.contains(q) || desc.contains(q) || chNo.contains(q);
+          }).toList();
+
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Stats (Today's Shift)
-          _AnimatedFadeSlide(
-            delayMs: 30,
-            child: Row(
-              children: [
-                _buildStatCard(
-                  'Floor Target',
-                  '$_totalTargetToday',
-                  Icons.assignment_rounded,
-                  AppTheme.steel,
-                  unit: 'pcs',
-                  subtitle: '$_totalAssignedToday pcs with workers',
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  'Work Done Today',
-                  '$_totalDoneToday',
-                  Icons.check_circle_rounded,
-                  AppTheme.green,
-                  unit: 'pcs',
-                  subtitle: '${_totalTargetToday > 0 ? ((_totalDoneToday / _totalTargetToday) * 100).toStringAsFixed(0) : 0}% completed',
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Search Allotments Input Bar
-          _AnimatedFadeSlide(
-            delayMs: 60,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _liveSearchController,
-                onChanged: (val) => setState(() => _liveSearchQuery = val.trim()),
-                style: GoogleFonts.publicSans(fontSize: 13.5, color: AppTheme.ink, fontWeight: FontWeight.w600),
-                decoration: InputDecoration(
-                  hintText: 'Search by Article No, Challan #, Color, Brand...',
-                  hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
-                  suffixIcon: _liveSearchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
-                          onPressed: () {
-                            _liveSearchController.clear();
-                            setState(() => _liveSearchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Mending & Repairs from QC (If Any)
-          if (_activeMendingTasks.isNotEmpty) ...[
-            _AnimatedFadeSlide(
-              delayMs: 70,
-              child: _buildMendingTasksSection(),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Active Allotments Section
-          (() {
-            final q = _liveSearchQuery.trim().toLowerCase();
-            final filteredList = q.isEmpty
-                ? _activeAllotments
-                : _activeAllotments.where((a) {
-                    final artNo = (a['articles']?['art_no'] as String? ?? '').toLowerCase();
-                    final desc = (a['articles']?['description'] as String? ?? '').toLowerCase();
-                    final chNo = (a['challans']?['challan_no'] as String? ?? '').toLowerCase();
-                    final brand = (a['challans']?['brand'] as String? ?? '').toLowerCase();
-                    final fab = (a['challans']?['fabric_type'] as String? ?? '').toLowerCase();
-                    final priority = (a['priority'] as String? ?? '').toLowerCase();
-
-                    // Check notes for client challan / PO
-                    String clientRef = '';
-                    final lotMaterials = a['materials'] as List? ?? [];
-                    for (var m in lotMaterials) {
-                      if (m['notes'] != null) {
-                        try {
-                          final parsed = jsonDecode(m['notes'].toString());
-                          if (parsed['client_challan_no'] != null) {
-                            clientRef += ' ${parsed['client_challan_no']}';
-                          }
-                          if (parsed['production_order_no'] != null) {
-                            clientRef += ' ${parsed['production_order_no']}';
-                          }
-                        } catch (_) {}
-                      }
-                    }
-                    clientRef = clientRef.toLowerCase();
-
-                    // Check variant colors & sizes
-                    final variants = a['variants'] as List? ?? [];
-                    final variantText = variants.map((v) => '${v['color']} ${v['size']}').join(' ').toLowerCase();
-
-                    // Check worker names in assignments
-                    final assignments = a['assignments'] as List? ?? [];
-                    final workerNames = assignments.map((ass) => ass['worker_name'] ?? '').join(' ').toLowerCase();
-
-                    return artNo.contains(q) ||
-                        desc.contains(q) ||
-                        chNo.contains(q) ||
-                        brand.contains(q) ||
-                        fab.contains(q) ||
-                        priority.contains(q) ||
-                        clientRef.contains(q) ||
-                        variantText.contains(q) ||
-                        workerNames.contains(q);
-                  }).toList();
-
-            return Column(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 0.0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _AnimatedFadeSlide(
-                  delayMs: 100,
+                // Summary Stats (Today's Shift)
+                Row(
+                  children: [
+                    _buildStatCard(
+                      'Floor Target',
+                      '$_totalTargetToday',
+                      Icons.assignment_rounded,
+                      AppTheme.steel,
+                      unit: 'pcs',
+                      subtitle: '$_totalAssignedToday pcs with workers',
+                    ),
+                    const SizedBox(width: 12),
+                    _buildStatCard(
+                      'Work Done Today',
+                      '$_totalDoneToday',
+                      Icons.check_circle_rounded,
+                      AppTheme.green,
+                      unit: 'pcs',
+                      subtitle: '${_totalTargetToday > 0 ? ((_totalDoneToday / _totalTargetToday) * 100).toStringAsFixed(0) : 0}% completed',
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // ===================================================================
+                // OPTION 1: SEGMENTED SUB-TAB SWITCHER (ALLOTMENTS VS TODAY'S BATCHES)
+                // ===================================================================
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1EFEA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E2DA)),
+                  ),
                   child: Row(
+                    children: [
+                      // Sub-Tab 0: Allotments
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _liveFloorSubTab = 0;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(9),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: _liveFloorSubTab == 0 ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(9),
+                              boxShadow: _liveFloorSubTab == 0
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.06),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.inventory_2_rounded,
+                                  size: 16,
+                                  color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Allotments',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: _liveFloorSubTab == 0 ? FontWeight.w700 : FontWeight.w600,
+                                    color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _liveFloorSubTab == 0 ? AppTheme.steelMist : const Color(0xFFE5E2DA),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${_activeAllotments.length}',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Sub-Tab 1: Today's Batches
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _liveFloorSubTab = 1;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(9),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: _liveFloorSubTab == 1 ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(9),
+                              boxShadow: _liveFloorSubTab == 1
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.06),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.bolt_rounded,
+                                  size: 17,
+                                  color: _liveFloorSubTab == 1 ? const Color(0xFFD97706) : AppTheme.inkSoft,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "Today's Batches",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: _liveFloorSubTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                                    color: _liveFloorSubTab == 1 ? AppTheme.ink : AppTheme.inkSoft,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _liveFloorSubTab == 1 ? const Color(0xFFFEF3C7) : const Color(0xFFE5E2DA),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${_todayAssignments.length}',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: _liveFloorSubTab == 1 ? const Color(0xFFB45309) : AppTheme.inkSoft,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ===================================================================
+                // SUB-TAB TOP HEADER: ALLOTMENTS (0) OR TODAY'S BATCHES (1)
+                // ===================================================================
+                if (_liveFloorSubTab == 0) ...[
+                  // Search Allotments Input Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _liveSearchController,
+                      onChanged: (val) => setState(() => _liveSearchQuery = val.trim()),
+                      style: GoogleFonts.publicSans(fontSize: 13.5, color: AppTheme.ink, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        hintText: 'Search by Article No, Challan #, Color, Brand...',
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                        suffixIcon: _liveSearchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                                onPressed: () {
+                                  _liveSearchController.clear();
+                                  setState(() => _liveSearchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Mending & Repairs from QC (If Any)
+                  if (_activeMendingTasks.isNotEmpty) ...[
+                    _buildMendingTasksSection(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Active Allotments Section Header
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
@@ -2950,146 +3065,231 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (filteredList.isEmpty)
-                  _AnimatedFadeSlide(
-                    delayMs: 150,
-                    child: q.isNotEmpty
-                        ? Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-                            decoration: BoxDecoration(
-                              color: AppTheme.card,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.search_off_rounded, size: 40, color: AppTheme.inkFaint),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No allotments found',
-                                  style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'No active allotments match "$q"',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
-                                ),
-                                const SizedBox(height: 12),
-                                OutlinedButton.icon(
-                                  icon: const Icon(Icons.clear_rounded, size: 14),
-                                  label: const Text('Clear search'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppTheme.steel,
-                                    side: const BorderSide(color: AppTheme.border),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  onPressed: () {
-                                    _liveSearchController.clear();
-                                    setState(() => _liveSearchQuery = '');
-                                  },
-                                ),
-                              ],
-                            ),
-                          )
-                        : _buildNoAllotmentEmptyState(),
-                  )
-                else
-                  ...filteredList.map((a) => _AnimatedFadeSlide(delayMs: 160, child: _buildActiveAllotmentCard(a))),
-              ],
-            );
-          })(),
+                  const SizedBox(height: 12),
+                ] else ...[
+                  // Worker Assignments Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Today's Worker Batches",
+                        style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Text(
+                          '${_todayAssignments.length} batches',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
 
-          const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
-          // Worker Assignments Section
-          _AnimatedFadeSlide(
-            delayMs: 200,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Today's Batches",
-                  style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                ),
-                Text(
-                  '${_todayAssignments.length} batches',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.inkFaint),
-                ),
+                  // Search Worker or Article Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _liveSearchController,
+                      onChanged: (val) => setState(() => _liveSearchQuery = val.trim().toLowerCase()),
+                      style: GoogleFonts.publicSans(fontSize: 13.5, color: AppTheme.ink, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        hintText: 'Search worker name or article...',
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                        suffixIcon: _liveSearchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                                onPressed: () {
+                                  _liveSearchController.clear();
+                                  setState(() => _liveSearchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // First-time swipe hint
+                  if (_showSwipeHint && _todayAssignments.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.steelMist,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.steelTint),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.swipe_right_rounded, size: 16, color: AppTheme.steel),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Tip: Swipe any worker card right to mark batch as done',
+                              style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.steelDark),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _dismissSwipeHint,
+                            child: const Icon(Icons.close_rounded, size: 16, color: AppTheme.inkFaint),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ),
+        ),
 
-          const SizedBox(height: 10),
+        // ===================================================================
+        // VIRTUALIZED SLIVER LIST (LAZY LOAD & INSTANT RENDERING)
+        // ===================================================================
+        if (_liveFloorSubTab == 0) ...[
+          if (filteredList.isEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+              sliver: SliverToBoxAdapter(
+                child: q.isNotEmpty
+                    ? Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.search_off_rounded, size: 40, color: AppTheme.inkFaint),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No allotments found',
+                              style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'No active allotments match "$q"',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.clear_rounded, size: 14),
+                              label: const Text('Clear search'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.steel,
+                                side: const BorderSide(color: AppTheme.border),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () {
+                                _liveSearchController.clear();
+                                setState(() => _liveSearchQuery = '');
+                              },
+                            ),
+                          ],
+                        ),
+                      )
+                    : _buildNoAllotmentEmptyState(),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 12.0),
+              sliver: SliverList.builder(
+                itemCount: filteredList.length,
+                itemBuilder: (context, index) {
+                  return _buildActiveAllotmentCard(filteredList[index]);
+                },
+              ),
+            ),
 
-          // First-time swipe hint
-          if (_showSwipeHint && _todayAssignments.isNotEmpty) ...[
-            _AnimatedFadeSlide(
-              delayMs: 220,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: AppTheme.steelMist,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.steelTint),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.swipe_right_rounded, size: 16, color: AppTheme.steel),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Tip: Swipe any worker card right to mark batch as done',
-                        style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.steelDark),
-                      ),
+          if (_todayAssignments.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+              sliver: SliverToBoxAdapter(
+                child: InkWell(
+                  onTap: () => setState(() => _liveFloorSubTab = 1),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
-                    GestureDetector(
-                      onTap: _dismissSwipeHint,
-                      child: const Icon(Icons.close_rounded, size: 16, color: AppTheme.inkFaint),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_todayAssignments.length} Worker Batches Active Today',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF92400E),
+                                ),
+                              ),
+                              Text(
+                                'Tap here to view worker cards & mark pieces done',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11.5,
+                                  color: const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFD97706)),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ],
-
-          // Conditional Search Bar
-          if (_todayAssignments.length >= searchThreshold) ...[
-            _AnimatedFadeSlide(
-              delayMs: 240,
-              child: TextField(
-                controller: _liveSearchController,
-                onChanged: (val) => setState(() => _liveSearchQuery = val.trim().toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: 'Search worker or article...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
-                  suffixIcon: _liveSearchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
-                          onPressed: () {
-                            _liveSearchController.clear();
-                            setState(() => _liveSearchQuery = '');
-                          },
-                        )
-                      : null,
-                ),
-              ),
+        ] else ...[
+          // Sub-Tab 1: Today's Batches List
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+            sliver: SliverToBoxAdapter(
+              child: _buildGroupedAssignmentLists(),
             ),
-            const SizedBox(height: 14),
-          ],
-
-          // Grouped Assignments
-          _buildGroupedAssignmentLists(),
-
-          const SizedBox(height: 24),
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -3097,120 +3297,139 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   // TAB 2: LOT HISTORY (PAST COMPLETED LOTS & WORKER BREAKDOWN)
   // =========================================================================
   Widget _buildLotHistoryTab() {
+    final q = _historySearchQuery.trim().toLowerCase();
     var historyList = _completedAllotments;
-    if (_historySearchQuery.isNotEmpty) {
+    if (q.isNotEmpty) {
       historyList = historyList.where((lot) {
+        final sIdx = (lot['search_index'] as String? ?? '');
+        if (sIdx.isNotEmpty) return sIdx.contains(q);
         final artNo = (lot['articles']?['art_no'] as String? ?? '').toLowerCase();
         final desc = (lot['articles']?['description'] as String? ?? '').toLowerCase();
-        return artNo.contains(_historySearchQuery) || desc.contains(_historySearchQuery);
+        return artNo.contains(q) || desc.contains(q);
       }).toList();
     }
 
-    return SingleChildScrollView(
+    return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0.0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Lot History',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Lot History',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Completed allotments & worker hisab',
+                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.steelMist,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.steelTint),
+                      ),
+                      child: Text(
+                        '${_completedAllotments.length} Completed',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Search Field
+                TextField(
+                  controller: _historySearchController,
+                  onChanged: (val) => setState(() => _historySearchQuery = val.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: 'Search by Art No or style...',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                    suffixIcon: _historySearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                            onPressed: () {
+                              _historySearchController.clear();
+                              setState(() => _historySearchQuery = '');
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+        if (historyList.isEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+            sliver: SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.history_toggle_off_rounded, size: 28, color: AppTheme.inkFaint),
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'Completed allotments & worker hisab',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-                      overflow: TextOverflow.ellipsis,
+                      'No completed lots found',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Completed allotments will appear here with full tailor breakdowns.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.steelMist,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.steelTint),
-                ),
-                child: Text(
-                  '${_completedAllotments.length} Completed',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.steelDark),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Search Field
-          TextField(
-            controller: _historySearchController,
-            onChanged: (val) => setState(() => _historySearchQuery = val.trim().toLowerCase()),
-            decoration: InputDecoration(
-              hintText: 'Search by Art No or style...',
-              prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
-              suffixIcon: _historySearchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
-                      onPressed: () {
-                        _historySearchController.clear();
-                        setState(() => _historySearchQuery = '');
-                      },
-                    )
-                  : null,
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 24.0),
+            sliver: SliverList.builder(
+              itemCount: historyList.length,
+              itemBuilder: (context, index) {
+                return _buildCompletedLotHistoryCard(historyList[index]);
+              },
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          if (historyList.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-              decoration: BoxDecoration(
-                color: AppTheme.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.bg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.history_toggle_off_rounded, size: 28, color: AppTheme.inkFaint),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No completed lots found',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Completed allotments will appear here with full tailor breakdowns.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...historyList.map((lot) => _buildCompletedLotHistoryCard(lot)),
-
-          const SizedBox(height: 24),
-        ],
-      ),
+      ],
     );
   }
 
@@ -5563,160 +5782,50 @@ class _InteractiveSwipeCardState extends State<_InteractiveSwipeCard> {
 }
 
 // ==========================================
-// SMOOTH STAGGERED FADE & SLIDE ANIMATION WIDGET
+// ZERO-OVERHEAD FAST CONTENT WRAPPER
 // ==========================================
-class _AnimatedFadeSlide extends StatefulWidget {
+class _AnimatedFadeSlide extends StatelessWidget {
   final Widget child;
   final int delayMs;
-  const _AnimatedFadeSlide({required this.child, required this.delayMs});
-
-  @override
-  State<_AnimatedFadeSlide> createState() => _AnimatedFadeSlideState();
-}
-
-class _AnimatedFadeSlideState extends State<_AnimatedFadeSlide>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacityAnim;
-  late Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
-
-    _opacityAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-
-    if (widget.delayMs == 0) {
-      _controller.forward();
-    } else {
-      Future.delayed(Duration(milliseconds: widget.delayMs), () {
-        if (mounted) _controller.forward();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  const _AnimatedFadeSlide({required this.child, this.delayMs = 0});
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacityAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: widget.child,
-      ),
-    );
+    return child;
   }
 }
 
 // ==========================================
-// TACTILE BOUNCY TAP MICRO-INTERACTION
+// RESPONSIVE TOUCH WRAPPER
 // ==========================================
-class _BouncyTap extends StatefulWidget {
+class _BouncyTap extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
   const _BouncyTap({required this.child, this.onTap});
 
   @override
-  State<_BouncyTap> createState() => _BouncyTapState();
-}
-
-class _BouncyTapState extends State<_BouncyTap> {
-  bool _isPressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: widget.onTap == null ? null : (_) => setState(() => _isPressed = true),
-      onTapUp: widget.onTap == null ? null : (_) => setState(() => _isPressed = false),
-      onTapCancel: widget.onTap == null ? null : () => setState(() => _isPressed = false),
-      onTap: widget.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedScale(
-        scale: _isPressed ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOutQuad,
-        child: widget.child,
-      ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: child,
     );
   }
 }
 
 // ==========================================
-// LIVELY WAVING HAND ANIMATION WIDGET
+// CLEAN STATIC HAND ICON WIDGET
 // ==========================================
-class _WavingHandIcon extends StatefulWidget {
+class _WavingHandIcon extends StatelessWidget {
   final double size;
   const _WavingHandIcon({this.size = 20});
 
   @override
-  State<_WavingHandIcon> createState() => _WavingHandIconState();
-}
-
-class _WavingHandIconState extends State<_WavingHandIcon>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _waveAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
-
-    _waveAnim = TweenSequence<double>([
-      // Wave right
-      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.28).chain(CurveTween(curve: Curves.easeInOut)), weight: 12),
-      // Wave left
-      TweenSequenceItem(tween: Tween<double>(begin: 0.28, end: -0.22).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
-      // Wave right
-      TweenSequenceItem(tween: Tween<double>(begin: -0.22, end: 0.24).chain(CurveTween(curve: Curves.easeInOut)), weight: 16),
-      // Wave left
-      TweenSequenceItem(tween: Tween<double>(begin: 0.24, end: -0.15).chain(CurveTween(curve: Curves.easeInOut)), weight: 14),
-      // Settle back to center
-      TweenSequenceItem(tween: Tween<double>(begin: -0.15, end: 0.0).chain(CurveTween(curve: Curves.easeOut)), weight: 12),
-      // Pause
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 30),
-    ]).animate(_controller);
-
-    _controller.repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _waveAnim,
-      builder: (context, child) {
-        return Transform.rotate(
-          angle: _waveAnim.value,
-          alignment: const Alignment(0.4, 0.9), // Wrist pivot
-          child: child,
-        );
-      },
-      child: Icon(
-        Icons.waving_hand_outlined,
-        color: AppTheme.steel,
-        size: widget.size,
-      ),
+    return Icon(
+      Icons.waving_hand_rounded,
+      color: AppTheme.steel,
+      size: size,
     );
   }
 }
