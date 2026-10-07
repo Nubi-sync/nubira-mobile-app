@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../admin/widgets/admin_drawer.dart';
 import '../../core/services/tenant_resolver_service.dart';
 import 'widgets/delivery_challan_modal.dart';
 import '../../../main.dart';
@@ -18,6 +19,7 @@ class QcDashboard extends ConsumerStatefulWidget {
 }
 
 class _QcDashboardState extends ConsumerState<QcDashboard> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
   bool _isSubmitting = false;
   int _selectedTabIndex = 0; // 0: Incoming Lots, 1: QC Checking, 2: Alterations, 3: Ready for Challan
@@ -2087,11 +2089,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         : 100.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F0), // Warm cream canvas
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xFFFAFAF8),
+      drawer: const AdminDrawer(activeRoute: '/stitching-sewing/qc'),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Minimal Top Bar (Centered Zigza. brand pill only, no hamburger)
+            // 1. Top Navbar (Web Parity: Drawer button, Web Logo, QC MES Badge & Sign Out)
             _buildTopNavbar(),
 
             // 2. Encapsulated Header Card
@@ -2100,9 +2104,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             // 3. Body Content
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF3A3564)))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF0B1220)))
                   : RefreshIndicator(
-                      color: const Color(0xFF3A3564),
+                      color: const Color(0xFF0B1220),
                       backgroundColor: Colors.white,
                       onRefresh: _fetchQcData,
                       child: SingleChildScrollView(
@@ -2145,26 +2149,135 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     );
   }
 
-  // 1. MINIMAL TOP BAR
+  // 1. TOP NAVBAR (100% Web Parity)
   Widget _buildTopNavbar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF3A3564),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Text(
-          'Zigza.',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: 0.2,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drawer Hamburger Button
+              InkWell(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Web Logo
+              Image.asset(
+                'assets/images/new_icon.png',
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/icon.png',
+                  height: 28,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.fact_check_rounded, color: Color(0xFF0B1220), size: 24),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Image.asset(
+                'assets/images/zigza_new_logo.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/images/z_i_g_z_a.png',
+                  height: 20,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Text(
+                    'ZIGZA',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0B1220),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'QC MES',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0B1220),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
+
+          // Sign Out Action Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showSignOutDialog(context),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.logout_rounded,
+                      size: 14,
+                      color: Color(0xFFDC2626),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Sign Out',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFDC2626),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2177,12 +2290,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000), width: 1),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -2192,14 +2305,14 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             children: [
               // Checkbox icon tile
               Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: const Icon(Icons.check_box_outlined, color: Color(0xFF3A3564), size: 20),
+                child: const Icon(Icons.fact_check_outlined, color: Color(0xFF0B1220), size: 21),
               ),
               const SizedBox(width: 12),
               // User info
@@ -2207,17 +2320,42 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 child: Consumer(
                   builder: (context, ref, _) {
                     final authState = ref.watch(authProvider);
+                    final tenant = authState.tenantProfile;
                     final user = supabase.auth.currentUser;
-                    final name = authState.cachedUsername ?? user?.userMetadata?['username'] ?? user?.email?.split('@')[0] ?? 'QC Floor In-charge';
+
+                    String displayName = '';
+                    if (authState.cachedUsername != null &&
+                        authState.cachedUsername!.trim().isNotEmpty &&
+                        !authState.cachedUsername!.contains('@')) {
+                      displayName = authState.cachedUsername!.trim();
+                    } else if (tenant?.customUsername != null &&
+                        tenant!.customUsername.trim().isNotEmpty &&
+                        !tenant.customUsername.contains('@')) {
+                      displayName = tenant.customUsername.trim();
+                    } else if (tenant?.adminDisplayName != null &&
+                        tenant!.adminDisplayName.trim().isNotEmpty &&
+                        !tenant.adminDisplayName.contains('@')) {
+                      displayName = tenant.adminDisplayName.trim();
+                    } else {
+                      final rawEmail = tenant?.userEmail ?? user?.email ?? '';
+                      if (rawEmail.contains('@')) {
+                        final prefix = rawEmail.split('@').first;
+                        displayName = prefix;
+                      } else {
+                        displayName = rawEmail.isNotEmpty ? rawEmail : 'QC Supervisor';
+                      }
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome, $name',
+                          'Welcome, $displayName',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
+                            letterSpacing: -0.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2226,7 +2364,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         Text(
                           'Quality Clinic & Export Packing',
                           style: GoogleFonts.publicSans(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             color: const Color(0xFF64748B),
                             fontWeight: FontWeight.w500,
                           ),
@@ -2257,11 +2395,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'Online',
+                      'ONLINE',
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
                         color: const Color(0xFF047857),
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -2270,70 +2409,45 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             ],
           ),
           const SizedBox(height: 12),
-          // Two-button row: Sync & Sign out (Equal width)
-          Row(
-            children: [
-              // Sync button
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _fetchQcData,
-                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF3A3564)),
-                  label: Text(
-                    'Sync',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF3A3564),
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    side: const BorderSide(color: Color(0x1A000000)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+          // Sync button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _fetchQcData,
+              icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF0B1220)),
+              label: Text(
+                'Sync Floor Data',
+                style: GoogleFonts.publicSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0B1220),
                 ),
               ),
-              const SizedBox(width: 10),
-              // Sign out button (Soft red outline)
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showSignOutDialog(context),
-                  icon: const Icon(Icons.logout_rounded, size: 16, color: Color(0xFFB91C1C)),
-                  label: Text(
-                    'Sign out',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFB91C1C),
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    side: const BorderSide(color: Color(0xFFFCA5A5), width: 1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                backgroundColor: const Color(0xFFF8FAFC),
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // 3. HERO SUMMARY CARD (Solid #3A3564 fill)
+  // 3. HERO SUMMARY CARD (Solid #0B1220 fill Web Obsidian Parity)
   Widget _buildHeroSummaryCard(double passRate) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF0B1220),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: const Color(0xFF0B1220).withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -2354,6 +2468,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
+                        letterSpacing: -0.2,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2363,7 +2478,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       'Finishing & quality assurance flow',
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
-                        color: const Color(0xFFCBD5E1),
+                        color: const Color(0xFF94A3B8),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2376,16 +2491,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: const Color(0xFF14C8B4).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   'PASS: ${passRate.toStringAsFixed(0)}%',
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: const Color(0xFF5EEAD4),
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -2516,20 +2632,21 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               child: InkWell(
                 onTap: () => setState(() => _selectedTabIndex = i),
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSel ? const Color(0xFF3A3564) : Colors.white,
+                    color: isSel ? const Color(0xFF0B1220) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSel ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                      color: isSel ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
                       width: 1,
                     ),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x06000000),
-                        blurRadius: 2,
-                        offset: Offset(0, 1),
+                        color: isSel ? const Color(0xFF0B1220).withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
@@ -2556,7 +2673,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
-                            color: isSel ? Colors.white : const Color(0xFF3A3564),
+                            color: isSel ? Colors.white : const Color(0xFF0B1220),
                           ),
                         ),
                       ),
@@ -2591,11 +2708,18 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _incomingFilterMode == 0 ? const Color(0xFF3A3564) : Colors.white,
+                  color: _incomingFilterMode == 0 ? const Color(0xFF0B1220) : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: _incomingFilterMode == 0 ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                    color: _incomingFilterMode == 0 ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -2645,11 +2769,18 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: _incomingFilterMode == 1 ? const Color(0xFF3A3564) : Colors.white,
+                  color: _incomingFilterMode == 1 ? const Color(0xFF0B1220) : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: _incomingFilterMode == 1 ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                    color: _incomingFilterMode == 1 ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -2706,7 +2837,14 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x1A000000)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Center(
           child: Column(
@@ -2714,16 +2852,16 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF1F5F9),
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: const Icon(Icons.inbox_outlined, size: 36, color: Color(0xFF94A3B8)),
+                child: const Icon(Icons.inbox_outlined, size: 36, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 14),
               Text(
                 'No Incoming Lots from Mending',
-                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
               ),
               const SizedBox(height: 4),
               Text(
@@ -2748,7 +2886,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x1A000000)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Center(
               child: Text(
