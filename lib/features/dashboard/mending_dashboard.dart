@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../auth/providers/auth_provider.dart';
-import '../auth/screens/login_screen.dart';
 import '../admin/widgets/admin_drawer.dart';
 import '../../core/services/tenant_resolver_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -1697,84 +1695,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     }
   }
 
-  Future<void> _showSignOutDialog(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.logout_rounded, color: Color(0xFFE11D48), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Sign Out',
-              style: GoogleFonts.publicSans(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to end your current session and sign out of Zigza MES?',
-          style: GoogleFonts.publicSans(
-            fontSize: 13,
-            color: const Color(0xFF475569),
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF475569),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE11D48),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              elevation: 0,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Sign Out',
-              style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmed == true && context.mounted) {
-      await ref.read(authProvider.notifier).logout();
-      if (context.mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1865,7 +1786,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     );
   }
 
-  // Top App Bar with Zigza Web Logo branding, Hamburger button, MENDING MES badge, and Sign Out button
+  // Top App Bar with Zigza Web Logo branding, Hamburger button, and MENDING MES badge
   Widget _buildTopNavbar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1924,66 +1845,24 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  'MENDING MES',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0B1220),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
             ],
           ),
 
-          // Sign Out Action Button
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _showSignOutDialog(context),
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.logout_rounded,
-                      size: 14,
-                      color: Color(0xFFDC2626),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Sign Out',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFDC2626),
-                      ),
-                    ),
-                  ],
-                ),
+          // Role Badge on the right
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              'MENDING MES',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0B1220),
+                letterSpacing: 0.5,
               ),
             ),
           ),
