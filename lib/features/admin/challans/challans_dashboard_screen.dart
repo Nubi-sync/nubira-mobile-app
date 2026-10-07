@@ -230,10 +230,10 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         leading: Center(
           child: InkWell(
             onTap: () {
-              if (_scaffoldKey.currentState != null) {
-                _scaffoldKey.currentState!.openDrawer();
-              } else if (adminScaffoldKey.currentState != null) {
+              if (adminScaffoldKey.currentState != null) {
                 adminScaffoldKey.currentState!.openDrawer();
+              } else if (_scaffoldKey.currentState != null) {
+                _scaffoldKey.currentState!.openDrawer();
               }
             },
             borderRadius: BorderRadius.circular(10),
