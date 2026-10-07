@@ -2811,7 +2811,49 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Search Allotments Input Bar
+          _AnimatedFadeSlide(
+            delayMs: 60,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _liveSearchController,
+                onChanged: (val) => setState(() => _liveSearchQuery = val.trim()),
+                style: GoogleFonts.publicSans(fontSize: 13.5, color: AppTheme.ink, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'Search by Article No, Challan #, Color, Brand...',
+                  hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                  suffixIcon: _liveSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
+                          onPressed: () {
+                            _liveSearchController.clear();
+                            setState(() => _liveSearchQuery = '');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
 
           // Mending & Repairs from QC (If Any)
           if (_activeMendingTasks.isNotEmpty) ...[
@@ -2823,43 +2865,145 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           ],
 
           // Active Allotments Section
-          _AnimatedFadeSlide(
-            delayMs: 100,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          (() {
+            final q = _liveSearchQuery.trim().toLowerCase();
+            final filteredList = q.isEmpty
+                ? _activeAllotments
+                : _activeAllotments.where((a) {
+                    final artNo = (a['articles']?['art_no'] as String? ?? '').toLowerCase();
+                    final desc = (a['articles']?['description'] as String? ?? '').toLowerCase();
+                    final chNo = (a['challans']?['challan_no'] as String? ?? '').toLowerCase();
+                    final brand = (a['challans']?['brand'] as String? ?? '').toLowerCase();
+                    final fab = (a['challans']?['fabric_type'] as String? ?? '').toLowerCase();
+                    final priority = (a['priority'] as String? ?? '').toLowerCase();
+
+                    // Check notes for client challan / PO
+                    String clientRef = '';
+                    final lotMaterials = a['materials'] as List? ?? [];
+                    for (var m in lotMaterials) {
+                      if (m['notes'] != null) {
+                        try {
+                          final parsed = jsonDecode(m['notes'].toString());
+                          if (parsed['client_challan_no'] != null) {
+                            clientRef += ' ${parsed['client_challan_no']}';
+                          }
+                          if (parsed['production_order_no'] != null) {
+                            clientRef += ' ${parsed['production_order_no']}';
+                          }
+                        } catch (_) {}
+                      }
+                    }
+                    clientRef = clientRef.toLowerCase();
+
+                    // Check variant colors & sizes
+                    final variants = a['variants'] as List? ?? [];
+                    final variantText = variants.map((v) => '${v['color']} ${v['size']}').join(' ').toLowerCase();
+
+                    // Check worker names in assignments
+                    final assignments = a['assignments'] as List? ?? [];
+                    final workerNames = assignments.map((ass) => ass['worker_name'] ?? '').join(' ').toLowerCase();
+
+                    return artNo.contains(q) ||
+                        desc.contains(q) ||
+                        chNo.contains(q) ||
+                        brand.contains(q) ||
+                        fab.contains(q) ||
+                        priority.contains(q) ||
+                        clientRef.contains(q) ||
+                        variantText.contains(q) ||
+                        workerNames.contains(q);
+                  }).toList();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Active Allotments',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink, letterSpacing: -0.3),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.greenMist,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
-                  ),
+                _AnimatedFadeSlide(
+                  delayMs: 100,
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.green, shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
                       Text(
-                        'Live Floor (${_activeAllotments.length})',
-                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                        'Active Allotments',
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink, letterSpacing: -0.3),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.greenMist,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                                width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.green, shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Text(
+                              q.isNotEmpty
+                                  ? 'Showing ${filteredList.length} of ${_activeAllotments.length}'
+                                  : 'Live Floor (${_activeAllotments.length})',
+                              style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.green),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                if (filteredList.isEmpty)
+                  _AnimatedFadeSlide(
+                    delayMs: 150,
+                    child: q.isNotEmpty
+                        ? Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: AppTheme.card,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.search_off_rounded, size: 40, color: AppTheme.inkFaint),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No allotments found',
+                                  style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.ink),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'No active allotments match "$q"',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  icon: const Icon(Icons.clear_rounded, size: 14),
+                                  label: const Text('Clear search'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.steel,
+                                    side: const BorderSide(color: AppTheme.border),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () {
+                                    _liveSearchController.clear();
+                                    setState(() => _liveSearchQuery = '');
+                                  },
+                                ),
+                              ],
+                            ),
+                          )
+                        : _buildNoAllotmentEmptyState(),
+                  )
+                else
+                  ...filteredList.map((a) => _AnimatedFadeSlide(delayMs: 160, child: _buildActiveAllotmentCard(a))),
               ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          if (_activeAllotments.isEmpty)
-            _AnimatedFadeSlide(delayMs: 150, child: _buildNoAllotmentEmptyState())
-          else
-            ..._activeAllotments.map((a) => _AnimatedFadeSlide(delayMs: 160, child: _buildActiveAllotmentCard(a))),
+            );
+          })(),
 
           const SizedBox(height: 20),
 
