@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/services/tenant_resolver_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../../../main.dart';
 import 'widgets/lot_selector_strip.dart';
 
@@ -511,28 +512,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(color: const Color(0x1A000000), width: 1),
-                boxShadow: const [
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppTheme.borderLight, width: 1),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x1A000000),
-                    blurRadius: 28,
-                    offset: Offset(0, 10),
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
+                borderRadius: BorderRadius.circular(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. HEADER BLOCK (#FAF7F0 cream, bottom border rgba(0,0,0,0.08))
+                    // 1. HEADER BLOCK
                     Container(
                       padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFFAF7F0),
-                        border: Border(bottom: BorderSide(color: Color(0x14000000), width: 1)),
+                        color: Color(0xFFF8FAFC),
+                        border: Border(bottom: BorderSide(color: AppTheme.borderLight, width: 1)),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,15 +547,15 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: const Color(0x26000000), width: 1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppTheme.borderLight, width: 1),
                                   ),
                                   child: Text(
                                     'WORKER ALLOCATION',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF3A3564),
+                                      color: AppTheme.headingObsidian,
                                       letterSpacing: 0.6,
                                     ),
                                   ),
@@ -565,7 +566,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
+                                    color: AppTheme.headingObsidian,
                                     letterSpacing: -0.2,
                                   ),
                                 ),
@@ -574,7 +575,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   'Allocate piece bundle for thread trimming & counting',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11.5,
-                                    color: const Color(0xFF475569),
+                                    color: AppTheme.bodyInk,
                                   ),
                                 ),
                               ],
@@ -592,9 +593,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0x1A000000)),
+                                  border: Border.all(color: AppTheme.borderLight),
                                 ),
-                                child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
+                                child: const Icon(Icons.close_rounded, size: 18, color: AppTheme.bodyInk),
                               ),
                             ),
                           ),
@@ -602,7 +603,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       ),
                     ),
 
-                    // 2. SCROLLABLE FORM BODY (White background, padding ~16px)
+                    // 2. SCROLLABLE FORM BODY
                     Flexible(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
@@ -615,7 +616,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF334155),
+                                color: AppTheme.headingObsidian,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -627,28 +628,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               style: GoogleFonts.publicSans(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF0F172A),
+                                color: AppTheme.headingObsidian,
                               ),
                               decoration: InputDecoration(
                                 hintText: 'Enter worker name (e.g. Ramesh)',
                                 hintStyle: GoogleFonts.publicSans(
                                   fontSize: 13,
-                                  color: const Color(0xFF94A3B8),
+                                  color: AppTheme.faintInk,
                                 ),
                                 filled: true,
                                 fillColor: const Color(0xFFF8FAFC),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.borderLight),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  borderSide: const BorderSide(color: AppTheme.borderLight),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                  borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.5),
                                 ),
                               ),
                             ),
@@ -672,16 +673,16 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFFAF7F0),
+                                            color: const Color(0xFFF1F5F9),
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: const Color(0x1A000000)),
+                                            border: Border.all(color: AppTheme.borderLight),
                                           ),
                                           child: Text(
                                             '+ $name',
                                             style: GoogleFonts.publicSans(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF3A3564),
+                                              color: AppTheme.headingObsidian,
                                             ),
                                           ),
                                         ),
@@ -703,7 +704,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF334155),
+                                    color: AppTheme.headingObsidian,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -712,7 +713,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: vRem > 0 ? const Color(0xFF047857) : const Color(0xFFBE123C),
+                                    color: vRem > 0 ? const Color(0xFF047857) : const Color(0xFFDC2626),
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -723,14 +724,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                border: Border.all(color: AppTheme.borderLight),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<Map<String, dynamic>>(
                                   isExpanded: true,
                                   value: _selectedVariantForAssignment,
-                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 20),
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.bodyInk, size: 20),
                                   items: vars.map((v) {
                                     final color = v['color'] ?? 'Standard';
                                     final size = v['size'] ?? 'Free';
@@ -749,7 +750,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                               style: GoogleFonts.publicSans(
                                                 fontSize: 12.5,
                                                 fontWeight: FontWeight.w600,
-                                                color: done ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                                                color: done ? AppTheme.faintInk : AppTheme.headingObsidian,
                                               ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -758,7 +759,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                             decoration: BoxDecoration(
-                                              color: done ? const Color(0xFFECFDF5) : const Color(0xFFFFFCF3),
+                                              color: done ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
                                               borderRadius: BorderRadius.circular(6),
                                               border: Border.all(
                                                 color: done ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
@@ -797,9 +798,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0x14000000)),
+                                border: Border.all(color: AppTheme.borderLight),
                               ),
                               child: Row(
                                 children: [
@@ -813,7 +814,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 9,
                                             fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF64748B),
+                                            color: AppTheme.faintInk,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -823,13 +824,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                            color: AppTheme.headingObsidian,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Container(width: 1, height: 26, color: const Color(0x14000000)),
+                                  Container(width: 1, height: 26, color: AppTheme.borderLight),
                                   const SizedBox(width: 12),
 
                                   // Assigned
@@ -842,7 +843,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 9,
                                             fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF64748B),
+                                            color: AppTheme.faintInk,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -852,13 +853,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                            color: AppTheme.headingObsidian,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Container(width: 1, height: 26, color: const Color(0x14000000)),
+                                  Container(width: 1, height: 26, color: AppTheme.borderLight),
                                   const SizedBox(width: 12),
 
                                   // Remaining
@@ -871,7 +872,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 9,
                                             fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF64748B),
+                                            color: AppTheme.faintInk,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -881,7 +882,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800,
-                                            color: vRem > 0 ? const Color(0xFF047857) : const Color(0xFF0F172A),
+                                            color: vRem > 0 ? const Color(0xFF047857) : AppTheme.headingObsidian,
                                           ),
                                         ),
                                       ],
@@ -905,7 +906,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
-                                          color: const Color(0xFF334155),
+                                          color: AppTheme.headingObsidian,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -917,28 +918,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                         style: GoogleFonts.jetBrainsMono(
                                           fontWeight: FontWeight.w800,
                                           fontSize: 14,
-                                          color: const Color(0xFF0F172A),
+                                          color: AppTheme.headingObsidian,
                                         ),
                                         decoration: InputDecoration(
                                           hintText: 'e.g. 50',
                                           hintStyle: GoogleFonts.jetBrainsMono(
                                             fontSize: 13,
-                                            color: const Color(0xFF94A3B8),
+                                            color: AppTheme.faintInk,
                                           ),
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                            borderSide: const BorderSide(color: AppTheme.borderLight),
                                           ),
                                           enabledBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                            borderSide: const BorderSide(color: AppTheme.borderLight),
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                            borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.5),
                                           ),
                                         ),
                                       ),
@@ -955,7 +956,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
-                                          color: const Color(0xFF334155),
+                                          color: AppTheme.headingObsidian,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -965,28 +966,28 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                         style: GoogleFonts.publicSans(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF0F172A),
+                                          color: AppTheme.headingObsidian,
                                         ),
                                         decoration: InputDecoration(
                                           hintText: 'Table 2',
                                           hintStyle: GoogleFonts.publicSans(
                                             fontSize: 13,
-                                            color: const Color(0xFF94A3B8),
+                                            color: AppTheme.faintInk,
                                           ),
                                           filled: true,
                                           fillColor: const Color(0xFFF8FAFC),
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                            borderSide: const BorderSide(color: AppTheme.borderLight),
                                           ),
                                           enabledBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                            borderSide: const BorderSide(color: AppTheme.borderLight),
                                           ),
                                           focusedBorder: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(12),
-                                            borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                            borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.5),
                                           ),
                                         ),
                                       ),
@@ -1000,19 +1001,19 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       ),
                     ),
 
-                    // 3. FOOTER BLOCK (#FAF7F0 cream, top border rgba(0,0,0,0.08), padding ~14-16px)
+                    // 3. FOOTER BLOCK
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFFAF7F0),
-                        border: Border(top: BorderSide(color: Color(0x14000000), width: 1)),
+                        color: Color(0xFFF8FAFC),
+                        border: Border(top: BorderSide(color: AppTheme.borderLight, width: 1)),
                       ),
                       child: SizedBox(
                         width: double.infinity,
                         height: 48,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isFormValid ? const Color(0xFF3A3564) : const Color(0xFF94A3B8),
+                            backgroundColor: isFormValid ? AppTheme.headingObsidian : const Color(0xFF94A3B8),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -1040,20 +1041,20 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                       children: [
                                         const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
                                         const SizedBox(width: 8),
-                                        Text('Exceeds Remaining', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF0F172A))),
+                                        Text('Exceeds Remaining', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.headingObsidian)),
                                       ],
                                     ),
                                     content: Text(
                                       'Only $rem pcs are remaining for ${_selectedVariantForAssignment!['color']} (Size: ${_selectedVariantForAssignment!['size']}). You entered $qty pcs.\n\nDo you want to allocate $qty pcs anyway?',
-                                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                                      style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.headingObsidian),
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(dCtx, false),
-                                        child: Text('Cancel / Edit Qty', style: GoogleFonts.publicSans(color: const Color(0xFF64748B))),
+                                        child: Text('Cancel / Edit Qty', style: GoogleFonts.publicSans(color: AppTheme.bodyInk)),
                                       ),
                                       ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3A3564)),
+                                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.headingObsidian),
                                         onPressed: () => Navigator.pop(dCtx, true),
                                         child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
                                       ),
@@ -1158,10 +1159,13 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderLight),
+        ),
         title: Text(
           'Record Physical Count',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF0F172A)),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.headingObsidian),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1169,52 +1173,52 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           children: [
             Text(
               'Worker: $workerName',
-              style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.publicSans(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.headingObsidian),
             ),
             const SizedBox(height: 4),
             Text(
               'Bundle: ${assignment['color']} • Size: ${assignment['size']}',
-              style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+              style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.bodyInk),
             ),
             const SizedBox(height: 2),
             Row(
               children: [
                 Text(
                   'Assigned Pieces: ',
-                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.bodyInk),
                 ),
                 Text(
                   '$assignedQty pcs',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF3A3564), fontWeight: FontWeight.bold),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: AppTheme.headingObsidian, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Text(
               'PHYSICAL COUNTED PIECES *',
-              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
             ),
             const SizedBox(height: 6),
             TextField(
               controller: countController,
               keyboardType: TextInputType.number,
               autofocus: true,
-              style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFFFAF7F0),
+                fillColor: const Color(0xFFF8FAFC),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0x1A000000)),
+                  borderSide: const BorderSide(color: AppTheme.borderLight),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0x1A000000)),
+                  borderSide: const BorderSide(color: AppTheme.borderLight),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                  borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.5),
                 ),
               ),
             ),
@@ -1223,11 +1227,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.publicSans(color: const Color(0xFF64748B))),
+            child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.bodyInk)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF047857),
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
@@ -1262,13 +1267,16 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Remove Assignment?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFFBE123C))),
-        content: Text('Are you sure you want to remove the mending assignment for $workerName?', style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderLight),
+        ),
+        title: Text('Remove Assignment?', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFFDC2626))),
+        content: Text('Are you sure you want to remove the mending assignment for $workerName?', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.headingObsidian)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: GoogleFonts.publicSans(color: const Color(0xFF64748B)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: GoogleFonts.publicSans(color: AppTheme.bodyInk))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFBE123C)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), elevation: 0),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -1333,7 +1341,10 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        side: BorderSide(color: AppTheme.borderLight),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return Padding(
@@ -1361,19 +1372,19 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                color: AppTheme.headingObsidian,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Reconciled piece bundle & chain-of-custody transfer',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
+                        icon: const Icon(Icons.close, color: AppTheme.faintInk),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -1384,9 +1395,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Column(
                       children: [
@@ -1395,11 +1406,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                           children: [
                             Text(
                               'ART $artNo',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                              style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                             ),
                             Text(
                               challanNo,
-                              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.bodyInk),
                             ),
                           ],
                         ),
@@ -1414,7 +1425,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: variance == 0 ? const Color(0xFFECFDF5) : (variance < 0 ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF)),
+                                color: variance == 0 ? const Color(0xFFECFDF5) : (variance < 0 ? const Color(0xFFFFFBEB) : const Color(0xFFEFF6FF)),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
                                   color: variance == 0 ? const Color(0xFFA7F3D0) : (variance < 0 ? const Color(0xFFFDE68A) : const Color(0xFFBFDBFE)),
@@ -1440,31 +1451,31 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   // Select QC Supervisor
                   Text(
                     'SELECT RECEIVING QC SUPERVISOR *',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                   ),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String?>(
                         isExpanded: true,
                         value: selectedSupervisorId,
-                        hint: Text('General QC Pool (Unassigned)', style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF3A3564))),
+                        hint: Text('General QC Pool (Unassigned)', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.headingObsidian)),
                         items: [
                           DropdownMenuItem<String?>(
                             value: null,
                             child: Row(
                               children: [
-                                const Icon(Icons.group_outlined, size: 16, color: Color(0xFF64748B)),
+                                const Icon(Icons.group_outlined, size: 16, color: AppTheme.bodyInk),
                                 const SizedBox(width: 8),
                                 Text(
                                   'General QC Pool (Any available checker)',
-                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.bodyInk),
                                 ),
                               ],
                             ),
@@ -1481,7 +1492,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                   const SizedBox(width: 8),
                                   Text(
                                     '$name (QC Supervisor)',
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                                   ),
                                 ],
                               ),
@@ -1508,7 +1519,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   // Handover Notes / Location
                   Text(
                     'HANDOVER REMARKS / TABLE LOCATION',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -1516,19 +1527,19 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     decoration: InputDecoration(
                       hintText: 'e.g. Table 2, 500 pcs counted, zero shortage',
                       filled: true,
-                      fillColor: const Color(0xFFFAF7F0),
+                      fillColor: const Color(0xFFF8FAFC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0x1A000000)),
+                        borderSide: const BorderSide(color: AppTheme.borderLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0x1A000000)),
+                        borderSide: const BorderSide(color: AppTheme.borderLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                        borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.5),
                       ),
                     ),
                   ),
@@ -1731,11 +1742,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F0), // Warm cream canvas
+      backgroundColor: AppTheme.bgCanvas,
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar with Zigza. branding and Sign Out button
+            // Top App Bar with Web Logo branding and Sign Out button
             _buildTopNavbar(),
 
             // Encapsulated Top Header Card
@@ -1744,11 +1755,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             // Body Content
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF3A3564)))
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.headingObsidian))
                   : _lots.isEmpty
                       ? _buildEmptyState()
                       : RefreshIndicator(
-                          color: const Color(0xFF3A3564),
+                          color: AppTheme.headingObsidian,
                           backgroundColor: Colors.white,
                           onRefresh: _fetchMendingLots,
                           child: SingleChildScrollView(
@@ -1791,12 +1802,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0x1A000000)),
+                                      border: Border.all(color: AppTheme.borderLight),
                                     ),
                                     child: Center(
                                       child: Text(
                                         'No lots found in this filter.',
-                                        style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+                                        style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.bodyInk),
                                       ),
                                     ),
                                   )
@@ -1815,7 +1826,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
     );
   }
 
-  // Top App Bar with Zigza branding and Sign Out button
+  // Top App Bar with Zigza Web Logo branding and Sign Out button
   Widget _buildTopNavbar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1825,36 +1836,42 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3A3564),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Text(
+              Image.asset(
+                'assets/images/new_icon.png',
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(Icons.precision_manufacturing_rounded, color: AppTheme.headingObsidian, size: 24),
+              ),
+              const SizedBox(width: 6),
+              Image.asset(
+                'assets/images/zigza_new_logo.png',
+                height: 20,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
                   'Zigza.',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.2,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.headingObsidian,
+                    letterSpacing: -0.4,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0x2A000000)),
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.borderLight),
                 ),
                 child: Text(
                   'ERP MES',
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3A3564),
+                    color: AppTheme.bodyInk,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -1866,13 +1883,20 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _showSignOutDialog(context),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFECDD3)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1880,15 +1904,15 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     const Icon(
                       Icons.logout_rounded,
                       size: 14,
-                      color: Color(0xFFE11D48),
+                      color: Color(0xFFDC2626),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       'Sign Out',
                       style: GoogleFonts.publicSans(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFE11D48),
+                        color: const Color(0xFFDC2626),
                       ),
                     ),
                   ],
@@ -1909,12 +1933,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
-        boxShadow: const [
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -1924,14 +1948,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x1A000000)),
+              border: Border.all(color: AppTheme.borderLight),
             ),
             child: const Icon(
               Icons.format_list_bulleted_rounded,
-              color: Color(0xFF3A3564),
-              size: 22,
+              color: AppTheme.headingObsidian,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
@@ -1945,8 +1969,8 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: -0.2,
+                    color: AppTheme.headingObsidian,
+                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1954,7 +1978,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   'Floor inward & worker piece verification',
                   style: GoogleFonts.publicSans(
                     fontSize: 11.5,
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.bodyInk,
                     height: 1.2,
                   ),
                 ),
@@ -2059,24 +2083,24 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 10),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+            color: isSelected ? AppTheme.headingObsidian : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000),
+              color: isSelected ? AppTheme.headingObsidian : AppTheme.borderLight,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF3A3564).withValues(alpha: 0.2),
+                      color: AppTheme.headingObsidian.withValues(alpha: 0.2),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ]
-                : const [
+                : [
                     BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 2,
-                      offset: Offset(0, 1),
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
                     ),
                   ],
           ),
@@ -2087,7 +2111,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 Icon(
                   icon,
                   size: 15,
-                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  color: isSelected ? Colors.white : AppTheme.bodyInk,
                 ),
                 const SizedBox(width: 5),
               ],
@@ -2097,7 +2121,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.publicSans(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                    color: isSelected ? Colors.white : AppTheme.headingObsidian,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -2109,7 +2133,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? const Color(0xFFA5B4FC) : const Color(0xFF64748B),
+                  color: isSelected ? const Color(0xFF14C8B4) : AppTheme.bodyInk,
                 ),
               ),
             ],
@@ -2154,15 +2178,15 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+            color: isSelected ? AppTheme.headingObsidian : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF3A3564) : const Color(0x2A000000),
+              color: isSelected ? AppTheme.headingObsidian : AppTheme.borderLight,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF3A3564).withValues(alpha: 0.2),
+                      color: AppTheme.headingObsidian.withValues(alpha: 0.18),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -2175,7 +2199,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               style: GoogleFonts.publicSans(
                 fontSize: 12.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                color: isSelected ? Colors.white : AppTheme.headingObsidian,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -2198,9 +2222,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEFCE8),
+        color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDE047)),
+        border: Border.all(color: const Color(0xFFFDE68A)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2225,7 +2249,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
@@ -2274,12 +2298,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
-        boxShadow: const [
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -2294,23 +2318,23 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
+                  color: AppTheme.bodyInk,
                   letterSpacing: 0.6,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
                 ),
                 child: Text(
                   'ART  $artNo',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF3A3564),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ),
@@ -2325,7 +2349,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: isComplete ? const Color(0xFF047857) : const Color(0xFF0F172A),
+                    color: isComplete ? const Color(0xFF047857) : AppTheme.headingObsidian,
                   ),
                 ),
                 TextSpan(
@@ -2333,7 +2357,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.faintInk,
                   ),
                 ),
                 TextSpan(
@@ -2341,7 +2365,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
                 TextSpan(
@@ -2349,7 +2373,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ],
@@ -2365,7 +2389,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               minHeight: 5,
               backgroundColor: const Color(0xFFF1F5F9),
               valueColor: AlwaysStoppedAnimation<Color>(
-                isComplete ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                isComplete ? const Color(0xFF047857) : AppTheme.headingObsidian,
               ),
             ),
           ),
@@ -2383,7 +2407,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.bodyInk,
                       ),
                     ),
                     TextSpan(
@@ -2391,7 +2415,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ],
@@ -2405,7 +2429,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.bodyInk,
                       ),
                     ),
                     TextSpan(
@@ -2413,7 +2437,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ],
@@ -2427,7 +2451,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.bodyInk,
                       ),
                     ),
                     TextSpan(
@@ -2435,7 +2459,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: counted > 0 ? const Color(0xFF047857) : const Color(0xFF0F172A),
+                        color: counted > 0 ? const Color(0xFF047857) : AppTheme.headingObsidian,
                       ),
                     ),
                   ],
@@ -2452,7 +2476,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             child: ElevatedButton.icon(
               onPressed: _openAssignWorkerModal,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: AppTheme.headingObsidian,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -2566,7 +2590,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.6,
-                color: const Color(0xFF475569),
+                color: AppTheme.headingObsidian,
               ),
             ),
             Text(
@@ -2574,7 +2598,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF3A3564),
+                color: AppTheme.headingObsidian,
               ),
             ),
           ],
@@ -2588,12 +2612,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x1A000000)),
-              boxShadow: const [
+              border: Border.all(color: AppTheme.borderLight),
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x08000000),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
@@ -2604,14 +2628,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: const Icon(
                       Icons.people_outline_rounded,
                       size: 26,
-                      color: Color(0xFF94A3B8),
+                      color: AppTheme.faintInk,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2620,7 +2644,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
+                      color: AppTheme.headingObsidian,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -2629,7 +2653,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     textAlign: TextAlign.center,
                     style: GoogleFonts.publicSans(
                       fontSize: 12,
-                      color: const Color(0xFF64748B),
+                      color: AppTheme.bodyInk,
                     ),
                   ),
                 ],
@@ -2659,14 +2683,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDone ? const Color(0xFFA7F3D0) : const Color(0x1A000000),
+          color: isDone ? const Color(0xFFA7F3D0) : AppTheme.borderLight,
           width: isDone ? 1.5 : 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 4,
-            offset: Offset(0, 1.5),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -2683,15 +2707,15 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFAF7F0),
+                    color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isDone ? const Color(0xFFA7F3D0) : const Color(0x1A000000),
+                      color: isDone ? const Color(0xFFA7F3D0) : AppTheme.borderLight,
                     ),
                   ),
                   child: Icon(
                     isDone ? Icons.check_circle_rounded : Icons.person_rounded,
-                    color: isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                    color: isDone ? const Color(0xFF047857) : AppTheme.headingObsidian,
                     size: 18,
                   ),
                 ),
@@ -2706,7 +2730,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          color: AppTheme.headingObsidian,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2757,7 +2781,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                    color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
@@ -2775,7 +2799,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 const SizedBox(width: 4),
                 // Action: Delete
                 IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF94A3B8), size: 18),
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.faintInk, size: 18),
                   tooltip: 'Remove assignment',
                   constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                   padding: const EdgeInsets.all(4),
@@ -2794,7 +2818,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 style: GoogleFonts.publicSans(
                   fontSize: 11,
                   fontStyle: FontStyle.italic,
-                  color: const Color(0xFF64748B),
+                  color: AppTheme.bodyInk,
                 ),
               ),
             ),
@@ -2803,10 +2827,10 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isDone ? const Color(0xFFF0FDF4) : const Color(0xFFFAF7F0),
+              color: isDone ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(15)),
               border: Border(
-                top: BorderSide(color: isDone ? const Color(0xFFA7F3D0) : const Color(0x14000000)),
+                top: BorderSide(color: isDone ? const Color(0xFFA7F3D0) : AppTheme.borderLight),
               ),
             ),
             child: Row(
@@ -2824,7 +2848,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF64748B),
+                              color: AppTheme.faintInk,
                               letterSpacing: 0.4,
                             ),
                           ),
@@ -2834,7 +2858,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: AppTheme.headingObsidian,
                             ),
                           ),
                         ],
@@ -2848,7 +2872,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF64748B),
+                              color: AppTheme.faintInk,
                               letterSpacing: 0.4,
                             ),
                           ),
@@ -2858,7 +2882,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                              color: isDone ? const Color(0xFF047857) : AppTheme.headingObsidian,
                             ),
                           ),
                         ],
@@ -2896,7 +2920,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 ElevatedButton.icon(
                   onPressed: () => _openRecordCountDialog(Map<String, dynamic>.from(ass)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                    backgroundColor: isDone ? const Color(0xFF047857) : AppTheme.headingObsidian,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -2989,12 +3013,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x1A000000)),
-            boxShadow: const [
+            border: Border.all(color: AppTheme.borderLight),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x08000000),
-                blurRadius: 2,
-                offset: Offset(0, 1),
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -3006,7 +3030,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 children: [
                   Text(
                     'ARTICLE: $artNo',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -3033,16 +3057,16 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.person_pin_circle_outlined, size: 12, color: Color(0xFF475569)),
+                        const Icon(Icons.person_pin_circle_outlined, size: 12, color: AppTheme.bodyInk),
                         const SizedBox(width: 4),
                         Text(
                           'Lineman: $linemanName',
-                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155)),
+                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
                         ),
                       ],
                     ),
@@ -3091,11 +3115,11 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AppTheme.borderLight),
                       ),
                       child: Text(
                         '${brand.isNotEmpty ? brand : ''}${brand.isNotEmpty && chalNo.isNotEmpty ? ' • ' : ''}${chalNo.isNotEmpty ? 'Challan: $chalNo' : ''}${fabric.isNotEmpty ? ' ($fabric)' : ''}',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                        style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                       ),
                     ),
                 ],
@@ -3111,12 +3135,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x1A000000)),
-            boxShadow: const [
+            border: Border.all(color: AppTheme.borderLight),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x08000000),
-                blurRadius: 2,
-                offset: Offset(0, 1),
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -3126,15 +3150,15 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
+                  color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
                 ),
                 child: Row(
                   children: [
-                    Expanded(flex: 7, child: Text('COLOR / SIZE', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)))),
-                    Expanded(flex: 4, child: Text('TARGET', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)))),
-                    Expanded(flex: 4, child: Text('COUNTED', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)))),
-                    Expanded(flex: 4, child: Text('VARIANCE', textAlign: TextAlign.right, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)))),
+                    Expanded(flex: 7, child: Text('COLOR / SIZE', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk))),
+                    Expanded(flex: 4, child: Text('TARGET', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk))),
+                    Expanded(flex: 4, child: Text('COUNTED', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk))),
+                    Expanded(flex: 4, child: Text('VARIANCE', textAlign: TextAlign.right, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk))),
                   ],
                 ),
               ),
@@ -3145,7 +3169,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   child: Center(
                     child: Text(
                       'No variant details recorded for this article.',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
                     ),
                   ),
                 )
@@ -3162,7 +3186,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                     decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: Color(0x1A000000))),
+                      border: Border(top: BorderSide(color: AppTheme.borderLight)),
                     ),
                     child: Row(
                       children: [
@@ -3173,7 +3197,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                             children: [
                               Text(
                                 color,
-                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -3181,10 +3205,10 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                               Text.rich(
                                 TextSpan(
                                   children: [
-                                    TextSpan(text: 'Size: ', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF64748B))),
-                                    TextSpan(text: size, style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
-                                    TextSpan(text: ' • Asg: ', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF64748B))),
-                                    TextSpan(text: '$assigned/$target', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                                    TextSpan(text: 'Size: ', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.faintInk)),
+                                    TextSpan(text: size, style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian)),
+                                    TextSpan(text: ' • Asg: ', style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.faintInk)),
+                                    TextSpan(text: '$assigned/$target', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
                                   ],
                                 ),
                                 maxLines: 1,
@@ -3198,7 +3222,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                           child: Text(
                             '$target pcs',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
                           ),
                         ),
                         Expanded(
@@ -3206,7 +3230,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                           child: Text(
                             '$counted pcs',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                           ),
                         ),
                         Expanded(
@@ -3238,14 +3262,14 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
+                  color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
-                  border: Border(top: BorderSide(color: Color(0x1A000000), width: 1.5)),
+                  border: Border(top: BorderSide(color: AppTheme.borderLight, width: 1.5)),
                 ),
                 child: Row(
                   children: [
-                    Expanded(flex: 7, child: Text('TOTAL PIECES', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)))),
-                    Expanded(flex: 4, child: Text('$grandTarget', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)))),
+                    Expanded(flex: 7, child: Text('TOTAL PIECES', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian))),
+                    Expanded(flex: 4, child: Text('$grandTarget', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian))),
                     Expanded(flex: 4, child: Text('$grandCounted', textAlign: TextAlign.center, style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF047857)))),
                     Expanded(
                       flex: 4,
@@ -3332,7 +3356,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               style: GoogleFonts.publicSans(
                 fontSize: 13.5,
                 fontWeight: FontWeight.bold,
-                color: isCompleted ? Colors.white : const Color(0xFF64748B),
+                color: isCompleted ? Colors.white : AppTheme.bodyInk,
               ),
             ),
           ),
@@ -3354,33 +3378,34 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0x1A000000)),
-                boxShadow: const [
+                border: Border.all(color: AppTheme.borderLight),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x08000000),
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
-              child: const Icon(Icons.inbox_outlined, size: 44, color: Color(0xFF94A3B8)),
+              child: const Icon(Icons.inbox_outlined, size: 44, color: AppTheme.faintInk),
             ),
             const SizedBox(height: 16),
             Text(
               'No Lots Pending in Mending',
-              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
             ),
             const SizedBox(height: 6),
             Text(
               'When the Lineman finishes stitching and taps "Handover to Mending", lots will immediately appear here for worker assignment and counting.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF64748B)),
+              style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.bodyInk),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: AppTheme.headingObsidian,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
               onPressed: _fetchMendingLots,
               icon: const Icon(Icons.refresh, size: 16, color: Colors.white),

@@ -114,16 +114,16 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                       width: 136,
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                        color: isSelected ? const Color(0xFF0B1220) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                          color: isSelected ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
                           width: isSelected ? 1.5 : 1,
                         ),
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFF3A3564).withValues(alpha: 0.25),
+                                  color: const Color(0xFF0B1220).withValues(alpha: 0.25),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -148,7 +148,7 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
-                                  color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                                  color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                   letterSpacing: -0.2,
                                 ),
                                 maxLines: 1,
@@ -159,8 +159,8 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                                 challanNo,
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected ? const Color(0xFFA5B4FC) : const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -180,20 +180,20 @@ class _LotSelectorStripState extends State<LotSelectorStrip> {
                                       : const Color(0xFFF1F5F9),
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     isSelected
-                                        ? (isComplete ? const Color(0xFF34D399) : const Color(0xFFA5B4FC))
-                                        : (isComplete ? const Color(0xFF047857) : const Color(0xFF3A3564)),
+                                        ? (isComplete ? const Color(0xFF10B981) : const Color(0xFF14C8B4))
+                                        : (isComplete ? const Color(0xFF10B981) : const Color(0xFF0B1220)),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                '$counted/$target  pcs',
+                                '$counted/$target pcs',
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
                                   color: isSelected
                                       ? Colors.white
-                                      : (isComplete ? const Color(0xFF047857) : const Color(0xFF0F172A)),
+                                      : (isComplete ? const Color(0xFF10B981) : const Color(0xFF0B1220)),
                                 ),
                               ),
                             ],
