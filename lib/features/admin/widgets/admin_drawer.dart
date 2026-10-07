@@ -224,10 +224,12 @@ class AdminDrawer extends ConsumerWidget {
                     context: context,
                     icon: Icons.storefront_outlined,
                     title: 'Store Dashboard',
-                    isSelected: activeRoute == '/stitching-sewing/store',
+                    isSelected: activeRoute == '/stitching-sewing/store' || activeIndex == 2,
                     onTap: () {
                       Navigator.pop(context);
-                      if (activeRoute != '/stitching-sewing/store') {
+                      if (onTabSelected != null) {
+                        onTabSelected!(2);
+                      } else {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const StoreDashboard()),
@@ -384,10 +386,14 @@ class AdminDrawer extends ConsumerWidget {
                     child: InkWell(
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                        );
+                        if (onTabSelected != null) {
+                          onTabSelected!(3);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                          );
+                        }
                       },
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

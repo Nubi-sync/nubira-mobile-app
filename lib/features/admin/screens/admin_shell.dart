@@ -4,8 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../widgets/admin_drawer.dart';
 import 'plant_operations_screen.dart';
 import '../challans/challans_dashboard_screen.dart';
-import '../allotments/allotments_list_screen.dart';
-import 'inventory_screen.dart';
+import '../../dashboard/store_dashboard.dart';
+import 'profile_screen.dart';
 
 final GlobalKey<ScaffoldState> adminScaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -24,8 +24,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     const screens = [
       PlantOperationsScreen(),
       ChallansDashboardScreen(),
-      AllotmentsListScreen(),
-      InventoryScreen(),
+      StoreDashboard(),
+      ProfileScreen(),
     ];
 
     return Scaffold(
@@ -73,14 +73,14 @@ class _AdminShellState extends ConsumerState<AdminShell> {
               label: 'Challans',
             ),
             NavigationDestination(
-              icon: Icon(Icons.assignment_outlined, color: AppTheme.inkSoft),
-              selectedIcon: Icon(Icons.assignment, color: AppTheme.steel),
-              label: 'Allotments',
+              icon: Icon(Icons.storefront_outlined, color: AppTheme.inkSoft),
+              selectedIcon: Icon(Icons.storefront, color: AppTheme.steel),
+              label: 'Store',
             ),
             NavigationDestination(
-              icon: Icon(Icons.warehouse_outlined, color: AppTheme.inkSoft),
-              selectedIcon: Icon(Icons.warehouse, color: AppTheme.steel),
-              label: 'Inventory',
+              icon: Icon(Icons.person_outline_rounded, color: AppTheme.inkSoft),
+              selectedIcon: Icon(Icons.person_rounded, color: AppTheme.steel),
+              label: 'Profile',
             ),
           ],
         ),
