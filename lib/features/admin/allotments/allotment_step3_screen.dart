@@ -322,6 +322,9 @@ class _AllotmentStep3ScreenState extends ConsumerState<AllotmentStep3Screen> {
 
     if (error == null) {
       ref.invalidate(adminAllotmentsListProvider);
+      ref.invalidate(challanGroupedOrdersProvider);
+      ref.invalidate(adminDashboardProvider);
+      ref.invalidate(adminChallansListProvider);
       ref.read(allotmentFormProvider.notifier).reset();
 
       ScaffoldMessenger.of(context).showSnackBar(

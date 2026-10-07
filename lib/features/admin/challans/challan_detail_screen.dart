@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/admin_providers.dart';
 import '../models/admin_models.dart';
+import '../allotments/allotment_form_state.dart';
+import '../allotments/allotment_step1_screen.dart';
 import 'challan_models.dart';
 import 'challan_reference_sheet_screen.dart';
 import 'widgets/challan_summary_card.dart';
@@ -50,10 +52,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     }
   }
 
-  final Map<String, bool> _isAllottingColorMap = {};
-  bool _isAllottingFull = false;
-
-  Future<void> _handleFullChallanAllotment(List<AdminEmployee> linemen) async {
+  void _handleFullChallanAllotment(List<AdminEmployee> linemen, List<AdminArticle> articles) {
     if (_globalLinemanId == null || _globalLinemanId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -74,49 +73,22 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
       ),
     );
 
-    setState(() {
-      _isAllottingFull = true;
-    });
-
-    final error = await allotFullChallanDirectlyInSupabase(
-      widget.challan.id,
-      lineman.id,
+    // Exact Web Admin flow: Prefill form state and launch the 3-step allotment wizard
+    ref.read(allotmentFormProvider.notifier).prefillFromFullChallan(
+      challan: widget.challan,
+      linemanId: lineman.id,
+      linemanName: lineman.username,
+      articles: articles,
     );
 
-    if (mounted) {
-      setState(() {
-        _isAllottingFull = false;
-      });
-
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to allot full challan: $error'),
-            backgroundColor: const Color(0xFFBE123C),
-          ),
-        );
-      } else {
-        ref.invalidate(challanGroupedOrdersProvider);
-        ref.invalidate(adminDashboardProvider);
-        ref.invalidate(adminAllotmentsListProvider);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text('✅ Full challan allotted to ${lineman.username} successfully!')),
-              ],
-            ),
-            backgroundColor: const Color(0xFF047857),
-          ),
-        );
-      }
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AllotmentStep1Screen(),
+      ),
+    );
   }
 
-  Future<void> _handleColorLineAllotment(String colorName, List<AdminEmployee> linemen) async {
+  void _handleColorLineAllotment(String colorName, List<AdminEmployee> linemen, List<AdminArticle> articles) {
     final linemanId = _colorLinemanMap[colorName] ?? _globalLinemanId;
     if (linemanId == null || linemanId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,47 +110,31 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
       ),
     );
 
-    setState(() {
-      _isAllottingColorMap[colorName] = true;
-    });
-
-    final error = await allotColorGroupDirectlyInSupabase(
-      widget.challan.id,
-      colorName,
-      lineman.id,
+    final colorGroup = widget.challan.colorLines.firstWhere(
+      (cl) => cl.colorName == colorName,
+      orElse: () => ColorLineGroup(
+        colorName: colorName,
+        totalPcs: 0,
+        sizeBreakdown: {},
+        themeColor: const Color(0xFF332B6B),
+        bgLight: const Color(0xFFEEEDF6),
+      ),
     );
 
-    if (mounted) {
-      setState(() {
-        _isAllottingColorMap[colorName] = false;
-      });
+    // Exact Web Admin flow: Prefill color line matrix and launch the 3-step allotment wizard
+    ref.read(allotmentFormProvider.notifier).prefillFromColorLineGroup(
+      challan: widget.challan,
+      colorGroup: colorGroup,
+      linemanId: lineman.id,
+      linemanName: lineman.username,
+      articles: articles,
+    );
 
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to allot $colorName line: $error'),
-            backgroundColor: const Color(0xFFBE123C),
-          ),
-        );
-      } else {
-        ref.invalidate(challanGroupedOrdersProvider);
-        ref.invalidate(adminDashboardProvider);
-        ref.invalidate(adminAllotmentsListProvider);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text('✅ $colorName line allotted to ${lineman.username} successfully!')),
-              ],
-            ),
-            backgroundColor: const Color(0xFF047857),
-          ),
-        );
-      }
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AllotmentStep1Screen(),
+      ),
+    );
   }
 
   @override
@@ -186,7 +142,8 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     final employeesAsync = ref.watch(adminEmployeesListProvider);
     final employees = employeesAsync.value ?? [];
     final linemen = employees.where((e) => e.role.toUpperCase() == 'LINEMAN' && e.isActive).toList();
-    ref.watch(adminArticlesListProvider); // Preload articles for instant matching
+    final articlesAsync = ref.watch(adminArticlesListProvider);
+    final articles = articlesAsync.value ?? [];
 
     // Re-watch live challan if updated
     final allChallansAsync = ref.watch(challanGroupedOrdersProvider);
@@ -328,7 +285,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
               const SizedBox(height: 14),
 
               // 3. 1-CLICK FULL CHALLAN ASSIGNMENT CARD
-              _buildFullChallanCard(currentChallan, linemen),
+              _buildFullChallanCard(currentChallan, linemen, articles),
               const SizedBox(height: 20),
 
               // 4. COLOR-WISE LINE DISTRIBUTION SECTION
@@ -354,7 +311,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
 
               // Color line cards
               ...currentChallan.colorLines.map((group) {
-                return _buildColorLineCard(currentChallan, group, linemen);
+                return _buildColorLineCard(currentChallan, group, linemen, articles);
               }),
               const SizedBox(height: 16),
 
@@ -530,7 +487,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     );
   }
 
-  Widget _buildFullChallanCard(ChallanGroupedOrder challan, List<AdminEmployee> linemen) {
+  Widget _buildFullChallanCard(ChallanGroupedOrder challan, List<AdminEmployee> linemen, List<AdminArticle> articles) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -602,17 +559,11 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onPressed: _isAllottingFull ? null : () => _handleFullChallanAllotment(linemen),
-                    child: _isAllottingFull
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Allot Full Challan',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
+                    onPressed: () => _handleFullChallanAllotment(linemen, articles),
+                    child: const Text(
+                      'Allot Full Challan',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),
@@ -623,7 +574,7 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
     );
   }
 
-  Widget _buildColorLineCard(ChallanGroupedOrder challan, ColorLineGroup group, List<AdminEmployee> linemen) {
+  Widget _buildColorLineCard(ChallanGroupedOrder challan, ColorLineGroup group, List<AdminEmployee> linemen, List<AdminArticle> articles) {
     final selectedLinemanForColor = _colorLinemanMap[group.colorName] ?? _globalLinemanId;
 
     return Container(
@@ -793,20 +744,12 @@ class _ChallanDetailScreenState extends ConsumerState<ChallanDetailScreen> {
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
-                    onPressed: _isAllottingColorMap[group.colorName] == true
-                        ? null
-                        : () => _handleColorLineAllotment(group.colorName, linemen),
-                    child: _isAllottingColorMap[group.colorName] == true
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            group.isAssigned ? 'Reallot ${group.colorName}' : 'Allot ${group.colorName}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    onPressed: () => _handleColorLineAllotment(group.colorName, linemen, articles),
+                    child: Text(
+                      group.isAssigned ? 'Reallot ${group.colorName}' : 'Allot ${group.colorName}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),
