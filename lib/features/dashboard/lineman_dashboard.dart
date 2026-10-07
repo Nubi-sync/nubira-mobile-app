@@ -429,7 +429,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               final name = (m['item_name'] ?? '').toString().trim();
               if (name.isEmpty) continue;
               final reqQty = parseQty(m['required_qty']);
-              final isIssued = m['admin_issued'] == true;
+              final ins = _parseInspectionNotes(m['notes']);
+              final isIssued = m['admin_issued'] == true || ins?['store_verified'] == true || (ins != null && (ins['status'] == 'VERIFIED' || ins['status'] == 'SHORTAGE'));
               final isReceived = m['lineman_received'] == true;
               if (!matMap.containsKey(name)) {
                 matMap[name] = {
@@ -445,8 +446,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 };
               } else {
                 matMap[name]!['required_qty'] = (matMap[name]!['required_qty'] as int) + reqQty;
-                if (!isIssued) matMap[name]!['admin_issued'] = false;
-                if (!isReceived) matMap[name]!['lineman_received'] = false;
+                if (isIssued) matMap[name]!['admin_issued'] = true;
+                if (isReceived) matMap[name]!['lineman_received'] = true;
                 (matMap[name]!['allotment_materials_list'] as List<dynamic>).add(m);
               }
             }
@@ -932,12 +933,19 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         final mRem = RegExp(r'"store_remarks":"(.*?)"').firstMatch(str);
         if (mRem != null) remarks = mRem.group(1);
 
+        final bool isVerified = str.contains('"store_verified":true') ||
+            str.contains('"store_verified":"true"') ||
+            status == 'VERIFIED' ||
+            status == 'SHORTAGE' ||
+            status == 'DEFECTIVE';
+
         return {
           'received_qty': receivedQty,
           'status': status ?? 'VERIFIED',
           'shortage_qty': shortageQty,
           'supplier_challan_no': challanNo,
           'store_remarks': remarks,
+          'store_verified': isVerified,
         };
       }
     } catch (_) {}
@@ -1528,9 +1536,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     final materialsConfirmed = hasMaterials && materials.every((m) => m['lineman_received'] == true);
 
     if (hasMaterials && !materialsConfirmed) {
-      final isStoreIssued = materials.every((m) {
+      final isStoreIssued = materials.any((m) {
         final ins = _parseInspectionNotes(m['notes']);
-        return m['admin_issued'] == true || ins?['store_verified'] == true;
+        return m['admin_issued'] == true || ins?['store_verified'] == true || (ins != null && (ins['status'] == 'VERIFIED' || ins['status'] == 'SHORTAGE'));
       });
 
       if (isStoreIssued) {
@@ -4107,9 +4115,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
     final materialsConfirmed = hasMaterials && materials.every((m) => m['lineman_received'] == true);
     
     // Check if Store has verified / issued
-    final isStoreIssued = hasMaterials && materials.every((m) {
+    final isStoreIssued = hasMaterials && materials.any((m) {
       final ins = _parseInspectionNotes(m['notes']);
-      return m['admin_issued'] == true || ins?['store_verified'] == true;
+      return m['admin_issued'] == true || ins?['store_verified'] == true || (ins != null && (ins['status'] == 'VERIFIED' || ins['status'] == 'SHORTAGE'));
     });
 
     final hasShortage = hasMaterials && materials.any((m) {
