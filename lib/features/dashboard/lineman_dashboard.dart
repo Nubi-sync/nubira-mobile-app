@@ -5784,31 +5784,41 @@ class _InteractiveSwipeCardState extends State<_InteractiveSwipeCard> {
 // ==========================================
 // ZERO-OVERHEAD FAST CONTENT WRAPPER
 // ==========================================
-class _AnimatedFadeSlide extends StatelessWidget {
+class _AnimatedFadeSlide extends StatefulWidget {
   final Widget child;
   final int delayMs;
   const _AnimatedFadeSlide({required this.child, this.delayMs = 0});
 
   @override
+  State<_AnimatedFadeSlide> createState() => _AnimatedFadeSlideState();
+}
+
+class _AnimatedFadeSlideState extends State<_AnimatedFadeSlide> {
+  @override
   Widget build(BuildContext context) {
-    return child;
+    return widget.child;
   }
 }
 
 // ==========================================
 // RESPONSIVE TOUCH WRAPPER
 // ==========================================
-class _BouncyTap extends StatelessWidget {
+class _BouncyTap extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   const _BouncyTap({required this.child, this.onTap});
 
   @override
+  State<_BouncyTap> createState() => _BouncyTapState();
+}
+
+class _BouncyTapState extends State<_BouncyTap> {
+  @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: widget.onTap,
       borderRadius: BorderRadius.circular(10),
-      child: child,
+      child: widget.child,
     );
   }
 }
@@ -5816,16 +5826,21 @@ class _BouncyTap extends StatelessWidget {
 // ==========================================
 // CLEAN STATIC HAND ICON WIDGET
 // ==========================================
-class _WavingHandIcon extends StatelessWidget {
+class _WavingHandIcon extends StatefulWidget {
   final double size;
   const _WavingHandIcon({this.size = 20});
 
+  @override
+  State<_WavingHandIcon> createState() => _WavingHandIconState();
+}
+
+class _WavingHandIconState extends State<_WavingHandIcon> {
   @override
   Widget build(BuildContext context) {
     return Icon(
       Icons.waving_hand_rounded,
       color: AppTheme.steel,
-      size: size,
+      size: widget.size,
     );
   }
 }
