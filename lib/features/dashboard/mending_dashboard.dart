@@ -1874,8 +1874,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
   // Encapsulated Top Header Card ("Mending & counting")
   Widget _buildEncapsulatedHeader() {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 2, 16, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1888,79 +1889,26 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderLight),
-            ),
-            child: const Icon(
-              Icons.format_list_bulleted_rounded,
+          Text(
+            'Mending & counting',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
               color: AppTheme.headingObsidian,
-              size: 20,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Mending & counting',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.headingObsidian,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Floor inward & worker piece verification',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11.5,
-                    color: AppTheme.bodyInk,
-                    height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFA7F3D0)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF047857),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'ONLINE',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF047857),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 2),
+          Text(
+            'Floor inward & worker piece verification',
+            style: GoogleFonts.publicSans(
+              fontSize: 12,
+              color: AppTheme.bodyInk,
+              height: 1.2,
             ),
           ),
         ],
