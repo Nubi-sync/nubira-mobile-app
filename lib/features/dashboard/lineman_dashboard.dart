@@ -2843,9 +2843,9 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1EFEA),
+                    color: const Color(0xFFF1F5F9), // Slate-100 web background
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E2DA)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Row(
                     children: [
@@ -2865,12 +2865,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             decoration: BoxDecoration(
                               color: _liveFloorSubTab == 0 ? Colors.white : Colors.transparent,
                               borderRadius: BorderRadius.circular(9),
+                              border: _liveFloorSubTab == 0 ? Border.all(color: AppTheme.border) : null,
                               boxShadow: _liveFloorSubTab == 0
                                   ? [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.06),
+                                        color: Colors.black.withValues(alpha: 0.04),
                                         blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                        offset: const Offset(0, 1),
                                       )
                                     ]
                                   : null,
@@ -2881,22 +2882,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 Icon(
                                   Icons.inventory_2_rounded,
                                   size: 16,
-                                  color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                  color: _liveFloorSubTab == 0 ? AppTheme.ink : AppTheme.inkSoft,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Allotments',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
-                                    fontWeight: _liveFloorSubTab == 0 ? FontWeight.w700 : FontWeight.w600,
-                                    color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                    fontWeight: _liveFloorSubTab == 0 ? FontWeight.w800 : FontWeight.w600,
+                                    color: _liveFloorSubTab == 0 ? AppTheme.ink : AppTheme.inkSoft,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: _liveFloorSubTab == 0 ? AppTheme.steelMist : const Color(0xFFE5E2DA),
+                                    color: _liveFloorSubTab == 0 ? const Color(0xFFF1F5F9) : const Color(0xFFE2E8F0),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -2904,7 +2905,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
-                                      color: _liveFloorSubTab == 0 ? AppTheme.steel : AppTheme.inkSoft,
+                                      color: _liveFloorSubTab == 0 ? AppTheme.ink : AppTheme.inkSoft,
                                     ),
                                   ),
                                 ),
@@ -2930,12 +2931,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                             decoration: BoxDecoration(
                               color: _liveFloorSubTab == 1 ? Colors.white : Colors.transparent,
                               borderRadius: BorderRadius.circular(9),
+                              border: _liveFloorSubTab == 1 ? Border.all(color: AppTheme.border) : null,
                               boxShadow: _liveFloorSubTab == 1
                                   ? [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.06),
+                                        color: Colors.black.withValues(alpha: 0.04),
                                         blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                        offset: const Offset(0, 1),
                                       )
                                     ]
                                   : null,
@@ -2953,7 +2955,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                   "Today's Batches",
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
-                                    fontWeight: _liveFloorSubTab == 1 ? FontWeight.w700 : FontWeight.w600,
+                                    fontWeight: _liveFloorSubTab == 1 ? FontWeight.w800 : FontWeight.w600,
                                     color: _liveFloorSubTab == 1 ? AppTheme.ink : AppTheme.inkSoft,
                                   ),
                                 ),
@@ -2961,7 +2963,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: _liveFloorSubTab == 1 ? const Color(0xFFFEF3C7) : const Color(0xFFE5E2DA),
+                                    color: _liveFloorSubTab == 1 ? const Color(0xFFFEF3C7) : const Color(0xFFE2E8F0),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -2993,12 +2995,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
+                      border: Border.all(color: AppTheme.border, width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 6,
-                          offset: const Offset(0, 2),
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
@@ -3009,7 +3011,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       decoration: InputDecoration(
                         hintText: 'Search by Article No, Challan #, Color, Brand...',
                         hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.inkSoft),
                         suffixIcon: _liveSearchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
@@ -3101,12 +3103,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E2DA), width: 1),
+                      border: Border.all(color: AppTheme.border, width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 6,
-                          offset: const Offset(0, 2),
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
@@ -3117,7 +3119,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                       decoration: InputDecoration(
                         hintText: 'Search worker name or article...',
                         hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.inkFaint),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.steel),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.inkSoft),
                         suffixIcon: _liveSearchQuery.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.inkFaint),
