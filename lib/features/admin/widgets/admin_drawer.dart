@@ -8,7 +8,6 @@ import '../screens/employees_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/reports_screen.dart';
 import '../screens/profile_screen.dart';
-import '../../dashboard/store_dashboard.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/screens/supervisor_floor_stations_screen.dart';
 
@@ -222,23 +221,6 @@ class AdminDrawer extends ConsumerWidget {
                   ),
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.storefront_outlined,
-                    title: 'Store Dashboard',
-                    isSelected: activeRoute == '/stitching-sewing/store' || activeIndex == 2,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (onTabSelected != null) {
-                        onTabSelected!(2);
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const StoreDashboard()),
-                        );
-                      }
-                    },
-                  ),
-                  _buildDrawerItem(
-                    context: context,
                     icon: Icons.smart_toy_outlined,
                     title: 'Zigza AI',
                     isSelected: activeRoute == '/stitching-sewing/zigza-ai',
@@ -251,42 +233,8 @@ class AdminDrawer extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 8),
-                  // SECTION: PRODUCTION
-                  _buildSectionHeader('PRODUCTION'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.layers_outlined,
-                    title: 'Production Chart',
-                    isSelected: activeRoute == '/stitching-sewing/production-orders' || activeIndex == 1,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (onTabSelected != null) {
-                        onTabSelected!(1);
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AdminShell()),
-                        );
-                      }
-                    },
-                  ),
-
-                  const SizedBox(height: 8),
                   // SECTION: MANAGE
                   _buildSectionHeader('MANAGE'),
-                  _buildDrawerItem(
-                    context: context,
-                    icon: Icons.person_outline_rounded,
-                    title: 'Profile',
-                    isSelected: activeRoute == '/stitching-sewing/profile',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                      );
-                    },
-                  ),
                   _buildDrawerItem(
                     context: context,
                     icon: Icons.apartment_outlined,
@@ -294,9 +242,8 @@ class AdminDrawer extends ConsumerWidget {
                     isSelected: activeRoute == '/stitching-sewing/vendors',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Brands & Vendors directory')),
                       );
                     },
                   ),
@@ -417,15 +364,6 @@ class AdminDrawer extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10.5,
                                   color: const Color(0xFF64748B),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Profile ↗',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0B1220),
                                 ),
                               ),
                             ],
