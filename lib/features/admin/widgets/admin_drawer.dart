@@ -28,19 +28,17 @@ class AdminDrawer extends ConsumerWidget {
     this.activeRoute,
   });
 
-  String _getUserInitials(String email, String? username) {
-    if (username != null && username.trim().isNotEmpty) {
-      final parts = username.trim().split(RegExp(r'\s+'));
-      if (parts.length >= 2) {
+  String _getUserInitials(String displayName, String? username) {
+    final nameToUse = (username != null && username.trim().isNotEmpty && !username.contains('@'))
+        ? username.trim()
+        : (displayName.contains('@') ? displayName.split('@').first : displayName);
+
+    if (nameToUse.isNotEmpty) {
+      final parts = nameToUse.trim().split(RegExp(r'[\s_\-\.]+'));
+      if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
         return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
       }
-      return username.trim().substring(0, username.trim().length >= 2 ? 2 : 1).toUpperCase();
-    }
-    if (email.isNotEmpty) {
-      final prefix = email.split('@').first;
-      if (prefix.toLowerCase() == 'aj') return 'AJ';
-      if (prefix.length >= 2) return prefix.substring(0, 2).toUpperCase();
-      return prefix.toUpperCase();
+      return nameToUse.trim().substring(0, nameToUse.trim().length >= 2 ? 2 : 1).toUpperCase();
     }
     return 'AJ';
   }
@@ -50,7 +48,35 @@ class AdminDrawer extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final tenant = authState.tenantProfile;
     final userEmail = tenant?.userEmail ?? authState.cachedUsername ?? 'aj@nubiracreation.com';
-    final userInitials = _getUserInitials(userEmail, authState.cachedUsername);
+
+    // Extract clean display username (strips internal synthetic domains like @nubira.local)
+    final String displayName;
+    if (authState.cachedUsername != null &&
+        authState.cachedUsername!.trim().isNotEmpty &&
+        !authState.cachedUsername!.contains('@')) {
+      displayName = authState.cachedUsername!.trim();
+    } else if (tenant?.customUsername != null &&
+        tenant!.customUsername.trim().isNotEmpty &&
+        !tenant.customUsername.contains('@')) {
+      displayName = tenant.customUsername.trim();
+    } else if (tenant?.adminDisplayName != null &&
+        tenant!.adminDisplayName.trim().isNotEmpty &&
+        !tenant.adminDisplayName.contains('@')) {
+      displayName = tenant.adminDisplayName.trim();
+    } else if (userEmail.contains('@')) {
+      final parts = userEmail.split('@');
+      final prefix = parts[0];
+      final domain = parts[1].toLowerCase();
+      if (domain.endsWith('.local') || domain == 'local') {
+        displayName = prefix;
+      } else {
+        displayName = userEmail;
+      }
+    } else {
+      displayName = userEmail;
+    }
+
+    final userInitials = _getUserInitials(displayName, authState.cachedUsername);
     final userRoleRaw = (tenant?.role != null && tenant!.role.isNotEmpty)
         ? tenant.role
         : (authState.userRole ?? '');
@@ -822,7 +848,7 @@ class AdminDrawer extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            userEmail,
+                            displayName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.plusJakartaSans(
