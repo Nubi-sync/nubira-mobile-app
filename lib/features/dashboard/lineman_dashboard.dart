@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../auth/providers/auth_provider.dart';
-import '../auth/screens/login_screen.dart';
 import '../admin/widgets/admin_drawer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
@@ -2648,7 +2646,6 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         ),
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDFA),
@@ -2665,6 +2662,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               ),
             ),
           ),
+          const SizedBox(width: 8),
           // Interactive Resync / Refresh button
           Tooltip(
             message: 'Resync Floor Data',
@@ -2673,56 +2671,24 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
               onTap: _fetchDashboardData,
               child: Container(
                 height: 34,
-                padding: const EdgeInsets.symmetric(horizontal: 9),
+                width: 34,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.sync_rounded, size: 15, color: Color(0xFF0B1220)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Sync',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0B1220),
-                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
+                child: const Icon(Icons.sync_rounded, size: 17, color: Color(0xFF0B1220)),
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Clean Logout Button
-          InkWell(
-            onTap: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              height: 34,
-              width: 34,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 16),
-            ),
-          ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
         ],
       ),
       body: _isLoading
