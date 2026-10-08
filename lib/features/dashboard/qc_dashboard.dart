@@ -3355,12 +3355,20 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       final challanNo = chal?['challan_no']?.toString() ?? task['challan_no']?.toString() ?? '';
       final groupKey = artId.isNotEmpty ? artId : artNo;
 
+      final brand = chal?['brand'] ?? task['brand'] ?? '';
+      final vendorId = chal?['vendor_id'] ?? task['vendor_id'] ?? '';
+      final vendorName = chal?['vendor_name'] ?? task['vendor_name'] ?? '';
+
       if (!articleGroups.containsKey(groupKey)) {
         articleGroups[groupKey] = {
           'key': groupKey,
+          'article_id': artId,
           'art_no': artNo,
           'description': desc,
           'challan_no': challanNo,
+          'brand': brand,
+          'vendor_id': vendorId,
+          'vendor_name': vendorName,
           'tasks': <Map<String, dynamic>>[],
           'total_assigned': 0,
           'total_checked': 0,
@@ -3622,6 +3630,78 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                           ],
                         ),
                         const SizedBox(height: 10),
+
+                        // Direct Delivery Challan Action Button (When checked pieces are ready)
+                        if (grpPassed > 0 || grpChecked > 0) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 38,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.local_shipping_rounded, size: 16, color: Colors.white),
+                              label: Text(
+                                'Direct Delivery Challan (${grpPassed > 0 ? grpPassed : grpChecked} pcs Ready)',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3A3564),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
+                              ),
+                              onPressed: () {
+                                // Aggregate all checker tasks for this article by color & size
+                                final Map<String, Map<String, dynamic>> variantAgg = {};
+                                for (var t in tasks) {
+                                  final c = (t['color'] ?? 'Default').toString().trim().toUpperCase();
+                                  final s = (t['size'] ?? 'Free').toString().trim().toUpperCase();
+                                  final key = '$c|||$s';
+                                  final assignQ = _parseQty(t['assigned_qty']);
+                                  final passQ = _parseQty(t['passed_qty']);
+                                  final checkQ = _parseQty(t['checked_qty']);
+
+                                  if (!variantAgg.containsKey(key)) {
+                                    variantAgg[key] = {
+                                      'color': c,
+                                      'size': s,
+                                      'order_qty': assignQ,
+                                      'allotted_qty': assignQ,
+                                      'quantity': assignQ,
+                                      'qc_passed_qty': passQ > 0 ? passQ : (checkQ > 0 ? checkQ : assignQ),
+                                    };
+                                  } else {
+                                    variantAgg[key]!['order_qty'] = _parseQty(variantAgg[key]!['order_qty']) + assignQ;
+                                    variantAgg[key]!['allotted_qty'] = _parseQty(variantAgg[key]!['allotted_qty']) + assignQ;
+                                    variantAgg[key]!['quantity'] = _parseQty(variantAgg[key]!['quantity']) + assignQ;
+                                    variantAgg[key]!['qc_passed_qty'] = _parseQty(variantAgg[key]!['qc_passed_qty']) + (passQ > 0 ? passQ : (checkQ > 0 ? checkQ : assignQ));
+                                  }
+                                }
+                                final aggregatedVariants = variantAgg.values.toList();
+                                aggregatedVariants.sort((a, b) => _naturalSizeCompare((a['size'] ?? '').toString(), (b['size'] ?? '').toString()));
+
+                                final lotPayload = {
+                                  'id': tasks.isNotEmpty ? tasks.first['allotment_id'] : null,
+                                  'article_id': group['article_id'] ?? (tasks.isNotEmpty ? tasks.first['article_id'] : null),
+                                  'art_no': artNo,
+                                  'article': {
+                                    'id': group['article_id'] ?? (tasks.isNotEmpty ? tasks.first['article_id'] : null),
+                                    'art_no': artNo,
+                                    'description': desc,
+                                  },
+                                  'challans': {
+                                    'challan_no': challanNo,
+                                    'brand': group['brand'] ?? '',
+                                    'vendor_name': group['vendor_name'] ?? '',
+                                  },
+                                  'qc_total_passed': grpPassed > 0 ? grpPassed : grpChecked,
+                                  'variants': aggregatedVariants,
+                                };
+
+                                _showDeliveryChallanModal(prefilledLot: lotPayload);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
 
                         // Tap to expand / collapse helper banner
                         Container(

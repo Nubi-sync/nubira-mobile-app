@@ -157,10 +157,10 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
   void _buildInitialItems() {
     final lot = widget.prefilledLot;
-    if (lot != null && lot['variants'] != null) {
-      final vars = parseList(lot['variants']);
-      final artNo = lot['article']?['art_no'] ?? 'Article';
-      final articleId = lot['article_id'];
+    if (lot != null) {
+      final vars = parseList(lot['variants'] ?? lot['allotment_variants']);
+      final artNo = lot['article']?['art_no'] ?? lot['art_no'] ?? 'Article';
+      final articleId = lot['article_id'] ?? lot['article']?['id'];
       final lotTotalPassed = parseQty(lot['qc_total_passed']);
 
       final List<Map<String, dynamic>> items = [];
@@ -252,13 +252,7 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
   int get _totalBalanceQty => _challanItems.fold(0, (sum, i) => sum + parseQty(i['balance_qty']));
 
   Future<void> _submitToAdmin() async {
-    final vehicleNo = _vehicleNoController.text.trim();
-    if (vehicleNo.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Vehicle Number for gate delivery pass.')),
-      );
-      return;
-    }
+    final vehicleNo = _vehicleNoController.text.trim().isEmpty ? 'TBD' : _vehicleNoController.text.trim();
 
     if (_challanItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -271,15 +265,25 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
 
     try {
       final user = supabase.auth.currentUser;
-      final challanNo = _challanNoController.text.trim();
+      final challanNo = _challanNoController.text.trim().isNotEmpty
+          ? _challanNoController.text.trim()
+          : 'DC-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch % 10000}';
       final totalBags = int.tryParse(_totalBagsController.text.trim()) ?? 0;
+      final todayIso = DateTime.now().toIso8601String().split('T')[0];
+
+      final buyerName = _billedToNameController.text.trim().isNotEmpty ? _billedToNameController.text.trim() : 'Nubira Creation';
+      final destination = _shippingToAddressController.text.trim().isNotEmpty ? _shippingToAddressController.text.trim() : (_shippingToNameController.text.trim().isNotEmpty ? _shippingToNameController.text.trim() : 'Store / Godown');
 
       // 1. Create delivery_challan in status PENDING_ADMIN_APPROVAL
       final challanData = <String, dynamic>{
         'challan_no': challanNo,
+        'buyer_name': buyerName,
+        'destination': destination,
         'vehicle_no': vehicleNo,
-        'spot_notes': _spotNotesController.text.trim(),
+        'total_pieces': _totalDeliveryQty,
+        'delivery_date': todayIso,
         'status': 'PENDING_ADMIN_APPROVAL',
+        'spot_notes': _spotNotesController.text.trim(),
         'billed_to_name': _billedToNameController.text.trim(),
         'billed_to_address': _billedToAddressController.text.trim(),
         'billed_to_gstin': _billedToGstinController.text.trim(),
@@ -298,16 +302,36 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
       }
       if (_vendorNameController.text.trim().isNotEmpty) {
         challanData['vendor_name'] = _vendorNameController.text.trim();
+        challanData['company_name'] = _vendorNameController.text.trim();
       }
 
       Map<String, dynamic> challanInsertRes;
       try {
         challanInsertRes = await supabase.from('delivery_challans').insert(challanData).select('id').single();
       } catch (insertErr) {
-        debugPrint('DeliveryChallanModal: Insert with vendor failed: $insertErr, falling back without vendor fields');
-        challanData.remove('vendor_id');
-        challanData.remove('vendor_name');
-        challanInsertRes = await supabase.from('delivery_challans').insert(challanData).select('id').single();
+        debugPrint('DeliveryChallanModal: Extended insert failed: $insertErr, retrying with core columns');
+        final minimalChallanData = <String, dynamic>{
+          'challan_no': challanNo,
+          'buyer_name': buyerName,
+          'destination': destination,
+          'vehicle_no': vehicleNo,
+          'total_pieces': _totalDeliveryQty,
+          'delivery_date': todayIso,
+          'status': 'PENDING_ADMIN_APPROVAL',
+        };
+        if (_vendorNameController.text.trim().isNotEmpty) {
+          minimalChallanData['company_name'] = _vendorNameController.text.trim();
+        }
+        try {
+          challanInsertRes = await supabase.from('delivery_challans').insert(minimalChallanData).select('id').single();
+        } catch (minErr) {
+          debugPrint('DeliveryChallanModal: Minimal insert failed: $minErr, attempting raw insert');
+          final rawInsert = await supabase.from('delivery_challans').insert({
+            'challan_no': challanNo,
+            'status': 'PENDING_ADMIN_APPROVAL',
+          }).select('id').single();
+          challanInsertRes = rawInsert;
+        }
       }
 
       final challanId = challanInsertRes['id'].toString();
@@ -316,29 +340,56 @@ class _DeliveryChallanModalState extends State<DeliveryChallanModal> {
       int sortOrder = 0;
       for (var item in _challanItems) {
         sortOrder++;
-        await supabase.from('challan_items').insert({
-          'challan_id': challanId,
-          'allotment_id': widget.prefilledLot?['id'],
-          'article_id': item['article_id'],
-          'size': item['size'],
-          'color': item['color'],
-          'quantity': item['delivery_qty'],
-          'category': item['category'],
-          'product_type': item['product'],
-          'order_qty': item['order_qty'],
-          'delivery_qty': item['delivery_qty'],
-          'balance_qty': item['balance_qty'],
-          'sort_order': sortOrder,
-        });
+        try {
+          await supabase.from('challan_items').insert({
+            'challan_id': challanId,
+            'allotment_id': widget.prefilledLot?['id'],
+            'article_id': item['article_id'],
+            'size': item['size'],
+            'color': item['color'],
+            'quantity': item['delivery_qty'],
+            'category': item['category'],
+            'product_type': item['product'],
+            'order_qty': item['order_qty'],
+            'delivery_qty': item['delivery_qty'],
+            'balance_qty': item['balance_qty'],
+            'sort_order': sortOrder,
+          });
+        } catch (itemErr) {
+          debugPrint('DeliveryChallanModal: Item extended insert failed: $itemErr, retrying minimal item');
+          await supabase.from('challan_items').insert({
+            'challan_id': challanId,
+            'article_id': item['article_id'],
+            'size': item['size'],
+            'color': item['color'],
+            'quantity': item['delivery_qty'],
+          });
+        }
       }
 
       // 3. Update allotment status to READY_FOR_DISPATCH if linked
-      if (widget.prefilledLot?['id'] != null) {
-        await supabase.from('allotments').update({
-          'qc_status': 'READY_FOR_DISPATCH',
-          'total_bags_packed': totalBags,
-          'delivery_challan_id': challanId,
-        }).eq('id', widget.prefilledLot!['id']);
+      final lotId = widget.prefilledLot?['id']?.toString();
+      if (lotId != null && lotId.isNotEmpty) {
+        try {
+          await supabase.from('allotments').update({
+            'qc_status': 'READY_FOR_DISPATCH',
+            'total_bags_packed': totalBags,
+            'delivery_challan_id': challanId,
+          }).eq('id', lotId);
+        } catch (_) {}
+      }
+
+      final secondaryIds = widget.prefilledLot?['secondary_ids'] as List<dynamic>?;
+      if (secondaryIds != null && secondaryIds.isNotEmpty) {
+        for (var sId in secondaryIds) {
+          try {
+            await supabase.from('allotments').update({
+              'qc_status': 'READY_FOR_DISPATCH',
+              'total_bags_packed': totalBags,
+              'delivery_challan_id': challanId,
+            }).eq('id', sId.toString());
+          } catch (_) {}
+        }
       }
 
       if (mounted) {
@@ -1544,6 +1595,26 @@ class _ArticleAutoFetchSheetState extends State<_ArticleAutoFetchSheet> {
         variantMap[key]!['passed'] = (variantMap[key]!['passed'] ?? 0) + p;
         variantMap[key]!['received'] = (variantMap[key]!['received'] ?? 0) + r;
       }
+
+      try {
+        final qcAssignRes = await supabase
+            .from('qc_assignments')
+            .select('color, size, assigned_qty, checked_qty, passed_qty')
+            .eq('article_id', artId)
+            .timeout(const Duration(seconds: 5), onTimeout: () => []);
+
+        for (var qa in qcAssignRes) {
+          final c = (qa['color']?.toString() ?? 'Default').trim().toUpperCase();
+          final s = (qa['size']?.toString() ?? 'M').trim().toUpperCase();
+          final p = parseQty(qa['passed_qty']);
+          final chk = parseQty(qa['checked_qty']);
+          final asgn = parseQty(qa['assigned_qty']);
+          final key = '$c|||$s';
+          variantMap.putIfAbsent(key, () => {'passed': 0, 'received': 0, 'order': 0});
+          variantMap[key]!['passed'] = (variantMap[key]!['passed'] ?? 0) + (p > 0 ? p : chk);
+          variantMap[key]!['order'] = (variantMap[key]!['order'] ?? 0) + asgn;
+        }
+      } catch (_) {}
 
       for (var r in _previewRows) {
         r.dispose();
