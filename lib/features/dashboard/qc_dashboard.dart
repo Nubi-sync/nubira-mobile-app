@@ -537,6 +537,14 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           mendingTotal = adminTotal;
         }
 
+        final artMap = _asMap(a['article']) ?? _asMap(a['articles']);
+        final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
+        final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
+
+        final artIdStr = a['article_id']?.toString() ?? artMap?['id']?.toString() ?? '';
+        final artNoStr = artMap?['art_no']?.toString() ?? '';
+        final groupKey = artIdStr.isNotEmpty ? artIdStr : (artNoStr.isNotEmpty ? artNoStr : aId);
+
         // Build Size Audit Breakdown (Admin Allotted vs Mending Counted vs QC Passed)
         final List<Map<String, dynamic>> enrichedVars = [];
 
@@ -571,7 +579,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
           int qcPassCount = 0;
           for (var qc in activeAssignments) {
-            if (qc['allotment_id']?.toString() == aId) {
+            final qAllotId = qc['allotment_id']?.toString() ?? '';
+            final qArtId = qc['article_id']?.toString() ?? '';
+            final bool idMatch = (qAllotId.isNotEmpty && qAllotId == aId) ||
+                (artIdStr.isNotEmpty && qArtId.isNotEmpty && qArtId == artIdStr);
+
+            if (idMatch) {
               final qSize = (qc['size'] ?? '').toString().trim().toUpperCase();
               final qColor = (qc['color'] ?? '').toString().trim().toUpperCase();
 
@@ -610,14 +623,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           }
         }
         if (lotPriority.isEmpty) lotPriority = 'NORMAL';
-
-        final artMap = _asMap(a['article']) ?? _asMap(a['articles']);
-        final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
-        final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
-
-        final artIdStr = a['article_id']?.toString() ?? artMap?['id']?.toString() ?? '';
-        final artNoStr = artMap?['art_no']?.toString() ?? '';
-        final groupKey = artIdStr.isNotEmpty ? artIdStr : (artNoStr.isNotEmpty ? artNoStr : aId);
 
         // Calculate QC assigned, checked, passed totals for this allotment/article
         int totalAssignedForLot = 0;
@@ -662,12 +667,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             // Merge enriched variants
             final existingVars = List<Map<String, dynamic>>.from(existing['variants'] as List);
             for (var ev in enrichedVars) {
-              final eColor = (ev['color'] ?? 'Default').toString().trim().toUpperCase();
-              final eSize = (ev['size'] ?? 'Free').toString().trim().toUpperCase();
+              final eColor = (ev['color'] ?? '').toString().trim().toUpperCase();
+              final eSize = (ev['size'] ?? '').toString().trim().toUpperCase();
               final matchIdx = existingVars.indexWhere((x) {
-                final xColor = (x['color'] ?? 'Default').toString().trim().toUpperCase();
-                final xSize = (x['size'] ?? 'Free').toString().trim().toUpperCase();
-                return xColor == eColor && xSize == eSize;
+                final xColor = (x['color'] ?? '').toString().trim().toUpperCase();
+                final xSize = (x['size'] ?? '').toString().trim().toUpperCase();
+                final bool sizeMatch = xSize == eSize ||
+                    xSize.replaceAll(RegExp(r'[^A-Z0-9]'), '') == eSize.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+                final bool colorMatch = (eColor.isEmpty || eColor == '-' || eColor == 'DEFAULT') ||
+                    (xColor.isEmpty || xColor == '-' || xColor == 'DEFAULT') ||
+                    (xColor == eColor);
+                return sizeMatch && colorMatch;
               });
 
               if (matchIdx != -1) {
@@ -2088,41 +2098,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     ).then((_) => _fetchQcData());
   }
 
-  // Handover finished lot to Godown Store Manager (Pending Admin Approval)
-  Future<void> _handoverToStore(Map<String, dynamic> lot) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final authState = ref.read(authProvider);
-    final qcUserName = authState.cachedUsername?.trim().isNotEmpty == true 
-        ? authState.cachedUsername! 
-        : (supabase.auth.currentUser?.email?.split('@').first ?? 'QC Supervisor');
 
-    final aId = lot['id']?.toString();
-    if (aId == null || aId.isEmpty) return;
-
-    setState(() => _isSubmitting = true);
-    try {
-      await supabase.from('allotments').update({
-        'qc_status': 'PENDING_ADMIN_APPROVAL',
-        'store_inward_status': 'PENDING',
-        'qc_supervisor_name': qcUserName,
-        'qc_passed_at': DateTime.now().toIso8601String(),
-      }).eq('id', aId);
-
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text('Handover submitted for Admin Approval! Store Manager will be notified once approved.'),
-          backgroundColor: const Color(0xFF047857),
-        ),
-      );
-      await _fetchQcData();
-    } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFBE123C)),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
 
 
 
@@ -4366,17 +4342,28 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF5),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFA7F3D0)),
-                            ),
-                            child: Text(
-                              'QC Passed: $passedQty pcs',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
-                            ),
+                          Builder(
+                            builder: (_) {
+                              int aggPass = 0;
+                              for (var v in vars) {
+                                final tQ = _parseQty(v['allotted_qty'], _parseQty(v['quantity']));
+                                final rPQ = _parseQty(v['qc_passed_qty']);
+                                aggPass += (rPQ > 0 ? rPQ : tQ);
+                              }
+                              final int displayPassed = aggPass > 0 ? aggPass : passedQty;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                                ),
+                                child: Text(
+                                  'QC Passed: $displayPassed pcs',
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -4402,8 +4389,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                       runSpacing: 6,
                       children: vars.map((v) {
                         final sz = v['size'] ?? '-';
-                        final passQ = _parseQty(v['qc_passed_qty'], _parseQty(lot['qc_total_passed'], _parseQty(v['allotted_qty'], _parseQty(v['quantity']))));
                         final totalQ = _parseQty(v['allotted_qty'], _parseQty(v['quantity']));
+                        final rawPassQ = _parseQty(v['qc_passed_qty']);
+                        final passQ = rawPassQ > 0 ? rawPassQ : totalQ;
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -4443,7 +4431,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Submitted for Admin Approval. Store Manager will collect after authorization.',
+                                  'Challan Submitted for Admin Approval. Gate dispatch will be authorized upon Admin approval.',
                                   style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF92400E)),
                                 ),
                               ),
@@ -4452,12 +4440,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                         ),
                         SizedBox(
                           width: double.infinity,
-                          height: 42,
+                          height: 44,
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.pending_actions_rounded, size: 18, color: Color(0xFFD97706)),
                             label: Text(
                               'Submitted (Awaiting Admin Approval)',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFD97706)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFFD97706)),
                             ),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Color(0xFFFDE68A), width: 1.2),
@@ -4466,7 +4454,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                             onPressed: null,
                           ),
                         ),
-                      ] else if ((lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_STORE') ...[
+                      ] else if ((lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_STORE' ||
+                          (lot['qc_status'] ?? '').toString() == 'APPROVED_FOR_DISPATCH' ||
+                          (lot['qc_status'] ?? '').toString() == 'DISPATCHED') ...[
                         Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -4481,21 +4471,20 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Admin Approved! Store Manager has been notified to collect.',
+                                  'Admin Approved! Delivery Challan is authorized for direct gate dispatch.',
                                   style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF047857)),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ] else ...[
                         SizedBox(
                           width: double.infinity,
                           height: 44,
                           child: ElevatedButton.icon(
-                            icon: const Icon(Icons.warehouse_rounded, size: 18, color: Colors.white),
+                            icon: const Icon(Icons.local_shipping_rounded, size: 18, color: Colors.white),
                             label: Text(
-                              'Handover to Godown (Store Inward Ready)',
+                              'Direct Delivery Challan (Dispatch)',
                               style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
@@ -4504,27 +4493,29 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               elevation: 0,
                             ),
-                            onPressed: _isSubmitting ? null : () => _handoverToStore(lot),
+                            onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
+                          ),
+                        ),
+                      ] else ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.local_shipping_rounded, size: 18, color: Colors.white),
+                            label: Text(
+                              'Direct Delivery Challan (Dispatch)',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF047857),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
                           ),
                         ),
                       ],
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 38,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.local_shipping_rounded, size: 16, color: Color(0xFF3A3564)),
-                          label: Text(
-                            'Direct Delivery Challan (Dispatch)',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF3A3564)),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0x1A000000), width: 1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () => _showDeliveryChallanModal(prefilledLot: lot),
-                        ),
-                      ),
                     ],
                   ),
                 ),
