@@ -242,8 +242,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
               challans ( id, challan_no, brand, fabric_type )
             ''')
+            .or('mending_status.in.(PENDING_MENDING,MENDING_IN_PROGRESS,MENDING_RECEIVED),status.eq.COMPLETED')
             .order('created_at', ascending: false)
-            .limit(100);
+            .limit(250);
         allotmentList = res as List<dynamic>;
       } catch (e) {
         debugPrint('Mending lots priority query fallback: $e');
@@ -267,8 +268,9 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
               challans ( id, challan_no, brand, fabric_type )
             ''')
+            .or('mending_status.in.(PENDING_MENDING,MENDING_IN_PROGRESS,MENDING_RECEIVED),status.eq.COMPLETED')
             .order('created_at', ascending: false)
-            .limit(100);
+            .limit(250);
         allotmentList = res as List<dynamic>;
       }
 
@@ -392,7 +394,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
         final groupKey = '${chalIdStr}_$artIdStr';
 
         if (dedupedMap.containsKey(groupKey)) {
-          // Merge duplicate lot safely without doubling target quantity
+          // Merge duplicate lot safely without losing variants/quantity
           final existing = dedupedMap[groupKey]!;
           final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
           if (!secIds.contains(aId)) secIds.add(aId);
@@ -405,6 +407,38 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             }
           }
           existing['assignments'] = existingAssigns;
+
+          // Merge variants by color & size
+          final existingVars = List<Map<String, dynamic>>.from(existing['variants'] as List);
+          for (var nv in vars) {
+            final nColor = (nv['color'] ?? 'Standard').toString().trim().toUpperCase();
+            final nSize = (nv['size'] ?? 'Free').toString().trim().toUpperCase();
+            final nQty = _parseQty(nv['quantity']);
+
+            final matchIdx = existingVars.indexWhere((ev) {
+              final eColor = (ev['color'] ?? 'Standard').toString().trim().toUpperCase();
+              final eSize = (ev['size'] ?? 'Free').toString().trim().toUpperCase();
+              return eColor == nColor && eSize == nSize;
+            });
+
+            if (matchIdx != -1) {
+              existingVars[matchIdx]['quantity'] = _parseQty(existingVars[matchIdx]['quantity']) + nQty;
+            } else {
+              existingVars.add(Map<String, dynamic>.from(nv));
+            }
+          }
+          existingVars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
+          existing['variants'] = existingVars;
+
+          int newTotalTarget = 0;
+          for (var v in existingVars) {
+            newTotalTarget += _parseQty(v['quantity']);
+          }
+          if (newTotalTarget > 0) {
+            existing['target_qty'] = newTotalTarget;
+          } else {
+            existing['target_qty'] = _parseQty(existing['target_qty']) + (totalTarget > 0 ? totalTarget : _parseQty(a['target_qty']));
+          }
 
           int totalAssigned = 0;
           int totalCounted = 0;
@@ -1156,10 +1190,12 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
       });
 
       // Update allotment mending status to in-progress
+      final secIds = (_selectedLot!['secondary_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+      final allTargetIds = [lotId, ...secIds];
       try {
         await supabase.from('allotments').update({
           'mending_status': 'MENDING_IN_PROGRESS',
-        }).eq('id', lotId);
+        }).inFilter('id', allTargetIds);
       } catch (_) {}
 
       if (mounted) {

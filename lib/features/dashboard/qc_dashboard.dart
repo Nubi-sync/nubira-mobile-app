@@ -284,8 +284,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               lineman:profiles!allotments_lineman_id_fkey ( id, username ),
               challans ( id, challan_no, brand, fabric_type, vendor_id, vendor_name )
             ''')
+            .or('mending_status.in.(QC_PENDING,COUNTING_VERIFIED),qc_status.in.(QC_PENDING,INCOMING_HANDOVER,INCOMING_FROM_MENDING,QC_IN_PROGRESS,COMPLETED)')
             .order('created_at', ascending: false)
-            .limit(60)
+            .limit(200)
             .timeout(const Duration(seconds: 4), onTimeout: () => []);
         allotmentList = allotmentsRes as List<dynamic>;
       } catch (e) {
@@ -314,8 +315,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 lineman:profiles!allotments_lineman_id_fkey ( id, username ),
                 challans ( id, challan_no, brand, fabric_type )
               ''')
+              .or('mending_status.in.(QC_PENDING,COUNTING_VERIFIED),qc_status.in.(QC_PENDING,INCOMING_HANDOVER,INCOMING_FROM_MENDING,QC_IN_PROGRESS,COMPLETED)')
               .order('created_at', ascending: false)
-              .limit(60)
+              .limit(200)
               .timeout(const Duration(seconds: 4), onTimeout: () => []);
           allotmentList = fallbackRes as List<dynamic>;
         } catch (_) {
@@ -323,8 +325,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             final simpleRes = await supabase
                 .from('allotments')
                 .select('*')
+                .or('mending_status.in.(QC_PENDING,COUNTING_VERIFIED),qc_status.in.(QC_PENDING,INCOMING_HANDOVER,INCOMING_FROM_MENDING,QC_IN_PROGRESS,COMPLETED)')
                 .order('created_at', ascending: false)
-                .limit(60)
+                .limit(200)
                 .timeout(const Duration(seconds: 3), onTimeout: () => []);
             allotmentList = simpleRes as List<dynamic>;
           } catch (_) {}
