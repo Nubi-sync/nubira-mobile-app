@@ -390,12 +390,21 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
             : (priorityMap[aId] ?? 'NORMAL');
 
         final artIdStr = a['article_id']?.toString() ?? artMap?['id']?.toString() ?? '';
-        final chalIdStr = a['challan_id']?.toString() ?? chalMap?['id']?.toString() ?? '';
-        final groupKey = '${chalIdStr}_$artIdStr';
+        final artNoStr = artMap?['art_no']?.toString() ?? '';
+        final groupKey = artIdStr.isNotEmpty ? artIdStr : (artNoStr.isNotEmpty ? artNoStr : aId);
 
         if (dedupedMap.containsKey(groupKey)) {
           // Merge duplicate lot safely without losing variants/quantity
           final existing = dedupedMap[groupKey]!;
+          if (existing['challans'] == null && chalMap != null) {
+            existing['challans'] = chalMap;
+          }
+          if (existing['lineman'] == null && lineMap != null) {
+            existing['lineman'] = lineMap;
+          }
+          if (existing['handed_to_mending_by'] == null && a['handed_to_mending_by'] != null) {
+            existing['handed_to_mending_by'] = a['handed_to_mending_by'];
+          }
           final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
           if (!secIds.contains(aId)) secIds.add(aId);
           existing['secondary_ids'] = secIds;
