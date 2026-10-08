@@ -26,6 +26,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   int _incomingFilterMode = 0; // 0: My Assigned Lots, 1: All Floor Lots
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final Set<String> _expandedArticleGroups = {};
 
   // Filtered incoming lots based on supervisor custody
   List<Map<String, dynamic>> get _filteredIncomingLots {
@@ -3356,6 +3357,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
       if (!articleGroups.containsKey(groupKey)) {
         articleGroups[groupKey] = {
+          'key': groupKey,
           'art_no': artNo,
           'description': desc,
           'challan_no': challanNo,
@@ -3454,6 +3456,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
     return Column(
       children: filteredGroups.map((group) {
+        final groupKey = group['key']?.toString() ?? group['art_no']?.toString() ?? 'Article';
         final artNo = group['art_no']?.toString() ?? 'Article';
         final desc = group['description']?.toString() ?? '';
         final challanNo = group['challan_no']?.toString() ?? '';
@@ -3464,6 +3467,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         final int grpAlter = _parseQty(group['total_alter']);
         final double grpProgress = grpAssigned > 0 ? (grpChecked / grpAssigned).clamp(0.0, 1.0) : 1.0;
         final bool grpDone = grpChecked >= grpAssigned && grpAssigned > 0;
+        final bool isExpanded = _expandedArticleGroups.contains(groupKey) || _searchQuery.isNotEmpty;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -3485,287 +3489,363 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Article Master Header
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  border: const Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // 1. Article Master Header (Clickable to Expand / Collapse)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (_expandedArticleGroups.contains(groupKey)) {
+                        _expandedArticleGroups.remove(groupKey);
+                      } else {
+                        _expandedArticleGroups.add(groupKey);
+                      }
+                    });
+                  },
+                  borderRadius: isExpanded
+                      ? const BorderRadius.vertical(top: Radius.circular(15))
+                      : BorderRadius.circular(15),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: isExpanded
+                          ? const BorderRadius.vertical(top: Radius.circular(15))
+                          : BorderRadius.circular(15),
+                      border: isExpanded ? const Border(bottom: BorderSide(color: Color(0xFFE2E8F0))) : null,
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0B1220),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      'ARTICLE',
-                                      style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
-                                    ),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0B1220),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'ARTICLE',
+                                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                                        ),
+                                      ),
+                                      if (challanNo.isNotEmpty) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE2E8F0),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'CH-$challanNo',
+                                            style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  if (challanNo.isNotEmpty) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE2E8F0),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        'CH-$challanNo',
-                                        style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
-                                      ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Art #$artNo',
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                  ),
+                                  if (desc.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      desc,
+                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Art #$artNo',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                              ),
-                              if (desc.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  desc,
-                                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(width: 8),
+                            // Overall Progress Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: grpDone ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: grpDone ? const Color(0xFFA7F3D0) : const Color(0xFFBFDBFE),
                                 ),
-                              ],
-                            ],
+                              ),
+                              child: Text(
+                                grpDone ? 'All Done ✓' : '$grpChecked/$grpAssigned pcs (${(grpProgress * 100).toInt()}%)',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: grpDone ? const Color(0xFF047857) : const Color(0xFF1E40AF),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Article-level Linear Progress Bar
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: grpProgress,
+                            minHeight: 5,
+                            backgroundColor: const Color(0xFFE2E8F0),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              grpDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Overall Progress Badge
+                        const SizedBox(height: 10),
+
+                        // Article Summary 4-Metrics Bar
+                        Row(
+                          children: [
+                            _buildInspectionMetricCard('Total Assigned', '$grpAssigned pcs', const Color(0xFF0F172A)),
+                            const SizedBox(width: 6),
+                            _buildInspectionMetricCard('Total Checked', '$grpChecked pcs', const Color(0xFF3A3564)),
+                            const SizedBox(width: 6),
+                            _buildInspectionMetricCard('Total Passed', '$grpPassed pcs', const Color(0xFF047857)),
+                            const SizedBox(width: 6),
+                            _buildInspectionMetricCard('Total Alter', '$grpAlter pcs', grpAlter > 0 ? const Color(0xFFBE123C) : const Color(0xFF64748B)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Tap to expand / collapse helper banner
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: grpDone ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
+                            color: isExpanded ? const Color(0xFF3A3564).withValues(alpha: 0.06) : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: grpDone ? const Color(0xFFA7F3D0) : const Color(0xFFBFDBFE),
+                              color: isExpanded ? const Color(0xFF3A3564).withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
                             ),
                           ),
-                          child: Text(
-                            grpDone ? 'All Done ✓' : '$grpChecked/$grpAssigned pcs (${(grpProgress * 100).toInt()}%)',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: grpDone ? const Color(0xFF047857) : const Color(0xFF1E40AF),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Article-level Linear Progress Bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: grpProgress,
-                        minHeight: 5,
-                        backgroundColor: const Color(0xFFE2E8F0),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          grpDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Article Summary 4-Metrics Bar
-                    Row(
-                      children: [
-                        _buildInspectionMetricCard('Total Assigned', '$grpAssigned pcs', const Color(0xFF0F172A)),
-                        const SizedBox(width: 6),
-                        _buildInspectionMetricCard('Total Checked', '$grpChecked pcs', const Color(0xFF3A3564)),
-                        const SizedBox(width: 6),
-                        _buildInspectionMetricCard('Total Passed', '$grpPassed pcs', const Color(0xFF047857)),
-                        const SizedBox(width: 6),
-                        _buildInspectionMetricCard('Total Alter', '$grpAlter pcs', grpAlter > 0 ? const Color(0xFFBE123C) : const Color(0xFF64748B)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // 2. Section Header: Active Checkers assigned to this Article
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ASSIGNED CHECKERS (${tasks.length})',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                    Text(
-                      'Art #$artNo Queue',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 3. List of Individual Checkers under this Article
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Column(
-                  children: tasks.map((task) {
-                    final worker = task['worker_name'] ?? 'Checker';
-                    final clr = task['color'] ?? '';
-                    final sz = task['size'] ?? '';
-                    final int assigned = _parseQty(task['assigned_qty']);
-                    final int checked = _parseQty(task['checked_qty']);
-                    final int passed = _parseQty(task['passed_qty']);
-                    final int alter = _parseQty(task['alter_qty']);
-                    final isDone = task['status'] == 'DONE' || checked >= assigned;
-                    final double progress = assigned > 0 ? (checked / assigned).clamp(0.0, 1.0) : 1.0;
-
-                    return Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAF8),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: const Icon(Icons.person_outline_rounded, size: 15, color: Color(0xFF3A3564)),
+                                  Icon(
+                                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                    size: 18,
+                                    color: const Color(0xFF3A3564),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    'Checker: $worker',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                    isExpanded ? 'Hide assigned checkers' : 'Tap to view ${tasks.length} assigned checkers',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF3A3564),
+                                    ),
                                   ),
                                 ],
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFFFCF3),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: isExpanded ? const Color(0xFF3A3564) : Colors.white,
+                                  borderRadius: BorderRadius.circular(5),
                                   border: Border.all(
-                                    color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                                    color: isExpanded ? const Color(0xFF3A3564) : const Color(0xFFCBD5E1),
                                   ),
                                 ),
                                 child: Text(
-                                  isDone ? 'Completed' : 'In Progress (${(progress * 100).toInt()}%)',
+                                  isExpanded ? 'COLLAPSE' : 'EXPAND (${tasks.length})',
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: isDone ? const Color(0xFF047857) : const Color(0xFF92400E),
+                                    color: isExpanded ? Colors.white : const Color(0xFF475569),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-
-                          // Variant chip (Color & Size)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
-                            ),
-                            child: Text(
-                              '$clr ($sz)',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Mini Progress Bar
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 4,
-                              backgroundColor: const Color(0xFFE2E8F0),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // 4-stat metrics row for this checker
-                          Row(
-                            children: [
-                              _buildInspectionMetricCard('Assigned', '$assigned pcs', const Color(0xFF0F172A)),
-                              const SizedBox(width: 4),
-                              _buildInspectionMetricCard('Checked', '$checked pcs', const Color(0xFF3A3564)),
-                              const SizedBox(width: 4),
-                              _buildInspectionMetricCard('Passed', '$passed pcs', const Color(0xFF047857)),
-                              const SizedBox(width: 4),
-                              _buildInspectionMetricCard('Alter', '$alter pcs', alter > 0 ? const Color(0xFFBE123C) : const Color(0xFF64748B)),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Button: Record QC Inspection
-                          SizedBox(
-                            width: double.infinity,
-                            height: 38,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.fact_check_outlined, size: 15, color: Colors.white),
-                              label: Text('Record QC inspection', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3A3564),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                elevation: 0,
-                              ),
-                              onPressed: () => _openRecordInspectionModal(task),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
+
+              // If expanded, show assigned checkers section and checker cards
+              if (isExpanded) ...[
+                // 2. Section Header: Active Checkers assigned to this Article
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'ASSIGNED CHECKERS (${tasks.length})',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        'Art #$artNo Queue',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 3. List of Individual Checkers under this Article
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Column(
+                    children: tasks.map((task) {
+                      final worker = task['worker_name'] ?? 'Checker';
+                      final clr = task['color'] ?? '';
+                      final sz = task['size'] ?? '';
+                      final int assigned = _parseQty(task['assigned_qty']);
+                      final int checked = _parseQty(task['checked_qty']);
+                      final int passed = _parseQty(task['passed_qty']);
+                      final int alter = _parseQty(task['alter_qty']);
+                      final isDone = task['status'] == 'DONE' || checked >= assigned;
+                      final double progress = assigned > 0 ? (checked / assigned).clamp(0.0, 1.0) : 1.0;
+
+                      return Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAF8),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(7),
+                                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                                      ),
+                                      child: const Icon(Icons.person_outline_rounded, size: 15, color: Color(0xFF3A3564)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Checker: $worker',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: isDone ? const Color(0xFFECFDF5) : const Color(0xFFFFFCF3),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isDone ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    isDone ? 'Completed' : 'In Progress (${(progress * 100).toInt()}%)',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDone ? const Color(0xFF047857) : const Color(0xFF92400E),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Variant chip (Color & Size)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                              ),
+                              child: Text(
+                                '$clr ($sz)',
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Mini Progress Bar
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 4,
+                                backgroundColor: const Color(0xFFE2E8F0),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  isDone ? const Color(0xFF047857) : const Color(0xFF3A3564),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // 4-stat metrics row for this checker
+                            Row(
+                              children: [
+                                _buildInspectionMetricCard('Assigned', '$assigned pcs', const Color(0xFF0F172A)),
+                                const SizedBox(width: 4),
+                                _buildInspectionMetricCard('Checked', '$checked pcs', const Color(0xFF3A3564)),
+                                const SizedBox(width: 4),
+                                _buildInspectionMetricCard('Passed', '$passed pcs', const Color(0xFF047857)),
+                                const SizedBox(width: 4),
+                                _buildInspectionMetricCard('Alter', '$alter pcs', alter > 0 ? const Color(0xFFBE123C) : const Color(0xFF64748B)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Button: Record QC Inspection
+                            SizedBox(
+                              width: double.infinity,
+                              height: 38,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.fact_check_outlined, size: 15, color: Colors.white),
+                                label: Text('Record QC Inspection', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3A3564),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                                onPressed: () => _openRecordInspectionModal(task),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ],
           ),
         );
