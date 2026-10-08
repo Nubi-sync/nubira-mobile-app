@@ -1611,6 +1611,14 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       return (t - a).clamp(0, t > 0 ? t : 99999);
     }
 
+    // Auto-populate quantity field with remaining variant count
+    final initialLeft = getVariantRemaining(selectedColor, selectedSize);
+    if (initialLeft > 0) {
+      qtyController.text = '$initialLeft';
+    } else if (remaining > 0) {
+      qtyController.text = '$remaining';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1894,7 +1902,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               decoration: const InputDecoration(prefixIcon: Icon(Icons.palette_outlined, size: 20, color: AppTheme.steel)),
                               items: colorsList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                               onChanged: (val) {
-                                if (val != null) setDialogState(() => selectedColor = val);
+                                if (val != null) {
+                                  setDialogState(() {
+                                    selectedColor = val;
+                                    final curL = getVariantRemaining(val, selectedSize);
+                                    if (curL > 0) qtyController.text = '$curL';
+                                  });
+                                }
                               },
                             ),
                             const SizedBox(height: 14),
@@ -1926,7 +1940,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                 );
                               }).toList(),
                               onChanged: (val) {
-                                if (val != null) setDialogState(() => selectedSize = val);
+                                if (val != null) {
+                                  setDialogState(() {
+                                    selectedSize = val;
+                                    final curL = getVariantRemaining(selectedColor, val);
+                                    if (curL > 0) qtyController.text = '$curL';
+                                  });
+                                }
                               },
                             ),
                             const SizedBox(height: 12),
@@ -2010,6 +2030,15 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               decoration: InputDecoration(
                                 hintText: curTarget > 0 ? 'Max $maxLimit pcs (Size $selectedSize remaining)' : 'Max $remaining pcs',
                                 prefixIcon: const Icon(Icons.format_list_numbered_rounded, size: 20, color: AppTheme.steel),
+                                suffixIcon: curLeft > 0
+                                    ? TextButton(
+                                        onPressed: () => setDialogState(() => qtyController.text = '$curLeft'),
+                                        child: Text(
+                                          'Fill ($curLeft)',
+                                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.steel),
+                                        ),
+                                      )
+                                    : null,
                               ),
                             );
                           }(),
@@ -2136,9 +2165,16 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                               final qtyStr = qtyController.text.trim();
                               final qty = int.tryParse(qtyStr) ?? 0;
 
-                              if (name.isEmpty || qty <= 0) {
+                              if (name.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a valid worker name and quantity (>0).'), backgroundColor: AppTheme.red),
+                                  const SnackBar(content: Text('Please enter worker/tailor name.'), backgroundColor: AppTheme.red),
+                                );
+                                return;
+                              }
+
+                              if (qty <= 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter pieces quantity to assign (>0).'), backgroundColor: AppTheme.red),
                                 );
                                 return;
                               }
