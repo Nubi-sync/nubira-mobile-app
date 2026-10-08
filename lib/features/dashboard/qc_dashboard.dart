@@ -619,108 +619,135 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         final artNoStr = artMap?['art_no']?.toString() ?? '';
         final groupKey = artIdStr.isNotEmpty ? artIdStr : (artNoStr.isNotEmpty ? artNoStr : aId);
 
-        // Determine Stage
-        final bool isReady = qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= (mendingTotal > 0 ? mendingTotal : adminTotal));
-
-        if (!isReady && !isHandedOverFromMending) {
-          continue;
+        // Calculate QC assigned, checked, passed totals for this allotment/article
+        int totalAssignedForLot = 0;
+        int totalCheckedForLot = 0;
+        int totalPassedForLot = 0;
+        for (var assign in activeAssignments) {
+          final bool matchAllot = assign['allotment_id']?.toString() == aId;
+          final bool matchArt = artIdStr.isNotEmpty && assign['article_id']?.toString() == artIdStr;
+          if (matchAllot || matchArt) {
+            totalAssignedForLot += _parseQty(assign['assigned_qty']);
+            totalCheckedForLot += _parseQty(assign['checked_qty']);
+            totalPassedForLot += _parseQty(assign['passed_qty']);
+          }
         }
 
-        final targetMap = isReady ? consolidatedReady : consolidatedIncoming;
+        final effectiveTarget = mendingTotal > 0 ? mendingTotal : adminTotal;
+        final bool isFullyAssigned = effectiveTarget > 0 && totalAssignedForLot >= effectiveTarget;
+        final bool isAllTasksDone = totalAssignedForLot > 0 && totalCheckedForLot >= totalAssignedForLot;
 
-        if (targetMap.containsKey(groupKey)) {
-          final existing = targetMap[groupKey]!;
-          final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
-          if (!secIds.contains(aId)) secIds.add(aId);
-          existing['secondary_ids'] = secIds;
+        // Determine Stage
+        final bool isReady = qStatus == 'QC_COMPLETED' ||
+            qStatus == 'READY_FOR_CHALLAN' ||
+            qStatus == 'PENDING_ADMIN_APPROVAL' ||
+            qStatus == 'APPROVED_FOR_STORE' ||
+            qStatus == 'READY_FOR_STORE' ||
+            isAllTasksDone ||
+            (passedQty > 0 && passedQty >= effectiveTarget) ||
+            (totalPassedForLot > 0 && totalPassedForLot >= effectiveTarget);
 
-          if (existing['challans'] == null && chalMap != null) existing['challans'] = chalMap;
-          if (existing['lineman'] == null && lineMap != null) existing['lineman'] = lineMap;
-          if (existing['handed_to_qc_by'] == null && a['handed_to_qc_by'] != null) existing['handed_to_qc_by'] = a['handed_to_qc_by'];
-          if (existing['qc_handover_notes'] == null && a['qc_handover_notes'] != null) existing['qc_handover_notes'] = a['qc_handover_notes'];
+        void addGroupToTarget(Map<String, Map<String, dynamic>> targetMap) {
+          if (targetMap.containsKey(groupKey)) {
+            final existing = targetMap[groupKey]!;
+            final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
+            if (!secIds.contains(aId)) secIds.add(aId);
+            existing['secondary_ids'] = secIds;
 
-          // Merge enriched variants
-          final existingVars = List<Map<String, dynamic>>.from(existing['variants'] as List);
-          for (var ev in enrichedVars) {
-            final eColor = (ev['color'] ?? 'Default').toString().trim().toUpperCase();
-            final eSize = (ev['size'] ?? 'Free').toString().trim().toUpperCase();
-            final matchIdx = existingVars.indexWhere((x) {
-              final xColor = (x['color'] ?? 'Default').toString().trim().toUpperCase();
-              final xSize = (x['size'] ?? 'Free').toString().trim().toUpperCase();
-              return xColor == eColor && xSize == eSize;
-            });
+            if (existing['challans'] == null && chalMap != null) existing['challans'] = chalMap;
+            if (existing['lineman'] == null && lineMap != null) existing['lineman'] = lineMap;
+            if (existing['handed_to_qc_by'] == null && a['handed_to_qc_by'] != null) existing['handed_to_qc_by'] = a['handed_to_qc_by'];
+            if (existing['qc_handover_notes'] == null && a['qc_handover_notes'] != null) existing['qc_handover_notes'] = a['qc_handover_notes'];
 
-            if (matchIdx != -1) {
-              existingVars[matchIdx]['order_qty'] = _parseQty(existingVars[matchIdx]['order_qty']) + _parseQty(ev['order_qty']);
-              existingVars[matchIdx]['allotted_qty'] = _parseQty(existingVars[matchIdx]['allotted_qty']) + _parseQty(ev['allotted_qty']);
-              existingVars[matchIdx]['mending_qty'] = _parseQty(existingVars[matchIdx]['mending_qty']) + _parseQty(ev['mending_qty']);
-              existingVars[matchIdx]['qc_passed_qty'] = _parseQty(existingVars[matchIdx]['qc_passed_qty']) + _parseQty(ev['qc_passed_qty']);
-            } else {
-              existingVars.add(Map<String, dynamic>.from(ev));
+            // Merge enriched variants
+            final existingVars = List<Map<String, dynamic>>.from(existing['variants'] as List);
+            for (var ev in enrichedVars) {
+              final eColor = (ev['color'] ?? 'Default').toString().trim().toUpperCase();
+              final eSize = (ev['size'] ?? 'Free').toString().trim().toUpperCase();
+              final matchIdx = existingVars.indexWhere((x) {
+                final xColor = (x['color'] ?? 'Default').toString().trim().toUpperCase();
+                final xSize = (x['size'] ?? 'Free').toString().trim().toUpperCase();
+                return xColor == eColor && xSize == eSize;
+              });
+
+              if (matchIdx != -1) {
+                existingVars[matchIdx]['order_qty'] = _parseQty(existingVars[matchIdx]['order_qty']) + _parseQty(ev['order_qty']);
+                existingVars[matchIdx]['allotted_qty'] = _parseQty(existingVars[matchIdx]['allotted_qty']) + _parseQty(ev['allotted_qty']);
+                existingVars[matchIdx]['mending_qty'] = _parseQty(existingVars[matchIdx]['mending_qty']) + _parseQty(ev['mending_qty']);
+                existingVars[matchIdx]['qc_passed_qty'] = _parseQty(existingVars[matchIdx]['qc_passed_qty']) + _parseQty(ev['qc_passed_qty']);
+              } else {
+                existingVars.add(Map<String, dynamic>.from(ev));
+              }
             }
+            existingVars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
+            existing['variants'] = existingVars;
+
+            int aggAdminTotal = 0;
+            int aggMendingTotal = 0;
+            int aggQcPass = 0;
+            for (var ev in existingVars) {
+              aggAdminTotal += _parseQty(ev['allotted_qty']);
+              aggMendingTotal += _parseQty(ev['mending_qty']);
+              aggQcPass += _parseQty(ev['qc_passed_qty']);
+            }
+
+            existing['size_matrix'] = existingVars.map((v) => {
+              'size': v['size'],
+              'color': v['color'],
+              'allotted_qty': _parseQty(v['allotted_qty']),
+              'mending_qty': _parseQty(v['mending_qty']),
+              'qc_passed_qty': _parseQty(v['qc_passed_qty']),
+              'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
+            }).toList();
+
+            existing['admin_total_qty'] = aggAdminTotal > 0 ? aggAdminTotal : (_parseQty(existing['admin_total_qty']) + adminTotal);
+            existing['mending_received_qty'] = aggMendingTotal > 0 ? aggMendingTotal : (_parseQty(existing['mending_received_qty']) + mendingTotal);
+            existing['qc_total_passed'] = aggQcPass > 0 ? aggQcPass : (_parseQty(existing['qc_total_passed']) + passedQty);
+            existing['qc_total_alter'] = _parseQty(existing['qc_total_alter']) + alterQty;
+            existing['variance'] = _parseQty(existing['mending_received_qty']) - _parseQty(existing['admin_total_qty']);
+
+            if (lotPriority == 'CRITICAL' || (lotPriority == 'RUSH' && existing['priority'] != 'CRITICAL')) {
+              existing['priority'] = lotPriority;
+            }
+          } else {
+            final List<Map<String, dynamic>> sizeMatrix = enrichedVars.map((v) => {
+              'size': v['size'],
+              'color': v['color'],
+              'allotted_qty': _parseQty(v['allotted_qty']),
+              'mending_qty': _parseQty(v['mending_qty']),
+              'qc_passed_qty': _parseQty(v['qc_passed_qty']),
+              'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
+            }).toList();
+
+            int aggAdmin = 0;
+            int aggMend = 0;
+            for (var v in enrichedVars) {
+              aggAdmin += _parseQty(v['allotted_qty']);
+              aggMend += _parseQty(v['mending_qty']);
+            }
+
+            targetMap[groupKey] = {
+              ...Map<String, dynamic>.from(a),
+              'secondary_ids': <String>[],
+              'priority': lotPriority,
+              'article': artMap,
+              'challans': chalMap,
+              'lineman': lineMap,
+              'variants': enrichedVars,
+              'size_matrix': sizeMatrix,
+              'admin_total_qty': aggAdmin > 0 ? aggAdmin : adminTotal,
+              'mending_received_qty': aggMend > 0 ? aggMend : mendingTotal,
+              'qc_total_passed': totalPassedForLot > 0 ? totalPassedForLot : passedQty,
+              'qc_total_alter': alterQty,
+              'variance': (aggMend > 0 ? aggMend : mendingTotal) - (aggAdmin > 0 ? aggAdmin : adminTotal),
+            };
           }
-          existingVars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
-          existing['variants'] = existingVars;
+        }
 
-          int aggAdminTotal = 0;
-          int aggMendingTotal = 0;
-          int aggQcPass = 0;
-          for (var ev in existingVars) {
-            aggAdminTotal += _parseQty(ev['allotted_qty']);
-            aggMendingTotal += _parseQty(ev['mending_qty']);
-            aggQcPass += _parseQty(ev['qc_passed_qty']);
-          }
-
-          existing['size_matrix'] = existingVars.map((v) => {
-            'size': v['size'],
-            'color': v['color'],
-            'allotted_qty': _parseQty(v['allotted_qty']),
-            'mending_qty': _parseQty(v['mending_qty']),
-            'qc_passed_qty': _parseQty(v['qc_passed_qty']),
-            'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
-          }).toList();
-
-          existing['admin_total_qty'] = aggAdminTotal > 0 ? aggAdminTotal : (_parseQty(existing['admin_total_qty']) + adminTotal);
-          existing['mending_received_qty'] = aggMendingTotal > 0 ? aggMendingTotal : (_parseQty(existing['mending_received_qty']) + mendingTotal);
-          existing['qc_total_passed'] = aggQcPass > 0 ? aggQcPass : (_parseQty(existing['qc_total_passed']) + passedQty);
-          existing['qc_total_alter'] = _parseQty(existing['qc_total_alter']) + alterQty;
-          existing['variance'] = _parseQty(existing['mending_received_qty']) - _parseQty(existing['admin_total_qty']);
-
-          if (lotPriority == 'CRITICAL' || (lotPriority == 'RUSH' && existing['priority'] != 'CRITICAL')) {
-            existing['priority'] = lotPriority;
-          }
-        } else {
-          final List<Map<String, dynamic>> sizeMatrix = enrichedVars.map((v) => {
-            'size': v['size'],
-            'color': v['color'],
-            'allotted_qty': _parseQty(v['allotted_qty']),
-            'mending_qty': _parseQty(v['mending_qty']),
-            'qc_passed_qty': _parseQty(v['qc_passed_qty']),
-            'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
-          }).toList();
-
-          int aggAdmin = 0;
-          int aggMend = 0;
-          for (var v in enrichedVars) {
-            aggAdmin += _parseQty(v['allotted_qty']);
-            aggMend += _parseQty(v['mending_qty']);
-          }
-
-          targetMap[groupKey] = {
-            ...Map<String, dynamic>.from(a),
-            'secondary_ids': <String>[],
-            'priority': lotPriority,
-            'article': artMap,
-            'challans': chalMap,
-            'lineman': lineMap,
-            'variants': enrichedVars,
-            'size_matrix': sizeMatrix,
-            'admin_total_qty': aggAdmin > 0 ? aggAdmin : adminTotal,
-            'mending_received_qty': aggMend > 0 ? aggMend : mendingTotal,
-            'qc_total_passed': passedQty,
-            'qc_total_alter': alterQty,
-            'variance': (aggMend > 0 ? aggMend : mendingTotal) - (aggAdmin > 0 ? aggAdmin : adminTotal),
-          };
+        if (isReady) {
+          addGroupToTarget(consolidatedReady);
+        } else if (isHandedOverFromMending && !isFullyAssigned) {
+          addGroupToTarget(consolidatedIncoming);
         }
       }
 
