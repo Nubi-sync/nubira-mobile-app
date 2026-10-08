@@ -489,9 +489,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       // ----------------------------------------------------
       // PROCESS INCOMING LOTS (From Mending Floor) & READY FOR CHALLAN
       // ----------------------------------------------------
-      final List<Map<String, dynamic>> incoming = [];
-      final List<Map<String, dynamic>> readyForChallan = [];
-      int totalMendingReceived = 0;
+      final Map<String, Map<String, dynamic>> consolidatedIncoming = {};
+      final Map<String, Map<String, dynamic>> consolidatedReady = {};
 
       for (var a in allotmentList) {
         final aId = a['id'].toString();
@@ -530,7 +529,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         }
 
         // Build Size Audit Breakdown (Admin Allotted vs Mending Counted vs QC Passed)
-        final List<Map<String, dynamic>> sizeMatrix = [];
         final List<Map<String, dynamic>> enrichedVars = [];
 
         for (var v in vars) {
@@ -585,17 +583,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             qcPassCount = passedQty;
           }
 
-          sizeMatrix.add({
-            'size': sz,
-            'color': clr,
-            'allotted_qty': allotQty,
-            'mending_qty': mCount,
-            'qc_passed_qty': qcPassCount,
-            'diff': mCount - allotQty,
-          });
-
           enrichedVars.add({
             ...Map<String, dynamic>.from(v),
+            'size': sz,
+            'color': clr,
             'order_qty': allotQty,
             'allotted_qty': allotQty,
             'mending_qty': mCount,
@@ -611,29 +602,122 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
         }
         if (lotPriority.isEmpty) lotPriority = 'NORMAL';
 
-        final lotData = {
-          ...Map<String, dynamic>.from(a),
-          'priority': lotPriority,
-          'variants': enrichedVars,
-          'size_matrix': sizeMatrix,
-          'admin_total_qty': adminTotal,
-          'mending_received_qty': mendingTotal,
-          'qc_total_passed': passedQty,
-          'qc_total_alter': alterQty,
-          'variance': mendingTotal - adminTotal,
-        };
+        final artMap = _asMap(a['article']) ?? _asMap(a['articles']);
+        final chalMap = _asMap(a['challans']) ?? _asMap(a['challan']);
+        final lineMap = _asMap(a['lineman']) ?? _asMap(a['profiles']);
 
-        // Determine Stage:
-        // 1. Ready for Challan: If QC checking is completed, pending admin approval, approved for store, or passed pieces >= target_qty
-        if (qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= (mendingTotal > 0 ? mendingTotal : adminTotal))) {
-          readyForChallan.add(lotData);
+        final artIdStr = a['article_id']?.toString() ?? artMap?['id']?.toString() ?? '';
+        final artNoStr = artMap?['art_no']?.toString() ?? '';
+        final groupKey = artIdStr.isNotEmpty ? artIdStr : (artNoStr.isNotEmpty ? artNoStr : aId);
+
+        // Determine Stage
+        final bool isReady = qStatus == 'QC_COMPLETED' || qStatus == 'READY_FOR_CHALLAN' || qStatus == 'PENDING_ADMIN_APPROVAL' || qStatus == 'APPROVED_FOR_STORE' || qStatus == 'READY_FOR_STORE' || (passedQty > 0 && passedQty >= (mendingTotal > 0 ? mendingTotal : adminTotal));
+
+        if (!isReady && !isHandedOverFromMending) {
+          continue;
         }
-        // 2. Incoming from Mending Floor: ONLY if explicitly verified & handed over from Mending
-        else if (isHandedOverFromMending) {
-          incoming.add(lotData);
-          totalMendingReceived += mendingTotal;
+
+        final targetMap = isReady ? consolidatedReady : consolidatedIncoming;
+
+        if (targetMap.containsKey(groupKey)) {
+          final existing = targetMap[groupKey]!;
+          final List<String> secIds = List<String>.from(existing['secondary_ids'] ?? []);
+          if (!secIds.contains(aId)) secIds.add(aId);
+          existing['secondary_ids'] = secIds;
+
+          if (existing['challans'] == null && chalMap != null) existing['challans'] = chalMap;
+          if (existing['lineman'] == null && lineMap != null) existing['lineman'] = lineMap;
+          if (existing['handed_to_qc_by'] == null && a['handed_to_qc_by'] != null) existing['handed_to_qc_by'] = a['handed_to_qc_by'];
+          if (existing['qc_handover_notes'] == null && a['qc_handover_notes'] != null) existing['qc_handover_notes'] = a['qc_handover_notes'];
+
+          // Merge enriched variants
+          final existingVars = List<Map<String, dynamic>>.from(existing['variants'] as List);
+          for (var ev in enrichedVars) {
+            final eColor = (ev['color'] ?? 'Default').toString().trim().toUpperCase();
+            final eSize = (ev['size'] ?? 'Free').toString().trim().toUpperCase();
+            final matchIdx = existingVars.indexWhere((x) {
+              final xColor = (x['color'] ?? 'Default').toString().trim().toUpperCase();
+              final xSize = (x['size'] ?? 'Free').toString().trim().toUpperCase();
+              return xColor == eColor && xSize == eSize;
+            });
+
+            if (matchIdx != -1) {
+              existingVars[matchIdx]['order_qty'] = _parseQty(existingVars[matchIdx]['order_qty']) + _parseQty(ev['order_qty']);
+              existingVars[matchIdx]['allotted_qty'] = _parseQty(existingVars[matchIdx]['allotted_qty']) + _parseQty(ev['allotted_qty']);
+              existingVars[matchIdx]['mending_qty'] = _parseQty(existingVars[matchIdx]['mending_qty']) + _parseQty(ev['mending_qty']);
+              existingVars[matchIdx]['qc_passed_qty'] = _parseQty(existingVars[matchIdx]['qc_passed_qty']) + _parseQty(ev['qc_passed_qty']);
+            } else {
+              existingVars.add(Map<String, dynamic>.from(ev));
+            }
+          }
+          existingVars.sort((x, y) => _naturalSizeCompare((x['size'] ?? '').toString(), (y['size'] ?? '').toString()));
+          existing['variants'] = existingVars;
+
+          int aggAdminTotal = 0;
+          int aggMendingTotal = 0;
+          int aggQcPass = 0;
+          for (var ev in existingVars) {
+            aggAdminTotal += _parseQty(ev['allotted_qty']);
+            aggMendingTotal += _parseQty(ev['mending_qty']);
+            aggQcPass += _parseQty(ev['qc_passed_qty']);
+          }
+
+          existing['size_matrix'] = existingVars.map((v) => {
+            'size': v['size'],
+            'color': v['color'],
+            'allotted_qty': _parseQty(v['allotted_qty']),
+            'mending_qty': _parseQty(v['mending_qty']),
+            'qc_passed_qty': _parseQty(v['qc_passed_qty']),
+            'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
+          }).toList();
+
+          existing['admin_total_qty'] = aggAdminTotal > 0 ? aggAdminTotal : (_parseQty(existing['admin_total_qty']) + adminTotal);
+          existing['mending_received_qty'] = aggMendingTotal > 0 ? aggMendingTotal : (_parseQty(existing['mending_received_qty']) + mendingTotal);
+          existing['qc_total_passed'] = aggQcPass > 0 ? aggQcPass : (_parseQty(existing['qc_total_passed']) + passedQty);
+          existing['qc_total_alter'] = _parseQty(existing['qc_total_alter']) + alterQty;
+          existing['variance'] = _parseQty(existing['mending_received_qty']) - _parseQty(existing['admin_total_qty']);
+
+          if (lotPriority == 'CRITICAL' || (lotPriority == 'RUSH' && existing['priority'] != 'CRITICAL')) {
+            existing['priority'] = lotPriority;
+          }
+        } else {
+          final List<Map<String, dynamic>> sizeMatrix = enrichedVars.map((v) => {
+            'size': v['size'],
+            'color': v['color'],
+            'allotted_qty': _parseQty(v['allotted_qty']),
+            'mending_qty': _parseQty(v['mending_qty']),
+            'qc_passed_qty': _parseQty(v['qc_passed_qty']),
+            'diff': _parseQty(v['mending_qty']) - _parseQty(v['allotted_qty']),
+          }).toList();
+
+          int aggAdmin = 0;
+          int aggMend = 0;
+          for (var v in enrichedVars) {
+            aggAdmin += _parseQty(v['allotted_qty']);
+            aggMend += _parseQty(v['mending_qty']);
+          }
+
+          targetMap[groupKey] = {
+            ...Map<String, dynamic>.from(a),
+            'secondary_ids': <String>[],
+            'priority': lotPriority,
+            'article': artMap,
+            'challans': chalMap,
+            'lineman': lineMap,
+            'variants': enrichedVars,
+            'size_matrix': sizeMatrix,
+            'admin_total_qty': aggAdmin > 0 ? aggAdmin : adminTotal,
+            'mending_received_qty': aggMend > 0 ? aggMend : mendingTotal,
+            'qc_total_passed': passedQty,
+            'qc_total_alter': alterQty,
+            'variance': (aggMend > 0 ? aggMend : mendingTotal) - (aggAdmin > 0 ? aggAdmin : adminTotal),
+          };
         }
       }
+
+      final List<Map<String, dynamic>> incoming = consolidatedIncoming.values.toList();
+      final List<Map<String, dynamic>> readyForChallan = consolidatedReady.values.toList();
+      int totalMendingReceived = incoming.fold(0, (sum, item) => sum + _parseQty(item['mending_received_qty']));
 
       // Universal Priority Queue Sorting: CRITICAL (Rank 0) -> RUSH (Rank 1) -> NORMAL (Rank 2)
       incoming.sort((a, b) {
@@ -1315,11 +1399,13 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       await _saveLocalAssignments(currentList);
 
       // 3. Update allotment status to IN_QC_CHECKING
+      final secIds = (lot['secondary_ids'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+      final allTargetIds = [lot['id'].toString(), ...secIds];
       try {
         await supabase.from('allotments').update({
           'qc_status': 'IN_QC_CHECKING',
           'qc_received_at': DateTime.now().toUtc().toIso8601String(),
-        }).eq('id', lot['id']);
+        }).inFilter('id', allTargetIds);
       } catch (_) {}
 
       if (mounted) {
