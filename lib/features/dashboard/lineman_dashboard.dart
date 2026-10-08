@@ -5128,8 +5128,8 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                         Flexible(
                                           child: Text(
                                             isStoreIssued
-                                                ? 'Receive Materials to Assign ($remaining left)'
-                                                : 'Awaiting Store Issue ($remaining left)',
+                                                ? 'Receive Materials ($remaining left)'
+                                                : 'Awaiting Store Issue',
                                             style: GoogleFonts.publicSans(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,
@@ -5181,51 +5181,61 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
   }
 
   Widget _telemetryCell(String label, String value, String unit, Color color) {
+    final double numFontSize = value.length >= 6 ? 13.5 : (value.length >= 5 ? 15.0 : 17.5);
     return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  color: color,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 1.5),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontWeight: FontWeight.w800,
+                      fontSize: numFontSize,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    unit,
+                    style: GoogleFonts.publicSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.inkSoft,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 2),
-              Text(
-                unit,
+            ),
+            const SizedBox(height: 3),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label.toUpperCase(),
                 style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                   color: AppTheme.inkSoft,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label.toUpperCase(),
-            style: GoogleFonts.publicSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: AppTheme.inkSoft,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _cellDivider() {
-    return Container(width: 1, height: 32, color: AppTheme.border);
+    return Container(width: 1, height: 26, color: AppTheme.border);
   }
 
   // ==========================================
