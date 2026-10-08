@@ -713,7 +713,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
             existing['admin_total_qty'] = aggAdminTotal > 0 ? aggAdminTotal : (_parseQty(existing['admin_total_qty']) + adminTotal);
             existing['mending_received_qty'] = aggMendingTotal > 0 ? aggMendingTotal : (_parseQty(existing['mending_received_qty']) + mendingTotal);
-            existing['qc_total_passed'] = aggQcPass > 0 ? aggQcPass : (_parseQty(existing['qc_total_passed']) + passedQty);
+            int resolvedQcPass = totalPassedForLot > 0 
+                ? totalPassedForLot 
+                : (aggQcPass > 0 ? aggQcPass : (_parseQty(existing['qc_total_passed']) + passedQty));
+            existing['qc_total_passed'] = resolvedQcPass > 0 ? resolvedQcPass : aggAdminTotal;
             existing['qc_total_alter'] = _parseQty(existing['qc_total_alter']) + alterQty;
             existing['variance'] = _parseQty(existing['mending_received_qty']) - _parseQty(existing['admin_total_qty']);
 
@@ -732,10 +735,16 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
             int aggAdmin = 0;
             int aggMend = 0;
+            int aggQcPass = 0;
             for (var v in enrichedVars) {
               aggAdmin += _parseQty(v['allotted_qty']);
               aggMend += _parseQty(v['mending_qty']);
+              aggQcPass += _parseQty(v['qc_passed_qty']);
             }
+
+            int resolvedQcPass = totalPassedForLot > 0 
+                ? totalPassedForLot 
+                : (aggQcPass > 0 ? aggQcPass : (passedQty > 0 ? passedQty : aggAdmin));
 
             targetMap[groupKey] = {
               ...Map<String, dynamic>.from(a),
@@ -748,7 +757,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               'size_matrix': sizeMatrix,
               'admin_total_qty': aggAdmin > 0 ? aggAdmin : adminTotal,
               'mending_received_qty': aggMend > 0 ? aggMend : mendingTotal,
-              'qc_total_passed': totalPassedForLot > 0 ? totalPassedForLot : passedQty,
+              'qc_total_passed': resolvedQcPass > 0 ? resolvedQcPass : (aggMend > 0 ? aggMend : adminTotal),
               'qc_total_alter': alterQty,
               'variance': (aggMend > 0 ? aggMend : mendingTotal) - (aggAdmin > 0 ? aggAdmin : adminTotal),
             };
@@ -830,7 +839,17 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
       int readyPieces = 0;
       for (var r in readyForChallan) {
-        readyPieces += _parseQty(r['qc_total_passed'], _parseQty(r['mending_received_qty']));
+        int p = _parseQty(r['qc_total_passed']);
+        if (p == 0) {
+          final vars = (r['variants'] as List<dynamic>?) ?? [];
+          for (var v in vars) {
+            p += _parseQty(v['qc_passed_qty'], _parseQty(v['allotted_qty']));
+          }
+        }
+        if (p == 0) {
+          p = _parseQty(r['mending_received_qty'], _parseQty(r['admin_total_qty']));
+        }
+        readyPieces += p;
       }
 
       if (mounted) {
