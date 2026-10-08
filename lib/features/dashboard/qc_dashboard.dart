@@ -581,8 +581,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           for (var qc in activeAssignments) {
             final qAllotId = qc['allotment_id']?.toString() ?? '';
             final qArtId = qc['article_id']?.toString() ?? '';
-            final bool idMatch = (qAllotId.isNotEmpty && qAllotId == aId) ||
-                (artIdStr.isNotEmpty && qArtId.isNotEmpty && qArtId == artIdStr);
+            final bool idMatch = qAllotId.isNotEmpty
+                ? (qAllotId == aId)
+                : (artIdStr.isNotEmpty && qArtId.isNotEmpty && qArtId == artIdStr);
 
             if (idMatch) {
               final qSize = (qc['size'] ?? '').toString().trim().toUpperCase();
@@ -4523,27 +4524,6 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
             ),
           );
         }),
-
-        // Create General Delivery Challan Modal Action
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: Color(0xFF3A3564)),
-              label: Text(
-                'Open General 8-Column Delivery Challan Sheet',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3A3564)),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF3A3564), width: 1.2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () => _showDeliveryChallanModal(),
-            ),
-          ),
-        ),
       ],
     );
   }
