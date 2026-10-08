@@ -5289,7 +5289,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
         ),
         child: Center(
           child: Text(
-            'No workers assigned today. Tap "Assign next batch" above to add one.',
+            'No workers assigned today. Tap "Assign Batch" on any style above to add one.',
             textAlign: TextAlign.center,
             style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft, height: 1.4),
           ),
@@ -5307,101 +5307,222 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
       }).toList();
     }
 
-    final pending = list.where((a) => a['status'] == 'PENDING').toList();
-    final inProgress = list.where((a) => a['status'] == 'IN_PROGRESS').toList();
-    final done = list.where((a) => a['status'] == 'DONE').toList();
+    if (list.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Center(
+          child: Text(
+            'No batches found matching "$_liveSearchQuery"',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.inkSoft),
+          ),
+        ),
+      );
+    }
 
-    final bool hasOverdue = pending.any((a) => _isOverdue(a['assigned_at']));
+    // Group by Article No
+    final Map<String, List<dynamic>> articleGroups = {};
+    for (var a in list) {
+      final artNo = (a['articles']?['art_no'] ?? 'Other').toString();
+      articleGroups.putIfAbsent(artNo, () => []).add(a);
+    }
 
     int globalIndex = 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. PENDING GROUP
-        if (pending.isNotEmpty) ...[
-          _AnimatedFadeSlide(
-            delayMs: 250,
-            child: _buildGroupHeader(
-              'Pending (${pending.length})',
-              hasOverdue ? AppTheme.red : AppTheme.amber,
-              hasOverdue ? Icons.warning_amber_rounded : Icons.pending_rounded,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...pending.map((a) {
-            globalIndex++;
-            return _AnimatedFadeSlide(
-              delayMs: 250 + (globalIndex * 40),
-              child: _buildDismissibleAssignmentCard(a),
-            );
-          }),
-          const SizedBox(height: 16),
-        ],
+      children: articleGroups.entries.map((entry) {
+        final artNo = entry.key;
+        final items = entry.value;
 
-        // 2. IN PROGRESS GROUP
-        if (inProgress.isNotEmpty) ...[
-          _AnimatedFadeSlide(
-            delayMs: 280,
-            child: _buildGroupHeader(
-              'In Progress (${inProgress.length})',
-              AppTheme.steel,
-              Icons.timelapse_rounded,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...inProgress.map((a) {
-            globalIndex++;
-            return _AnimatedFadeSlide(
-              delayMs: 280 + (globalIndex * 40),
-              child: _buildDismissibleAssignmentCard(a),
-            );
-          }),
-          const SizedBox(height: 16),
-        ],
+        final totalQty = items.fold<int>(0, (sum, it) => sum + parseQty(it['assigned_qty']));
+        final pending = items.where((it) => it['status'] == 'PENDING').toList();
+        final inProgress = items.where((it) => it['status'] == 'IN_PROGRESS').toList();
+        final done = items.where((it) => it['status'] == 'DONE').toList();
 
-        // 3. COMPLETED (DONE) GROUP - 70% OPACITY
-        if (done.isNotEmpty) ...[
-          _AnimatedFadeSlide(
-            delayMs: 320,
-            child: _buildGroupHeader(
-              'Completed Today (${done.length})',
-              AppTheme.green,
-              Icons.check_circle_rounded,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...done.map((a) {
-            globalIndex++;
-            return _AnimatedFadeSlide(
-              delayMs: 320 + (globalIndex * 40),
-              child: Opacity(
-                opacity: 0.7,
-                child: _buildAssignmentCard(a),
+        final hasOverdue = pending.any((it) => _isOverdue(it['assigned_at']));
+        final firstItem = items.first;
+        final description = (firstItem['articles']?['description'] ?? '').toString();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 18),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            );
-          }),
-        ],
-      ],
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Article Header Card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  border: Border(bottom: BorderSide(color: AppTheme.border)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.steelMist,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.checkroom_rounded, size: 18, color: AppTheme.steel),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Art No: $artNo',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.steelDark,
+                                ),
+                              ),
+                              if (hasOverdue) ...[
+                                const SizedBox(width: 6),
+                                const Icon(Icons.warning_amber_rounded, size: 14, color: AppTheme.red),
+                              ],
+                            ],
+                          ),
+                          Text(
+                            description.isNotEmpty
+                                ? '$description • ${items.length} Batch${items.length > 1 ? 'es' : ''} ($totalQty pcs)'
+                                : '${items.length} Batch${items.length > 1 ? 'es' : ''} ($totalQty pcs)',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.inkSoft,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Summary status tags
+                    Wrap(
+                      spacing: 4,
+                      children: [
+                        if (pending.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: hasOverdue ? const Color(0xFFFFF1F2) : const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: hasOverdue ? const Color(0xFFFECDD3) : const Color(0xFFFDE68A)),
+                            ),
+                            child: Text(
+                              '${pending.length} Pending',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: hasOverdue ? const Color(0xFFE11D48) : const Color(0xFFB45309),
+                              ),
+                            ),
+                          ),
+                        if (inProgress.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Text(
+                              '${inProgress.length} In-Prog',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.steel,
+                              ),
+                            ),
+                          ),
+                        if (done.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.greenMist,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppTheme.green.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              '${done.length} Done',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.green,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Workers list inside this article
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 2),
+                child: Column(
+                  children: [
+                    // 1. Pending Workers
+                    ...pending.map((a) {
+                      globalIndex++;
+                      return _AnimatedFadeSlide(
+                        delayMs: 150 + (globalIndex * 25),
+                        child: _buildDismissibleAssignmentCard(a),
+                      );
+                    }),
+                    // 2. In Progress Workers
+                    ...inProgress.map((a) {
+                      globalIndex++;
+                      return _AnimatedFadeSlide(
+                        delayMs: 150 + (globalIndex * 25),
+                        child: _buildDismissibleAssignmentCard(a),
+                      );
+                    }),
+                    // 3. Completed Workers
+                    ...done.map((a) {
+                      globalIndex++;
+                      return _AnimatedFadeSlide(
+                        delayMs: 150 + (globalIndex * 25),
+                        child: Opacity(
+                          opacity: 0.7,
+                          child: _buildAssignmentCard(a),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildGroupHeader(String title, Color color, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: GoogleFonts.publicSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   // ==========================================
   // INTERACTIVE SWIPE-TO-COMPLETE CARD
