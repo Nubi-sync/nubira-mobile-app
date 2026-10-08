@@ -894,24 +894,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Image.asset(
-                            'assets/images/icon.png',
-                            height: 32,
-                            width: 32,
+                            'assets/images/zigza_web_logo.png',
+                            height: 28,
                             fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 8),
-                          Image.asset(
-                            'assets/images/z_i_g_z_a.png',
-                            height: 18,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Text(
-                              'ZIGZA',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0F172A),
-                                letterSpacing: 1.5,
-                              ),
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'assets/images/zigza_new_logo.png',
+                              height: 28,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ],

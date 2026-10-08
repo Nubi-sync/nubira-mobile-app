@@ -4590,36 +4590,13 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/icon.png',
-              height: 28,
-              width: 28,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Image.asset(
-                'assets/images/new_icon.png',
-                height: 28,
-                width: 28,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Image.asset(
-              'assets/images/z_i_g_z_a.png',
-              height: 20,
+              'assets/images/zigza_web_logo.png',
+              height: 24,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Image.asset(
                 'assets/images/zigza_new_logo.png',
-                height: 20,
+                height: 24,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  'ZIGZA',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF0B1220),
-                    letterSpacing: 0.5,
-                  ),
-                ),
               ),
             ),
           ],
