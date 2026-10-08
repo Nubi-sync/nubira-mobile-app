@@ -24,6 +24,8 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
   bool _isSubmitting = false;
   int _selectedTabIndex = 0; // 0: Incoming Lots, 1: QC Checking, 2: Alterations, 3: Ready for Challan
   int _incomingFilterMode = 0; // 0: My Assigned Lots, 1: All Floor Lots
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Filtered incoming lots based on supervisor custody
   List<Map<String, dynamic>> get _filteredIncomingLots {
@@ -171,6 +173,12 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     super.initState();
     _loadRecentWorkers();
     _fetchQcData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadRecentWorkers() async {
@@ -2138,7 +2146,11 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
                             // 5. Horizontal Pill Tabs
                             _buildHorizontalTabs(),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
+
+                            // Search bar for real-time section filtering
+                            _buildSearchBar(),
+                            const SizedBox(height: 8),
 
                             // 6. Tab Content
                             if (_selectedTabIndex == 0)
@@ -2657,6 +2669,62 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
     );
   }
 
+  // SEARCH BAR FOR REAL-TIME FILTERING ACROSS ALL SECTIONS
+  Widget _buildSearchBar() {
+    String hintText;
+    switch (_selectedTabIndex) {
+      case 0:
+        hintText = 'Search incoming lots (Art No, Challan, Lineman)...';
+        break;
+      case 1:
+        hintText = 'Search in-progress (Art No, Checker, Color, Size)...';
+        break;
+      case 2:
+        hintText = 'Search alterations (Art No, Defect, Lineman)...';
+        break;
+      default:
+        hintText = 'Search ready articles (Art No, Brand, Challan)...';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+        style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+          prefixIcon: const Icon(Icons.search_rounded, size: 19, color: Color(0xFF64748B)),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF94A3B8)),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          border: InputBorder.none,
+          isDense: true,
+        ),
+      ),
+    );
+  }
+
   // TWO-BUTTON FILTER ROW (MY ASSIGNED VS ALL FLOOR)
   Widget _buildIncomingFilterBar() {
     final currentUserId = supabase.auth.currentUser?.id;
@@ -2844,7 +2912,25 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       );
     }
 
-    final displayLots = _filteredIncomingLots;
+    final displayLots = _filteredIncomingLots.where((lot) {
+      if (_searchQuery.isEmpty) return true;
+      final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+      final artNo = (art?['art_no'] ?? lot['art_no'] ?? '').toString().toLowerCase();
+      final desc = (art?['description'] ?? lot['description'] ?? '').toString().toLowerCase();
+      final chal = _asMap(lot['challans']);
+      final challanNo = (chal?['challan_no'] ?? lot['challan_no'] ?? '').toString().toLowerCase();
+      final brand = (chal?['brand'] ?? lot['brand'] ?? '').toString().toLowerCase();
+      final lm = _asMap(lot['lineman']);
+      final lineman = (lm?['username'] ?? '').toString().toLowerCase();
+      final handedBy = (lot['handed_to_qc_by'] ?? '').toString().toLowerCase();
+
+      return artNo.contains(_searchQuery) ||
+          desc.contains(_searchQuery) ||
+          challanNo.contains(_searchQuery) ||
+          brand.contains(_searchQuery) ||
+          lineman.contains(_searchQuery) ||
+          handedBy.contains(_searchQuery);
+    }).toList();
 
     return Column(
       children: [
@@ -2858,9 +2944,28 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Center(
-              child: Text(
-                'No lots assigned to your queue in this filter.',
-                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+              child: Column(
+                children: [
+                  const Icon(Icons.search_off_rounded, size: 32, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 8),
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No incoming lots match "$_searchQuery"'
+                        : 'No lots assigned to your queue in this filter.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+                  ),
+                  if (_searchQuery.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      child: Text('Clear search', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                    ),
+                  ],
+                ],
               ),
             ),
           )
@@ -3279,8 +3384,76 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
 
     final groups = articleGroups.values.toList();
 
+    final filteredGroups = groups.where((group) {
+      if (_searchQuery.isEmpty) return true;
+      final artNo = (group['art_no'] ?? '').toString().toLowerCase();
+      final desc = (group['description'] ?? '').toString().toLowerCase();
+      final challanNo = (group['challan_no'] ?? '').toString().toLowerCase();
+      final tasks = group['tasks'] as List<Map<String, dynamic>>;
+
+      final bool matchesArt = artNo.contains(_searchQuery) || desc.contains(_searchQuery) || challanNo.contains(_searchQuery);
+      final bool matchesTask = tasks.any((t) {
+        final worker = (t['worker_name'] ?? '').toString().toLowerCase();
+        final clr = (t['color'] ?? '').toString().toLowerCase();
+        final sz = (t['size'] ?? '').toString().toLowerCase();
+        return worker.contains(_searchQuery) || clr.contains(_searchQuery) || sz.contains(_searchQuery);
+      });
+
+      return matchesArt || matchesTask;
+    }).map((group) {
+      if (_searchQuery.isEmpty) return group;
+      final artNo = (group['art_no'] ?? '').toString().toLowerCase();
+      final desc = (group['description'] ?? '').toString().toLowerCase();
+      final challanNo = (group['challan_no'] ?? '').toString().toLowerCase();
+      if (artNo.contains(_searchQuery) || desc.contains(_searchQuery) || challanNo.contains(_searchQuery)) {
+        return group;
+      }
+      final tasks = (group['tasks'] as List<Map<String, dynamic>>).where((t) {
+        final worker = (t['worker_name'] ?? '').toString().toLowerCase();
+        final clr = (t['color'] ?? '').toString().toLowerCase();
+        final sz = (t['size'] ?? '').toString().toLowerCase();
+        return worker.contains(_searchQuery) || clr.contains(_searchQuery) || sz.contains(_searchQuery);
+      }).toList();
+      return {
+        ...group,
+        'tasks': tasks,
+      };
+    }).toList();
+
+    if (filteredGroups.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.search_off_rounded, size: 32, color: Color(0xFF94A3B8)),
+              const SizedBox(height: 8),
+              Text(
+                'No in-progress checking tasks match "$_searchQuery"',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                child: Text('Clear search', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
-      children: groups.map((group) {
+      children: filteredGroups.map((group) {
         final artNo = group['art_no']?.toString() ?? 'Article';
         final desc = group['description']?.toString() ?? '';
         final challanNo = group['challan_no']?.toString() ?? '';
@@ -3661,8 +3834,63 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       );
     }
 
+    final displayAlterations = _activeAlterations.where((alt) {
+      if (_searchQuery.isEmpty) return true;
+      final art = _asMap(alt['article']) ?? _asMap(alt['articles']);
+      final artNo = (art?['art_no'] ?? alt['art_no'] ?? '').toString().toLowerCase();
+      final lm = _asMap(alt['lineman']);
+      final lineman = (lm?['username'] ?? '').toString().toLowerCase();
+      final defect = (alt['defect_type'] ?? '').toString().toLowerCase();
+      final remarks = (alt['remarks'] ?? '').toString().toLowerCase();
+      final color = (alt['color'] ?? '').toString().toLowerCase();
+      final size = (alt['size'] ?? '').toString().toLowerCase();
+
+      return artNo.contains(_searchQuery) ||
+          lineman.contains(_searchQuery) ||
+          defect.contains(_searchQuery) ||
+          remarks.contains(_searchQuery) ||
+          color.contains(_searchQuery) ||
+          size.contains(_searchQuery);
+    }).toList();
+
+    if (displayAlterations.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.search_off_rounded, size: 32, color: Color(0xFF94A3B8)),
+              const SizedBox(height: 8),
+              Text(
+                _searchQuery.isNotEmpty
+                    ? 'No alterations match "$_searchQuery"'
+                    : 'No pending alterations found.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+              ),
+              if (_searchQuery.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                  child: Text('Clear search', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
-      children: _activeAlterations.map((alt) {
+      children: displayAlterations.map((alt) {
         final art = _asMap(alt['article']) ?? _asMap(alt['articles']);
         final artNo = art?['art_no']?.toString() ?? alt['art_no']?.toString() ?? 'Article';
         final lm = _asMap(alt['lineman']);
@@ -3804,6 +4032,23 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
       );
     }
 
+    final displayReady = _readyForChallanLots.where((lot) {
+      if (_searchQuery.isEmpty) return true;
+      final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
+      final artNo = (art?['art_no'] ?? lot['art_no'] ?? '').toString().toLowerCase();
+      final desc = (art?['description'] ?? lot['description'] ?? '').toString().toLowerCase();
+      final chal = _asMap(lot['challans']);
+      final challanNo = (chal?['challan_no'] ?? lot['challan_no'] ?? '').toString().toLowerCase();
+      final brand = (chal?['brand'] ?? lot['brand'] ?? '').toString().toLowerCase();
+      final vendorName = (lot['vendor_name'] ?? chal?['vendor_name'] ?? '').toString().toLowerCase();
+
+      return artNo.contains(_searchQuery) ||
+          desc.contains(_searchQuery) ||
+          challanNo.contains(_searchQuery) ||
+          brand.contains(_searchQuery) ||
+          vendorName.contains(_searchQuery);
+    }).toList();
+
     return Column(
       children: [
         // Top Info Box
@@ -3829,8 +4074,39 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
           ),
         ),
 
-        // List of Ready Articles
-        ..._readyForChallanLots.map((lot) {
+        if (displayReady.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.search_off_rounded, size: 32, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No ready articles match "$_searchQuery"',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                    child: Text('Clear search', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          // List of Ready Articles
+          ...displayReady.map((lot) {
           final art = _asMap(lot['article']) ?? _asMap(lot['articles']);
           final artNo = art?['art_no']?.toString() ?? lot['art_no']?.toString() ?? 'Article';
           final desc = art?['description']?.toString() ?? lot['description']?.toString() ?? '';
