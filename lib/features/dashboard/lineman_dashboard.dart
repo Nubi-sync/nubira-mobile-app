@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../admin/widgets/admin_drawer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/parser_utils.dart';
+import 'models/garment_operation.dart';
 import '../../../main.dart';
 
 class LinemanDashboard extends ConsumerStatefulWidget {
@@ -1691,6 +1692,22 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
     String selectedColor = colorsList.isNotEmpty ? colorsList.first : 'Default';
     String selectedSize = sizesList.isNotEmpty ? sizesList.first : 'Standard';
+
+    // Auto-detect garment type from Article info for ground-level efficiency
+    final articleDesc = ((allotment['articles']?['description'] ?? allotment['articles']?['art_no'] ?? '') as String).toUpperCase();
+    final prodOrderNo = (allotment['production_order_no'] ?? '').toString().toUpperCase();
+    final challanNotes = (allotment['notes'] ?? '').toString().toUpperCase();
+    final isLowerGarment = articleDesc.contains('PANT') || articleDesc.contains('LOWER') || articleDesc.contains('BOTTOM') || articleDesc.contains('PYJAMA') ||
+                           prodOrderNo.contains('PANT') || prodOrderNo.contains('LOWER') || prodOrderNo.contains('BOTTOM') ||
+                           challanNotes.contains('PANT') || challanNotes.contains('LOWER');
+
+    String opMode = 'SINGLE'; // 'SINGLE' or 'COMBO'
+    String opCategory = isLowerGarment ? 'LOWER' : 'UPPER'; // 'UPPER' or 'LOWER'
+    String opMachineFilter = 'ALL'; // 'ALL', 'OL', 'FL', 'LK', 'PREP'
+    String opSearchQuery = '';
+    GarmentOperationItem selectedOperation = isLowerGarment
+        ? GarmentOperationItem.allGarmentOperations.firstWhere((o) => o.category == 'LOWER' && o.machineCode == 'OL')
+        : GarmentOperationItem.allGarmentOperations.firstWhere((o) => o.category == 'UPPER' && o.machineCode == 'OL');
     String selectedMachineStation = 'OVERLOCK';
     bool isBorrowedWorker = false;
     String borrowedFromLine = 'Line 2 (Suman)';
@@ -1732,7 +1749,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
           final mediaQuery = MediaQuery.of(context);
           return Container(
             constraints: BoxConstraints(
-              maxHeight: mediaQuery.size.height * 0.88,
+              maxHeight: mediaQuery.size.height * 0.92,
             ),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -2148,70 +2165,462 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                           }(),
                           const SizedBox(height: 14),
 
-                          // Machine Operation / Station Selector (Harmonious Brand Design - No Rainbow!)
-                          Text('MACHINE OPERATION / STITCHING STAGE', style: GoogleFonts.publicSans(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: AppTheme.inkSoft)),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              {
-                                'key': 'OVERLOCK',
-                                'label': 'Overlock (4-Th)',
-                                'icon': Icons.tune_rounded,
-                              },
-                              {
-                                'key': 'FIVE_THREAD',
-                                'label': '5-Thread Safety',
-                                'icon': Icons.linear_scale_rounded,
-                              },
-                              {
-                                'key': 'FLATLOCK',
-                                'label': 'Flatlock / Rib',
-                                'icon': Icons.view_headline_rounded,
-                              },
-                              {
-                                'key': 'LOCKING',
-                                'label': 'Locking / Single',
-                                'icon': Icons.lock_outline_rounded,
-                              },
-                            ].map((st) {
-                              final isSel = selectedMachineStation == st['key'];
-                              return GestureDetector(
-                                onTap: () => setDialogState(() => selectedMachineStation = st['key'] as String),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? AppTheme.steelMist : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isSel ? AppTheme.steel : AppTheme.border,
-                                      width: isSel ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        st['icon'] as IconData,
-                                        size: 14,
-                                        color: isSel ? AppTheme.steel : AppTheme.inkFaint,
+                          // Machine Operation / Station Selector (Professional Ground-Level Garment Operation Master)
+                          () {
+                            final filteredOps = GarmentOperationItem.allGarmentOperations.where((op) {
+                              if (opMode == 'SINGLE') {
+                                if (op.isCombo) return false;
+                                if (op.category != opCategory) return false;
+                                if (opMachineFilter != 'ALL' && op.machineCode != opMachineFilter) return false;
+                              } else {
+                                if (!op.isCombo) return false;
+                                if (opMachineFilter != 'ALL' && op.machineCode != opMachineFilter) return false;
+                              }
+
+                              if (opSearchQuery.isNotEmpty) {
+                                final q = opSearchQuery;
+                                final matchName = op.name.toLowerCase().contains(q);
+                                final matchCode = op.machineCode.toLowerCase().contains(q);
+                                if (!matchName && !matchCode) return false;
+                              }
+                              return true;
+                            }).toList();
+
+                            final singleCount = GarmentOperationItem.allGarmentOperations.where((o) => !o.isCombo).length;
+                            final comboCount = GarmentOperationItem.allGarmentOperations.where((o) => o.isCombo).length;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'MACHINE OPERATION / STITCHING STAGE',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.2,
+                                        color: AppTheme.inkSoft,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        st['label'] as String,
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: opMode == 'COMBO' ? const Color(0xFFEEF2FF) : AppTheme.steelMist,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        opMode == 'COMBO' ? '$comboCount Combos' : '$singleCount Operations',
                                         style: TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                                          color: isSel ? AppTheme.steel : AppTheme.ink,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: opMode == 'COMBO' ? const Color(0xFF4F46E5) : AppTheme.steel,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Mode Toggle: Single vs Combo Packages
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.all(3),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setDialogState(() {
+                                            opMode = 'SINGLE';
+                                            opMachineFilter = 'ALL';
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 7),
+                                            decoration: BoxDecoration(
+                                              color: opMode == 'SINGLE' ? Colors.white : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: opMode == 'SINGLE'
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.05),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(0, 1),
+                                                      )
+                                                    ]
+                                                  : null,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.tune_rounded,
+                                                  size: 14,
+                                                  color: opMode == 'SINGLE' ? AppTheme.ink : AppTheme.inkSoft,
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  'Single Operations',
+                                                  style: TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight: opMode == 'SINGLE' ? FontWeight.bold : FontWeight.w600,
+                                                    color: opMode == 'SINGLE' ? AppTheme.ink : AppTheme.inkSoft,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setDialogState(() {
+                                            opMode = 'COMBO';
+                                            opMachineFilter = 'ALL';
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 7),
+                                            decoration: BoxDecoration(
+                                              color: opMode == 'COMBO' ? Colors.white : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: opMode == 'COMBO'
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.05),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(0, 1),
+                                                      )
+                                                    ]
+                                                  : null,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.layers_rounded,
+                                                  size: 14,
+                                                  color: opMode == 'COMBO' ? const Color(0xFF4F46E5) : AppTheme.inkSoft,
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  'Combo Packages',
+                                                  style: TextStyle(
+                                                    fontSize: 11.5,
+                                                    fontWeight: opMode == 'COMBO' ? FontWeight.bold : FontWeight.w600,
+                                                    color: opMode == 'COMBO' ? const Color(0xFF4F46E5) : AppTheme.inkSoft,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
+
+                                // Garment Type Switcher (only for Single operations)
+                                if (opMode == 'SINGLE') ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setDialogState(() {
+                                            opCategory = 'UPPER';
+                                            opMachineFilter = 'ALL';
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                            decoration: BoxDecoration(
+                                              color: opCategory == 'UPPER' ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: opCategory == 'UPPER' ? const Color(0xFF2563EB) : AppTheme.border,
+                                                width: opCategory == 'UPPER' ? 1.5 : 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Text('👕', style: TextStyle(fontSize: 11.5)),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  'T-Shirt & Upper',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: opCategory == 'UPPER' ? FontWeight.bold : FontWeight.w500,
+                                                    color: opCategory == 'UPPER' ? const Color(0xFF1E40AF) : AppTheme.ink,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => setDialogState(() {
+                                            opCategory = 'LOWER';
+                                            opMachineFilter = 'ALL';
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                            decoration: BoxDecoration(
+                                              color: opCategory == 'LOWER' ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: opCategory == 'LOWER' ? const Color(0xFF059669) : AppTheme.border,
+                                                width: opCategory == 'LOWER' ? 1.5 : 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const Text('👖', style: TextStyle(fontSize: 11.5)),
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  'Pants & Lower',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: opCategory == 'LOWER' ? FontWeight.bold : FontWeight.w500,
+                                                    color: opCategory == 'LOWER' ? const Color(0xFF065F46) : AppTheme.ink,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+
+                                const SizedBox(height: 8),
+
+                                // Machine Filter Horizontal Strip
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      if (opMode == 'SINGLE')
+                                        ...[
+                                          {'code': 'ALL', 'label': 'All'},
+                                          {'code': 'OL', 'label': 'Overlock (OL)'},
+                                          {'code': 'FL', 'label': 'Flatlock (FL)'},
+                                          {'code': 'LK', 'label': 'Lockstitch (LK)'},
+                                          if (opCategory == 'LOWER') {'code': 'PREP', 'label': 'Prep / Table'},
+                                        ].map((m) {
+                                          final isSel = opMachineFilter == m['code'];
+                                          return Padding(
+                                            padding: const EdgeInsets.only(right: 6),
+                                            child: GestureDetector(
+                                              onTap: () => setDialogState(() => opMachineFilter = m['code'] as String),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                                decoration: BoxDecoration(
+                                                  color: isSel ? AppTheme.ink : const Color(0xFFF8FAFC),
+                                                  borderRadius: BorderRadius.circular(7),
+                                                  border: Border.all(color: isSel ? AppTheme.ink : AppTheme.border),
+                                                ),
+                                                child: Text(
+                                                  m['label'] as String,
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                                    color: isSel ? Colors.white : AppTheme.inkSoft,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        })
+                                      else
+                                        ...[
+                                          {'code': 'ALL', 'label': 'All Combos (16)'},
+                                          {'code': 'OL', 'label': 'Overlock Combos (9)'},
+                                          {'code': 'LK', 'label': 'Lockstitch Combos (7)'},
+                                        ].map((m) {
+                                          final isSel = opMachineFilter == m['code'];
+                                          return Padding(
+                                            padding: const EdgeInsets.only(right: 6),
+                                            child: GestureDetector(
+                                              onTap: () => setDialogState(() => opMachineFilter = m['code'] as String),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                                decoration: BoxDecoration(
+                                                  color: isSel ? const Color(0xFF4F46E5) : const Color(0xFFF8FAFC),
+                                                  borderRadius: BorderRadius.circular(7),
+                                                  border: Border.all(color: isSel ? const Color(0xFF4F46E5) : AppTheme.border),
+                                                ),
+                                                child: Text(
+                                                  m['label'] as String,
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                                    color: isSel ? Colors.white : AppTheme.inkSoft,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // Quick Search Bar
+                                Container(
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppTheme.border),
+                                  ),
+                                  child: TextField(
+                                    onChanged: (val) => setDialogState(() => opSearchQuery = val.trim().toLowerCase()),
+                                    style: const TextStyle(fontSize: 12),
+                                    decoration: const InputDecoration(
+                                      hintText: 'Search operations (e.g. Shoulder, Rib, Elastic)...',
+                                      hintStyle: TextStyle(fontSize: 11, color: AppTheme.inkFaint),
+                                      prefixIcon: Icon(Icons.search_rounded, size: 16, color: AppTheme.inkFaint),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(vertical: 9),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // Active Selection Banner
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
+                                  decoration: BoxDecoration(
+                                    color: selectedOperation.color.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: selectedOperation.color.withValues(alpha: 0.35)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.check_circle_rounded, size: 14, color: selectedOperation.color),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.ink),
+                                            children: [
+                                              const TextSpan(text: 'Selected: ', style: TextStyle(fontWeight: FontWeight.w500, color: AppTheme.inkSoft)),
+                                              TextSpan(
+                                                text: '[${selectedOperation.badgeText}]',
+                                                style: TextStyle(fontWeight: FontWeight.bold, color: selectedOperation.color),
+                                              ),
+                                              TextSpan(
+                                                text: ' (${selectedOperation.isCombo ? 'Bundle Combo' : selectedOperation.machineTitle})',
+                                                style: const TextStyle(fontSize: 10, color: AppTheme.inkFaint),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // Operations Chips Grid (Wrap inside max-height scrollable container)
+                                Container(
+                                  constraints: const BoxConstraints(maxHeight: 160),
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppTheme.border),
+                                  ),
+                                  child: filteredOps.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            'No matching operations found',
+                                            style: TextStyle(fontSize: 11.5, color: AppTheme.inkFaint, fontStyle: FontStyle.italic),
+                                          ),
+                                        )
+                                      : SingleChildScrollView(
+                                          child: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: filteredOps.map((op) {
+                                              final isSel = selectedOperation.name == op.name && selectedOperation.machineCode == op.machineCode;
+                                              final opCol = op.color;
+                                              return GestureDetector(
+                                                onTap: () => setDialogState(() {
+                                                  selectedOperation = op;
+                                                  if (op.machineCode == 'OL') {
+                                                    selectedMachineStation = 'OVERLOCK';
+                                                  } else if (op.machineCode == 'FL') {
+                                                    selectedMachineStation = 'FLATLOCK';
+                                                  } else if (op.machineCode == 'LK') {
+                                                    selectedMachineStation = 'LOCKING';
+                                                  } else if (op.machineCode == 'PREP') {
+                                                    selectedMachineStation = 'PREP';
+                                                  }
+                                                }),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                                  decoration: BoxDecoration(
+                                                    color: isSel ? opCol.withValues(alpha: 0.12) : Colors.white,
+                                                    borderRadius: BorderRadius.circular(7),
+                                                    border: Border.all(
+                                                      color: isSel ? opCol : AppTheme.border,
+                                                      width: isSel ? 1.5 : 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                        decoration: BoxDecoration(
+                                                          color: isSel ? opCol : opCol.withValues(alpha: 0.12),
+                                                          borderRadius: BorderRadius.circular(3.5),
+                                                        ),
+                                                        child: Text(
+                                                          op.isCombo ? 'COMBO' : op.machineCode,
+                                                          style: TextStyle(
+                                                            fontSize: 8.5,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: isSel ? Colors.white : opCol,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 5),
+                                                      Text(
+                                                        op.name,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                                          color: isSel ? AppTheme.ink : AppTheme.inkSoft,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                ),
+                              ],
+                            );
+                          }(),
                           const SizedBox(height: 14),
 
                           // Notes
@@ -2292,7 +2701,7 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
 
                               Navigator.pop(ctx);
                               final noteText = notesController.text.trim();
-                              String fullNotes = '[$selectedMachineStation]';
+                              String fullNotes = '[$selectedMachineStation | ${selectedOperation.badgeText}]';
                               if (isBorrowedWorker) {
                                 fullNotes += ' [BORROWED: $borrowedFromLine]';
                               }
@@ -5728,7 +6137,12 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                         Color? machineColor;
                         IconData? machineIcon;
 
-                        if (notesStr.contains('[OVERLOCK]')) {
+                        final parsedOp = GarmentOperationItem.parseFromNotes(notesStr);
+                        if (parsedOp != null) {
+                          machineLabel = parsedOp.badgeText;
+                          machineColor = parsedOp.color;
+                          machineIcon = parsedOp.icon;
+                        } else if (notesStr.contains('[OVERLOCK]')) {
                           machineLabel = 'Overlock (4-Th)';
                           machineColor = const Color(0xFF2563EB);
                           machineIcon = Icons.tune_rounded;
@@ -5744,6 +6158,10 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                           machineLabel = 'Locking / Single';
                           machineColor = const Color(0xFF059669);
                           machineIcon = Icons.lock_outline_rounded;
+                        } else if (notesStr.contains('[PREP]')) {
+                          machineLabel = 'Prep / Other';
+                          machineColor = const Color(0xFF7C3AED);
+                          machineIcon = Icons.content_cut_rounded;
                         } else {
                           // Default machine tag if unspecified
                           machineLabel = 'Overlock (4-Th)';
