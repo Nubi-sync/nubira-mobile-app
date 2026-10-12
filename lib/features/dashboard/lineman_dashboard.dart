@@ -2346,8 +2346,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                             child: Row(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                const Text('👕', style: TextStyle(fontSize: 11.5)),
-                                                const SizedBox(width: 5),
+                                                Image.asset(
+                                                  'assets/images/ic_upper_tshirt.png',
+                                                  width: 16,
+                                                  height: 16,
+                                                  errorBuilder: (_, __, ___) => const Icon(Icons.checkroom_rounded, size: 16, color: Color(0xFF2563EB)),
+                                                ),
+                                                const SizedBox(width: 6),
                                                 Text(
                                                   'T-Shirt & Upper',
                                                   style: TextStyle(
@@ -2381,8 +2386,13 @@ class _LinemanDashboardState extends ConsumerState<LinemanDashboard>
                                             child: Row(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                const Text('👖', style: TextStyle(fontSize: 11.5)),
-                                                const SizedBox(width: 5),
+                                                Image.asset(
+                                                  'assets/images/ic_lower_pants.png',
+                                                  width: 16,
+                                                  height: 16,
+                                                  errorBuilder: (_, __, ___) => const Icon(Icons.straighten_rounded, size: 16, color: Color(0xFF059669)),
+                                                ),
+                                                const SizedBox(width: 6),
                                                 Text(
                                                   'Pants & Lower',
                                                   style: TextStyle(
