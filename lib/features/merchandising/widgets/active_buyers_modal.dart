@@ -116,12 +116,15 @@ class ActiveBuyersModal extends ConsumerWidget {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          b.buyerName,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: isSelected ? Colors.white : const Color(0xFF0B1220),
+                                        Flexible(
+                                          child: Text(
+                                            b.buyerName,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected ? Colors.white : const Color(0xFF0B1220),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         if (b.linkedArticleNumber != null && b.linkedArticleNumber!.isNotEmpty) ...[

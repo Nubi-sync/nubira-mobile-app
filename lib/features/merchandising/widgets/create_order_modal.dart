@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
 
@@ -519,7 +520,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF9B9A94),
+                      color: AppTheme.faintInk,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -539,7 +540,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1C1C1A),
+              color: AppTheme.headingObsidian,
             ),
           ),
           const Divider(height: 18, color: Color(0x1A000000)),
@@ -591,7 +592,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   flex: 2,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF6B6A65),
+                      foregroundColor: AppTheme.bodyInk,
                       backgroundColor: Colors.white,
                       side: const BorderSide(color: Color(0x1A000000)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -610,7 +611,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   flex: 2,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF6B6A65),
+                      foregroundColor: AppTheme.bodyInk,
                       backgroundColor: Colors.white,
                       side: const BorderSide(color: Color(0x1A000000)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -760,7 +761,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         value: 'buyer_${b.id}',
                         child: Text(
                           '${b.buyerName} — Art #${b.linkedArticleNumber} (${NumberFormat.decimalPattern('en_IN').format(b.contractedVolume)} Pcs @ ₹$priceStr)',
-                          style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                          style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                           overflow: TextOverflow.ellipsis,
                         ),
                       );
@@ -813,7 +814,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 8.5, color: const Color(0xFF9B9A94))),
+                      Text('Auto', style: GoogleFonts.jetBrainsMono(fontSize: 8.5, color: AppTheme.faintInk)),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -875,11 +876,11 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     child: isReadOnlyArticle
                         ? Text(
                             _brandController.text.isNotEmpty ? _brandController.text : 'Hollypop',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                           )
                         : TextFormField(
                             controller: _brandController,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                             decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none, hintText: 'e.g. Hollypop'),
                           ),
                   ),
@@ -917,7 +918,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       else
                         const Icon(Icons.checkroom_outlined, size: 28, color: Color(0xFF9B9A94)),
                       const SizedBox(height: 4),
-                      Text('FRONT VIEW CAD', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                      Text('FRONT VIEW CAD', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                     ],
                   ),
                 ),
@@ -946,7 +947,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       else
                         const Icon(Icons.checkroom_outlined, size: 28, color: Color(0xFF9B9A94)),
                       const SizedBox(height: 4),
-                      Text('BACK VIEW CAD', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                      Text('BACK VIEW CAD', style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                     ],
                   ),
                 ),
@@ -978,11 +979,11 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     child: isReadOnlyArticle
                         ? Text(
                             _styleRefController.text.isNotEmpty ? _styleRefController.text : 'DEMO-101-03',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C1A)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian),
                           )
                         : TextFormField(
                             controller: _styleRefController,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C1A)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian),
                             decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.zero, border: InputBorder.none, hintText: 'e.g. DEMO-101-03'),
                           ),
                   ),
@@ -1024,7 +1025,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         children: [
                           Text(
                             DateFormat('MM/dd/yyyy').format(_exFactoryDate),
-                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                           ),
                           const Icon(Icons.calendar_today_outlined, size: 15, color: Color(0xFF6B6A65)),
                         ],
@@ -1093,7 +1094,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       style: GoogleFonts.publicSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                         height: 1.25,
                       ),
                       maxLines: 2,
@@ -1132,7 +1133,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         value: _currency,
                         isDense: true,
                         isExpanded: true,
-                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                        style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                         items: const [
                           DropdownMenuItem(value: 'INR', child: Text('INR (₹)')),
                           DropdownMenuItem(value: 'USD', child: Text('USD (\$)')),
@@ -1165,7 +1166,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                       ),
                       decoration: _inputDecoration(
                         hint: '650.00',
@@ -1228,14 +1229,14 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
             children: [
               Text(
                 'Estimated Commercial Revenue:',
-                style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF6B6A65)),
+                style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.bodyInk),
               ),
               Text(
                 '$curSym${NumberFormat.currency(symbol: '', decimalDigits: 2, locale: 'en_IN').format(revenue).trim()}',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1C1C1A),
+                  color: AppTheme.headingObsidian,
                 ),
               ),
             ],
@@ -1326,25 +1327,25 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         DataColumn(
                           label: Text(
                             'COMPONENT',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.bodyInk),
                           ),
                         ),
                         DataColumn(
                           label: Text(
                             'ITEM DESCRIPTION',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.bodyInk),
                           ),
                         ),
                         DataColumn(
                           label: Text(
                             'CONSUMPTION',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.bodyInk),
                           ),
                         ),
                         DataColumn(
                           label: Text(
                             'PLACEMENT',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.bodyInk),
                           ),
                         ),
                       ],
@@ -1354,7 +1355,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                             DataCell(
                               Text(
                                 mat.componentType,
-                                style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                               ),
                             ),
                             DataCell(
@@ -1372,7 +1373,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                             DataCell(
                               Text(
                                 mat.placement.isNotEmpty ? mat.placement : 'Full Garment',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: const Color(0xFF6B6A65)),
+                                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.bodyInk),
                               ),
                             ),
                           ],
@@ -1387,7 +1388,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   child: Center(
                     child: Text(
                       'Standard garment trim and material specifications applied.',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: const Color(0xFF9B9A94)),
+                      style: GoogleFonts.publicSans(fontSize: 11.5, fontStyle: FontStyle.italic, color: AppTheme.faintInk),
                     ),
                   ),
                 ),
@@ -1410,11 +1411,11 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Target Contract', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    Text('Target Contract', style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.bodyInk, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 2),
                     Text(
                       '${NumberFormat.decimalPattern('en_IN').format(_targetQty)} pcs',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                     ),
                   ],
                 ),
@@ -1425,7 +1426,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Matrix Sum', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                    Text('Matrix Sum', style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.bodyInk, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 2),
                     Text(
                       '${NumberFormat.decimalPattern('en_IN').format(_currentMatrixSum)} pcs',
@@ -1443,7 +1444,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Delta', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF6B6A65), fontWeight: FontWeight.w500)),
+                  Text('Delta', style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.bodyInk, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 2),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1476,7 +1477,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 height: 40,
                 child: TextField(
                   controller: _newColorController,
-                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF1C1C1A)),
+                  style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.headingObsidian),
                   decoration: _inputDecoration(
                     hint: 'Add Colorway...',
                   ),
@@ -1542,20 +1543,20 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
                 columns: [
                   DataColumn(
-                    label: Text('COLORWAY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                    label: Text('COLORWAY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                   ),
                   ...kDefaultSizes.map(
                     (s) => DataColumn(
                       label: SizedBox(
                         width: 48,
                         child: Center(
-                          child: Text(s, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                          child: Text(s, style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                         ),
                       ),
                     ),
                   ),
                   DataColumn(
-                    label: Text('ROW TOTAL', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
+                    label: Text('ROW TOTAL', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                   ),
                   if (_colors.length > 1)
                     const DataColumn(label: SizedBox(width: 24)),
@@ -1569,7 +1570,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       DataCell(
                         Text(
                           color,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                         ),
                       ),
                       ...kDefaultSizes.map((size) {
@@ -1581,7 +1582,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                               initialValue: val.toString(),
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+                              style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                               decoration: InputDecoration(
                                 isDense: true,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -1631,13 +1632,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
     );
   }
 
-  TextStyle get _labelStyle => GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF9B9A94), letterSpacing: 0.3);
-  TextStyle get _chipLabelStyle => GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF9B9A94), letterSpacing: 0.3);
+  TextStyle get _labelStyle => GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: AppTheme.faintInk, letterSpacing: 0.3);
+  TextStyle get _chipLabelStyle => GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: AppTheme.faintInk, letterSpacing: 0.3);
 
   InputDecoration _inputDecoration({String hint = '', bool isReadOnly = false}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFB6B4AC)),
+      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.faintInk),
       filled: true,
       fillColor: isReadOnly ? const Color(0xFFF1F5F9) : Colors.white,
       isDense: true,

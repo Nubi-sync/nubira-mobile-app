@@ -507,7 +507,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
                               decoration: BoxDecoration(
                                 color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(9999),
+                                borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: isLaunching ? const Color(0xFF0B1220) : const Color(0x26000000),
                                 ),
