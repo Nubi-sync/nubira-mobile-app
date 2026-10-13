@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -54,7 +55,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/design/team'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -63,7 +64,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
         onRefresh: () async {
           await ref.read(designerProvider.notifier).fetchStudioData();
         },
-        color: const Color(0xFF332B6B),
+        color: AppTheme.brandRoyalBlue,
         backgroundColor: Colors.white,
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -125,7 +126,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF8),
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0x1A000000)),
                 boxShadow: const [
@@ -146,13 +147,13 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFDF0DC),
+                          color: AppTheme.mintSurface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0x18000000)),
                         ),
                         child: const Icon(
                           Icons.people_alt_outlined,
-                          color: Color(0xFF332B6B),
+                          color: AppTheme.headingObsidian,
                           size: 22,
                         ),
                       ),
@@ -225,10 +226,10 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
+                        backgroundColor: AppTheme.brandRoyalBlue,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
@@ -267,14 +268,14 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                   icon: Icons.people_outline_rounded,
                   label: 'Total Roster',
                   value: '${allMembers.length}',
-                  iconColor: const Color(0xFF332B6B),
+                  iconColor: AppTheme.brandRoyalBlue,
                 ),
                 _buildStatCard(
                   tag: 'AUTH',
                   icon: Icons.phone_android_rounded,
                   label: 'Phone Logins',
                   value: '${activeMembers.length}',
-                  iconColor: const Color(0xFF332B6B),
+                  iconColor: AppTheme.brandRoyalBlue,
                 ),
               ],
             ),
@@ -320,18 +321,18 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                   MaterialPageRoute(builder: (_) => const DesignStudioScreen()),
                 );
               },
-              icon: const Icon(Icons.dashboard_outlined, size: 16, color: Color(0xFF332B6B)),
+              icon: const Icon(Icons.dashboard_outlined, size: 16, color: AppTheme.brandRoyalBlue),
               label: Text(
                 'View Studio Dashboard',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF332B6B),
+                  color: AppTheme.brandRoyalBlue,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(40),
-                backgroundColor: const Color(0xFFFAFAF8),
+                backgroundColor: AppTheme.cardSurface,
                 side: const BorderSide(color: Color(0x1A000000)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -361,7 +362,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF332B6B),
+                        color: AppTheme.brandRoyalBlue,
                       ),
                     ),
                   ),
@@ -373,7 +374,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(color: Color(0xFF332B6B)),
+                  child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue),
                 ),
               )
             else if (filteredMembers.isEmpty)
@@ -401,7 +402,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAF8),
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [
@@ -489,7 +490,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAF8),
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [
@@ -551,14 +552,14 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.tag_rounded, size: 11, color: Color(0xFF332B6B)),
+                            const Icon(Icons.tag_rounded, size: 11, color: AppTheme.brandRoyalBlue),
                             const SizedBox(width: 2),
                             Text(
                               member.safeUsername,
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF332B6B),
+                                color: AppTheme.brandRoyalBlue,
                               ),
                             ),
                           ],
@@ -692,7 +693,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
                   ? '${member.designerName} status updated to ${nextStatus.toLowerCase()}'
                   : 'Failed to update designer status',
             ),
-            backgroundColor: ok ? const Color(0xFF332B6B) : const Color(0xFFDC2626),
+            backgroundColor: ok ? AppTheme.badgeEmeraldText : const Color(0xFFDC2626),
           ),
         );
       }
@@ -735,7 +736,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
           messenger.showSnackBar(
             SnackBar(
               content: Text(ok ? '${member.designerName} removed from team' : 'Failed to remove designer'),
-              backgroundColor: ok ? const Color(0xFF332B6B) : const Color(0xFFDC2626),
+              backgroundColor: ok ? AppTheme.badgeEmeraldText : const Color(0xFFDC2626),
             ),
           );
         }
@@ -755,11 +756,11 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF8),
+              color: AppTheme.cardSurface,
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0x1A000000)),
             ),
-            child: const Icon(Icons.people_outline_rounded, color: Color(0xFF332B6B), size: 26),
+            child: const Icon(Icons.people_outline_rounded, color: AppTheme.brandRoyalBlue, size: 26),
           ),
           const SizedBox(height: 14),
           Text(
@@ -784,7 +785,7 @@ class _DesignTeamManagementScreenState extends ConsumerState<DesignTeamManagemen
             icon: const Icon(Icons.person_add_alt_1_rounded, size: 16, color: Colors.white),
             label: const Text('Onboard Designer'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF332B6B),
+              backgroundColor: AppTheme.brandRoyalBlue,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1006,7 +1007,7 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
@@ -1037,19 +1038,19 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                   prefixIcon: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     margin: const EdgeInsets.only(right: 10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFAFAF8),
-                      borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
-                      border: Border(right: BorderSide(color: Color(0xFFDAD9D3))),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bgCanvas,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                      border: const Border(right: BorderSide(color: Color(0xFFDAD9D3))),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.phone_outlined, size: 14, color: Color(0xFF332B6B)),
+                        const Icon(Icons.phone_outlined, size: 14, color: AppTheme.brandRoyalBlue),
                         const SizedBox(width: 4),
                         Text(
                           '+91',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.brandRoyalBlue),
                         ),
                       ],
                     ),
@@ -1060,7 +1061,7 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
@@ -1105,7 +1106,7 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
@@ -1147,7 +1148,7 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF332B6B),
+                                    color: AppTheme.brandRoyalBlue,
                                   ),
                                 ),
                                 const TextSpan(text: ' will be automatically assigned to avoid collisions.'),
@@ -1192,7 +1193,7 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                         style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
+                        backgroundColor: AppTheme.brandRoyalBlue,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
