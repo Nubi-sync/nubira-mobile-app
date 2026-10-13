@@ -365,13 +365,13 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
           child: Column(
             children: [
               // ==========================================
-              // 1. MODAL HEADER (Matching Web #FAF7F0 Header)
+              // 1. MODAL HEADER (Matching Web Tech Slate Header)
               // ==========================================
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
-                  border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                  color: Color(0xFFF8FAFC),
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,9 +531,9 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFFAF7F0),
+                                                color: const Color(0xFFF0FDFA),
                                                 borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: const Color(0x1A000000)),
+                                                border: Border.all(color: const Color(0x26000000)),
                                               ),
                                               child: Text(
                                                 variantArtNo,
@@ -551,9 +551,9 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                                           Container(
                                             padding: const EdgeInsets.all(2.5),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFAF7F0),
+                                              color: const Color(0xFFF1F5F9),
                                               borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: const Color(0x1A000000)),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
@@ -691,9 +691,9 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Column(
                             children: [
@@ -716,9 +716,9 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -794,8 +794,8 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
-                  border: Border(top: BorderSide(color: Color(0x1A000000))),
+                  color: Color(0xFFF8FAFC),
+                  border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -813,7 +813,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                             ),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(38),
-                              side: const BorderSide(color: Color(0x1A000000)),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               backgroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
@@ -832,7 +832,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                                   },
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(38),
-                              side: const BorderSide(color: Color(0x1A000000)),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               backgroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
@@ -870,7 +870,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                         ),
                         const SizedBox(width: 8),
 
-                        // Update Review & Sync (Brand Indigo Pill)
+                        // Update Review & Sync (Brand Blue Pill)
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: _isSubmitting ? null : () => _submitReview('APPROVED'),
@@ -883,7 +883,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size.fromHeight(40),
-                              backgroundColor: const Color(0xFF332B6B),
+                              backgroundColor: const Color(0xFF1D4ED8),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -902,7 +902,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
     );
   }
 
-  // Artwork Image Container matching Web's .aspect-square .bg-[#FAF7F0] container with bottom-left overlay pill
+  // Artwork Image Container matching Web's .aspect-square .bg-[#F8FAFC] container with bottom-left overlay pill
   Widget _buildArtworkContainer({
     required String label,
     required String imageUrl,
@@ -915,9 +915,9 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
         height: 310,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F0),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x1A000000)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         padding: const EdgeInsets.all(12),
         child: Stack(

@@ -106,7 +106,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
     if (norm.contains('orange')) return const Color(0xFFDD6B20);
     if (norm.contains('brown')) return const Color(0xFF7B341E);
     if (norm.contains('purple')) return const Color(0xFF6B46C1);
-    return const Color(0xFF3A3564);
+    return const Color(0xFF475569);
   }
 
   @override
