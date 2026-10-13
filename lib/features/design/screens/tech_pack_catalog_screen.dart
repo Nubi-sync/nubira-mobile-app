@@ -272,7 +272,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                                   child: Icon(
                                     Icons.view_agenda_outlined,
                                     size: 16,
-                                    color: !_isCompactView ? const Color(0xFF332B6B) : const Color(0xFF64748B),
+                                    color: !_isCompactView ? AppTheme.brandRoyalBlue : const Color(0xFF64748B),
                                   ),
                                 ),
                               ),
@@ -291,7 +291,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                                   child: Icon(
                                     Icons.format_list_bulleted_rounded,
                                     size: 16,
-                                    color: _isCompactView ? const Color(0xFF332B6B) : const Color(0xFF64748B),
+                                    color: _isCompactView ? AppTheme.brandRoyalBlue : const Color(0xFF64748B),
                                   ),
                                 ),
                               ),
@@ -304,17 +304,17 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                         Expanded(
                           child: InkWell(
                             onTap: () => _openCreateTechPackModal(context),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                             child: Container(
                               height: 40,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF332B6B),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
+                                color: AppTheme.brandRoyalBlue,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Color(0x2A332B6B),
+                                    color: AppTheme.brandRoyalBlue.withOpacity(0.2),
                                     blurRadius: 4,
-                                    offset: Offset(0, 2),
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
@@ -614,11 +614,11 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isSel ? const Color(0xFF332B6B) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSel ? const Color(0xFF332B6B) : const Color(0xFFE2E8F0)),
+          color: isSel ? AppTheme.brandRoyalBlue : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSel ? AppTheme.brandRoyalBlue : const Color(0xFFE2E8F0)),
           boxShadow: isSel
-              ? const [BoxShadow(color: Color(0x1A332B6B), blurRadius: 4, offset: Offset(0, 2))]
+              ? [BoxShadow(color: AppTheme.brandRoyalBlue.withOpacity(0.15), blurRadius: 4, offset: const Offset(0, 2))]
               : null,
         ),
         child: Text(
@@ -1213,7 +1213,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.compare_arrows_rounded, color: Color(0xFF332B6B)),
+                      const Icon(Icons.compare_arrows_rounded, color: AppTheme.brandRoyalBlue),
                       const SizedBox(width: 8),
                       Text(
                         'Specification Diff: ${pack.styleNumber}',
