@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/cutting_models.dart';
 import '../providers/cutting_provider.dart';
 import 'add_cutting_worker_modal.dart';
@@ -117,7 +118,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -129,7 +130,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1),
+                color: AppTheme.borderLight,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -144,11 +145,11 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
+                    color: AppTheme.mintSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x26000000)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
-                  child: const Icon(Icons.badge_outlined, color: Color(0xFF0B1220), size: 22),
+                  child: const Icon(Icons.badge_outlined, color: AppTheme.headingObsidian, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -160,7 +161,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0B1220),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -168,7 +169,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                         '${state.workers.length} registered floor operators',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: const Color(0xFF475569),
+                          color: AppTheme.bodyInk,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -178,7 +179,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Color(0xFF64748B), size: 20),
+                  icon: const Icon(Icons.close, color: AppTheme.bodyInk, size: 20),
                 ),
               ],
             ),
@@ -193,21 +194,21 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged: (val) => setState(() => _search = val),
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.headingObsidian),
                       decoration: InputDecoration(
                         hintText: 'Search worker or phone...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
-                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.bodyInk),
+                        prefixIcon: const Icon(Icons.search, size: 18, color: AppTheme.bodyInk),
                         suffixIcon: _search.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16, color: Color(0xFF64748B)),
+                                icon: const Icon(Icons.clear, size: 16, color: AppTheme.bodyInk),
                                 onPressed: () {
                                   _searchCtrl.clear();
                                   setState(() => _search = '');
@@ -223,7 +224,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D4ED8),
+                    backgroundColor: AppTheme.brandRoyalBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -283,21 +284,21 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.cardSurface,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: const Color(0xFFF0FDFA),
+                              backgroundColor: AppTheme.mintSurface,
                               child: Text(
                                 initials,
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0B1220),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                             ),
@@ -314,7 +315,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0B1220),
+                                            color: AppTheme.headingObsidian,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -323,16 +324,16 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFECFDF5),
+                                          color: AppTheme.badgeEmeraldBg,
                                           borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                                          border: Border.all(color: AppTheme.badgeEmeraldBorder),
                                         ),
                                         child: Text(
                                           worker.status.toUpperCase(),
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF047857),
+                                            color: AppTheme.badgeEmeraldText,
                                           ),
                                         ),
                                       ),
@@ -341,13 +342,13 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                   const SizedBox(height: 3),
                                   Row(
                                     children: [
-                                      const Icon(Icons.phone_outlined, size: 12, color: Color(0xFF64748B)),
+                                      const Icon(Icons.phone_outlined, size: 12, color: AppTheme.bodyInk),
                                       const SizedBox(width: 4),
                                       Text(
                                         worker.phoneNumber,
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 11,
-                                          color: const Color(0xFF64748B),
+                                          color: AppTheme.bodyInk,
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -356,7 +357,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                           worker.role,
                                           style: GoogleFonts.publicSans(
                                             fontSize: 11,
-                                            color: const Color(0xFF0B1220),
+                                            color: AppTheme.headingObsidian,
                                             fontWeight: FontWeight.w600,
                                           ),
                                           maxLines: 1,
@@ -374,15 +375,16 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                         return Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF1F5F9),
+                                            color: AppTheme.bgCanvas,
                                             borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: AppTheme.borderLight),
                                           ),
                                           child: Text(
                                             r.replaceAll('_', ' '),
                                             style: GoogleFonts.publicSans(
                                               fontSize: 9,
                                               fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF475569),
+                                              color: AppTheme.bodyInk,
                                             ),
                                           ),
                                         );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/cutting_models.dart';
 
 class SelectRouteModal extends StatelessWidget {
@@ -21,7 +22,7 @@ class SelectRouteModal extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -34,7 +35,7 @@ class SelectRouteModal extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1),
+                color: AppTheme.borderLight,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -49,11 +50,11 @@ class SelectRouteModal extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
+                    color: AppTheme.mintSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x26000000)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
-                  child: const Icon(Icons.alt_route_rounded, color: Color(0xFF0B1220), size: 22),
+                  child: const Icon(Icons.alt_route_rounded, color: AppTheme.headingObsidian, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -65,7 +66,7 @@ class SelectRouteModal extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0B1220),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -73,7 +74,7 @@ class SelectRouteModal extends StatelessWidget {
                         'Select downstream embellishment workflow for $buyerName',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: const Color(0xFF475569),
+                          color: AppTheme.bodyInk,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -83,7 +84,7 @@ class SelectRouteModal extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Color(0xFF64748B), size: 20),
+                  icon: const Icon(Icons.close, color: AppTheme.bodyInk, size: 20),
                 ),
               ],
             ),
@@ -108,10 +109,10 @@ class SelectRouteModal extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+                      color: isSelected ? AppTheme.badgeBlueBg : AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+                        color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
                         width: isSelected ? 1.5 : 1.0,
                       ),
                     ),
@@ -123,7 +124,7 @@ class SelectRouteModal extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFCBD5E1),
+                              color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
                               width: 2,
                             ),
                           ),
@@ -134,7 +135,7 @@ class SelectRouteModal extends StatelessWidget {
                                     height: 10,
                                     decoration: const BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Color(0xFF1D4ED8),
+                                      color: AppTheme.brandRoyalBlue,
                                     ),
                                   ),
                                 )
@@ -150,7 +151,7 @@ class SelectRouteModal extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF0B1220),
+                                  color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.headingObsidian,
                                 ),
                               ),
                               const SizedBox(height: 3),
@@ -158,14 +159,14 @@ class SelectRouteModal extends StatelessWidget {
                                 route.flowDescription,
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF475569),
+                                  color: AppTheme.bodyInk,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         if (isSelected)
-                          const Icon(Icons.check_circle, color: Color(0xFF1D4ED8), size: 18),
+                          const Icon(Icons.check_circle, color: AppTheme.brandRoyalBlue, size: 18),
                       ],
                     ),
                   ),
