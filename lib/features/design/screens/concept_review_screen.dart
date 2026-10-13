@@ -777,7 +777,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                               fillColor: Colors.white,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0x1A000000))),
                               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0x1A000000))),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             ),
                           ),
@@ -931,7 +931,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
                   fit: BoxFit.contain,
                   loadingBuilder: (_, child, progress) {
                     if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF332B6B)));
+                    return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.brandRoyalBlue));
                   },
                   errorBuilder: (_, __, ___) => const Center(
                     child: Icon(Icons.broken_image_rounded, color: Color(0xFF94A3B8), size: 36),
