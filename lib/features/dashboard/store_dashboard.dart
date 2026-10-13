@@ -4512,6 +4512,94 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
+  List<Map<String, dynamic>> _getCriticalRadarItems() {
+    final Map<String, Map<String, dynamic>> radarMap = {};
+
+    for (var t in _truckInwards) {
+      final items = t['items'] as List<dynamic>?;
+      if (items != null) {
+        for (var it in items) {
+          final name = (it['item_name'] ?? '').toString().trim();
+          if (name.isEmpty) continue;
+          final qty = parseQty(it['quantity']);
+          final unit = (it['unit'] ?? 'pcs').toString().trim();
+          if (!radarMap.containsKey(name)) {
+            final lower = name.toLowerCase();
+            int minSafety = 50;
+            if (lower.contains('thread') || lower.contains('dhaga')) {
+              minSafety = 10;
+            } else if (lower.contains('poly') || lower.contains('pack') || lower.contains('box')) {
+              minSafety = 500;
+            } else if (lower.contains('tag') || lower.contains('label')) {
+              minSafety = 300;
+            }
+
+            radarMap[name] = {
+              'name': name,
+              'unit': unit,
+              'inward': 0,
+              'issued': 0,
+              'minSafety': minSafety,
+            };
+          }
+          radarMap[name]!['inward'] = (radarMap[name]!['inward'] as int) + qty;
+        }
+      }
+    }
+
+    for (var acc in _accessories) {
+      final name = (acc['item_name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      final unit = (acc['unit'] ?? 'pcs').toString().trim();
+      final qty = parseQty(acc['quantity']);
+      final action = (acc['action'] ?? '').toString().toUpperCase();
+      final notes = (acc['notes'] ?? '').toString();
+      final isIssue = action == 'OUT' || action == 'ISSUE' || notes.contains('BOM Handover');
+
+      if (!radarMap.containsKey(name)) {
+        final lower = name.toLowerCase();
+        int minSafety = 50;
+        if (lower.contains('thread') || lower.contains('dhaga')) {
+          minSafety = 10;
+        } else if (lower.contains('poly') || lower.contains('pack') || lower.contains('box')) {
+          minSafety = 500;
+        } else if (lower.contains('tag') || lower.contains('label')) {
+          minSafety = 300;
+        }
+
+        radarMap[name] = {
+          'name': name,
+          'unit': unit,
+          'inward': 0,
+          'issued': 0,
+          'minSafety': minSafety,
+        };
+      }
+
+      if (isIssue) {
+        radarMap[name]!['issued'] = (radarMap[name]!['issued'] as int) + qty;
+      } else {
+        radarMap[name]!['inward'] = (radarMap[name]!['inward'] as int) + qty;
+      }
+    }
+
+    final List<Map<String, dynamic>> criticalItems = [];
+    for (var it in radarMap.values) {
+      final balance = max<int>(0, (it['inward'] as int) - (it['issued'] as int));
+      final minSafety = it['minSafety'] as int;
+      if (balance <= minSafety) {
+        criticalItems.add({
+          'name': it['name'] as String,
+          'balance': balance,
+          'unit': it['unit'] as String,
+          'minSafety': minSafety,
+          'isCritical': balance == 0,
+        });
+      }
+    }
+    return criticalItems;
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
@@ -4549,6 +4637,9 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
 
     final int pendingArticlesCount = pendingLotsPerArticle.length;
     final int pendingLotsCount = pendingLotsPerArticle.values.fold<int>(0, (sum, v) => sum + v);
+
+    final criticalRadarItems = _getCriticalRadarItems();
+    final int criticalRadarCount = criticalRadarItems.length;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -4656,7 +4747,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                       activeLotsCount: _activeAllotments.length,
                       pendingArticlesCount: pendingArticlesCount,
                       pendingLotsCount: pendingLotsCount,
-                      criticalRadarCount: 12,
+                      criticalRadarCount: criticalRadarCount,
+                      criticalRadarItems: criticalRadarItems,
                     ),
                     const SizedBox(height: 14),
 
@@ -5002,6 +5094,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     required int pendingArticlesCount,
     required int pendingLotsCount,
     required int criticalRadarCount,
+    List<Map<String, dynamic>>? criticalRadarItems,
   }) {
     final formatter = NumberFormat('#,###');
     final floorPct = totalStocks > 0 ? ((goodsInLine / totalStocks) * 100).round() : 0;
@@ -5102,11 +5195,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
                 title: '5. Low stock alert',
                 subtitle: 'Trims safety radar',
                 value: '$criticalRadarCount',
-                badgeText: '$criticalRadarCount CRITICAL',
+                badgeText: criticalRadarCount > 0 ? '$criticalRadarCount CRITICAL' : 'STOCK HEALTHY',
                 extraRightText: 'trims',
                 icon: Icons.warning_amber_rounded,
-                isRedVariant: true,
-                onTap: () => _showLowStockRadarDialog(),
+                isRedVariant: criticalRadarCount > 0,
+                onTap: () => _showLowStockRadarDialog(criticalRadarItems),
               ),
             ),
             const SizedBox(width: 10),
@@ -9340,7 +9433,8 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
     );
   }
 
-  void _showLowStockRadarDialog() {
+  void _showLowStockRadarDialog([List<Map<String, dynamic>>? items]) {
+    final radarItems = items ?? _getCriticalRadarItems();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -9348,7 +9442,11 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 22),
+            Icon(
+              radarItems.isNotEmpty ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+              color: radarItems.isNotEmpty ? const Color(0xFFDC2626) : const Color(0xFF0F766E),
+              size: 22,
+            ),
             const SizedBox(width: 8),
             Text(
               'Trims Safety Radar',
@@ -9363,27 +9461,60 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Monitored trims & accessories below minimum floor safety stock.',
+                radarItems.isNotEmpty
+                    ? 'Monitored trims & accessories below minimum floor safety stock.'
+                    : 'All floor trims and raw materials are healthy.',
                 style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF5B6478)),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF8C9D1)),
+              if (radarItems.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDFA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBFE9DC)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.verified_outlined, size: 28, color: Color(0xFF0F766E)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'All Trims Stock Healthy',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF0F766E)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'No trims or accessories are running low on stock.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF8C9D1)),
+                  ),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < radarItems.length; i++) ...[
+                        if (i > 0) const Divider(height: 12),
+                        _buildRadarItemRow(
+                          radarItems[i]['name'] as String,
+                          '${radarItems[i]['balance']} ${radarItems[i]['unit']} remaining',
+                          'Min: ${radarItems[i]['minSafety']} ${radarItems[i]['unit']}',
+                          radarItems[i]['isCritical'] as bool,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    _buildRadarItemRow('Main Brand Neck Tag', '0 pcs remaining', 'Min: 500 pcs', true),
-                    const Divider(height: 12),
-                    _buildRadarItemRow('Matching Sewing Thread', '4 cones remaining', 'Min: 15 cones', false),
-                    const Divider(height: 12),
-                    _buildRadarItemRow('Washing Care & Size Label', '120 pcs remaining', 'Min: 500 pcs', false),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
