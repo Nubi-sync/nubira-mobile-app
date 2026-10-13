@@ -251,11 +251,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.palette_outlined, color: AppTheme.brandSteel, size: 22),
+                          child: const Icon(Icons.palette_outlined, color: Color(0xFF0B1220), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -276,7 +276,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(color: const Color(0x26000000)),
                                 ),
@@ -285,7 +285,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppTheme.brandSteel,
+                                    color: const Color(0xFF0B1220),
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -344,11 +344,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                             child: Container(
                               height: 40,
                               decoration: BoxDecoration(
-                                color: AppTheme.brandSteel,
+                                color: const Color(0xFF1D4ED8),
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: const [
                                   BoxShadow(
-                                    color: Color(0x2A3A3564),
+                                    color: Color(0x1A000000),
                                     blurRadius: 4,
                                     offset: Offset(0, 2),
                                   ),
@@ -555,21 +555,21 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F0),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0x1A000000)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppTheme.brandSteel, size: 16),
+            Icon(icon, color: const Color(0xFF1D4ED8), size: 16),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF1E293B),
+                color: const Color(0xFF0B1220),
               ),
             ),
           ],
@@ -589,8 +589,8 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x1A000000)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x03000000),
@@ -608,16 +608,16 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: const Color(0x14000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   tag,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.6,
                   ),
                 ),
@@ -626,11 +626,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x14000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
-                child: Icon(icon, color: AppTheme.brandSteel, size: 16),
+                child: Icon(icon, color: const Color(0xFF0B1220), size: 16),
               ),
             ],
           ),
@@ -676,15 +676,15 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.brandSteel : const Color(0xFFFAF7F0),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? AppTheme.brandSteel : const Color(0x1A000000),
+              color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
             ),
             boxShadow: isSelected
                 ? const [
                     BoxShadow(
-                      color: Color(0x1E3A3564),
+                      color: Color(0x141D4ED8),
                       blurRadius: 4,
                       offset: Offset(0, 1),
                     ),
@@ -696,7 +696,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF334155),
+              color: isSelected ? Colors.white : const Color(0xFF475569),
             ),
           ),
         ),
@@ -782,13 +782,13 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
           ),
           const SizedBox(height: 12),
 
-          // 4. Beige Stats Box: DESIGNER | COLORS Selected (Exact Match to Web)
+          // 4. Stats Box: DESIGNER | COLORS Selected
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x12000000)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -834,7 +834,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                       style: GoogleFonts.publicSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.brandSteel,
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                   ],
@@ -854,11 +854,11 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppTheme.brandSteel,
+                      color: const Color(0xFF1D4ED8),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x1F3A3564),
+                          color: Color(0x1A000000),
                           blurRadius: 4,
                           offset: Offset(0, 1),
                         ),
@@ -915,10 +915,10 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
             width: 52,
             height: 52,
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
+              color: Color(0xFFF0FDFA),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.palette_outlined, color: AppTheme.brandSteel, size: 24),
+            child: const Icon(Icons.palette_outlined, color: Color(0xFF0B1220), size: 24),
           ),
           const SizedBox(height: 12),
           Text(
@@ -1092,7 +1092,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
       case 'COMPLETED':
         return const _StatusBadgeInfo(
           label: 'TECH-PACK CREATED',
-          bg: Color(0xFFFAF7F0),
+          bg: Color(0xFFF0FDFA),
           fg: Color(0xFF0F172A),
           border: Color(0x26000000),
         );
