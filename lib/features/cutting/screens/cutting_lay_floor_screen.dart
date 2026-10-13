@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -237,14 +238,14 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF1D4ED8),
-        backgroundColor: Colors.white,
+        color: AppTheme.brandRoyalBlue,
+        backgroundColor: AppTheme.cardSurface,
         onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -370,19 +371,34 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                                 spacing: 8,
                                 runSpacing: 4,
                                 children: [
-                                  Text(
-                                    'Cutting & lay floor',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF0B1220),
-                                      letterSpacing: -0.3,
+                                  RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'Cutting & ',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.headingObsidian,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: 'Lay Floor',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.brandRoyalBlue,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF0FDFA),
+                                      color: AppTheme.mintSurface,
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(color: const Color(0x26000000)),
                                     ),
@@ -391,7 +407,7 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0B1220),
+                                        color: AppTheme.headingObsidian,
                                       ),
                                     ),
                                   ),
@@ -1126,30 +1142,30 @@ class _CuttingLayFloorScreenState extends ConsumerState<CuttingLayFloorScreen> {
   }
 
   Widget _buildTaskRow(CuttingTaskAllocation task) {
-    Color statusBg = const Color(0xFFF1F5F9);
-    Color statusBorder = const Color(0xFFCBD5E1);
-    Color statusText = const Color(0xFF475569);
+    Color statusBg = AppTheme.bgCanvas;
+    Color statusBorder = AppTheme.borderLight;
+    Color statusText = AppTheme.bodyInk;
     String statusLabel = task.status;
 
     if (task.isCompleted) {
-      statusBg = const Color(0xFFECFDF5);
-      statusBorder = const Color(0xFFA7F3D0);
-      statusText = const Color(0xFF047857);
+      statusBg = AppTheme.badgeEmeraldBg;
+      statusBorder = AppTheme.badgeEmeraldBorder;
+      statusText = AppTheme.badgeEmeraldText;
       statusLabel = 'VERIFIED';
     } else if (task.isWorkerCompleted) {
-      statusBg = const Color(0xFFFEF3C7);
-      statusBorder = const Color(0xFFFDE68A);
-      statusText = const Color(0xFFD97706);
+      statusBg = AppTheme.badgeAmberBg;
+      statusBorder = AppTheme.badgeAmberBorder;
+      statusText = AppTheme.badgeAmberText;
       statusLabel = 'NEEDS VERIFICATION';
     } else if (task.isInProgress) {
-      statusBg = const Color(0xFFEFF6FF);
-      statusBorder = const Color(0xFFBFDBFE);
-      statusText = const Color(0xFF2563EB);
+      statusBg = AppTheme.badgeBlueBg;
+      statusBorder = AppTheme.badgeBlueBorder;
+      statusText = AppTheme.badgeBlueText;
       statusLabel = 'IN PROGRESS';
     } else {
-      statusBg = const Color(0xFFF1F5F9);
-      statusBorder = const Color(0xFFE2E8F0);
-      statusText = const Color(0xFF475569);
+      statusBg = AppTheme.bgCanvas;
+      statusBorder = AppTheme.borderLight;
+      statusText = AppTheme.bodyInk;
       statusLabel = 'ASSIGNED';
     }
 
