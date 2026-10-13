@@ -361,7 +361,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppTheme.brandRoyalBlue.withOpacity(0.18),
+                    color: AppTheme.brandRoyalBlue.withValues(alpha: 0.18),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),

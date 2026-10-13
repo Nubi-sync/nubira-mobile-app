@@ -312,7 +312,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.brandRoyalBlue.withOpacity(0.2),
+                                    color: AppTheme.brandRoyalBlue.withValues(alpha: 0.2),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -618,7 +618,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isSel ? AppTheme.brandRoyalBlue : const Color(0xFFE2E8F0)),
           boxShadow: isSel
-              ? [BoxShadow(color: AppTheme.brandRoyalBlue.withOpacity(0.15), blurRadius: 4, offset: const Offset(0, 2))]
+              ? [BoxShadow(color: AppTheme.brandRoyalBlue.withValues(alpha: 0.15), blurRadius: 4, offset: const Offset(0, 2))]
               : null,
         ),
         child: Text(
