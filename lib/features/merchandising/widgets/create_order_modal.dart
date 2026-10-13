@@ -700,13 +700,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Contract Dropdown Card (Web Style: bg-[#FAF7F0] border border-black/10)
+        // 1. Contract Dropdown Card
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF7F0),
+            color: const Color(0xFFF0FDFA),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: const Color(0x26000000)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,7 +717,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.business_outlined, size: 13, color: Color(0xFF332B6B)),
+                        const Icon(Icons.business_outlined, size: 13, color: Color(0xFF0B1220)),
                         const SizedBox(width: 5),
                         Expanded(
                           child: Text(
@@ -725,7 +725,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B6A65),
+                              color: const Color(0xFF475569),
                               letterSpacing: 0.2,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -740,7 +740,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 9.5,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF332B6B),
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ],
@@ -821,9 +821,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -834,7 +834,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF241D52),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ),
@@ -846,7 +846,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                           },
                           child: const Padding(
                             padding: EdgeInsets.all(4),
-                            child: Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF332B6B)),
+                            child: Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF1D4ED8)),
                           ),
                         ),
                       ],
@@ -867,9 +867,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isReadOnlyArticle ? const Color(0xFFFAF7F0) : Colors.white,
+                      color: isReadOnlyArticle ? const Color(0xFFF1F5F9) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     alignment: Alignment.centerLeft,
                     child: isReadOnlyArticle
@@ -899,9 +899,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   height: 95,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -928,9 +928,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   height: 95,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -970,9 +970,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isReadOnlyArticle ? const Color(0xFFFAF7F0) : Colors.white,
+                      color: isReadOnlyArticle ? const Color(0xFFF1F5F9) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     alignment: Alignment.centerLeft,
                     child: isReadOnlyArticle
@@ -1047,9 +1047,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 constraints: const BoxConstraints(minHeight: 56),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1062,7 +1062,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       style: GoogleFonts.publicSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF332B6B),
+                        color: const Color(0xFF0B1220),
                         height: 1.25,
                       ),
                       maxLines: 2,
@@ -1078,9 +1078,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 constraints: const BoxConstraints(minHeight: 56),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1123,9 +1123,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     height: 42,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: isLockedToBuyer ? const Color(0xFFFAF7F0) : Colors.white,
+                      color: isLockedToBuyer ? const Color(0xFFF1F5F9) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x26000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -1200,7 +1200,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF332B6B),
+                        color: const Color(0xFF0B1220),
                       ),
                       decoration: _inputDecoration(
                         hint: '6000',
@@ -1219,9 +1219,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF7F0),
+            color: const Color(0xFFF0FDFA),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: const Color(0x26000000)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1259,7 +1259,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1268,13 +1268,13 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
+                  color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-                  border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF332B6B)),
+                    const Icon(Icons.inventory_2_outlined, size: 15, color: Color(0xFF0B1220)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -1282,7 +1282,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1A),
+                          color: const Color(0xFF0B1220),
                           letterSpacing: 0.3,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -1292,16 +1292,16 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
                       child: Text(
                         '${bomItems.length} Component${bomItems.length == 1 ? "" : "s"}',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF332B6B),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                     ),
@@ -1321,7 +1321,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       dataRowMaxHeight: 44,
                       horizontalMargin: 14,
                       columnSpacing: 18,
-                      headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                      headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
                       columns: [
                         DataColumn(
                           label: Text(
@@ -1366,7 +1366,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                             DataCell(
                               Text(
                                 mat.consumption.isNotEmpty ? mat.consumption : '1.0 unit',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                               ),
                             ),
                             DataCell(
@@ -1400,9 +1400,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF7F0),
+            color: const Color(0xFFF0FDFA),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: const Color(0x26000000)),
           ),
           child: Row(
             children: [
@@ -1489,9 +1489,9 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
               height: 40,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFAF7F0),
-                  foregroundColor: const Color(0xFF332B6B),
-                  side: const BorderSide(color: Color(0x1A000000)),
+                  backgroundColor: const Color(0xFFF0FDFA),
+                  foregroundColor: const Color(0xFF0B1220),
+                  side: const BorderSide(color: Color(0x26000000)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
@@ -1507,8 +1507,8 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF332B6B),
-                    side: const BorderSide(color: Color(0x1A000000)),
+                    foregroundColor: const Color(0xFF0B1220),
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
@@ -1527,7 +1527,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1539,7 +1539,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                 dataRowMaxHeight: 52,
                 horizontalMargin: 12,
                 columnSpacing: 10,
-                headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                headingRowColor: WidgetStateProperty.all(const Color(0xFFF1F5F9)),
                 columns: [
                   DataColumn(
                     label: Text('COLORWAY', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65))),
@@ -1597,7 +1597,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(6),
-                                  borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+                                  borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                                 ),
                               ),
                               onChanged: (v) => _handleCellChange(color, size, v),
@@ -1608,7 +1608,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                       DataCell(
                         Text(
                           NumberFormat.decimalPattern('en_IN').format(rowTotal),
-                          style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ),
                       if (_colors.length > 1)
@@ -1639,27 +1639,27 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
       hintText: hint,
       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFB6B4AC)),
       filled: true,
-      fillColor: isReadOnly ? const Color(0xFFFAF7F0) : Colors.white,
+      fillColor: isReadOnly ? const Color(0xFFF1F5F9) : Colors.white,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: isReadOnly ? const Color(0x1A000000) : const Color(0x26000000)),
+        borderSide: BorderSide(color: isReadOnly ? const Color(0xFFE2E8F0) : const Color(0x26000000)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
-          color: isReadOnly ? const Color(0x1A000000) : const Color(0x26000000),
+          color: isReadOnly ? const Color(0xFFE2E8F0) : const Color(0x26000000),
         ),
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0x1A000000)),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
-          color: isReadOnly ? const Color(0x1A000000) : const Color(0xFF332B6B),
+          color: isReadOnly ? const Color(0xFFE2E8F0) : const Color(0xFF1D4ED8),
           width: isReadOnly ? 1.0 : 1.5,
         ),
       ),
