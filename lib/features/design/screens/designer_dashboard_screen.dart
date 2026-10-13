@@ -208,7 +208,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                             height: 44,
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppTheme.canvasCream,
+                              color: AppTheme.bgCanvas,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: AppTheme.standardBorder),
                             ),
@@ -244,7 +244,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.canvasCream,
+                                    color: AppTheme.bgCanvas,
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(color: AppTheme.standardBorder),
                                   ),
@@ -536,7 +536,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppTheme.canvasCream,
+                    color: AppTheme.bgCanvas,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -554,7 +554,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppTheme.canvasCream,
+                    color: AppTheme.bgCanvas,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -580,7 +580,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppTheme.canvasCream,
+                      color: AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: AppTheme.standardBorder),
                     ),

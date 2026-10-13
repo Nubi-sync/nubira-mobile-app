@@ -555,7 +555,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppTheme.canvasCream,
+                                color: AppTheme.bgCanvas,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: AppTheme.standardBorder),
                               ),
@@ -590,7 +590,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppTheme.canvasCream,
+                        color: AppTheme.bgCanvas,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppTheme.standardBorder),
                       ),
@@ -717,7 +717,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                               decoration: BoxDecoration(
                                 color: isTabActive
                                     ? AppTheme.brandRoyalBlue
-                                    : (isFullyDone ? const Color(0xFFECFDF5) : AppTheme.canvasCream),
+                                    : (isFullyDone ? const Color(0xFFECFDF5) : AppTheme.bgCanvas),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isTabActive
@@ -790,7 +790,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.canvasCream,
+                      color: AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppTheme.standardBorder),
                     ),
@@ -1117,7 +1117,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
           height: 120,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: hasPhoto ? Colors.white : AppTheme.canvasCream,
+            color: hasPhoto ? Colors.white : AppTheme.bgCanvas,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: hasPhoto ? AppTheme.standardBorder : AppTheme.standardBorder,
