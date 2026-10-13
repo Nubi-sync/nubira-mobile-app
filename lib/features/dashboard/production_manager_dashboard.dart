@@ -500,98 +500,6 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     );
   }
 
-  Widget _buildOperationsSwitcher() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppTheme.cardSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderLight),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // 1. Floor Overview Tab (Active)
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 9),
-              decoration: BoxDecoration(
-                color: AppTheme.headingObsidian,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.precision_manufacturing_rounded, size: 15, color: Colors.white),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Floor Overview',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // 2. Production Chart (Opens ChallansDashboardScreen / Job Work Orders)
-          Expanded(
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.layers_outlined, size: 15, color: AppTheme.bodyInk),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Production Chart',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.bodyInk,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_rounded, size: 12, color: AppTheme.faintInk),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -612,10 +520,6 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   children: [
                     const ConnectivityIndicator(),
                     const SizedBox(height: 8),
-
-                    // Operations Mode Switcher (Floor Overview vs Production Chart)
-                    _buildOperationsSwitcher(),
-                    const SizedBox(height: 12),
 
                     // Floor Header & Shift Info
                     _buildShiftBanner(),
