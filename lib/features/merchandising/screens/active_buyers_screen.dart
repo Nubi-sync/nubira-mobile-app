@@ -1061,43 +1061,18 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                     ),
                     const SizedBox(height: 12),
 
-                    // Field 3: Brand / Label Name & Season
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('BRAND / LABEL NAME'),
-                              TextFormField(
-                                controller: _brandController,
-                                decoration: _inputDecoration('e.g. Zara Man'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('TARGET SEASON'),
-                              TextFormField(
-                                controller: _seasonController,
-                                decoration: _inputDecoration('SS27 / AW26'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // Field 3: Brand / Label Name
+                    _buildLabel('BRAND / LABEL NAME'),
+                    TextFormField(
+                      controller: _brandController,
+                      decoration: _inputDecoration('e.g. Zara Man'),
                     ),
                     const SizedBox(height: 12),
 
-                    // Field 4: Volume, Price, Currency
+                    // Field 4: Volume & Unit Price (2 Columns)
                     Row(
                       children: [
                         Expanded(
-                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1114,7 +1089,6 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1129,15 +1103,21 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                             ],
                           ),
                         ),
-                        const SizedBox(width: 10),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 5: Currency & Target Season (2 Columns)
+                    Row(
+                      children: [
                         Expanded(
-                          flex: 2,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('CURRENCY'),
                               DropdownButtonFormField<String>(
                                 value: _currency,
+                                isExpanded: true,
                                 decoration: _inputDecoration(''),
                                 items: const [
                                   DropdownMenuItem(value: 'INR', child: Text('INR (₹)')),
@@ -1146,6 +1126,19 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                                   DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
                                 ],
                                 onChanged: (v) => setState(() => _currency = v ?? 'INR'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('TARGET SEASON'),
+                              TextFormField(
+                                controller: _seasonController,
+                                decoration: _inputDecoration('SS27 / AW26'),
                               ),
                             ],
                           ),
