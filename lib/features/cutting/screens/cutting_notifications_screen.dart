@@ -34,18 +34,18 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/notifications'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564)),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF3A3564),
+          color: const Color(0xFF1D4ED8),
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -68,7 +68,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
@@ -82,15 +82,8 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,11 +95,11 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.notifications_active_rounded, color: Color(0xFF3A3564), size: 24),
+                            child: const Icon(Icons.notifications_active_rounded, color: Color(0xFF0B1220), size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -121,7 +114,8 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w800,
-                                          color: const Color(0xFF3A3564),
+                                          color: const Color(0xFF0B1220),
+                                          letterSpacing: -0.3,
                                         ),
                                       ),
                                     ),
@@ -149,7 +143,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                                   'Live alerts, roll issues from Central Store, CAD marker approvals, and knife maintenance logs',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                     height: 1.35,
                                   ),
                                 ),
@@ -169,8 +163,8 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                               );
                             },
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF3A3564),
-                              side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                              foregroundColor: const Color(0xFF1D4ED8),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             ),
@@ -214,7 +208,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Center(
                       child: Column(
@@ -226,7 +220,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
@@ -261,10 +255,10 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -281,8 +275,8 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
 
   Widget _buildNotificationCard(FloorNotification n) {
     IconData iconData = Icons.info_outline_rounded;
-    Color iconColor = const Color(0xFF3A3564);
-    Color iconBg = const Color(0xFFFAF7F0);
+    Color iconColor = const Color(0xFF0B1220);
+    Color iconBg = const Color(0xFFF0FDFA);
 
     if (n.type == 'MATERIAL') {
       iconData = Icons.inventory_2_outlined;
@@ -308,19 +302,12 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: n.isRead ? Colors.white : const Color(0xFFFDFBF7),
+          color: n.isRead ? Colors.white : const Color(0xFFEFF6FF),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: n.isRead ? Colors.black.withValues(alpha: 0.08) : const Color(0xFF3A3564).withValues(alpha: 0.25),
+            color: n.isRead ? const Color(0xFFE2E8F0) : const Color(0xFF1D4ED8),
             width: n.isRead ? 1 : 1.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +335,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13.5,
                             fontWeight: n.isRead ? FontWeight.w600 : FontWeight.w800,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                       ),
@@ -356,7 +343,7 @@ class _CuttingNotificationsScreenState extends ConsumerState<CuttingNotification
                         n.timestamp,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
-                          color: const Color(0xFF94A3B8),
+                          color: const Color(0xFF64748B),
                         ),
                       ),
                     ],

@@ -63,20 +63,21 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                     'Create New Spreading Lay Sheet',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF3A3564),
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
-              const Divider(),
+              const Divider(color: Color(0xFFE2E8F0)),
               const SizedBox(height: 8),
               TextField(
                 controller: layNumCtrl,
                 decoration: InputDecoration(
                   labelText: 'Lay Sheet Number',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                 ),
               ),
               const SizedBox(height: 10),
@@ -87,7 +88,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                       controller: buyerCtrl,
                       decoration: InputDecoration(
                         labelText: 'Buyer / Brand',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
@@ -97,7 +99,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                       controller: poCtrl,
                       decoration: InputDecoration(
                         labelText: 'PO Number',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
@@ -108,7 +111,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 controller: tableCtrl,
                 decoration: InputDecoration(
                   labelText: 'Cutting Table & Vacuum Setup',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                 ),
               ),
               const SizedBox(height: 10),
@@ -120,7 +124,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Total Plies Count',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
@@ -131,7 +136,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Marker Length (Meters)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
@@ -142,7 +148,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 controller: ratioCtrl,
                 decoration: InputDecoration(
                   labelText: 'Size Ratio Breakdown',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                 ),
               ),
               const SizedBox(height: 10),
@@ -151,7 +158,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Total Cut Pieces Expected',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                 ),
               ),
               const SizedBox(height: 16),
@@ -159,7 +167,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -238,7 +246,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                     Text(
@@ -250,7 +258,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
-            const Divider(),
+            const Divider(color: Color(0xFFE2E8F0)),
             const SizedBox(height: 8),
             _buildDetailRow('Assigned Table', lay.tableNumber),
             _buildDetailRow('Plies Count', '${lay.pliesCount} Plies'),
@@ -272,7 +280,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3A3564),
+                  backgroundColor: const Color(0xFF1D4ED8),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -320,18 +328,18 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/lay-sheets'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564)),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF3A3564),
+          color: const Color(0xFF1D4ED8),
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -354,7 +362,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
@@ -368,15 +376,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,11 +389,11 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.layers_outlined, color: Color(0xFF3A3564), size: 24),
+                            child: const Icon(Icons.layers_outlined, color: Color(0xFF0B1220), size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -404,7 +405,8 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -412,7 +414,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                                   'Multi-ply fabric spreading sheets, CAD ratios, table allocations, and component lot serialization',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                     height: 1.35,
                                   ),
                                 ),
@@ -429,7 +431,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                         child: ElevatedButton.icon(
                           onPressed: _openCreateLaySheetModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3A3564),
+                            backgroundColor: const Color(0xFF1D4ED8),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -451,20 +453,25 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 TextField(
                   controller: _searchCtrl,
                   onChanged: (_) => setState(() {}),
+                  style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'Search lay number, PO, brand...',
-                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                 ),
@@ -497,7 +504,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Center(
                       child: Column(
@@ -509,7 +516,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
@@ -545,10 +552,10 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -572,14 +579,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,16 +590,16 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
                   child: Text(
                     lay.layNumber,
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF3A3564),
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ),
@@ -627,13 +627,13 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFF0B1220),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               lay.styleName,
-              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
             ),
             const SizedBox(height: 8),
             Row(
@@ -643,7 +643,7 @@ class _CuttingLaySheetsScreenState extends ConsumerState<CuttingLaySheetsScreen>
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
                 const Spacer(),

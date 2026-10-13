@@ -117,7 +117,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF7F0),
+        color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -144,11 +144,11 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
-                  child: const Icon(Icons.badge_outlined, color: Color(0xFF3A3564), size: 22),
+                  child: const Icon(Icons.badge_outlined, color: Color(0xFF0B1220), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -159,15 +159,16 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                         'Cutting Floor Workers',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                          letterSpacing: -0.3,
                         ),
                       ),
                       Text(
                         '${state.workers.length} registered floor operators',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -194,19 +195,19 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged: (val) => setState(() => _search = val),
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'Search worker or phone...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
                         suffixIcon: _search.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
+                                icon: const Icon(Icons.clear, size: 16, color: Color(0xFF64748B)),
                                 onPressed: () {
                                   _searchCtrl.clear();
                                   setState(() => _search = '');
@@ -222,7 +223,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -263,7 +264,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                           const SizedBox(height: 4),
                           Text(
                             'Add cutting operators to allocate floor tasks',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
                           ),
                         ],
                       ),
@@ -284,19 +285,19 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: const Color(0xFFFAF7F0),
+                              backgroundColor: const Color(0xFFF0FDFA),
                               child: Text(
                                 initials,
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF0B1220),
                                 ),
                               ),
                             ),
@@ -313,7 +314,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -355,7 +356,7 @@ class _CuttingWorkerListModalState extends ConsumerState<CuttingWorkerListModal>
                                           worker.role,
                                           style: GoogleFonts.publicSans(
                                             fontSize: 11,
-                                            color: const Color(0xFF3A3564),
+                                            color: const Color(0xFF0B1220),
                                             fontWeight: FontWeight.w600,
                                           ),
                                           maxLines: 1,

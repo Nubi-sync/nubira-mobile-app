@@ -65,20 +65,21 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                       'Queue New Cutting Order',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                     IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
                   ],
                 ),
-                const Divider(),
+                const Divider(color: Color(0xFFE2E8F0)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: orderNumCtrl,
                   decoration: InputDecoration(
                     labelText: 'Cutting Order Number',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -89,7 +90,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         controller: buyerCtrl,
                         decoration: InputDecoration(
                           labelText: 'Buyer Name',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -99,7 +101,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         controller: poCtrl,
                         decoration: InputDecoration(
                           labelText: 'Buyer PO',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -113,7 +116,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         controller: styleCtrl,
                         decoration: InputDecoration(
                           labelText: 'Style Ref',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -123,7 +127,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         controller: colorwayCtrl,
                         decoration: InputDecoration(
                           labelText: 'Colorway',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -138,7 +143,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: 'Total Pieces',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -149,7 +155,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: 'Plies Planned',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ),
@@ -160,7 +167,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   controller: tableCtrl,
                   decoration: InputDecoration(
                     labelText: 'Table Assigned',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -168,7 +176,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   value: priority,
                   decoration: InputDecoration(
                     labelText: 'Priority Level',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'NORMAL', child: Text('Normal Priority')),
@@ -182,7 +191,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -252,18 +261,18 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/orders'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564)),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF3A3564),
+          color: const Color(0xFF1D4ED8),
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -286,7 +295,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
@@ -300,15 +309,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,11 +322,11 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.memory_rounded, color: Color(0xFF3A3564), size: 24),
+                            child: const Icon(Icons.memory_rounded, color: Color(0xFF0B1220), size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -336,7 +338,8 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -344,7 +347,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                                   'Master cutter job queue, automated blade dispatch, table prioritization, and ex-factory milestones',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                     height: 1.35,
                                   ),
                                 ),
@@ -361,7 +364,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         child: ElevatedButton.icon(
                           onPressed: _openCreateOrderModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3A3564),
+                            backgroundColor: const Color(0xFF1D4ED8),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -383,20 +386,25 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                 TextField(
                   controller: _searchCtrl,
                   onChanged: (_) => setState(() {}),
+                  style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'Search order number, PO, buyer...',
-                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
                     prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                 ),
@@ -431,7 +439,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Center(
                       child: Column(
@@ -443,7 +451,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
@@ -479,10 +487,10 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -503,14 +511,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,16 +522,16 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   o.orderNumber,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
@@ -560,13 +561,13 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
+              color: const Color(0xFF0B1220),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             '${o.styleNumber} • Color: ${o.colorway}',
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
           ),
           const SizedBox(height: 8),
           Row(
@@ -576,13 +577,13 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF3A3564),
+                  color: const Color(0xFF0B1220),
                 ),
               ),
               const Spacer(),
               Text(
                 o.tableAssigned,
-                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
+                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
               ),
             ],
           ),
@@ -601,15 +602,15 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF334155),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
               OutlinedButton(
                 onPressed: () => ref.read(cuttingProvider.notifier).advanceOrderStatus(o.id),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF3A3564),
-                  side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                  foregroundColor: const Color(0xFF1D4ED8),
+                  side: const BorderSide(color: Color(0xFFE2E8F0)),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -625,3 +626,4 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
     );
   }
 }
+

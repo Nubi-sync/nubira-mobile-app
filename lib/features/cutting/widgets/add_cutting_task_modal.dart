@@ -134,7 +134,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
         maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF7F0),
+        color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -161,11 +161,11 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
-                  child: const Icon(Icons.assignment_add, color: Color(0xFF3A3564), size: 22),
+                  child: const Icon(Icons.assignment_add, color: Color(0xFF0B1220), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -176,15 +176,16 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         'Allocate Cutting Task',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                          letterSpacing: -0.3,
                         ),
                       ),
                       Text(
                         'Assign piece quota & floor table to worker',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -214,17 +215,18 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F0F7),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.business, size: 18, color: Color(0xFF3A3564)),
+                            child: const Icon(Icons.business, size: 18, color: Color(0xFF0B1220)),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -236,7 +238,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0F172A),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -244,14 +246,14 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                   children: [
                                     Text(
                                       'Article: ',
-                                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                                     ),
                                     Text(
                                       articleCode,
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF3A3564),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ],
@@ -262,9 +264,9 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -278,7 +280,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                               ],
@@ -299,7 +301,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -317,7 +319,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                             style: GoogleFonts.publicSans(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
+                              color: const Color(0xFF1D4ED8),
                             ),
                           ),
                         ),
@@ -351,7 +353,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<CuttingWorker>(
@@ -368,7 +370,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                       style: GoogleFonts.publicSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF0F172A),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -383,14 +385,15 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
                                       child: Text(
                                         w.roles.firstOrNull?.replaceAll('_', ' ') ?? 'Cutter',
                                         style: GoogleFonts.publicSans(
                                           fontSize: 10,
-                                          color: const Color(0xFF3A3564),
+                                          color: const Color(0xFF0B1220),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -423,7 +426,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF64748B),
+                                  color: const Color(0xFF475569),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -433,7 +436,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -448,7 +451,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                           style: GoogleFonts.publicSans(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                       );
@@ -474,7 +477,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF64748B),
+                                  color: const Color(0xFF475569),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -486,26 +489,26 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
+                                  color: const Color(0xFF0B1220),
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'e.g. 500',
-                                  hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                                  hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
                                   suffixText: 'pcs',
-                                  suffixStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                                  suffixStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                    borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 ),
@@ -530,7 +533,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -545,10 +548,10 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                               margin: const EdgeInsets.symmetric(horizontal: 3),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                                color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+                                  color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                                 ),
                               ),
                               child: Center(
@@ -575,7 +578,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -583,23 +586,23 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                     TextFormField(
                       controller: _notesCtrl,
                       maxLines: 2,
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'e.g. Check grain alignment for checks, 60 ply spread maximum...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                          borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -613,7 +616,7 @@ class _AddCuttingTaskModalState extends ConsumerState<AddCuttingTaskModal> {
                       height: 48,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

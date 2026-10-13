@@ -115,9 +115,9 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   children: [
@@ -125,11 +125,11 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -141,14 +141,14 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
                             'Provision floor credential & workstation role',
                             style: GoogleFonts.publicSans(
                               fontSize: 11,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -165,9 +165,9 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
                       ),
                     ),
                   ],
@@ -197,7 +197,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF475569),
                 ),
               ),
               const SizedBox(height: 6),
@@ -205,7 +205,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 controller: _nameController,
                 validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter worker name' : null,
                 decoration: _inputDecoration('e.g. Ramesh Patel'),
-                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
               ),
               const SizedBox(height: 14),
 
@@ -215,7 +215,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF475569),
                 ),
               ),
               const SizedBox(height: 6),
@@ -228,7 +228,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                   return null;
                 },
                 decoration: _inputDecoration('e.g. 9876543210'),
-                style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0B1220)),
               ),
               const SizedBox(height: 14),
 
@@ -238,7 +238,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF475569),
                 ),
               ),
               const SizedBox(height: 6),
@@ -247,7 +247,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 obscureText: true,
                 validator: (val) => (val == null || val.length < 6) ? 'Password must be at least 6 characters' : null,
                 decoration: _inputDecoration('Min 6 characters (e.g. cut12345)'),
-                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
               ),
               const SizedBox(height: 14),
 
@@ -257,7 +257,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF475569),
                 ),
               ),
               const SizedBox(height: 8),
@@ -266,16 +266,16 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFFAF7F0) : Colors.white,
+                    color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                       width: isSelected ? 1.5 : 1.0,
                     ),
                   ),
                   child: CheckboxListTile(
                     value: isSelected,
-                    activeColor: const Color(0xFF3A3564),
+                    activeColor: const Color(0xFF1D4ED8),
                     dense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                     title: Text(
@@ -283,12 +283,12 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                       style: GoogleFonts.publicSans(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                     subtitle: Text(
                       role['desc']!,
-                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                     ),
                     onChanged: (checked) {
                       setState(() {
@@ -315,7 +315,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                       style: GoogleFonts.publicSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                       ),
                     ),
                   ),
@@ -330,7 +330,7 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
                       style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -349,21 +349,21 @@ class _AddCuttingWorkerModalState extends ConsumerState<AddCuttingWorkerModal> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+      hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF64748B)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: const Color(0xFFF8FAFC),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0x1A000000)),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0x1A000000)),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
       ),
     );
   }

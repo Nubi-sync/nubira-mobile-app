@@ -117,12 +117,12 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564)),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
           onPressed: () {
             setState(() {
               _messages.clear();
@@ -142,7 +142,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -157,11 +157,11 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.auto_awesome, color: Color(0xFF3A3564), size: 18),
+                    child: const Icon(Icons.auto_awesome, color: Color(0xFF0B1220), size: 18),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -175,7 +175,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -199,7 +199,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                         ),
                         Text(
                           'Yield optimizer & fabric consumption neural model',
-                          style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -220,7 +220,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -242,14 +242,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +252,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -267,7 +260,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                                   p['desc']!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                  style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                                 ),
                               ],
                             ),
@@ -278,7 +271,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  const Divider(),
+                  const Divider(color: Color(0xFFE2E8F0)),
                   const SizedBox(height: 8),
 
                   // Chat Message List
@@ -291,18 +284,11 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                         padding: const EdgeInsets.all(14),
                         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
                         decoration: BoxDecoration(
-                          color: isUser ? const Color(0xFF3A3564) : Colors.white,
+                          color: isUser ? const Color(0xFF1D4ED8) : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isUser ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+                            color: isUser ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,14 +297,14 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF3A3564)),
+                                  const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF1D4ED8)),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Zigza AI Cutting Engine',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
+                                      color: const Color(0xFF1D4ED8),
                                     ),
                                   ),
                                 ],
@@ -329,7 +315,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                               style: GoogleFonts.publicSans(
                                 fontSize: 13,
                                 height: 1.4,
-                                color: isUser ? Colors.white : const Color(0xFF0F172A),
+                                color: isUser ? Colors.white : const Color(0xFF0B1220),
                               ),
                             ),
                           ],
@@ -347,7 +333,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -355,12 +341,12 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                             const SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3A3564)),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D4ED8)),
                             ),
                             const SizedBox(width: 10),
                             Text(
                               'Analyzing cutting floor parameters...',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                             ),
                           ],
                         ),
@@ -375,7 +361,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
               padding: const EdgeInsets.all(12),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0x1A000000))),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -383,15 +369,24 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                     child: TextField(
                       controller: _promptCtrl,
                       onSubmitted: _sendQuery,
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'Ask about marker yield, roll consumption, bundles...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
                         filled: true,
-                        fillColor: const Color(0xFFFAF7F0),
+                        fillColor: const Color(0xFFF8FAFC),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                         ),
                       ),
                     ),
@@ -399,7 +394,7 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3A3564),
+                      color: Color(0xFF1D4ED8),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
