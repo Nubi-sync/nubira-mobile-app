@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -308,18 +309,18 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/store'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
+          icon: const Icon(Icons.refresh_rounded, color: AppTheme.headingObsidian),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF1D4ED8),
+          color: AppTheme.brandRoyalBlue,
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -335,14 +336,14 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.arrow_back_rounded, size: 14, color: Color(0xFF64748B)),
+                      const Icon(Icons.arrow_back_rounded, size: 14, color: AppTheme.bodyInk),
                       const SizedBox(width: 4),
                       Text(
                         'Workspace hub / 03 - Cutting floor',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF475569),
+                          color: AppTheme.bodyInk,
                         ),
                       ),
                     ],
@@ -355,9 +356,9 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,24 +370,28 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
+                              color: AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0x26000000)),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
-                            child: const Icon(Icons.storefront_outlined, color: Color(0xFF0B1220), size: 24),
+                            child: const Icon(Icons.storefront_outlined, color: AppTheme.headingObsidian, size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Floor Store (Fabric Rolls)',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.3,
+                                RichText(
+                                  text: TextSpan(
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.3,
+                                    ),
+                                    children: const [
+                                      TextSpan(text: 'Floor Store ', style: TextStyle(color: AppTheme.headingObsidian)),
+                                      TextSpan(text: '(Fabric Rolls)', style: TextStyle(color: AppTheme.brandRoyalBlue)),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -394,7 +399,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                                   'Material receipts from Central Store, roll barcode tracking, line issues, and remnant inventory',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF475569),
+                                    color: AppTheme.bodyInk,
                                     height: 1.35,
                                   ),
                                 ),
@@ -413,7 +418,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildKpiTile('Issued to Line', '${totalIssued.toInt()} m', const Color(0xFF0284C7)),
+                            child: _buildKpiTile('Issued to Line', '${totalIssued.toInt()} m', AppTheme.brandRoyalBlue),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -429,7 +434,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                         child: ElevatedButton.icon(
                           onPressed: _openCreateIssueModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1D4ED8),
+                            backgroundColor: AppTheme.brandRoyalBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -451,25 +456,25 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                 TextField(
                   controller: _searchCtrl,
                   onChanged: (_) => setState(() {}),
-                  style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
+                  style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.headingObsidian),
                   decoration: InputDecoration(
                     hintText: 'Search challan, article, buyer, fabric...',
-                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20),
+                    hintStyle: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.bodyInk),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.bodyInk, size: 20),
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: AppTheme.bgCanvas,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.borderLight),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: const BorderSide(color: AppTheme.borderLight),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+                      borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
                     ),
                   ),
                 ),
@@ -501,9 +506,9 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                     width: double.infinity,
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Center(
                       child: Column(
@@ -515,7 +520,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF475569),
+                              color: AppTheme.bodyInk,
                             ),
                           ),
                         ],
@@ -547,16 +552,16 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+            style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
           ),
           const SizedBox(height: 2),
           Text(
@@ -580,10 +585,10 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
+          color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.bgCanvas,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+            color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
           ),
         ),
         child: Center(
@@ -592,7 +597,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
             style: GoogleFonts.publicSans(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF475569),
+              color: isSelected ? Colors.white : AppTheme.bodyInk,
             ),
           ),
         ),
@@ -607,9 +612,9 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,16 +625,16 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0x26000000)),
+                  border: Border.all(color: AppTheme.borderLight),
                 ),
                 child: Text(
                   c.challanNumber,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0B1220),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ),
@@ -637,13 +642,13 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isReceived
-                      ? const Color(0xFFECFDF5)
-                      : (isPending ? const Color(0xFFFFFBEB) : const Color(0xFFF0F9FF)),
+                      ? AppTheme.badgeEmeraldBg
+                      : (isPending ? AppTheme.badgeAmberBg : AppTheme.badgeBlueBg),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isReceived
-                        ? const Color(0xFFA7F3D0)
-                        : (isPending ? const Color(0xFFFDE68A) : const Color(0xFFBAE6FD)),
+                        ? AppTheme.badgeEmeraldBorder
+                        : (isPending ? AppTheme.badgeAmberBorder : AppTheme.badgeBlueBorder),
                   ),
                 ),
                 child: Text(
@@ -652,8 +657,8 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color: isReceived
-                        ? const Color(0xFF047857)
-                        : (isPending ? const Color(0xFFB45309) : const Color(0xFF0369A1)),
+                        ? AppTheme.badgeEmeraldText
+                        : (isPending ? AppTheme.badgeAmberText : AppTheme.badgeBlueText),
                   ),
                 ),
               ),
@@ -665,13 +670,13 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF0B1220),
+              color: AppTheme.headingObsidian,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '${c.fabricType} • Color: ${c.color}',
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
           ),
           const SizedBox(height: 8),
           Row(
@@ -681,13 +686,13 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0B1220),
+                  color: AppTheme.headingObsidian,
                 ),
               ),
               const Spacer(),
               Text(
                 c.rackLocation.isNotEmpty ? 'Location: ${c.rackLocation}' : 'From: ${c.fromDivision}',
-                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
               ),
             ],
           ),
@@ -698,7 +703,7 @@ class _CuttingRollsStoreScreenState extends ConsumerState<CuttingRollsStoreScree
               child: ElevatedButton.icon(
                 onPressed: () => _openAcknowledgeModal(c),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1D4ED8),
+                  backgroundColor: AppTheme.brandRoyalBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 8),

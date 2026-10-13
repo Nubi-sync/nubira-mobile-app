@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -191,7 +192,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D4ED8),
+                      backgroundColor: AppTheme.brandRoyalBlue,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -261,18 +262,18 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/orders'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220)),
+          icon: const Icon(Icons.refresh_rounded, color: AppTheme.brandRoyalBlue),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF1D4ED8),
+          color: AppTheme.brandRoyalBlue,
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -322,24 +323,39 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
+                              color: AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.memory_rounded, color: Color(0xFF0B1220), size: 24),
+                            child: const Icon(Icons.memory_rounded, color: AppTheme.headingObsidian, size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Cutting Orders & Queue',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.3,
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Cutting Orders & ',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.headingObsidian,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: 'Queue',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.brandRoyalBlue,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -347,7 +363,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                                   'Master cutter job queue, automated blade dispatch, table prioritization, and ex-factory milestones',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF475569),
+                                    color: AppTheme.bodyInk,
                                     height: 1.35,
                                   ),
                                 ),
@@ -364,7 +380,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                         child: ElevatedButton.icon(
                           onPressed: _openCreateOrderModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1D4ED8),
+                            backgroundColor: AppTheme.brandRoyalBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -487,10 +503,10 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
+          color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.bgCanvas,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+            color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
           ),
         ),
         child: Text(
@@ -498,7 +514,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
           style: GoogleFonts.publicSans(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            color: isSelected ? Colors.white : AppTheme.bodyInk,
           ),
         ),
       ),
@@ -522,7 +538,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0x26000000)),
                 ),
@@ -531,17 +547,17 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0B1220),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: o.priority == 'URGENT' ? const Color(0xFFFFE4E6) : const Color(0xFFEFF6FF),
+                  color: o.priority == 'URGENT' ? AppTheme.badgeRoseBg : AppTheme.badgeBlueBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: o.priority == 'URGENT' ? const Color(0xFFFDA4AF) : const Color(0xFFBFDBFE),
+                    color: o.priority == 'URGENT' ? AppTheme.badgeRoseBorder : AppTheme.badgeBlueBorder,
                   ),
                 ),
                 child: Text(
@@ -549,7 +565,7 @@ class _CuttingOrdersQueueScreenState extends ConsumerState<CuttingOrdersQueueScr
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: o.priority == 'URGENT' ? const Color(0xFFE11D48) : const Color(0xFF1D4ED8),
+                    color: o.priority == 'URGENT' ? AppTheme.badgeRoseText : AppTheme.badgeBlueText,
                   ),
                 ),
               ),
