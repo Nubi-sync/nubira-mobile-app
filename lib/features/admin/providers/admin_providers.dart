@@ -329,15 +329,41 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
       final chId = chJson['id']?.toString() ?? '';
       final chNo = chJson['challan_no']?.toString().trim().toUpperCase() ?? '';
 
-      // Match allotments belonging to this challan by challan_id, production_order_no, or client_challan_no
+      // Match allotments belonging to this challan by challan_id, production_order_no, or notes (web_admin actions.ts)
       final chAllotments = allotmentsRaw.where((a) {
         final alChId = a['challan_id']?.toString();
         if (alChId == chId) return true;
-        final alProdNo = a['production_order_no']?.toString().trim().toUpperCase() ?? '';
-        final alClientNo = a['client_challan_no']?.toString().trim().toUpperCase() ?? '';
-        if (chNo.isNotEmpty && (alProdNo == chNo || alClientNo == chNo || alClientNo == 'JOB-$chNo')) {
-          return true;
+
+        final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == a['id']?.toString()).toList();
+        Map<String, dynamic> meta = {};
+        for (var m in alMats) {
+          final n = m['notes']?.toString();
+          if (n != null && n.trim().isNotEmpty) {
+            try {
+              final parsed = jsonDecode(n);
+              if (parsed is Map) meta.addAll(Map<String, dynamic>.from(parsed));
+            } catch (_) {}
+          }
         }
+
+        final alChNo = (meta['client_challan_no']?.toString() ??
+                meta['challan_no']?.toString() ??
+                a['client_challan_no']?.toString() ??
+                a['production_order_no']?.toString() ??
+                '')
+            .trim()
+            .toUpperCase();
+
+        final normChNo = chNo.replaceAll(RegExp(r'^JOB-?', caseSensitive: false), '').trim();
+        final normAlChNo = alChNo.replaceAll(RegExp(r'^JOB-?', caseSensitive: false), '').trim();
+
+        if (normChNo.isNotEmpty && normAlChNo.isNotEmpty) {
+          if (normChNo == normAlChNo || chNo == alChNo) return true;
+          final baseCh = normChNo.split(RegExp(r'[\s(]'))[0].trim();
+          final baseAl = normAlChNo.split(RegExp(r'[\s(]'))[0].trim();
+          if (baseCh.isNotEmpty && baseAl.isNotEmpty && baseCh == baseAl) return true;
+        }
+
         return false;
       }).toList();
 
@@ -356,151 +382,212 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
               rawLineItems = decoded;
             }
 
-            for (var idx = 0; idx < rawLineItems.length; idx++) {
-              final line = rawLineItems[idx];
+            // Industry standard combo pattern split ('TOP + PANT')
+            final List<Map<String, dynamic>> expandedInputLines = [];
+            for (var line in rawLineItems) {
               if (line is Map) {
-                final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? 'Style';
-                final cleanSubArt = line['sub_art_no']?.toString().trim().toUpperCase();
-                final fullArtCode = cleanSubArt != null && cleanSubArt.isNotEmpty ? '$cleanArtNo$cleanSubArt' : cleanArtNo;
-                final colorPattern = line['color_pattern']?.toString().trim() ?? 'Standard';
-                final sizeRange = line['size_range']?.toString().trim() ?? 'Free Size';
-
-                final linePcs = (line['total_pcs'] as num?)?.toInt() ??
-                    (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
-                final lineSets = (line['sets'] as num?)?.toInt() ?? 1;
-                final lineRatio = (line['pcs_per_set'] as num?)?.toInt() ?? 9;
-
-                // Match with active floor allotment for this article and color
-                dynamic matchingAl;
-                for (var al in chAllotments) {
-                  final artId = al['article_id']?.toString() ?? '';
-                  final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
-                  final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
-                  final isArtMatch = alArtNo == cleanArtNo || alArtNo == fullArtCode;
-                  if (!isArtMatch) continue;
-
-                  // Check if variant color matches
-                  final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
-                  if (alVars.isNotEmpty) {
-                    final hasColorMatch = alVars.any((v) => (v['color']?.toString().trim().toUpperCase() ?? '') == colorPattern.toUpperCase());
-                    if (hasColorMatch) {
-                      matchingAl = al;
-                      break;
+                final Map<String, dynamic> mapLine = Map<String, dynamic>.from(line);
+                final pat = (mapLine['pattern_no'] ?? mapLine['product'] ?? 'Standard').toString().trim();
+                if (pat.contains('+')) {
+                  final parts = pat.split('+').map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+                  if (parts.length > 1) {
+                    for (var p in parts) {
+                      expandedInputLines.add({
+                        ...mapLine,
+                        'pattern_no': p,
+                        'component': p,
+                        'parent_pattern': pat,
+                      });
                     }
-                  } else {
-                    // Check material notes for color
-                    final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-                    final hasMatColor = alMats.any((m) {
-                      final itemName = (m['item_name']?.toString() ?? '').toUpperCase();
-                      final notes = (m['notes']?.toString() ?? '').toUpperCase();
-                      return itemName.contains(colorPattern.toUpperCase()) || notes.contains(colorPattern.toUpperCase());
-                    });
-                    if (hasMatColor || alMats.isEmpty) {
-                      matchingAl = al;
-                      break;
-                    }
+                    continue;
                   }
                 }
-
-                // Global fallback matching if allotment was created with client_challan_no for this order
-                if (matchingAl == null) {
-                  for (var al in allotmentsRaw) {
-                    final artId = al['article_id']?.toString() ?? '';
-                    final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
-                    final alArtNo = art?['art_no']?.toString().trim().toUpperCase();
-                    final isArtMatch = alArtNo == cleanArtNo || alArtNo == fullArtCode;
-                    if (!isArtMatch) continue;
-
-                    final alProdNo = al['production_order_no']?.toString().trim().toUpperCase() ?? '';
-                    final alClientNo = al['client_challan_no']?.toString().trim().toUpperCase() ?? '';
-                    if (chNo.isNotEmpty && (alProdNo == chNo || alClientNo == chNo || alClientNo == 'JOB-$chNo')) {
-                      final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
-                      if (alVars.isNotEmpty) {
-                        final hasColorMatch = alVars.any((v) => (v['color']?.toString().trim().toUpperCase() ?? '') == colorPattern.toUpperCase());
-                        if (hasColorMatch) {
-                          matchingAl = al;
-                          break;
-                        }
-                      } else {
-                        final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
-                        final hasMatColor = alMats.any((m) {
-                          final itemName = (m['item_name']?.toString() ?? '').toUpperCase();
-                          final notes = (m['notes']?.toString() ?? '').toUpperCase();
-                          return itemName.contains(colorPattern.toUpperCase()) || notes.contains(colorPattern.toUpperCase());
-                        });
-                        if (hasMatColor || alMats.isEmpty) {
-                          matchingAl = al;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-
-                String? linemanId;
-                String? linemanName;
-                String lineStatus = 'PENDING';
-                String? allotmentId;
-                int completedQty = 0;
-
-                // Priority 1: Check if note line itself already has assigned lineman
-                final rawLmId = line['assigned_lineman_id']?.toString().trim();
-                final rawLmName = (line['assigned_lineman_name'] ?? line['lineman_name'])?.toString().trim();
-                if (rawLmId != null && rawLmId.isNotEmpty) {
-                  linemanId = rawLmId;
-                  linemanName = (rawLmName != null && rawLmName.isNotEmpty) ? rawLmName : 'Lineman';
-                  lineStatus = 'IN_PROGRESS';
-                } else if (rawLmName != null && rawLmName.isNotEmpty && !rawLmName.toLowerCase().contains('unassigned')) {
-                  linemanName = rawLmName;
-                  lineStatus = 'IN_PROGRESS';
-                }
-
-                // Priority 2: Override / enrich from live child allotment record if matched
-                if (matchingAl != null) {
-                  allotmentId = matchingAl['id']?.toString();
-                  if (matchingAl['lineman_id'] != null) {
-                    linemanId = matchingAl['lineman_id']?.toString();
-                    final prof = profilesMap[linemanId] ?? (matchingAl['profiles'] is Map ? matchingAl['profiles'] : null);
-                    linemanName = prof?['username']?.toString() ?? linemanName ?? 'Lineman';
-                    lineStatus = matchingAl['status']?.toString().toUpperCase() ?? 'IN_PROGRESS';
-                  }
-
-                  // Find completed qty from variants
-                  final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == allotmentId).toList();
-                  for (var v in alVars) {
-                    if ((v['color']?.toString().toUpperCase() ?? '') == colorPattern.toUpperCase()) {
-                      completedQty += (v['completed_qty'] as num?)?.toInt() ?? 0;
-                    }
-                  }
-                }
-
-                parsedLines.add(
-                  ChallanArticleLine(
-                    id: '$chId-line-$idx',
-                    allotmentId: allotmentId,
-                    artNo: cleanArtNo,
-                    subArtNo: cleanSubArt,
-                    patternNo: line['pattern_no']?.toString(),
-                    description: line['description']?.toString() ?? '$fullArtCode - $colorPattern ($sizeRange)',
-                    colorPattern: colorPattern,
-                    sizeRange: sizeRange,
-                    sets: lineSets,
-                    pcsPerSet: lineRatio,
-                    totalPcs: linePcs,
-                    completedQty: completedQty,
-                    assignedLinemanId: linemanId,
-                    assignedLinemanName: linemanName ?? 'Unassigned (Floor Order)',
-                    pictureUrl: line['picture_url']?.toString(),
-                    stitchingRate: (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
-                    status: lineStatus,
-                  ),
-                );
+                expandedInputLines.add({
+                  ...mapLine,
+                  'pattern_no': pat.isNotEmpty ? pat : 'Standard',
+                });
               }
             }
 
+            // Consolidated map deduplication matching Web
+            final Map<String, Map<String, dynamic>> consolidatedMap = {};
+            for (var line in expandedInputLines) {
+              final cleanArt = (line['art_no'] ?? '').toString().trim().toUpperCase();
+              final cleanSub = (line['sub_art_no'] ?? '').toString().trim().toUpperCase();
+              final color = (line['color_pattern'] ?? 'Standard').toString().trim().toUpperCase();
+              final size = (line['size_range'] ?? 'Free Size').toString().trim().toUpperCase();
+              final prod = (line['pattern_no'] ?? line['product'] ?? 'Standard').toString().trim().toUpperCase();
+              final key = '${cleanArt}__${cleanSub}__${color}__${size}__$prod';
+
+              final linePcs = (line['total_pcs'] as num?)?.toInt() ??
+                  (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
+              final lineSets = (line['sets'] as num?)?.toInt() ??
+                  (linePcs / ((line['pcs_per_set'] as num?)?.toInt() ?? 9)).round();
+
+              if (consolidatedMap.containsKey(key)) {
+                final existing = consolidatedMap[key]!;
+                final exPcs = (existing['total_pcs'] as num?)?.toInt() ?? 0;
+                final exSets = (existing['sets'] as num?)?.toInt() ?? 0;
+                existing['total_pcs'] = exPcs > linePcs ? exPcs : linePcs;
+                existing['sets'] = exSets > lineSets ? exSets : lineSets;
+                if (existing['stitching_rate'] == null && line['stitching_rate'] != null) {
+                  existing['stitching_rate'] = line['stitching_rate'];
+                }
+              } else {
+                consolidatedMap[key] = {
+                  ...line,
+                  'total_pcs': linePcs,
+                  'sets': lineSets,
+                  'pattern_no': line['pattern_no'] ?? 'Standard',
+                };
+              }
+            }
+            final rawLines = consolidatedMap.values.toList();
+
+            for (var idx = 0; idx < rawLines.length; idx++) {
+              final line = rawLines[idx];
+              final cleanArtNo = line['art_no']?.toString().trim().toUpperCase() ?? 'Style';
+              final cleanSubArt = line['sub_art_no']?.toString().trim().toUpperCase();
+              final fullArtCode = cleanSubArt != null && cleanSubArt.isNotEmpty ? '$cleanArtNo$cleanSubArt' : cleanArtNo;
+              final baseArtNo = cleanArtNo.replaceAll(RegExp(r'[^0-9].*$'), '').trim();
+              final colorPattern = line['color_pattern']?.toString().trim() ?? 'Standard';
+              final sizeRange = line['size_range']?.toString().trim() ?? 'Free Size';
+
+              final linePcs = (line['total_pcs'] as num?)?.toInt() ??
+                  (((line['sets'] as num?)?.toInt() ?? 1) * ((line['pcs_per_set'] as num?)?.toInt() ?? 9));
+              final lineSets = (line['sets'] as num?)?.toInt() ?? 1;
+              final lineRatio = (line['pcs_per_set'] as num?)?.toInt() ?? 9;
+
+              // Match with active floor allotment for this article and color
+              dynamic matchingAl;
+              for (var al in chAllotments) {
+                final artId = al['article_id']?.toString() ?? '';
+                final art = articlesMap[artId] ?? (al['articles'] is Map ? al['articles'] : null);
+                final alArtNo = art?['art_no']?.toString().trim().toUpperCase() ?? '';
+
+                final alMats = materialsRaw.where((m) => m['allotment_id']?.toString() == al['id']?.toString()).toList();
+                Map<String, dynamic> meta = {};
+                for (var m in alMats) {
+                  final n = m['notes']?.toString();
+                  if (n != null && n.trim().isNotEmpty) {
+                    try {
+                      final dec = jsonDecode(n);
+                      if (dec is Map) meta.addAll(Map<String, dynamic>.from(dec));
+                    } catch (_) {}
+                  }
+                }
+                final metaArtNo = (meta['art_no']?.toString() ?? '').trim().toUpperCase();
+
+                final isArtMatch = cleanArtNo.isEmpty ||
+                    alArtNo == baseArtNo || alArtNo == cleanArtNo || alArtNo == fullArtCode ||
+                    metaArtNo == baseArtNo || metaArtNo == cleanArtNo || metaArtNo == fullArtCode ||
+                    (baseArtNo.isNotEmpty && alArtNo.contains(baseArtNo)) || (cleanArtNo.isNotEmpty && alArtNo.contains(cleanArtNo)) ||
+                    (baseArtNo.isNotEmpty && metaArtNo.contains(baseArtNo)) || (cleanArtNo.isNotEmpty && metaArtNo.contains(cleanArtNo));
+
+                if (!isArtMatch) continue;
+
+                // Component / Pattern check
+                final linePattern = (line['pattern_no']?.toString() ?? '').trim().toUpperCase();
+                final alPattern = (meta['pattern_no'] ?? meta['component'] ?? '').toString().trim().toUpperCase();
+                if (alPattern.isNotEmpty && linePattern.isNotEmpty && alPattern != 'STANDARD' && linePattern != 'STANDARD') {
+                  if (alPattern != linePattern && !alPattern.contains(linePattern) && !linePattern.contains(alPattern)) {
+                    continue;
+                  }
+                }
+
+                // Check variant color match
+                final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == al['id']?.toString()).toList();
+                if (alVars.isNotEmpty) {
+                  final cp = colorPattern.toUpperCase();
+                  final hasColor = alVars.any((v) {
+                    final vCol = (v['color']?.toString().trim().toUpperCase() ?? '');
+                    return vCol == cp || vCol.contains(cp) || cp.contains(vCol) || vCol == 'ALL';
+                  });
+                  if (hasColor) {
+                    matchingAl = al;
+                    break;
+                  }
+                } else {
+                  final cf = (meta['color_focus']?.toString() ?? '').toUpperCase();
+                  final cp = colorPattern.toUpperCase();
+                  if (cf.isNotEmpty && cf != 'ALL') {
+                    if (cf == cp || cf.contains(cp) || cp.contains(cf)) {
+                      matchingAl = al;
+                      break;
+                    }
+                  }
+                  final cpMeta = (meta['color_pattern']?.toString() ?? '').toUpperCase();
+                  if (cpMeta.isNotEmpty && cpMeta != 'ALL') {
+                    if (cpMeta == cp || cpMeta.contains(cp) || cp.contains(cpMeta)) {
+                      matchingAl = al;
+                      break;
+                    }
+                  }
+                  if (colorPattern.isNotEmpty && colorPattern.toUpperCase() != 'STANDARD') {
+                    if (alArtNo.contains(cp) || metaArtNo.contains(cp)) {
+                      matchingAl = al;
+                      break;
+                    }
+                  }
+                  matchingAl = al;
+                  break;
+                }
+              }
+
+              String? linemanId;
+              String? linemanName;
+              String lineStatus = 'PENDING';
+              String? allotmentId;
+              int completedQty = 0;
+
+              // Web actions.ts: Only assigned if matching floor allotment exists
+              if (matchingAl != null) {
+                allotmentId = matchingAl['id']?.toString();
+                if (matchingAl['lineman_id'] != null) {
+                  linemanId = matchingAl['lineman_id']?.toString();
+                  final prof = profilesMap[linemanId] ?? (matchingAl['profiles'] is Map ? matchingAl['profiles'] : null);
+                  linemanName = prof?['username']?.toString() ?? 'Lineman';
+                  final alStatus = matchingAl['status']?.toString().toUpperCase() ?? 'IN_PROGRESS';
+                  lineStatus = alStatus == 'QC_PASSED' ? 'QC_PASSED' : (alStatus == 'DISPATCHED' ? 'DISPATCHED' : 'IN_PROGRESS');
+                }
+
+                // Find completed qty from variants
+                final alVars = variantsRaw.where((v) => v['allotment_id']?.toString() == allotmentId).toList();
+                for (var v in alVars) {
+                  if ((v['color']?.toString().toUpperCase() ?? '') == colorPattern.toUpperCase() &&
+                      (v['size']?.toString().toUpperCase() ?? '') == sizeRange.toUpperCase()) {
+                    completedQty = (v['completed_qty'] as num?)?.toInt() ?? 0;
+                    break;
+                  }
+                }
+              }
+
+              parsedLines.add(
+                ChallanArticleLine(
+                  id: '$chId-line-$idx',
+                  allotmentId: allotmentId,
+                  artNo: cleanArtNo,
+                  subArtNo: cleanSubArt,
+                  patternNo: line['pattern_no']?.toString(),
+                  description: line['description']?.toString() ?? '$fullArtCode - $colorPattern ($sizeRange)',
+                  colorPattern: colorPattern,
+                  sizeRange: sizeRange,
+                  sets: lineSets,
+                  pcsPerSet: lineRatio,
+                  totalPcs: linePcs,
+                  completedQty: completedQty,
+                  assignedLinemanId: linemanId,
+                  assignedLinemanName: linemanName ?? 'Unassigned (Floor Order)',
+                  pictureUrl: line['picture_url']?.toString(),
+                  stitchingRate: (line['stitching_rate'] as num?)?.toDouble() ?? 20.0,
+                  status: lineStatus,
+                ),
+              );
+            }
+
             // Auto-heal / backfill missing floor allotments for legacy / imported challans with assigned linemen
-            if (chAllotments.isEmpty && rawLineItems.isNotEmpty) {
-              _syncMissingAllotmentsFromNotes(chJson, rawLineItems);
+            if (chAllotments.isEmpty && rawLines.isNotEmpty) {
+              _syncMissingAllotmentsFromNotes(chJson, rawLines);
             }
           }
         } catch (_) {}
@@ -550,17 +637,11 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
         } catch (_) {}
       }
 
-      // Dynamic Status Calculation matching Web
+      // Dynamic Status Calculation matching Web actions.ts
       final totalLines = parsedLines.length;
-      final allottedLines = parsedLines.where((a) {
-        final hasLineman = (a.assignedLinemanId != null && a.assignedLinemanId!.isNotEmpty) ||
-            (a.assignedLinemanName != null &&
-                a.assignedLinemanName!.isNotEmpty &&
-                !a.assignedLinemanName!.toLowerCase().contains('unassigned'));
-        return hasLineman && a.status != 'PENDING';
-      }).length;
       final completedLines = parsedLines.where((a) => a.status == 'QC_PASSED' || a.status == 'COMPLETED').length;
       final dispatchedLines = parsedLines.where((a) => a.status == 'DISPATCHED').length;
+      final totalAllottedPcs = chAllotments.fold(0, (sum, al) => sum + ((al['target_qty'] as num?)?.toInt() ?? 0));
 
       String dynamicStatus = 'PENDING';
       final rawStatus = chJson['status']?.toString().toUpperCase() ?? 'PENDING';
@@ -568,12 +649,10 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
         dynamicStatus = 'DISPATCHED';
       } else if (rawStatus == 'QC_PASSED' || (completedLines == totalLines && totalLines > 0)) {
         dynamicStatus = 'QC_PASSED';
-      } else if (allottedLines == totalLines && totalLines > 0) {
+      } else if (totalAllottedPcs >= finalPcs && finalPcs > 0) {
         dynamicStatus = 'IN_PROGRESS';
-      } else if (allottedLines > 0) {
+      } else if (totalAllottedPcs > 0) {
         dynamicStatus = 'PARTIALLY_ALLOTTED';
-      } else if (rawStatus == 'IN_PROGRESS' || rawStatus == 'ALLOTTED') {
-        dynamicStatus = 'IN_PROGRESS';
       } else {
         dynamicStatus = 'PENDING';
       }

@@ -343,6 +343,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             int totalPcs = 0;
             int inProductionPcs = 0;
             int readyOutPcs = 0;
+            int dispatchedPcs = 0;
 
             int pendingCount = 0;
             int inProgressCount = 0;
@@ -356,23 +357,40 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
 
               if (ch.brand.trim().isNotEmpty) brandSet.add(ch.brand.trim().toUpperCase());
 
-              if (ch.status == 'DISPATCHED' || ch.status == 'QC_PASSED') {
-                readyOutPcs += ch.totalPcs;
-              } else if (ch.status == 'IN_PROGRESS') {
-                inProductionPcs += ch.totalPcs;
+              // Status tab counts matching Web ProductionOrdersClient.tsx:
+              // PARTIALLY_ALLOTTED stays in pendingCount because it still has unallotted lines to allot
+              if (ch.status == 'IN_PROGRESS') {
                 inProgressCount++;
-              } else if (ch.status == 'PARTIALLY_ALLOTTED') {
-                inProductionPcs += ch.totalPcs;
-                pendingCount++; // Still has lines pending
               } else {
                 pendingCount++;
               }
 
               for (var art in ch.articles) {
-                final base = art.artNo.trim().toUpperCase();
-                if (base.isNotEmpty) uniqueMasterArticles.add(base);
+                // Base master article style extraction matching Web:
+                // rawArt.replace(/[^0-9].*$/, '').trim() || rawArt
+                final rawArt = art.artNo.trim().toUpperCase();
+                final base = rawArt.replaceAll(RegExp(r'[^0-9].*$'), '').trim();
+                final masterArt = base.isNotEmpty ? base : rawArt;
+                if (masterArt.isNotEmpty) uniqueMasterArticles.add(masterArt);
+
+                final isAllotted = art.assignedLinemanId != null &&
+                    art.assignedLinemanId!.isNotEmpty &&
+                    art.status == 'IN_PROGRESS';
+                final lineTotalPcs = art.totalPcs;
+                final lineCompletedQty = art.completedQty;
+
+                if (art.status == 'QC_PASSED' || art.status == 'COMPLETED') {
+                  readyOutPcs += lineCompletedQty > 0 ? lineCompletedQty : lineTotalPcs;
+                } else if (art.status == 'DISPATCHED') {
+                  dispatchedPcs += lineTotalPcs;
+                } else if (isAllotted) {
+                  final remaining = lineTotalPcs - lineCompletedQty;
+                  inProductionPcs += remaining > 0 ? remaining : 0;
+                }
               }
             }
+
+            final totalReadyAndOut = readyOutPcs + dispatchedPcs;
 
             // 2. Filter Display List
             final query = _searchController.text.trim().toLowerCase();
@@ -441,7 +459,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                           totalSets: totalSets,
                           totalPcs: totalPcs,
                           inProductionPcs: inProductionPcs,
-                          readyOutPcs: readyOutPcs,
+                          readyOutPcs: totalReadyAndOut,
                           onOpenArticleExplorer: () => _showArticleExplorerSheet(rawList),
                         ),
                         const SizedBox(height: 14),
