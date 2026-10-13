@@ -1552,37 +1552,45 @@ class _ViewContractBottomSheet extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppTheme.mintSurface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x3314C8B4)),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppTheme.mintSurface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0x3314C8B4)),
+                      ),
+                      child: const Icon(Icons.description_outlined, color: AppTheme.headingObsidian, size: 20),
                     ),
-                    child: const Icon(Icons.description_outlined, color: AppTheme.headingObsidian, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        buyer.buyerName,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.headingObsidian,
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            buyer.buyerName,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.headingObsidian,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Ref: ${buyer.buyerCode} • ${buyer.brandName ?? "Direct Buyer"}',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.faintInk),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Ref: ${buyer.buyerCode} • ${buyer.brandName ?? "Direct Buyer"}',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.faintInk),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk),
@@ -1639,14 +1647,19 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'ALLOCATED TECH PACK ARTICLE',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.faintInk,
+                            Expanded(
+                              child: Text(
+                                'ALLOCATED TECH PACK ARTICLE',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.faintInk,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -1668,26 +1681,32 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         const SizedBox(height: 8),
                         if (isLinked) ...[
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    buyer.linkedArticleNumber!,
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.headingObsidian,
-                                    ),
-                                  ),
-                                  if (buyer.linkedArticleName != null)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      buyer.linkedArticleName!,
-                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.bodyInk),
+                                      buyer.linkedArticleNumber!,
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.headingObsidian,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                ],
+                                    if (buyer.linkedArticleName != null)
+                                      Text(
+                                        buyer.linkedArticleName!,
+                                        style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.bodyInk),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               TextButton(
                                 onPressed: () => onOpenLinkModal(buyer),
                                 child: Text(
@@ -1797,15 +1816,18 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),
-          Text(
-            val,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.headingObsidian,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              val,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.headingObsidian,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1822,11 +1844,14 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             label,
             style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
           ),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
               value,
               style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
               textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
