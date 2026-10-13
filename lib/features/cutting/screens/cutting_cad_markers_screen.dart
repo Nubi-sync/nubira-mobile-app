@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -166,7 +167,7 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D4ED8),
+                      backgroundColor: AppTheme.brandRoyalBlue,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -229,18 +230,18 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/markers'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1D4ED8)),
+          icon: const Icon(Icons.refresh_rounded, color: AppTheme.brandRoyalBlue),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF1D4ED8),
+          color: AppTheme.brandRoyalBlue,
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -297,24 +298,39 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
+                              color: AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.open_in_full_rounded, color: Color(0xFF0B1220), size: 24),
+                            child: const Icon(Icons.open_in_full_rounded, color: AppTheme.headingObsidian, size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'CAD Markers & Nesting',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.3,
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'CAD Marker Efficiency & ',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.headingObsidian,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: 'Nesting Library',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.brandRoyalBlue,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -339,14 +355,14 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
                         child: ElevatedButton.icon(
                           onPressed: _openCreateMarkerModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1D4ED8),
+                            backgroundColor: AppTheme.brandRoyalBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 18),
                           label: Text(
-                            'Add CAD Marker',
+                            '+ New CAD Marker',
                             style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -453,7 +469,7 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0x26000000)),
                 ),
@@ -462,23 +478,23 @@ class _CuttingCadMarkersScreenState extends ConsumerState<CuttingCadMarkersScree
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0B1220),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
+                  color: AppTheme.badgeEmeraldBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                  border: Border.all(color: AppTheme.badgeEmeraldBorder),
                 ),
                 child: Text(
                   '${m.efficiencyPercent}% EFF',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF047857),
+                    color: AppTheme.badgeEmeraldText,
                   ),
                 ),
               ),

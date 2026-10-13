@@ -148,7 +148,7 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D4ED8),
+                      backgroundColor: AppTheme.brandRoyalBlue,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -221,18 +221,18 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/bundles'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1D4ED8)),
+          icon: const Icon(Icons.refresh_rounded, color: AppTheme.brandRoyalBlue),
           onPressed: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
         ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF1D4ED8),
+          color: AppTheme.brandRoyalBlue,
           onRefresh: () => ref.read(cuttingProvider.notifier).fetchCuttingData(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -289,24 +289,39 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
+                              color: AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0x26000000)),
                             ),
-                            child: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF0B1220), size: 24),
+                            child: const Icon(Icons.qr_code_2_rounded, color: AppTheme.headingObsidian, size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Bundle Tickets & Barcodes',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.3,
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Cut Panel Bundle ',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.headingObsidian,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: 'QR Generation',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.brandRoyalBlue,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -331,7 +346,7 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
                         child: ElevatedButton.icon(
                           onPressed: _openGenerateBundlesModal,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1D4ED8),
+                            backgroundColor: AppTheme.brandRoyalBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -447,10 +462,10 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
+          color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.bgCanvas,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+            color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
           ),
         ),
         child: Text(
@@ -458,7 +473,7 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
           style: GoogleFonts.publicSans(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            color: isSelected ? Colors.white : AppTheme.bodyInk,
           ),
         ),
       ),
@@ -489,21 +504,21 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.qr_code, size: 14, color: Color(0xFF0B1220)),
+                    const Icon(Icons.qr_code, size: 14, color: AppTheme.headingObsidian),
                     const SizedBox(width: 4),
                     Text(
                       b.bundleNumber,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0B1220),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ],
@@ -512,16 +527,16 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AppTheme.badgeEmeraldBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                  border: Border.all(color: AppTheme.badgeEmeraldBorder),
                 ),
                 child: Text(
                   b.status,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF16A34A),
+                    color: AppTheme.badgeEmeraldText,
                   ),
                 ),
               ),
@@ -533,14 +548,14 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1220),
+              color: AppTheme.headingObsidian,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Color: ${b.color} • Size: ${b.size} • Ply Range: ${b.plyRangeStart}-${b.plyRangeEnd} (${b.piecesCount} pcs)',
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
           ),
           const SizedBox(height: 8),
           Row(
@@ -548,16 +563,16 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: AppTheme.badgeBlueBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                  border: Border.all(color: AppTheme.badgeBlueBorder),
                 ),
                 child: Text(
                   'DEST: ${b.destination}',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1D4ED8),
+                    color: AppTheme.badgeBlueText,
                   ),
                 ),
               ),
@@ -565,8 +580,8 @@ class _CuttingBundleTicketsScreenState extends ConsumerState<CuttingBundleTicket
               OutlinedButton(
                 onPressed: () => ref.read(cuttingProvider.notifier).advanceBundleStatus(b.id),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1D4ED8),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  foregroundColor: AppTheme.brandRoyalBlue,
+                  side: const BorderSide(color: AppTheme.borderLight),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
