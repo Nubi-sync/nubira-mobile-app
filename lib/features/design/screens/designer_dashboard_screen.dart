@@ -429,7 +429,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
 
   Widget _buildBriefCard(BuildContext context, DesignBriefModel brief) {
     Color badgeBg = AppTheme.badgeNeutralBg;
-    Color badgeText = AppTheme.brandSteel;
+    Color badgeText = AppTheme.brandRoyalBlue;
     Color badgeBorder = AppTheme.badgeNeutralBorder;
     String statusLabel = 'Pending Upload';
 
@@ -544,7 +544,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.brandSteel,
+                      color: AppTheme.brandRoyalBlue,
                     ),
                   ),
                 ),
@@ -704,11 +704,11 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                           style: GoogleFonts.publicSans(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.brandSteel,
+                            color: AppTheme.brandRoyalBlue,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.brandSteel),
+                        const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.brandRoyalBlue),
                       ],
                     ],
                   ),
