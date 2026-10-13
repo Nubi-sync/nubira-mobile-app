@@ -48,11 +48,11 @@ class ActiveBuyersModal extends ConsumerWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.people_outline_rounded, color: Color(0xFF332B6B), size: 20),
+                    child: const Icon(Icons.people_outline_rounded, color: Color(0xFF0B1220), size: 20),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -60,13 +60,13 @@ class ActiveBuyersModal extends ConsumerWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1C1C1A),
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF6B6A65)),
+                icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -74,7 +74,7 @@ class ActiveBuyersModal extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             'Contracted buyer accounts, allocated volumes, and linked articles.',
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF6B6A65)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
           ),
           const Divider(height: 24, color: Color(0xFFF1F5F9)),
 
@@ -83,7 +83,7 @@ class ActiveBuyersModal extends ConsumerWidget {
                 ? Center(
                     child: Text(
                       'No active buyers contracted yet.',
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF9B9A94)),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                     ),
                   )
                 : ListView.separated(
@@ -101,10 +101,10 @@ class ActiveBuyersModal extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFFAFAF8),
+                            color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF332B6B) : const Color(0x1A000000),
+                              color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           child: Row(
@@ -121,7 +121,7 @@ class ActiveBuyersModal extends ConsumerWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13,
                                             fontWeight: FontWeight.bold,
-                                            color: isSelected ? Colors.white : const Color(0xFF1C1C1A),
+                                            color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                           ),
                                         ),
                                         if (b.linkedArticleNumber != null && b.linkedArticleNumber!.isNotEmpty) ...[
@@ -129,10 +129,10 @@ class ActiveBuyersModal extends ConsumerWidget {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: isSelected ? const Color(0x33FFFFFF) : Colors.white,
+                                              color: isSelected ? const Color(0x33FFFFFF) : const Color(0xFFF0FDFA),
                                               borderRadius: BorderRadius.circular(4),
                                               border: Border.all(
-                                                color: isSelected ? const Color(0x4DFFFFFF) : const Color(0x1A000000),
+                                                color: isSelected ? const Color(0x4DFFFFFF) : const Color(0x26000000),
                                               ),
                                             ),
                                             child: Text(
@@ -140,7 +140,7 @@ class ActiveBuyersModal extends ConsumerWidget {
                                               style: GoogleFonts.jetBrainsMono(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
-                                                color: isSelected ? Colors.white : const Color(0xFF332B6B),
+                                                color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                               ),
                                             ),
                                           ),
@@ -152,7 +152,7 @@ class ActiveBuyersModal extends ConsumerWidget {
                                       '${b.contractedVolume.toString()} Pcs • ${b.currency == 'INR' ? '₹' : '\$'}${b.pricePerPiece.toStringAsFixed(2)} / pc',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
-                                        color: isSelected ? const Color(0xCCFFFFFF) : const Color(0xFF6B6A65),
+                                        color: isSelected ? const Color(0xCCFFFFFF) : const Color(0xFF475569),
                                       ),
                                     ),
                                   ],
@@ -161,7 +161,7 @@ class ActiveBuyersModal extends ConsumerWidget {
                               if (isSelected)
                                 const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20)
                               else
-                                const Icon(Icons.chevron_right_rounded, color: Color(0xFF9B9A94), size: 20),
+                                const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
                             ],
                           ),
                         ),
