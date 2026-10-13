@@ -184,11 +184,11 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF332B6B), size: 22),
+                          child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF0B1220), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -211,7 +211,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(color: const Color(0x26000000)),
                                     ),
@@ -220,7 +220,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF332B6B),
+                                        color: const Color(0xFF0B1220),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -474,9 +474,9 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                         width: 54,
                         height: 54,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF0FDFA),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
                         child: const Icon(Icons.assignment_outlined, size: 26, color: Color(0xFF64748B)),
                       ),
@@ -552,16 +552,16 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   stage,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 8.5,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF332B6B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -570,9 +570,9 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Icon(icon, size: 14, color: accentColor),
               ),
@@ -626,7 +626,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
           style: GoogleFonts.publicSans(
             fontSize: 12,
             fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
-            color: isSel ? const Color(0xFFFAF7F0) : const Color(0xFF475569),
+            color: isSel ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),
@@ -677,13 +677,13 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
 
     final Color badgeBg = isReady
         ? const Color(0xFFE9F7EE)
-        : (isSampleDev ? const Color(0xFFFAF7F0) : const Color(0xFFFEE2E2));
+        : (isSampleDev ? const Color(0xFFF0FDFA) : const Color(0xFFFEE2E2));
     final Color badgeText = isReady
         ? const Color(0xFF16A34A)
-        : (isSampleDev ? const Color(0xFF332B6B) : const Color(0xFF991B1B));
+        : (isSampleDev ? const Color(0xFF0B1220) : const Color(0xFF991B1B));
     final Color badgeBorder = isReady
         ? const Color(0xFFA7F3D0)
-        : (isSampleDev ? const Color(0xFFE2E8F0) : const Color(0xFFFECACA));
+        : (isSampleDev ? const Color(0x26000000) : const Color(0xFFFECACA));
 
     final String statusLabel = isReady
         ? 'Ready for Merchandising'
@@ -1235,13 +1235,13 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Text(
                       'Comparing Version ${pack.version} (Active Bulk Spec) with Baseline Initial Spec',
-                      style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF332B6B)),
+                      style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                     ),
                   ),
                   const SizedBox(height: 16),
