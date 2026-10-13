@@ -327,12 +327,12 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 ),
               ),
 
-              // Footer Bar with Cream Background matching Web
+              // Footer Bar with Brand Background
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
-                  border: Border(top: BorderSide(color: Color(0x1A000000))),
+                  color: Color(0xFFF8FAFC),
+                  border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -341,7 +341,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF475569),
                         backgroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -351,7 +351,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                     const SizedBox(width: 10),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3A3564),
+                        backgroundColor: const Color(0xFF1D4ED8),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
@@ -387,7 +387,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           style: GoogleFonts.publicSans(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF475569),
+            color: const Color(0xFF0B1220),
             letterSpacing: 0.4,
           ),
         ),
@@ -418,7 +418,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
         style: GoogleFonts.publicSans(
           fontSize: 12.5,
           fontWeight: FontWeight.w500,
-          color: const Color(0xFF0F172A),
+          color: const Color(0xFF0B1220),
         ),
         decoration: InputDecoration(
           hintText: hintText,
@@ -442,13 +442,13 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/embroidery/store'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF1D4ED8),
         onRefresh: () => ref.read(embroideryProvider.notifier).loadInitialData(isRefresh: true),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -469,12 +469,12 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                            const Icon(Icons.arrow_back, size: 13, color: Color(0xFF1D4ED8)),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
@@ -482,7 +482,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                                 style: GoogleFonts.publicSans(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF475569),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -497,9 +497,9 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -518,7 +518,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 8.5,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF047857),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                       ],
@@ -535,8 +535,8 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,11 +548,11 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.storefront_outlined, color: Color(0xFF3A3564), size: 22),
+                          child: const Icon(Icons.storefront_outlined, color: Color(0xFF0B1220), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -566,23 +566,23 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0F172A),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                      border: Border.all(color: const Color(0x26000000)),
                                     ),
                                     child: Text(
                                       'DIV 05',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ),
@@ -591,7 +591,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 'Material receipts from preceding stage and handoff issues to next line',
-                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                               ),
                             ],
                           ),
@@ -605,8 +605,8 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF3A3564),
-                              side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                              foregroundColor: const Color(0xFF0B1220),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
@@ -626,7 +626,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3A3564),
+                              backgroundColor: const Color(0xFF1D4ED8),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 11),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -668,8 +668,8 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                     child: _buildStoreKpi(
                       title: 'TOTAL ISSUED',
                       topBadge: 'OUTWARD',
-                      topBadgeColor: const Color(0xFF64748B),
-                      topBadgeBg: const Color(0xFFFAF7F0),
+                      topBadgeColor: const Color(0xFF0B1220),
+                      topBadgeBg: const Color(0xFFF0FDFA),
                       subtext: 'Next line handoff',
                       value: '0',
                       pillText: '0 CHALLANS',
@@ -716,8 +716,8 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -745,18 +745,18 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                           Container(
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: TextField(
                               controller: _searchCtrl,
                               onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
-                              style: GoogleFonts.publicSans(fontSize: 12.5),
+                              style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                               decoration: const InputDecoration(
                                 hintText: 'Search challan, article, division...',
-                                hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                                prefixIcon: Icon(Icons.search, size: 17, color: Color(0xFF94A3B8)),
+                                hintStyle: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                prefixIcon: Icon(Icons.search, size: 17, color: Color(0xFF64748B)),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(vertical: 10),
                               ),
@@ -766,7 +766,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                       ),
                     ),
 
-                    const Divider(height: 1, color: Color(0x14000000)),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                     // Table / List Content
                     Padding(
@@ -800,7 +800,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -815,7 +815,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF475569),
                     letterSpacing: 0.3,
                   ),
                   maxLines: 1,
@@ -840,7 +840,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           const SizedBox(height: 2),
           Text(
             subtext,
-            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF64748B)),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -855,7 +855,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: -0.5,
                   ),
                   maxLines: 1,
@@ -866,16 +866,16 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   pillText,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 8.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
@@ -894,10 +894,10 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -905,7 +905,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           style: GoogleFonts.jetBrainsMono(
             fontSize: 10.5,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),
@@ -924,7 +924,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
             child: Center(
               child: Text(
                 'No inward receipts matching "$_searchQuery"',
-                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
               ),
             ),
           );
@@ -934,9 +934,9 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F0),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,19 +948,19 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                   children: [
                     Text(
                       'ISS-2026-001003',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                     ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
                       child: Text(
                         'PRINTING',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                        style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                       ),
                     ),
                   ],
@@ -974,14 +974,14 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
             const SizedBox(height: 6),
             Text(
               'Art #DEMO-101-03',
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
             ),
             Text(
               'Printed Front Panels (Sleeve Crest Applique) - Olive Green',
-              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
             ),
             const SizedBox(height: 8),
-            const Divider(height: 1, color: Color(0x14000000)),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -992,7 +992,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                     Text('RECEIVED QTY', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
                     Text(
                       '${totalReceived.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} pcs',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                     ),
                   ],
                 ),
@@ -1000,14 +1000,14 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('RACK', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
-                    Text('EMB-FRAME-01', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                    Text('EMB-FRAME-01', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('RECEIVER', style: GoogleFonts.jetBrainsMono(fontSize: 9, color: const Color(0xFF64748B))),
-                    Text('Sergio Ramos', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                    Text('Sergio Ramos', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220))),
                   ],
                 ),
               ],
@@ -1024,9 +1024,9 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
             children: [
               const Icon(Icons.outbox_rounded, size: 36, color: Color(0xFF94A3B8)),
               const SizedBox(height: 8),
-              Text('No Outward Issues Yet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+              Text('No Outward Issues Yet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
               const SizedBox(height: 4),
-              Text('Issue finished embroidery panel batches to Stitching & Sewing.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B))),
+              Text('Issue finished embroidery panel batches to Stitching & Sewing.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569))),
             ],
           ),
         ),
@@ -1040,9 +1040,9 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
             children: [
               const Icon(Icons.check_circle_outline_rounded, size: 36, color: Color(0xFF047857)),
               const SizedBox(height: 8),
-              Text('All Inward Shipments Acknowledged', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+              Text('All Inward Shipments Acknowledged', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
               const SizedBox(height: 4),
-              Text('No pending material transfers awaiting receipt.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B))),
+              Text('No pending material transfers awaiting receipt.', style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569))),
             ],
           ),
         ),

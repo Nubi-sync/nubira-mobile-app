@@ -21,7 +21,7 @@ class SelectRouteModal extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF7F0),
+        color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -49,11 +49,11 @@ class SelectRouteModal extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
-                  child: const Icon(Icons.alt_route_rounded, color: Color(0xFF3A3564), size: 22),
+                  child: const Icon(Icons.alt_route_rounded, color: Color(0xFF0B1220), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -64,15 +64,16 @@ class SelectRouteModal extends StatelessWidget {
                         'Manufacturing Route',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                          letterSpacing: -0.3,
                         ),
                       ),
                       Text(
                         'Select downstream embellishment workflow for $buyerName',
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -107,10 +108,10 @@ class SelectRouteModal extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFFF1F0F7) : Colors.white,
+                      color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.06),
+                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                         width: isSelected ? 1.5 : 1.0,
                       ),
                     ),
@@ -122,7 +123,7 @@ class SelectRouteModal extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFCBD5E1),
+                              color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFCBD5E1),
                               width: 2,
                             ),
                           ),
@@ -133,7 +134,7 @@ class SelectRouteModal extends StatelessWidget {
                                     height: 10,
                                     decoration: const BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Color(0xFF3A3564),
+                                      color: Color(0xFF1D4ED8),
                                     ),
                                   ),
                                 )
@@ -149,7 +150,7 @@ class SelectRouteModal extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF0F172A),
+                                  color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF0B1220),
                                 ),
                               ),
                               const SizedBox(height: 3),
@@ -157,14 +158,14 @@ class SelectRouteModal extends StatelessWidget {
                                 route.flowDescription,
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF64748B),
+                                  color: const Color(0xFF475569),
                                 ),
                               ),
                             ],
                           ),
                         ),
                         if (isSelected)
-                          const Icon(Icons.check_circle, color: Color(0xFF3A3564), size: 18),
+                          const Icon(Icons.check_circle, color: Color(0xFF1D4ED8), size: 18),
                       ],
                     ),
                   ),
