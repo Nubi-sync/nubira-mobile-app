@@ -227,17 +227,43 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         a['lineman'] = profilesMap[lmId] ?? {};
       }
 
-      // Merge active in-production challan lines from canonical groupedChallans (100% Web Parity)
+      // Merge active in-production challan lines from canonical groupedChallans (Consolidated by Style + Color + Lineman)
+      final Map<String, Map<String, dynamic>> consolidatedChallanLots = {};
       for (var ch in groupedChallans) {
         if (ch.status == 'IN_PROGRESS' || ch.status == 'PARTIALLY_ALLOTTED' || ch.status == 'QC_PASSED') {
           for (var line in ch.articles) {
-            final bool alreadyHas = allotmentsRaw.any((al) =>
-                al['id']?.toString() == line.allotmentId ||
-                (al['challan_id']?.toString() == ch.id &&
-                 (al['article']?['art_no']?.toString().toUpperCase() == line.artNo.toUpperCase())));
+            final artCode = line.fullArtCode.trim().toUpperCase();
+            final color = line.colorPattern.trim().toUpperCase();
+            final lmId = line.assignedLinemanId ?? '';
+            final lmName = (line.assignedLinemanName != null &&
+                    line.assignedLinemanName!.isNotEmpty &&
+                    !line.assignedLinemanName!.toLowerCase().contains('unassigned'))
+                ? line.assignedLinemanName!
+                : 'Active Line';
 
-            if (!alreadyHas) {
-              allotmentsRaw.add({
+            // Check if this article + color is already present in allotmentsRaw from database
+            final bool alreadyInDb = allotmentsRaw.any((al) {
+              final alChId = al['challan_id']?.toString() ?? '';
+              final alArtNo = (al['article']?['art_no']?.toString() ?? '').trim().toUpperCase();
+              return (al['id']?.toString() == line.allotmentId) ||
+                  (alChId == ch.id && (alArtNo == artCode || alArtNo == line.artNo.toUpperCase()));
+            });
+
+            if (alreadyInDb) continue;
+
+            final groupKey = '${ch.id}__${artCode}__${color}__$lmId';
+            if (consolidatedChallanLots.containsKey(groupKey)) {
+              final existing = consolidatedChallanLots[groupKey]!;
+              existing['target_qty'] = (existing['target_qty'] as int) + line.totalPcs;
+              existing['completed_qty'] = (existing['completed_qty'] as int) + line.completedQty;
+              final existingSizes = existing['sizes'] as List<String>;
+              final newSize = line.sizeRange.trim();
+              if (newSize.isNotEmpty && !existingSizes.contains(newSize)) {
+                existingSizes.add(newSize);
+              }
+            } else {
+              final newSize = line.sizeRange.trim();
+              consolidatedChallanLots[groupKey] = {
                 'id': line.allotmentId ?? 'ch_${ch.id}_${line.id}',
                 'challan_id': ch.id,
                 'challan': {
@@ -253,10 +279,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   'description': line.description,
                 },
                 'lineman': {
-                  'id': line.assignedLinemanId ?? 'lm_${line.assignedLinemanName}',
-                  'username': (line.assignedLinemanName != null && line.assignedLinemanName!.isNotEmpty && !line.assignedLinemanName!.toLowerCase().contains('unassigned'))
-                      ? line.assignedLinemanName!
-                      : 'Active Line',
+                  'id': lmId.isNotEmpty ? lmId : 'lm_$lmName',
+                  'username': lmName,
                 },
                 'target_qty': line.totalPcs,
                 'completed_qty': line.completedQty,
@@ -264,11 +288,20 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 'priority': 'NORMAL',
                 'created_at': ch.createdAt.toIso8601String(),
                 'color_pattern': line.colorPattern,
-                'size_range': line.sizeRange,
-              });
+                'sizes': newSize.isNotEmpty ? [newSize] : <String>[],
+              };
             }
           }
         }
+      }
+
+      for (var lot in consolidatedChallanLots.values) {
+        final sizes = (lot['sizes'] as List<String>);
+        final sizeStr = sizes.isNotEmpty
+            ? (sizes.length > 3 ? '${sizes.first}-${sizes.last}' : sizes.join('/'))
+            : 'All Sizes';
+        lot['size_range'] = sizeStr;
+        allotmentsRaw.add(lot);
       }
 
       final List<dynamic> rawAllotments = allotmentsRaw;
@@ -406,6 +439,42 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           'handed_to_qc_at': a['handed_to_qc_at'],
           'store_inward_status': storeStatus,
         };
+
+        // Consolidate duplicate floor lots with same (challan + article + color + lineman)
+        final challanObj = parseMap(a['challan']);
+        final chNum = (challanObj['challan_no'] ?? a['challan_id'] ?? '').toString().trim().toUpperCase();
+        final artObj = parseMap(a['article']);
+        final artNum = (artObj['art_no'] ?? '').toString().trim().toUpperCase();
+        final colStr = colorStr.trim().toUpperCase();
+        final lmObj = parseMap(a['lineman']);
+        final lmIdStr = (lmObj['id'] ?? lmObj['username'] ?? '').toString().trim();
+        final dedupKey = '${chNum}__${artNum}__${colStr}__$lmIdStr';
+
+        final existingIdx = enrichedAllotments.indexWhere((e) {
+          final eChallan = parseMap(e['challan']);
+          final eChNum = (eChallan['challan_no'] ?? e['challan_id'] ?? '').toString().trim().toUpperCase();
+          final eArt = parseMap(e['article']);
+          final eArtNum = (eArt['art_no'] ?? '').toString().trim().toUpperCase();
+          final eCol = (e['color']?.toString() ?? '').trim().toUpperCase();
+          final eLm = parseMap(e['lineman']);
+          final eLmId = (eLm['id'] ?? eLm['username'] ?? '').toString().trim();
+          return '${eChNum}__${eArtNum}__${eCol}__$eLmId' == dedupKey;
+        });
+
+        if (existingIdx >= 0) {
+          final ex = enrichedAllotments[existingIdx];
+          ex['target_qty'] = parseQty(ex['target_qty']) + targetQty;
+          ex['stitched_qty'] = parseQty(ex['stitched_qty']) + stitchedQty;
+          ex['passed_qty'] = parseQty(ex['passed_qty']) + passedQty;
+          ex['rejected_qty'] = parseQty(ex['rejected_qty']) + rejectedQty;
+
+          // Merge size ranges if different
+          final exSize = (ex['size_range']?.toString() ?? '').trim();
+          if (sizeStr.isNotEmpty && sizeStr != exSize && !exSize.contains(sizeStr)) {
+            ex['size_range'] = exSize.isNotEmpty ? '$exSize, $sizeStr' : sizeStr;
+          }
+          continue;
+        }
 
         enrichedAllotments.add(enriched);
 
