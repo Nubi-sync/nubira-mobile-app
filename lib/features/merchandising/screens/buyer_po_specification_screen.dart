@@ -159,9 +159,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
     final int grandTotal = matrix.fold<int>(0, (sum, row) => sum + row.total);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F4EC), // Warm Cream Canvas
+      backgroundColor: const Color(0xFFF8FAFC), // Modern Canvas
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F4EC),
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -172,11 +172,11 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF0FDFA),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: const Color(0x26000000)),
               ),
-              child: const Icon(Icons.work_outline, color: Color(0xFF332B6B), size: 19),
+              child: const Icon(Icons.work_outline, color: Color(0xFF0B1220), size: 19),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -188,15 +188,16 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEDEBF9),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
                         child: Text(
                           'BUYER PO SPECIFICATION',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF332B6B),
+                            color: const Color(0xFF0B1220),
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -256,9 +257,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F4EC),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,7 +280,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1C1C1A),
+                              color: const Color(0xFF0B1220),
                             ),
                             children: [
                               TextSpan(
@@ -311,9 +312,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F4EC),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +336,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 19,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1C1C1A),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -361,9 +362,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F4EC),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -383,14 +384,14 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF332B6B)),
+                          const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0B1220)),
                           const SizedBox(width: 6),
                           Text(
                             order.exFactoryDate.isNotEmpty ? order.exFactoryDate : 'TBD',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF332B6B),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ],
