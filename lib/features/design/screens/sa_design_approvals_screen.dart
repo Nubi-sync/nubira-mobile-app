@@ -330,7 +330,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Container(
                           height: 220,
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF8FAFC),
                           alignment: Alignment.center,
                           child: const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 40),
                         ),
@@ -559,9 +559,9 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                                         height: 160,
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFAF7F0),
+                                          color: const Color(0xFFF8FAFC),
                                           borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: const Color(0x1A000000)),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
                                         ),
                                         child: Stack(
                                           fit: StackFit.expand,
@@ -622,9 +622,9 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                                         height: 160,
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFAF7F0),
+                                          color: const Color(0xFFF8FAFC),
                                           borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: const Color(0x1A000000)),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
                                         ),
                                         child: Stack(
                                           fit: StackFit.expand,
