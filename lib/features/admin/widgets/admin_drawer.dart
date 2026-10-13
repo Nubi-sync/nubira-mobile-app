@@ -15,6 +15,7 @@ import '../../dashboard/mending_dashboard.dart';
 import '../../dashboard/qc_dashboard.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
 import '../../modules/screens/supervisor_floor_stations_screen.dart';
+import '../../dashboard/production_manager_dashboard.dart';
 
 class AdminDrawer extends ConsumerWidget {
   final int activeIndex;
@@ -634,14 +635,29 @@ class AdminDrawer extends ConsumerWidget {
                     _buildDrawerItem(
                       context: context,
                       icon: Icons.layers_outlined,
-                      title: 'Production Orders',
+                      title: 'Production Chart',
                       isSelected: activeRoute == '/stitching-sewing/production-orders',
                       onTap: () {
                         Navigator.pop(context);
                         if (activeRoute != '/stitching-sewing/production-orders') {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
+                          );
+                        }
+                      },
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: Icons.precision_manufacturing_outlined,
+                      title: 'Floor Overview',
+                      isSelected: activeRoute == '/stitching-sewing/production-manager',
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (activeRoute != '/stitching-sewing/production-manager') {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ProductionManagerDashboard()),
                           );
                         }
                       },

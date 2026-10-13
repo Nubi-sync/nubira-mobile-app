@@ -9,6 +9,11 @@ import '../../core/utils/parser_utils.dart';
 import '../../core/services/tenant_resolver_service.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/login_screen.dart';
+import '../admin/widgets/admin_drawer.dart';
+import '../admin/challans/challans_dashboard_screen.dart';
+import '../admin/challans/widgets/create_job_work_challan_sheet.dart';
+import '../admin/challans/challan_models.dart';
+import '../admin/providers/admin_providers.dart';
 import 'qc_dashboard.dart';
 import 'mending_dashboard.dart';
 import '../../../main.dart';
@@ -21,6 +26,7 @@ class ProductionManagerDashboard extends ConsumerStatefulWidget {
 }
 
 class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDashboard> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
 
   // Floor KPI Metrics
@@ -83,155 +89,189 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         } catch (_) {}
       }
       final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-      final targetComp = (!isPlatformSuper && tenant != null && tenant.companyName.trim().isNotEmpty)
+      final isCustomPlant = tenant?.isCustomStitching == true || tenant?.companyName.toLowerCase().contains('nubira') == true;
+      final isProvisionedTenant = tenant?.isProvisionedTenant == true;
+      final targetComp = (tenant != null && tenant.companyName.trim().isNotEmpty)
           ? tenant.companyName.trim().toLowerCase()
           : null;
 
-      // 1. Fetch All Active / Recent Allotments with comprehensive stage, custody, and priority columns
-      List<dynamic> rawAllotments = [];
-      try {
-        final allotmentsRes = await supabase
-            .from('allotments')
-            .select('''
-              id,
-              challan_id,
-              article_id,
-              lineman_id,
-              status,
-              priority,
-              target_qty,
-              mending_status,
-              mending_total_counted,
-              mending_verified_at,
-              handed_to_mending_by,
-              handed_to_mending_at,
-              qc_status,
-              qc_total_passed,
-              qc_total_alter,
-              qc_received_at,
-              qc_supervisor_name,
-              handed_to_qc_by,
-              handed_to_qc_at,
-              store_inward_status,
-              created_at,
-              article:articles ( id, art_no, description, size_rates ),
-              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-              challan:challans ( id, challan_no, brand, company_name, notes )
-            ''')
-            .order('created_at', ascending: false)
-            .limit(100);
-        rawAllotments = allotmentsRes as List<dynamic>;
-      } catch (e) {
-        debugPrint('Floor data: priority column fetch fallback: $e');
-        final allotmentsRes = await supabase
-            .from('allotments')
-            .select('''
-              id,
-              challan_id,
-              article_id,
-              lineman_id,
-              status,
-              target_qty,
-              mending_status,
-              mending_total_counted,
-              mending_verified_at,
-              handed_to_mending_by,
-              handed_to_mending_at,
-              qc_status,
-              qc_total_passed,
-              qc_total_alter,
-              qc_received_at,
-              qc_supervisor_name,
-              handed_to_qc_by,
-              handed_to_qc_at,
-              store_inward_status,
-              created_at,
-              article:articles ( id, art_no, description, size_rates ),
-              lineman:profiles!allotments_lineman_id_fkey ( id, username ),
-              challan:challans ( id, challan_no, brand, company_name, notes )
-            ''')
-            .order('created_at', ascending: false)
-            .limit(100);
-        rawAllotments = allotmentsRes as List<dynamic>;
-      }
+      // 1. Concurrently fetch all floor orders, challans, and allotments data safely without fragile PostgREST FK join syntax
+      List<ChallanGroupedOrder> groupedChallans = [];
+      List<dynamic> allotmentsRaw = [];
+      List<dynamic> challansRaw = [];
+      List<dynamic> articlesRaw = [];
+      List<dynamic> profilesRaw = [];
+      List<dynamic> materialsRaw = [];
+      List<dynamic> variantsRes = [];
+      List<dynamic> assignmentsRes = [];
+      List<dynamic> qcLogsRes = [];
 
-      if (targetComp != null && targetComp.isNotEmpty) {
-        rawAllotments = rawAllotments.where((al) {
-          final ch = al['challan'] as Map?;
-          final brand = (ch?['brand']?.toString() ?? '').toLowerCase();
-          final notes = (ch?['notes']?.toString() ?? '').toLowerCase();
-          final comp = (al['company_name']?.toString() ?? ch?['company_name']?.toString() ?? '').toLowerCase();
-          final art = al['article'] as Map?;
-          final rates = art?['size_rates'];
-          String rateComp = '';
-          if (rates is Map) {
-            rateComp = (rates['company_name']?.toString() ?? rates['_meta']?['company_name']?.toString() ?? '').toLowerCase();
+      await Future.wait([
+        (() async {
+          try {
+            groupedChallans = await ref.read(challanGroupedOrdersProvider.future);
+          } catch (e) {
+            debugPrint('Floor: groupedChallans error: $e');
           }
-          return brand == targetComp || brand.contains(targetComp) || notes.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || rateComp == targetComp || rateComp.contains(targetComp) || targetComp.contains('nubira');
+        })(),
+        (() async {
+          try {
+            allotmentsRaw = await supabase.from('allotments').select('*').order('created_at', ascending: false).limit(200);
+          } catch (e) {
+            debugPrint('Floor: allotments error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            challansRaw = await supabase.from('challans').select('*').order('created_at', ascending: false).limit(200);
+          } catch (e) {
+            debugPrint('Floor: challans error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            articlesRaw = await supabase.from('articles').select('id, art_no, description, size_rates, stitching_rate');
+          } catch (e) {
+            debugPrint('Floor: articles error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            profilesRaw = await supabase.from('profiles').select('id, username, role, company_name');
+          } catch (e) {
+            debugPrint('Floor: profiles error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            materialsRaw = await supabase.from('allotment_materials').select('allotment_id, notes, item_name, required_qty');
+          } catch (e) {
+            debugPrint('Floor: materials error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            variantsRes = await supabase.from('allotment_variants').select('id, allotment_id, color, size, quantity, completed_qty');
+          } catch (e) {
+            debugPrint('Floor: variants error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            assignmentsRes = await supabase.from('worker_assignments').select('id, allotment_id, worker_name, assigned_qty, completed_qty, status');
+          } catch (e) {
+            debugPrint('Floor: assignments error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            qcLogsRes = await supabase.from('qc_logs').select('id, allotment_id, article_id, qty_received, qty_passed, qty_rejected, defect_type, created_at').order('created_at', ascending: false).limit(100);
+          } catch (e) {
+            debugPrint('Floor: qcLogs error: $e');
+          }
+        })(),
+      ]);
+
+      final Map<String, dynamic> articlesMap = {
+        for (var a in articlesRaw)
+          if (a['id'] != null) a['id'].toString(): a,
+      };
+      final Map<String, dynamic> profilesMap = {
+        for (var p in profilesRaw)
+          if (p['id'] != null) p['id'].toString(): p,
+      };
+      final Map<String, dynamic> challansMap = {
+        for (var c in challansRaw)
+          if (c['id'] != null) c['id'].toString(): c,
+      };
+
+      // Filter challans and allotments by tenant account if provisioned
+      if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
+        allotmentsRaw = allotmentsRaw.where((al) {
+          final chId = al['challan_id']?.toString() ?? '';
+          final ch = challansMap[chId];
+          final brand = (ch?['brand']?.toString() ?? al['brand']?.toString() ?? '').toLowerCase();
+          final comp = (ch?['company_name']?.toString() ?? al['company_name']?.toString() ?? '').toLowerCase();
+          final notes = (ch?['notes']?.toString() ?? '').toLowerCase();
+          return brand == targetComp || brand.contains(targetComp) || comp == targetComp || comp.contains(targetComp) || notes.contains(targetComp);
         }).toList();
       }
 
-      final List<String> lotIds = rawAllotments.map((a) => a['id']?.toString() ?? '').where((id) => id.isNotEmpty).toList();
-
-      // Fetch fallback priority from allotment_materials if priority column wasn't populated
+      // Build priority map from allotment_materials
       Map<String, String> priorityMap = {};
-      if (lotIds.isNotEmpty) {
-        try {
-          final matRes = await supabase
-              .from('allotment_materials')
-              .select('allotment_id, notes')
-              .inFilter('allotment_id', lotIds);
-          for (var row in (matRes as List<dynamic>)) {
-            final aId = row['allotment_id']?.toString() ?? '';
-            final notesRaw = row['notes'];
-            if (notesRaw is String && notesRaw.contains('"priority"')) {
-              try {
-                final parsed = jsonDecode(notesRaw);
-                if (parsed is Map && parsed['priority'] != null) {
-                  final p = parsed['priority'].toString().toUpperCase();
-                  if (p == 'CRITICAL' || p == 'RUSH' || p == 'NORMAL') {
-                    priorityMap[aId] = p;
-                  }
-                }
-              } catch (_) {}
+      for (var row in materialsRaw) {
+        final aId = row['allotment_id']?.toString() ?? '';
+        final notesRaw = row['notes'];
+        if (notesRaw is String && notesRaw.contains('"priority"')) {
+          try {
+            final parsed = jsonDecode(notesRaw);
+            if (parsed is Map && parsed['priority'] != null) {
+              final p = parsed['priority'].toString().toUpperCase();
+              if (p == 'CRITICAL' || p == 'RUSH' || p == 'NORMAL') {
+                priorityMap[aId] = p;
+              }
             }
-          }
-        } catch (e) {
-          debugPrint('Floor data: Allotment materials priority fetch error: $e');
+          } catch (_) {}
         }
       }
 
-      // 2. Fetch Allotment Variants safely
-      List<dynamic> variantsRes = [];
-      try {
-        variantsRes = await supabase
-            .from('allotment_variants')
-            .select('id, allotment_id, color, size, quantity');
-      } catch (e) {
-        debugPrint('Floor data: allotment_variants fetch warning: $e');
+      // Link article, lineman, challan to allotmentsRaw
+      for (var a in allotmentsRaw) {
+        final chId = a['challan_id']?.toString() ?? '';
+        a['challan'] = challansMap[chId] ?? {};
+
+        final artId = a['article_id']?.toString() ?? '';
+        a['article'] = articlesMap[artId] ?? {};
+
+        final lmId = a['lineman_id']?.toString() ?? '';
+        a['lineman'] = profilesMap[lmId] ?? {};
       }
 
-      // 3. Fetch Worker Assignments (Stitching progress) with correct schema columns
-      List<dynamic> assignmentsRes = [];
-      try {
-        assignmentsRes = await supabase
-            .from('worker_assignments')
-            .select('id, allotment_id, worker_name, assigned_qty, completed_qty, status');
-      } catch (e) {
-        debugPrint('Floor data: worker_assignments fetch warning: $e');
+      // Merge active in-production challan lines from canonical groupedChallans (100% Web Parity)
+      for (var ch in groupedChallans) {
+        if (ch.status == 'IN_PROGRESS' || ch.status == 'PARTIALLY_ALLOTTED' || ch.status == 'QC_PASSED') {
+          for (var line in ch.articles) {
+            final bool alreadyHas = allotmentsRaw.any((al) =>
+                al['id']?.toString() == line.allotmentId ||
+                (al['challan_id']?.toString() == ch.id &&
+                 (al['article']?['art_no']?.toString().toUpperCase() == line.artNo.toUpperCase())));
+
+            if (!alreadyHas) {
+              allotmentsRaw.add({
+                'id': line.allotmentId ?? 'ch_${ch.id}_${line.id}',
+                'challan_id': ch.id,
+                'challan': {
+                  'id': ch.id,
+                  'challan_no': ch.challanNo,
+                  'brand': ch.brand,
+                  'fabric_type': ch.fabricType,
+                  'company_name': tenant?.companyName,
+                },
+                'article': {
+                  'id': line.id,
+                  'art_no': line.fullArtCode,
+                  'description': line.description,
+                },
+                'lineman': {
+                  'id': line.assignedLinemanId ?? 'lm_${line.assignedLinemanName}',
+                  'username': (line.assignedLinemanName != null && line.assignedLinemanName!.isNotEmpty && !line.assignedLinemanName!.toLowerCase().contains('unassigned'))
+                      ? line.assignedLinemanName!
+                      : 'Active Line',
+                },
+                'target_qty': line.totalPcs,
+                'completed_qty': line.completedQty,
+                'status': line.status,
+                'priority': 'NORMAL',
+                'created_at': ch.createdAt.toIso8601String(),
+                'color_pattern': line.colorPattern,
+                'size_range': line.sizeRange,
+              });
+            }
+          }
+        }
       }
 
-      // 4. Fetch QC Logs with actual schema columns
-      List<dynamic> qcLogsRes = [];
-      try {
-        qcLogsRes = await supabase
-            .from('qc_logs')
-            .select('id, allotment_id, article_id, qty_received, qty_passed, qty_rejected, defect_type, created_at')
-            .order('created_at', ascending: false)
-            .limit(100);
-      } catch (e) {
-        debugPrint('Floor data: qc_logs fetch warning: $e');
-      }
+      final List<dynamic> rawAllotments = allotmentsRaw;
 
       // --- Calculations & Mapping ---
       final List<Map<String, dynamic>> enrichedAllotments = [];
@@ -371,13 +411,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
         // Group by Lineman
         final linemanObj = a['lineman'];
-        final linemanId = linemanObj != null ? linemanObj['id'] : null;
-        final linemanName = linemanObj != null ? linemanObj['username'] ?? 'Unassigned' : 'Unassigned';
+        final linemanId = linemanObj != null ? linemanObj['id']?.toString() : null;
+        final linemanName = linemanObj != null ? (linemanObj['username']?.toString() ?? 'Unassigned Line') : 'Unassigned Line';
+        final lmKey = (linemanId != null && linemanId.isNotEmpty) ? linemanId : (linemanName != 'Unassigned Line' ? linemanName : null);
 
-        if (linemanId != null) {
-          if (!linemenMap.containsKey(linemanId)) {
-            linemenMap[linemanId] = {
-              'id': linemanId,
+        if (lmKey != null) {
+          if (!linemenMap.containsKey(lmKey)) {
+            linemenMap[lmKey] = {
+              'id': lmKey,
               'name': linemanName,
               'active_lots': 0,
               'target_pcs': 0,
@@ -387,13 +428,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               'articles': <String>{},
             };
           }
-          linemenMap[linemanId]!['active_lots'] = parseQty(linemenMap[linemanId]!['active_lots']) + 1;
-          linemenMap[linemanId]!['target_pcs'] = parseQty(linemenMap[linemanId]!['target_pcs']) + targetQty;
-          linemenMap[linemanId]!['stitched_pcs'] = parseQty(linemenMap[linemanId]!['stitched_pcs']) + stitchedQty;
-          linemenMap[linemanId]!['passed_pcs'] = parseQty(linemenMap[linemanId]!['passed_pcs']) + passedQty;
-          linemenMap[linemanId]!['mending_pcs'] = parseQty(linemenMap[linemanId]!['mending_pcs']) + rejectedQty;
+          linemenMap[lmKey]!['active_lots'] = parseQty(linemenMap[lmKey]!['active_lots']) + 1;
+          linemenMap[lmKey]!['target_pcs'] = parseQty(linemenMap[lmKey]!['target_pcs']) + targetQty;
+          linemenMap[lmKey]!['stitched_pcs'] = parseQty(linemenMap[lmKey]!['stitched_pcs']) + stitchedQty;
+          linemenMap[lmKey]!['passed_pcs'] = parseQty(linemenMap[lmKey]!['passed_pcs']) + passedQty;
+          linemenMap[lmKey]!['mending_pcs'] = parseQty(linemenMap[lmKey]!['mending_pcs']) + rejectedQty;
           if (a['article'] != null && a['article']['art_no'] != null) {
-            (linemenMap[linemanId]!['articles'] as Set<String>).add(a['article']['art_no'].toString());
+            (linemenMap[lmKey]!['articles'] as Set<String>).add(a['article']['art_no'].toString());
           }
         }
 
@@ -449,10 +490,114 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     }
   }
 
+  void _showCreateChallanModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const CreateJobWorkChallanSheet(),
+    );
+  }
+
+  Widget _buildOperationsSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // 1. Floor Overview Tab (Active)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                color: AppTheme.headingObsidian,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.precision_manufacturing_rounded, size: 15, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Floor Overview',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+
+          // 2. Production Chart (Opens ChallansDashboardScreen / Job Work Orders)
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.layers_outlined, size: 15, color: AppTheme.bodyInk),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Production Chart',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.bodyInk,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded, size: 12, color: AppTheme.faintInk),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppTheme.bg,
+      drawer: const AdminDrawer(activeRoute: '/stitching-sewing/production-manager'),
       appBar: _buildTopBar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.steel))
@@ -467,6 +612,10 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   children: [
                     const ConnectivityIndicator(),
                     const SizedBox(height: 8),
+
+                    // Operations Mode Switcher (Floor Overview vs Production Chart)
+                    _buildOperationsSwitcher(),
+                    const SizedBox(height: 12),
 
                     // Floor Header & Shift Info
                     _buildShiftBanner(),
@@ -502,55 +651,106 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
   PreferredSizeWidget _buildTopBar() {
     return AppBar(
-      backgroundColor: AppTheme.card,
+      toolbarHeight: 64,
+      titleSpacing: 0,
+      backgroundColor: Colors.white,
       elevation: 0,
-      titleSpacing: 16,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
+      surfaceTintColor: Colors.transparent,
+      shape: const Border(
+        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+      ),
+      leadingWidth: 56,
+      leading: Center(
+        child: InkWell(
+          onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: AppTheme.steelMist,
-              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            child: const Icon(Icons.precision_manufacturing_rounded, size: 20, color: AppTheme.steel),
+            child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PRODUCTION MANAGER',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.ink,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                'Floor Overview • Nubira Creation',
-                style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  color: AppTheme.inkSoft,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+        ),
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/images/zigza_web_logo.png',
+            height: 24,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/zigza_new_logo.png',
+              height: 24,
+              fit: BoxFit.contain,
+            ),
           ),
         ],
       ),
       actions: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDFA),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            'PROD MES',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0B1220),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
         IconButton(
           tooltip: 'Floor Refresh',
-          icon: const Icon(Icons.sync_rounded, color: AppTheme.inkSoft),
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppTheme.cardSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderLight),
+            ),
+            child: const Icon(Icons.sync_rounded, size: 18, color: AppTheme.headingObsidian),
+          ),
           onPressed: () => _fetchFloorData(),
         ),
         PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded, color: AppTheme.inkSoft),
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppTheme.cardSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderLight),
+            ),
+            child: const Icon(Icons.more_vert_rounded, size: 18, color: AppTheme.headingObsidian),
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           onSelected: (val) async {
-            if (val == 'QC_VIEW') {
+            if (val == 'PROD_CHART') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
+              );
+            } else if (val == 'NEW_CHALLAN') {
+              _showCreateChallanModal();
+            } else if (val == 'QC_VIEW') {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QcDashboard()),
@@ -573,12 +773,33 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           },
           itemBuilder: (ctx) => [
             PopupMenuItem(
+              value: 'PROD_CHART',
+              child: Row(
+                children: [
+                  const Icon(Icons.layers_outlined, size: 18, color: AppTheme.brandRoyalBlue),
+                  const SizedBox(width: 10),
+                  Text('Production Chart (Challans)', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'NEW_CHALLAN',
+              child: Row(
+                children: [
+                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppTheme.badgeEmeraldText),
+                  const SizedBox(width: 10),
+                  Text('+ New Delivery Challan', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
               value: 'QC_VIEW',
               child: Row(
                 children: [
-                  const Icon(Icons.verified_rounded, size: 18, color: AppTheme.steel),
+                  const Icon(Icons.verified_rounded, size: 18, color: AppTheme.brandRoyalBlue),
                   const SizedBox(width: 10),
-                  Text('Open QC Floor', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('Open QC Floor', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
                 ],
               ),
             ),
@@ -586,9 +807,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               value: 'MENDING_VIEW',
               child: Row(
                 children: [
-                  const Icon(Icons.table_view_rounded, size: 18, color: AppTheme.steel),
+                  const Icon(Icons.table_view_rounded, size: 18, color: AppTheme.badgeAmberText),
                   const SizedBox(width: 10),
-                  Text('Open Mending Counting', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('Open Mending Counting', style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
                 ],
               ),
             ),
@@ -597,9 +818,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               value: 'LOGOUT',
               child: Row(
                 children: [
-                  const Icon(Icons.logout_rounded, size: 18, color: AppTheme.red),
+                  const Icon(Icons.logout_rounded, size: 18, color: AppTheme.badgeRoseText),
                   const SizedBox(width: 10),
-                  Text('Logout', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.red, fontWeight: FontWeight.w600)),
+                  Text('Logout', style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.badgeRoseText, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -614,49 +835,72 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: AppTheme.steelMist,
-              borderRadius: BorderRadius.circular(6),
+              color: AppTheme.mintSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.badgeMintBorder),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.schedule_rounded, size: 13, color: AppTheme.steel),
-                const SizedBox(width: 5),
+                const Icon(Icons.schedule_rounded, size: 13, color: AppTheme.headingObsidian),
+                const SizedBox(width: 6),
                 Text(
-                  _getShiftName(),
+                  _getShiftName().toUpperCase(),
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.steel,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.headingObsidian,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
           ),
           const Spacer(),
-          Text(
-            '$_totalActiveLots Active Floor Lots',
-            style: GoogleFonts.publicSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.ink,
-            ),
-          ),
-          const SizedBox(width: 8),
           Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppTheme.green,
-              shape: BoxShape.circle,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppTheme.bgCanvas,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderLight),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.badgeEmeraldText,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  '$_totalActiveLots Active Floor Lots',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.headingObsidian,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -671,63 +915,85 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
       crossAxisCount: 2,
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.15,
       children: [
         _buildMetricCard(
+          stageTag: 'STAGE 01',
           title: 'TARGET VOLUME',
           value: '$_totalTargetPieces',
           unit: 'pcs',
           subtitle: 'Active floor work',
           icon: Icons.flag_rounded,
-          color: AppTheme.steel,
-          bgColor: AppTheme.steelMist,
+          badgeText: 'ON FLOOR',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
         ),
         _buildMetricCard(
+          stageTag: 'STAGE 02',
           title: 'SEWN OUTPUT',
           value: '$_totalStitchedPieces',
           unit: 'pcs',
           subtitle: '${_floorEfficiency.toStringAsFixed(1)}% Floor Progress',
-          icon: Icons.check_circle_outline_rounded,
-          color: AppTheme.green,
-          bgColor: AppTheme.greenMist,
+          icon: Icons.precision_manufacturing_rounded,
+          badgeText: '${_floorEfficiency.toStringAsFixed(1)}% PROGRESS',
+          badgeBg: AppTheme.badgeEmeraldBg,
+          badgeBorder: AppTheme.badgeEmeraldBorder,
+          badgeTextCol: AppTheme.badgeEmeraldText,
         ),
         _buildMetricCard(
+          stageTag: 'STAGE 03',
           title: 'QC PASSED',
           value: '$_totalQcPassedPieces',
           unit: 'pcs',
           subtitle: 'Ready for gate pass',
           icon: Icons.verified_rounded,
-          color: AppTheme.steelDark,
-          bgColor: AppTheme.steelMist,
+          badgeText: 'GATE READY',
+          badgeBg: AppTheme.badgeBlueBg,
+          badgeBorder: AppTheme.badgeBlueBorder,
+          badgeTextCol: AppTheme.badgeBlueText,
         ),
         _buildMetricCard(
+          stageTag: 'STAGE 04',
           title: 'MENDING / DEFECTS',
           value: '$_totalMendingPieces',
           unit: 'pcs',
           subtitle: _totalMendingPieces > 0 ? 'Pending line repairs' : 'Zero alterations',
           icon: Icons.handyman_rounded,
-          color: _totalMendingPieces > 0 ? AppTheme.amber : AppTheme.inkFaint,
-          bgColor: _totalMendingPieces > 0 ? AppTheme.amberMist : AppTheme.bg,
+          badgeText: _totalMendingPieces > 0 ? '$_totalMendingPieces IN REPAIR' : 'ZERO DEFECTS',
+          badgeBg: _totalMendingPieces > 0 ? AppTheme.badgeAmberBg : AppTheme.bgCanvas,
+          badgeBorder: _totalMendingPieces > 0 ? AppTheme.badgeAmberBorder : AppTheme.borderLight,
+          badgeTextCol: _totalMendingPieces > 0 ? AppTheme.badgeAmberText : AppTheme.faintInk,
         ),
       ],
     );
   }
 
   Widget _buildMetricCard({
+    required String stageTag,
     required String title,
     required String value,
     required String unit,
     required String subtitle,
     required IconData icon,
-    required Color color,
-    required Color bgColor,
+    required String badgeText,
+    required Color badgeBg,
+    required Color badgeBorder,
+    required Color badgeTextCol,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,19 +1002,58 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppTheme.mintSurface,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: AppTheme.badgeMintBorder),
+                ),
+                child: Icon(icon, size: 16, color: AppTheme.headingObsidian),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    stageTag,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.faintInk,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.north_east_rounded, size: 11, color: AppTheme.faintInk),
+                ],
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
                 title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.headingObsidian,
+                  letterSpacing: 0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
                 style: GoogleFonts.publicSans(
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.inkSoft,
-                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.faintInk,
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
-                child: Icon(icon, size: 14, color: color),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -761,26 +1066,37 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.ink,
+                  color: AppTheme.headingObsidian,
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 unit,
                 style: GoogleFonts.publicSans(
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.inkFaint,
+                  color: AppTheme.faintInk,
                 ),
               ),
             ],
           ),
-          Text(
-            subtitle,
-            style: GoogleFonts.publicSans(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              color: color,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: badgeBg,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: badgeBorder),
+            ),
+            child: Text(
+              badgeText,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: badgeTextCol,
+                letterSpacing: 0.3,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -797,9 +1113,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -807,20 +1130,57 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'LIVE FLOOR PIPELINE',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.ink,
-                  letterSpacing: 0.5,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppTheme.mintSurface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.badgeMintBorder),
+                    ),
+                    child: const Icon(Icons.trending_up_rounded, size: 16, color: AppTheme.headingObsidian),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LIVE FLOOR PIPELINE',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.headingObsidian,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      Text(
+                        'Real-time Conversion Flow',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 10,
+                          color: AppTheme.bodyInk,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              Text(
-                'Real-time Progression',
-                style: GoogleFonts.publicSans(
-                  fontSize: 11,
-                  color: AppTheme.inkFaint,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgCanvas,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppTheme.borderLight),
+                ),
+                child: Text(
+                  '${_allotments.length} Total Lots',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.headingObsidian,
+                  ),
                 ),
               ),
             ],
@@ -828,13 +1188,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           const SizedBox(height: 12),
           Row(
             children: [
-              _buildPipelineNode('1. Sewing', '$sewingCount Lots', AppTheme.steel),
+              _buildPipelineNode('STAGE 1', 'Sewing', '$sewingCount Lots', AppTheme.brandRoyalBlue),
               _buildPipelineConnector(),
-              _buildPipelineNode('2. Counting', '$mendingCount Lots', AppTheme.amber),
+              _buildPipelineNode('STAGE 2', 'Counting', '$mendingCount Lots', AppTheme.badgeAmberText),
               _buildPipelineConnector(),
-              _buildPipelineNode('3. QC Floor', '$qcCount Lots', AppTheme.steelDark),
+              _buildPipelineNode('STAGE 3', 'QC Floor', '$qcCount Lots', AppTheme.headingObsidian),
               _buildPipelineConnector(),
-              _buildPipelineNode('4. Dispatch', '$readyCount Lots', AppTheme.green),
+              _buildPipelineNode('STAGE 4', 'Dispatch', '$readyCount Lots', AppTheme.badgeEmeraldText),
             ],
           ),
         ],
@@ -842,23 +1202,33 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     );
   }
 
-  Widget _buildPipelineNode(String title, String count, Color accent) {
+  Widget _buildPipelineNode(String stage, String title, String count, Color accent) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: accent.withValues(alpha: 0.3)),
+          color: AppTheme.bgCanvas,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.borderLight),
         ),
         child: Column(
           children: [
             Text(
-              title,
-              style: GoogleFonts.publicSans(
-                fontSize: 10,
+              stage,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 8.5,
                 fontWeight: FontWeight.w700,
                 color: accent,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.headingObsidian,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -870,8 +1240,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.ink,
+                color: accent,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -881,33 +1254,33 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
   Widget _buildPipelineConnector() {
     return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 3),
-      child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppTheme.inkFaint),
+      padding: EdgeInsets.symmetric(horizontal: 2),
+      child: Icon(Icons.chevron_right_rounded, size: 14, color: AppTheme.faintInk),
     );
   }
 
   Widget _buildBottlenecksSection() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.redMist,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.red.withValues(alpha: 0.4)),
+        color: AppTheme.badgeRoseBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.badgeRoseBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, size: 16, color: AppTheme.red),
+              const Icon(Icons.warning_amber_rounded, size: 16, color: AppTheme.badgeRoseText),
               const SizedBox(width: 8),
               Text(
                 'BOTTLENECK ALERTS',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.red,
-                  letterSpacing: 0.5,
+                  color: AppTheme.badgeRoseText,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
@@ -918,12 +1291,23 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
-                  Container(width: 5, height: 5, decoration: const BoxDecoration(color: AppTheme.red, shape: BoxShape.circle)),
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.badgeRoseText,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${b['title']} • ${b['detail']}',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.ink, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11.5,
+                        color: AppTheme.headingObsidian,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -948,27 +1332,35 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 Text(
                   'LINEMEN & LINE PERFORMANCE',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.ink,
-                    letterSpacing: 0.5,
+                    color: AppTheme.headingObsidian,
+                    letterSpacing: 0.3,
                   ),
                 ),
                 Text(
                   'Tap any line for complete history & floor filter',
                   style: GoogleFonts.publicSans(
                     fontSize: 10.5,
-                    color: AppTheme.inkSoft,
+                    color: AppTheme.bodyInk,
                   ),
                 ),
               ],
             ),
-            Text(
-              '${_linemenSummary.length} Active Lines',
-              style: GoogleFonts.publicSans(
-                fontSize: 11,
-                color: AppTheme.inkSoft,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppTheme.cardSurface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppTheme.borderLight),
+              ),
+              child: Text(
+                '${_linemenSummary.length} Active Lines',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.headingObsidian,
+                ),
               ),
             ),
           ],
@@ -977,16 +1369,22 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         if (_linemenSummary.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
+              color: AppTheme.cardSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.borderLight),
             ),
-            child: Text(
-              'No active lines assigned at the moment.',
-              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
-              textAlign: TextAlign.center,
+            child: Column(
+              children: [
+                const Icon(Icons.people_outline_rounded, size: 28, color: AppTheme.faintInk),
+                const SizedBox(height: 8),
+                Text(
+                  'No active lines assigned at the moment.',
+                  style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           )
         else
@@ -1006,17 +1404,24 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               final articles = ((line['articles'] as Set?)?.map((e) => e.toString()) ?? []).join(', ');
 
               return InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 onTap: () => _showLinemanHistoryModal(line),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.steelMist.withValues(alpha: 0.4) : AppTheme.card,
-                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected ? AppTheme.mintSurface : AppTheme.cardSurface,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected ? AppTheme.steel : AppTheme.border,
+                      color: isSelected ? AppTheme.headingObsidian : AppTheme.borderLight,
                       width: isSelected ? 1.5 : 1,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1025,65 +1430,71 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(6),
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.steel : AppTheme.steelMist,
-                              borderRadius: BorderRadius.circular(8),
+                              color: isSelected ? AppTheme.headingObsidian : AppTheme.mintSurface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isSelected ? AppTheme.headingObsidian : AppTheme.badgeMintBorder),
                             ),
                             child: Icon(
-                              Icons.person_outline_rounded,
-                              size: 16,
-                              color: isSelected ? Colors.white : AppTheme.steel,
+                              Icons.person_rounded,
+                              size: 18,
+                              color: isSelected ? Colors.white : AppTheme.headingObsidian,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Text(
-                                      line['name'].toString().toUpperCase(),
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.ink,
+                                    Expanded(
+                                      child: Text(
+                                        line['name'].toString().toUpperCase(),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.headingObsidian,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
                                     ),
                                     if (isSelected) ...[
                                       const SizedBox(width: 6),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: AppTheme.steel,
+                                          color: AppTheme.headingObsidian,
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           'FILTER ACTIVE',
-                                          style: GoogleFonts.publicSans(
-                                            fontSize: 8,
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 8.5,
                                             fontWeight: FontWeight.w800,
                                             color: Colors.white,
-                                            letterSpacing: 0.5,
+                                            letterSpacing: 0.3,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ],
                                 ),
-                                if (articles.isNotEmpty)
+                                if (articles.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
                                   Text(
                                     'Art: $articles',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10.5,
-                                      color: AppTheme.inkSoft,
+                                      color: AppTheme.bodyInk,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
+                                ],
                               ],
                             ),
                           ),
@@ -1094,20 +1505,30 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               Text(
                                 '$stitched / $target pcs',
                                 style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 12,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w800,
-                                  color: AppTheme.steel,
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
-                              if (mending > 0)
-                                Text(
-                                  '$mending pcs in alteration',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.amber,
+                              if (mending > 0) ...[
+                                const SizedBox(height: 2),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.badgeAmberBg,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: AppTheme.badgeAmberBorder),
+                                  ),
+                                  child: Text(
+                                    '$mending pcs alter',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.badgeAmberText,
+                                    ),
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                         ],
@@ -1118,9 +1539,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 6,
-                          backgroundColor: AppTheme.bg,
+                          backgroundColor: AppTheme.bgCanvas,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            progress >= 1.0 ? AppTheme.green : AppTheme.steel,
+                            progress >= 1.0 ? AppTheme.badgeEmeraldText : AppTheme.brandRoyalBlue,
                           ),
                         ),
                       ),
@@ -1148,20 +1569,28 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             Text(
               'ACTIVE FLOOR ALLOTMENTS',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.ink,
-                letterSpacing: 0.5,
+                color: AppTheme.headingObsidian,
+                letterSpacing: 0.3,
               ),
             ),
-            Text(
-              _selectedLinemanId != null
-                  ? '${filteredLots.length} of ${_allotments.length} Lots'
-                  : '${_allotments.length} Total Lots',
-              style: GoogleFonts.publicSans(
-                fontSize: 11,
-                color: AppTheme.inkSoft,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppTheme.cardSurface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppTheme.borderLight),
+              ),
+              child: Text(
+                _selectedLinemanId != null
+                    ? '${filteredLots.length} of ${_allotments.length} Lots'
+                    : '${_allotments.length} Total Lots',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.headingObsidian,
+                ),
               ),
             ),
           ],
@@ -1217,13 +1646,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.steelMist.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.steel.withValues(alpha: 0.4)),
+              color: AppTheme.mintSurface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.badgeMintBorder),
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_alt_rounded, size: 16, color: AppTheme.steel),
+                const Icon(Icons.filter_alt_rounded, size: 16, color: AppTheme.brandRoyalBlue),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1231,7 +1660,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                     style: GoogleFonts.publicSans(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.steelDark,
+                      color: AppTheme.headingObsidian,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1246,21 +1675,21 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.card,
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.border),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.close, size: 12, color: AppTheme.inkSoft),
+                        const Icon(Icons.close, size: 12, color: AppTheme.bodyInk),
                         const SizedBox(width: 4),
                         Text(
                           'Clear',
                           style: GoogleFonts.publicSans(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.ink,
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
                       ],
@@ -1275,22 +1704,22 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         if (filteredLots.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
+              color: AppTheme.cardSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.borderLight),
             ),
             child: Column(
               children: [
-                const Icon(Icons.assignment_late_outlined, size: 36, color: AppTheme.inkFaint),
+                const Icon(Icons.assignment_late_outlined, size: 36, color: AppTheme.faintInk),
                 const SizedBox(height: 8),
                 Text(
                   'No allotments found',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.inkSoft,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1298,7 +1727,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   _selectedLinemanName != null
                       ? 'No active lots assigned to $_selectedLinemanName.'
                       : 'Floor allotments list is empty.',
-                  style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkFaint),
+                  style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                 ),
                 if (_selectedLinemanId != null) ...[
                   const SizedBox(height: 12),
@@ -1310,12 +1739,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.steel),
+                      foregroundColor: AppTheme.headingObsidian,
+                      side: const BorderSide(color: AppTheme.borderLight),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: Text(
                       'Clear Filter',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.steel, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.headingObsidian, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -1330,228 +1760,275 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (ctx, i) {
               final lot = filteredLots[i];
-            final article = parseMap(lot['article']);
-            final artNo = article['art_no'] ?? 'N/A';
-            final color = (lot['color']?.toString().trim().isNotEmpty == true) ? lot['color'].toString().trim() : (article['description']?.toString() ?? 'All Sizes');
-            final sizeRange = lot['size_range']?.toString().trim() ?? '';
-            final challan = parseMap(lot['challan']);
-            final challanNo = challan['challan_no']?.toString();
-            final target = parseQty(lot['target_qty']);
-            final stitched = parseQty(lot['stitched_qty']);
-            final passed = parseQty(lot['passed_qty']);
-            final stage = lot['stage']?.toString() ?? 'SEWING_LINES';
+              final article = parseMap(lot['article']);
+              final artNo = article['art_no'] ?? 'N/A';
+              final color = (lot['color']?.toString().trim().isNotEmpty == true) ? lot['color'].toString().trim() : (article['description']?.toString() ?? 'All Sizes');
+              final sizeRange = lot['size_range']?.toString().trim() ?? '';
+              final challan = parseMap(lot['challan']);
+              final challanNo = challan['challan_no']?.toString();
+              final target = parseQty(lot['target_qty']);
+              final stitched = parseQty(lot['stitched_qty']);
+              final passed = parseQty(lot['passed_qty']);
+              final stage = lot['stage']?.toString() ?? 'SEWING_LINES';
 
-            Color stageColor = AppTheme.steel;
-            String stageLabel = 'Sewing';
-            if (stage == 'READY_TO_DISPATCH') {
-              stageColor = AppTheme.green;
-              stageLabel = 'Ready to Dispatch';
-            } else if (stage == 'QC_INSPECTION') {
-              stageColor = AppTheme.steelDark;
-              stageLabel = 'QC Floor';
-            } else if (stage == 'MENDING_COUNTING') {
-              stageColor = AppTheme.amber;
-              stageLabel = 'In Counting';
-            }
+              Color stageBg = AppTheme.badgeBlueBg;
+              Color stageBorder = AppTheme.badgeBlueBorder;
+              Color stageText = AppTheme.badgeBlueText;
+              String stageLabel = '1. Sewing';
 
-            final priority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
-            final isCritical = priority == 'CRITICAL';
-            final isRush = priority == 'RUSH';
+              if (stage == 'READY_TO_DISPATCH') {
+                stageBg = AppTheme.badgeEmeraldBg;
+                stageBorder = AppTheme.badgeEmeraldBorder;
+                stageText = AppTheme.badgeEmeraldText;
+                stageLabel = '4. Ready Gate';
+              } else if (stage == 'QC_INSPECTION') {
+                stageBg = AppTheme.mintSurface;
+                stageBorder = AppTheme.badgeMintBorder;
+                stageText = AppTheme.headingObsidian;
+                stageLabel = '3. QC Floor';
+              } else if (stage == 'MENDING_COUNTING') {
+                stageBg = AppTheme.badgeAmberBg;
+                stageBorder = AppTheme.badgeAmberBorder;
+                stageText = AppTheme.badgeAmberText;
+                stageLabel = '2. Counting';
+              }
 
-            return InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _showChallanBreakdownModal(lot),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isCritical ? const Color(0xFFFFF5F5) : (isRush ? const Color(0xFFFFFDF5) : AppTheme.card),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isCritical ? const Color(0xFFFCA5A5) : (isRush ? const Color(0xFFFDE68A) : AppTheme.border),
-                    width: isCritical ? 1.5 : (isRush ? 1.2 : 1),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isCritical ? const Color(0xFFFEE2E2) : (isRush ? const Color(0xFFFEF3C7) : AppTheme.steelMist),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'ART',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w700,
-                              color: isCritical ? const Color(0xFFDC2626) : (isRush ? const Color(0xFFD97706) : AppTheme.inkFaint),
-                            ),
-                          ),
-                          Text(
-                            '$artNo',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: isCritical ? const Color(0xFFDC2626) : (isRush ? const Color(0xFFD97706) : AppTheme.steel),
-                            ),
-                          ),
-                        ],
-                      ),
+              final priority = (lot['priority'] ?? 'NORMAL').toString().toUpperCase();
+              final isCritical = priority == 'CRITICAL';
+              final isRush = priority == 'RUSH';
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _showChallanBreakdownModal(lot),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isCritical
+                        ? AppTheme.badgeRoseBg.withValues(alpha: 0.5)
+                        : (isRush ? AppTheme.badgeAmberBg.withValues(alpha: 0.35) : AppTheme.cardSurface),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isCritical ? AppTheme.badgeRoseBorder : (isRush ? AppTheme.badgeAmberBorder : AppTheme.borderLight),
+                      width: isCritical || isRush ? 1.5 : 1,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  color,
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppTheme.ink),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isCritical
+                              ? AppTheme.badgeRoseBg
+                              : (isRush ? AppTheme.badgeAmberBg : AppTheme.mintSurface),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isCritical
+                                ? AppTheme.badgeRoseBorder
+                                : (isRush ? AppTheme.badgeAmberBorder : AppTheme.badgeMintBorder),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'ART',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                                color: isCritical
+                                    ? AppTheme.badgeRoseText
+                                    : (isRush ? AppTheme.badgeAmberText : AppTheme.faintInk),
                               ),
-                              if (isCritical) ...[
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: const Color(0xFFFCA5A5)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.local_fire_department_rounded, size: 10, color: Color(0xFFDC2626)),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        'CRITICAL',
-                                        style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 8.5,
-                                          fontWeight: FontWeight.w900,
-                                          color: const Color(0xFFDC2626),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ] else if (isRush) ...[
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: const Color(0xFFFDE68A)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.bolt_rounded, size: 10, color: Color(0xFFD97706)),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        'RUSH',
-                                        style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 8.5,
-                                          fontWeight: FontWeight.w900,
-                                          color: const Color(0xFFD97706),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              if (sizeRange.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.bg,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: AppTheme.border),
-                                  ),
+                            ),
+                            Text(
+                              '$artNo',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                                color: isCritical
+                                    ? AppTheme.badgeRoseText
+                                    : (isRush ? AppTheme.badgeAmberText : AppTheme.headingObsidian),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
                                   child: Text(
-                                    sizeRange,
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                                    color,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.headingObsidian,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ),
-                              ],
-                              if (challanNo != null && challanNo.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.steelMist,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'DC #$challanNo',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 9.5,
-                                      color: AppTheme.steel,
-                                      fontWeight: FontWeight.w700,
+                                if (isCritical) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.badgeRoseBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.badgeRoseBorder),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.local_fire_department_rounded, size: 10, color: AppTheme.badgeRoseText),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'CRITICAL',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w900,
+                                            color: AppTheme.badgeRoseText,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                ] else if (isRush) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.badgeAmberBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.badgeAmberBorder),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.bolt_rounded, size: 10, color: AppTheme.badgeAmberText),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'RUSH',
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w900,
+                                            color: AppTheme.badgeAmberText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                if (sizeRange.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.bgCanvas,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.borderLight),
+                                    ),
+                                    child: Text(
+                                      sizeRange,
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 9.5,
+                                        color: AppTheme.headingObsidian,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (challanNo != null && challanNo.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.badgeBlueBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.badgeBlueBorder),
+                                    ),
+                                    child: Text(
+                                      'DC #$challanNo',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 9.5,
+                                        color: AppTheme.brandRoyalBlue,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Lineman: ${lot['lineman']?['username'] ?? 'Unassigned'} • Stitched: $stitched / $target pcs (Passed: $passed)',
+                              style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  lot['handed_to_mending_at'] != null ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                                  size: 13,
+                                  color: lot['handed_to_mending_at'] != null ? AppTheme.badgeEmeraldText : AppTheme.brandRoyalBlue,
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    lot['handed_to_mending_at'] != null
+                                        ? 'Handed to Mending: ${lot['handed_to_mending_by'] ?? 'Done'}${parseQty(lot['mending_total_counted']) > 0 ? " • Counted: ${lot['mending_total_counted']} pcs" : ""}'
+                                        : 'On Stitching Line',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: lot['handed_to_mending_at'] != null ? AppTheme.badgeEmeraldText : AppTheme.bodyInk,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
                                 ),
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Lineman: ${lot['lineman']?['username'] ?? 'Unassigned'} • Stitched: $stitched / $target pcs (Passed: $passed)',
-                            style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.inkSoft),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                lot['handed_to_mending_at'] != null ? Icons.check_circle_outline : Icons.schedule_rounded,
-                                size: 12,
-                                color: lot['handed_to_mending_at'] != null ? AppTheme.green : AppTheme.steel,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  lot['handed_to_mending_at'] != null
-                                      ? 'Handed to Mending: ${lot['handed_to_mending_by'] ?? 'Done'}${parseQty(lot['mending_total_counted']) > 0 ? " • Counted: ${lot['mending_total_counted']} pcs" : ""}'
-                                      : 'On Stitching Line',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: lot['handed_to_mending_at'] != null ? AppTheme.steelDark : AppTheme.inkFaint,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: stageColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: stageColor.withValues(alpha: 0.3)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: stageBg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: stageBorder),
+                        ),
+                        child: Text(
+                          stageLabel,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: stageText,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        stageLabel,
-                        style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: stageColor),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -1577,8 +2054,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         return Container(
           height: MediaQuery.of(context).size.height * 0.75,
           decoration: const BoxDecoration(
-            color: AppTheme.card,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            color: AppTheme.cardSurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -1586,7 +2063,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 width: 40,
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: AppTheme.borderLight, borderRadius: BorderRadius.circular(2)),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -1599,26 +2076,26 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         Text(
                           'CHALLAN ARTICLE SHEET',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.ink,
-                            letterSpacing: 0.5,
+                            color: AppTheme.headingObsidian,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         Text(
                           'Art: $artNo • $color${sizeRange.isNotEmpty ? " ($sizeRange)" : ""}${challanNo != null && challanNo.isNotEmpty ? " • DC #$challanNo" : ""}',
-                          style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.inkSoft, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.inkSoft),
+                      icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.bodyInk),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1, color: AppTheme.border),
+              const Divider(height: 1, color: AppTheme.borderLight),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(18),
@@ -1634,9 +2111,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isCrit ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: isCrit ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A), width: 1.2),
+                              color: isCrit ? AppTheme.badgeRoseBg : AppTheme.badgeAmberBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isCrit ? AppTheme.badgeRoseBorder : AppTheme.badgeAmberBorder, width: 1.2),
                             ),
                             child: Row(
                               children: [
@@ -1645,12 +2122,12 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: isCrit ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A)),
+                                    border: Border.all(color: isCrit ? AppTheme.badgeRoseBorder : AppTheme.badgeAmberBorder),
                                   ),
                                   child: Icon(
                                     isCrit ? Icons.local_fire_department_rounded : Icons.bolt_rounded,
                                     size: 16,
-                                    color: isCrit ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                                    color: isCrit ? AppTheme.badgeRoseText : AppTheme.badgeAmberText,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -1665,7 +2142,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                         style: GoogleFonts.publicSans(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w800,
-                                          color: isCrit ? const Color(0xFF991B1B) : const Color(0xFF92400E),
+                                          color: isCrit ? AppTheme.badgeRoseText : AppTheme.badgeAmberText,
                                         ),
                                       ),
                                       Text(
@@ -1674,7 +2151,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                             : 'Rush production allotment. Prioritize for immediate completion.',
                                         style: GoogleFonts.publicSans(
                                           fontSize: 10,
-                                          color: isCrit ? const Color(0xFFB91C1C) : const Color(0xFFB45309),
+                                          color: isCrit ? AppTheme.badgeRoseText.withValues(alpha: 0.8) : AppTheme.badgeAmberText.withValues(alpha: 0.8),
                                         ),
                                       ),
                                     ],
@@ -1693,12 +2170,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('TARGET PCS', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.inkFaint)),
-                                Text('$target', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink)),
+                                Text('TARGET PCS', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.faintInk)),
+                                Text('$target', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian)),
                               ],
                             ),
                           ),
@@ -1707,12 +2188,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('STITCHED PCS', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.inkFaint)),
-                                Text('$stitched', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.steel)),
+                                Text('STITCHED PCS', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.faintInk)),
+                                Text('$stitched', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.brandRoyalBlue)),
                               ],
                             ),
                           ),
@@ -1721,12 +2206,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: AppTheme.bg, borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('QC PASSED', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.inkFaint)),
-                                Text('$passed', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.green)),
+                                Text('QC PASSED', style: GoogleFonts.publicSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppTheme.faintInk)),
+                                Text('$passed', style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.badgeEmeraldText)),
                               ],
                             ),
                           ),
@@ -1737,31 +2226,32 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
                     Text(
                       'COLOUR × SIZE BREAKDOWN',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.ink, letterSpacing: 0.5),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian, letterSpacing: 0.5),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppTheme.border),
+                        color: AppTheme.cardSurface,
+                        border: Border.all(color: AppTheme.borderLight),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Table(
-                        border: TableBorder.symmetric(inside: const BorderSide(color: AppTheme.border)),
+                        border: TableBorder.symmetric(inside: const BorderSide(color: AppTheme.borderLight)),
                         children: [
                           TableRow(
-                            decoration: const BoxDecoration(color: AppTheme.bg),
+                            decoration: const BoxDecoration(color: AppTheme.bgCanvas),
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(8),
-                                child: Text('COLOUR', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.inkSoft)),
+                                child: Text('COLOUR', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.bodyInk)),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
-                                child: Text('SIZE', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.inkSoft), textAlign: TextAlign.center),
+                                child: Text('SIZE', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.bodyInk), textAlign: TextAlign.center),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(8),
-                                child: Text('TARGET PCS', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.inkSoft), textAlign: TextAlign.right),
+                                child: Text('TARGET PCS', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.bodyInk), textAlign: TextAlign.right),
                               ),
                             ],
                           ),
@@ -1770,15 +2260,15 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.all(12),
-                                  child: Text(color.isNotEmpty ? color : 'All Colors', style: GoogleFonts.publicSans(fontSize: 11.5)),
+                                  child: Text(color.isNotEmpty ? color : 'All Colors', style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.headingObsidian)),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(12),
-                                  child: Text(sizeRange.isNotEmpty ? sizeRange : 'All Sizes', style: GoogleFonts.jetBrainsMono(fontSize: 11.5), textAlign: TextAlign.center),
+                                  child: Text(sizeRange.isNotEmpty ? sizeRange : 'All Sizes', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.headingObsidian), textAlign: TextAlign.center),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(12),
-                                  child: Text('$target', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700), textAlign: TextAlign.right),
+                                  child: Text('$target', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.headingObsidian), textAlign: TextAlign.right),
                                 ),
                               ],
                             )
@@ -1788,15 +2278,15 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.all(8),
-                                    child: Text('${v['color'] ?? 'Standard'}', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600)),
+                                    child: Text('${v['color'] ?? 'Standard'}', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian)),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(8),
-                                    child: Text('${v['size'] ?? 'STD'}', style: GoogleFonts.jetBrainsMono(fontSize: 11.5), textAlign: TextAlign.center),
+                                    child: Text('${v['size'] ?? 'STD'}', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: AppTheme.headingObsidian), textAlign: TextAlign.center),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(8),
-                                    child: Text('${v['quantity'] ?? 0}', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700), textAlign: TextAlign.right),
+                                    child: Text('${v['quantity'] ?? 0}', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppTheme.headingObsidian), textAlign: TextAlign.right),
                                   ),
                                 ],
                               );
@@ -1810,7 +2300,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.ink,
+                        color: AppTheme.headingObsidian,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1818,9 +2308,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.bg,
+                        color: AppTheme.cardSurface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.border),
+                        border: Border.all(color: AppTheme.borderLight),
                       ),
                       child: Column(
                         children: [
@@ -1830,9 +2320,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                             detail: 'Assigned to: ${lot['lineman']?['username'] ?? 'Unassigned'}',
                             badge: '$target pcs Allotted',
                             isDone: true,
-                            badgeColor: AppTheme.steel,
+                            badgeColor: AppTheme.brandRoyalBlue,
                           ),
-                          const Divider(height: 16, color: AppTheme.border),
+                          const Divider(height: 16, color: AppTheme.borderLight),
                           _buildHandoverRow(
                             step: '2',
                             title: 'Mending / Counting Handover',
@@ -1843,9 +2333,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 ? '${lot['mending_total_counted']} pcs Counted'
                                 : (lot['handed_to_mending_at'] != null ? 'Handed Over' : 'Pending'),
                             isDone: lot['handed_to_mending_at'] != null || parseQty(lot['mending_total_counted']) > 0,
-                            badgeColor: AppTheme.amber,
+                            badgeColor: AppTheme.badgeAmberText,
                           ),
-                          const Divider(height: 16, color: AppTheme.border),
+                          const Divider(height: 16, color: AppTheme.borderLight),
                           _buildHandoverRow(
                             step: '3',
                             title: 'QC Inspection Handover',
@@ -1856,7 +2346,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 ? '$passed Passed / ${lot['rejected_qty'] ?? 0} Alter'
                                 : (lot['handed_to_qc_at'] != null ? 'In QC' : 'Pending'),
                             isDone: lot['handed_to_qc_at'] != null || passed > 0,
-                            badgeColor: AppTheme.green,
+                            badgeColor: AppTheme.badgeEmeraldText,
                           ),
                         ],
                       ),
@@ -1886,8 +2376,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           height: 22,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isDone ? badgeColor.withValues(alpha: 0.15) : AppTheme.border,
-            border: Border.all(color: isDone ? badgeColor : AppTheme.inkFaint, width: 1.5),
+            color: isDone ? badgeColor.withValues(alpha: 0.15) : AppTheme.bgCanvas,
+            border: Border.all(color: isDone ? badgeColor : AppTheme.faintInk, width: 1.5),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -1895,7 +2385,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             style: GoogleFonts.jetBrainsMono(
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
-              color: isDone ? badgeColor : AppTheme.inkFaint,
+              color: isDone ? badgeColor : AppTheme.faintInk,
             ),
           ),
         ),
@@ -1909,14 +2399,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.ink,
+                  color: AppTheme.headingObsidian,
                 ),
               ),
               Text(
                 detail,
                 style: GoogleFonts.publicSans(
                   fontSize: 10.5,
-                  color: AppTheme.inkSoft,
+                  color: AppTheme.bodyInk,
                 ),
               ),
             ],
@@ -1925,7 +2415,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(
-            color: (isDone ? badgeColor : AppTheme.inkFaint).withValues(alpha: 0.12),
+            color: (isDone ? badgeColor : AppTheme.faintInk).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(5),
           ),
           child: Text(
@@ -1933,7 +2423,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             style: GoogleFonts.publicSans(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
-              color: isDone ? badgeColor : AppTheme.inkFaint,
+              color: isDone ? badgeColor : AppTheme.faintInk,
             ),
           ),
         ),
@@ -1949,26 +2439,24 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.steel : AppTheme.card,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? AppTheme.headingObsidian : AppTheme.cardSurface,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppTheme.steel : AppTheme.border,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? AppTheme.headingObsidian : AppTheme.borderLight,
+            width: 1,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppTheme.steel.withValues(alpha: 0.25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isSelected ? 0.08 : 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1977,23 +2465,26 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.white : AppTheme.ink,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                color: isSelected ? Colors.white : AppTheme.headingObsidian,
               ),
             ),
             const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.25) : AppTheme.steelMist,
-                borderRadius: BorderRadius.circular(10),
+                color: isSelected ? Colors.white.withValues(alpha: 0.2) : AppTheme.mintSurface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : AppTheme.badgeMintBorder,
+                ),
               ),
               child: Text(
                 '$count',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? Colors.white : AppTheme.steel,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected ? Colors.white : AppTheme.headingObsidian,
                 ),
               ),
             ),
@@ -2030,8 +2521,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             return Container(
               height: MediaQuery.of(context).size.height * 0.85,
               decoration: const BoxDecoration(
-                color: AppTheme.card,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                color: AppTheme.cardSurface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 children: [
@@ -2039,7 +2530,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                     width: 40,
                     height: 4,
                     margin: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(color: AppTheme.borderLight, borderRadius: BorderRadius.circular(2)),
                   ),
                   // Header
                   Padding(
@@ -2050,12 +2541,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              width: 38,
+                              height: 38,
                               decoration: BoxDecoration(
-                                color: AppTheme.steelMist,
+                                color: AppTheme.mintSurface,
                                 borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppTheme.badgeMintBorder),
                               ),
-                              child: const Icon(Icons.person_rounded, size: 20, color: AppTheme.steel),
+                              child: const Icon(Icons.person_rounded, size: 20, color: AppTheme.headingObsidian),
                             ),
                             const SizedBox(width: 10),
                             Column(
@@ -2066,15 +2559,15 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                    color: AppTheme.ink,
+                                    color: AppTheme.headingObsidian,
                                   ),
                                 ),
                                 Text(
                                   'SEWING FLOOR LINE OPERATOR',
-                                  style: GoogleFonts.publicSans(
+                                  style: GoogleFonts.jetBrainsMono(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.steel,
+                                    color: AppTheme.brandRoyalBlue,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -2083,13 +2576,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, size: 20, color: AppTheme.inkSoft),
+                          icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.bodyInk),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppTheme.border),
+                  const Divider(height: 1, color: AppTheme.borderLight),
                   Expanded(
                     child: ListView(
                       padding: const EdgeInsets.all(18),
@@ -2100,7 +2593,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.ink,
+                            color: AppTheme.headingObsidian,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -2112,7 +2605,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 label: 'ACTIVE LOTS',
                                 value: '$activeLotsCount',
                                 subtext: 'Floor batches',
-                                color: AppTheme.steel,
+                                color: AppTheme.headingObsidian,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -2121,7 +2614,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 label: 'TARGET PCS',
                                 value: '$target',
                                 subtext: 'Total assigned',
-                                color: AppTheme.ink,
+                                color: AppTheme.brandRoyalBlue,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -2130,7 +2623,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 label: 'SEWN PCS',
                                 value: '$stitched',
                                 subtext: '${efficiency.toStringAsFixed(0)}% output',
-                                color: AppTheme.green,
+                                color: AppTheme.badgeEmeraldText,
                               ),
                             ),
                           ],
@@ -2143,7 +2636,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 label: 'QC PASSED',
                                 value: '$passed',
                                 subtext: '${passRate.toStringAsFixed(0)}% pass rate',
-                                color: AppTheme.green,
+                                color: AppTheme.badgeEmeraldText,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -2152,7 +2645,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                 label: 'ALTERATIONS',
                                 value: '$mending',
                                 subtext: 'In mending/rework',
-                                color: mending > 0 ? AppTheme.amber : AppTheme.inkFaint,
+                                color: mending > 0 ? AppTheme.badgeAmberText : AppTheme.faintInk,
                               ),
                             ),
                           ],
@@ -2167,16 +2660,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.ink,
+                                color: AppTheme.headingObsidian,
                                 letterSpacing: 0.5,
                               ),
                             ),
                             Text(
                               'Realtime Synced',
-                              style: GoogleFonts.publicSans(
+                              style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.green,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.badgeEmeraldText,
                               ),
                             ),
                           ],
@@ -2186,14 +2679,14 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: AppTheme.bg,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppTheme.cardSurface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
                             alignment: Alignment.center,
                             child: Text(
                               'No active lots found for this lineman.',
-                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.inkSoft),
+                              style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
                             ),
                           )
                         else
@@ -2216,40 +2709,57 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               final lotStitched = parseQty(lot['stitched_qty']);
                               final stage = lot['stage']?.toString() ?? 'SEWING_LINES';
 
-                              Color stageColor = AppTheme.steel;
-                              String stageText = 'Sewing';
+                              Color stageBg = AppTheme.badgeBlueBg;
+                              Color stageBorder = AppTheme.badgeBlueBorder;
+                              Color stageText = AppTheme.badgeBlueText;
+                              String stageTitle = 'Sewing';
+
                               if (stage == 'READY_TO_DISPATCH') {
-                                stageColor = AppTheme.green;
-                                stageText = 'Ready';
+                                stageBg = AppTheme.badgeEmeraldBg;
+                                stageBorder = AppTheme.badgeEmeraldBorder;
+                                stageText = AppTheme.badgeEmeraldText;
+                                stageTitle = 'Ready';
                               } else if (stage == 'QC_INSPECTION') {
-                                stageColor = AppTheme.steelDark;
-                                stageText = 'QC Floor';
+                                stageBg = AppTheme.mintSurface;
+                                stageBorder = AppTheme.badgeMintBorder;
+                                stageText = AppTheme.headingObsidian;
+                                stageTitle = 'QC Floor';
                               } else if (stage == 'MENDING_COUNTING') {
-                                stageColor = AppTheme.amber;
-                                stageText = 'In Mending';
+                                stageBg = AppTheme.badgeAmberBg;
+                                stageBorder = AppTheme.badgeAmberBorder;
+                                stageText = AppTheme.badgeAmberText;
+                                stageTitle = 'In Mending';
                               }
 
                               return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.bg,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppTheme.border),
+                                  color: AppTheme.cardSurface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.borderLight),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.02),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
                                 child: Row(
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.steelMist,
-                                        borderRadius: BorderRadius.circular(6),
+                                        color: AppTheme.mintSurface,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: AppTheme.badgeMintBorder),
                                       ),
                                       child: Text(
                                         'ART $artNo',
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w800,
-                                          color: AppTheme.steel,
+                                          color: AppTheme.headingObsidian,
                                         ),
                                       ),
                                     ),
@@ -2266,7 +2776,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                                   style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w700,
-                                                    color: AppTheme.ink,
+                                                    color: AppTheme.headingObsidian,
                                                   ),
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -2275,7 +2785,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '($sizeRange)',
-                                                  style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.inkSoft),
+                                                  style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.bodyInk),
                                                 ),
                                               ],
                                               if (challanNo != null) ...[
@@ -2283,13 +2793,13 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                                   decoration: BoxDecoration(
-                                                    color: AppTheme.card,
+                                                    color: AppTheme.badgeBlueBg,
                                                     borderRadius: BorderRadius.circular(4),
-                                                    border: Border.all(color: AppTheme.border),
+                                                    border: Border.all(color: AppTheme.badgeBlueBorder),
                                                   ),
                                                   child: Text(
                                                     'DC #$challanNo',
-                                                    style: GoogleFonts.jetBrainsMono(fontSize: 9, color: AppTheme.inkSoft),
+                                                    style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.brandRoyalBlue),
                                                   ),
                                                 ),
                                               ],
@@ -2298,7 +2808,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                           const SizedBox(height: 3),
                                           Text(
                                             'Stitched: $lotStitched / $lotTarget pcs • Passed: ${lot['passed_qty'] ?? 0} pcs',
-                                            style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.inkSoft),
+                                            style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.bodyInk),
                                           ),
                                           if (lot['handed_to_mending_at'] != null)
                                             Padding(
@@ -2308,7 +2818,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                                 style: GoogleFonts.publicSans(
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.w600,
-                                                  color: AppTheme.green,
+                                                  color: AppTheme.badgeEmeraldText,
                                                 ),
                                               ),
                                             ),
@@ -2319,15 +2829,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: stageColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(4),
+                                        color: stageBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: stageBorder),
                                       ),
                                       child: Text(
-                                        stageText,
-                                        style: GoogleFonts.publicSans(
+                                        stageTitle,
+                                        style: GoogleFonts.jetBrainsMono(
                                           fontSize: 9.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: stageColor,
+                                          fontWeight: FontWeight.w800,
+                                          color: stageText,
                                         ),
                                       ),
                                     ),
@@ -2339,7 +2850,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppTheme.border),
+                  const Divider(height: 1, color: AppTheme.borderLight),
                   // Bottom Filter Action Buttons
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -2358,8 +2869,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               icon: const Icon(Icons.close, size: 16),
                               label: const Text('Clear Filter'),
                               style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.headingObsidian,
                                 padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: AppTheme.border),
+                                side: const BorderSide(color: AppTheme.borderLight),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               ),
                             ),
@@ -2377,7 +2889,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                               icon: const Icon(Icons.filter_alt_rounded, size: 16, color: Colors.white),
                               label: Text('Filter Floor to $lmName'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.steel,
+                                backgroundColor: AppTheme.headingObsidian,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -2406,9 +2918,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.bg,
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2418,7 +2930,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             style: GoogleFonts.publicSans(
               fontSize: 9,
               fontWeight: FontWeight.w700,
-              color: AppTheme.inkFaint,
+              color: AppTheme.faintInk,
               letterSpacing: 0.3,
             ),
           ),
@@ -2437,7 +2949,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             style: GoogleFonts.publicSans(
               fontSize: 9.5,
               fontWeight: FontWeight.w600,
-              color: AppTheme.inkSoft,
+              color: AppTheme.bodyInk,
             ),
           ),
         ],

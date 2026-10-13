@@ -271,16 +271,24 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             margin: const EdgeInsets.only(right: 6),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
             decoration: BoxDecoration(
-              color: const Color(0xFFE3F3EA),
+              color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
+                  ? const Color(0xFFF0FDFA)
+                  : const Color(0xFFE3F3EA),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFA7F3D0)),
+              border: Border.all(
+                color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
+                    ? const Color(0xFF14C8B4).withValues(alpha: 0.3)
+                    : const Color(0xFFA7F3D0),
+              ),
             ),
             child: Text(
-              'ERP MES',
+              (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER') ? 'PROD MES' : 'ERP MES',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1F8A5A),
+                color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
+                    ? const Color(0xFF0B1220)
+                    : const Color(0xFF1F8A5A),
                 letterSpacing: 0.5,
               ),
             ),
