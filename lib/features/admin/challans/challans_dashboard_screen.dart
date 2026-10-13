@@ -26,6 +26,14 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
   String _selectedBrand = 'ALL';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(challanGroupedOrdersProvider);
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
