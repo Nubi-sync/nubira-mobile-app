@@ -56,7 +56,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3A3564),
+              primary: Color(0xFF1D4ED8),
               onPrimary: Colors.white,
               onSurface: Color(0xFF0F172A),
             ),
@@ -158,9 +158,9 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: const Color(0xFFF0FDFA),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: const Color(0x26000000)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -173,15 +173,16 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3A3564).withValues(alpha: 0.1),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: Text(
                             'FORM 3 • MILESTONE GATE CALIBRATION',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
+                              color: const Color(0xFF0B1220),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -277,7 +278,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                 child: DropdownButton<String>(
                   value: _status,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF3A3564)),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF0B1220)),
                   items: const [
                     DropdownMenuItem(
                       value: 'ON_SCHEDULE',
@@ -344,7 +345,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today_outlined, size: 15, color: Color(0xFF3A3564)),
+                              const Icon(Icons.calendar_today_outlined, size: 15, color: Color(0xFF0B1220)),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -442,7 +443,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                  borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                 ),
               ),
               style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
@@ -478,7 +479,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                  borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                 ),
               ),
               style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
@@ -519,7 +520,7 @@ class _UpdateTnaMilestoneModalState extends ConsumerState<UpdateTnaMilestoneModa
                     style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
