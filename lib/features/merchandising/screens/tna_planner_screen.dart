@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/merchandising_models.dart';
@@ -46,21 +47,21 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Mark Gate Cleared',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF0F172A),
+            color: AppTheme.headingObsidian,
           ),
         ),
         content: Text(
           'Are you sure you want to sign off and mark "${milestone.milestoneName}" as COMPLETED for ${milestone.poNumber}?',
           style: GoogleFonts.publicSans(
             fontSize: 13,
-            color: const Color(0xFF475569),
+            color: AppTheme.bodyInk,
             height: 1.4,
           ),
         ),
@@ -72,13 +73,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               style: GoogleFonts.publicSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF64748B),
+                color: AppTheme.bodyInk,
               ),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3A3564),
+              backgroundColor: AppTheme.brandRoyalBlue,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -104,7 +105,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gate "${milestone.milestoneName}" marked as Cleared.'),
-            backgroundColor: const Color(0xFF15803D),
+            backgroundColor: AppTheme.badgeEmeraldText,
           ),
         );
       }
@@ -146,7 +147,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0), // Canvas
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising/tna-calendar'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -155,15 +156,16 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3A3564)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.brandRoyalBlue),
                 )
-              : const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564)),
+              : const Icon(Icons.refresh_rounded, color: AppTheme.headingObsidian),
           tooltip: 'Sync T&A Data',
           onPressed: () => ref.read(merchandisingProvider.notifier).syncData(),
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: AppTheme.brandRoyalBlue,
+        backgroundColor: Colors.white,
         onRefresh: () => ref.read(merchandisingProvider.notifier).fetchMerchandisingData(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -212,23 +214,23 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             style: GoogleFonts.publicSans(
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
+              color: AppTheme.faintInk,
             ),
           ),
         ),
         const SizedBox(width: 4),
-        const Text('/', style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8))),
+        const Text('/', style: TextStyle(fontSize: 11.5, color: Color(0xFFCBD5E1))),
         const SizedBox(width: 4),
         Text(
           'Commercial ops',
           style: GoogleFonts.publicSans(
             fontSize: 11.5,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF64748B),
+            color: AppTheme.faintInk,
           ),
         ),
         const SizedBox(width: 4),
-        const Text('/', style: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8))),
+        const Text('/', style: TextStyle(fontSize: 11.5, color: Color(0xFFCBD5E1))),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
@@ -238,7 +240,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             style: GoogleFonts.publicSans(
               fontSize: 11.5,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
+              color: AppTheme.headingObsidian,
             ),
           ),
         ),
@@ -250,13 +252,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 2,
+            color: Color(0x06000000),
+            blurRadius: 3,
             offset: Offset(0, 1),
           ),
         ],
@@ -272,13 +274,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x3314C8B4)),
                 ),
                 child: const Icon(
                   Icons.calendar_month_rounded,
-                  color: Color(0xFF3A3564),
+                  color: AppTheme.headingObsidian,
                   size: 22,
                 ),
               ),
@@ -292,7 +294,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
+                        color: AppTheme.headingObsidian,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -300,16 +302,16 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: AppTheme.mintSurface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x26000000)),
+                        border: Border.all(color: const Color(0x4D14C8B4)),
                       ),
                       child: Text(
                         '8 MILESTONE GATES',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -324,7 +326,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             'Critical path schedule, lead-time control, PPM meeting milestones, and AQL inspection cut-offs',
             style: GoogleFonts.publicSans(
               fontSize: 12,
-              color: const Color(0xFF475569),
+              color: AppTheme.bodyInk,
               height: 1.35,
             ),
           ),
@@ -337,21 +339,21 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x3314C8B4)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF3A3564)),
+                    const Icon(Icons.check_circle_rounded, size: 14, color: AppTheme.badgeEmeraldText),
                     const SizedBox(width: 6),
                     Text(
                       '$completedGates of $totalGates Gates Cleared',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ],
@@ -361,21 +363,21 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF1F2),
+                    color: AppTheme.badgeRoseBg,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFFECDD3)),
+                    border: Border.all(color: AppTheme.badgeRoseBorder),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFE11D48)),
+                      const Icon(Icons.warning_amber_rounded, size: 14, color: AppTheme.badgeRoseText),
                       const SizedBox(width: 6),
                       Text(
                         '$delayedGates Delayed',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF9F1239),
+                          color: AppTheme.badgeRoseText,
                         ),
                       ),
                     ],
@@ -461,13 +463,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 2,
+            color: Color(0x06000000),
+            blurRadius: 3,
             offset: Offset(0, 1),
           ),
         ],
@@ -483,32 +485,32 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: isAlert
-                      ? const Color(0xFFFFF1F2)
-                      : (isSuccess ? const Color(0xFFDCFCE7) : const Color(0xFFFAF7F0)),
+                      ? AppTheme.badgeRoseBg
+                      : (isSuccess ? AppTheme.badgeEmeraldBg : AppTheme.mintSurface),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isAlert
-                        ? const Color(0xFFFECDD3)
-                        : (isSuccess ? const Color(0xFFBBF7D0) : const Color(0x1A000000)),
+                        ? AppTheme.badgeRoseBorder
+                        : (isSuccess ? AppTheme.badgeEmeraldBorder : const Color(0x3314C8B4)),
                   ),
                 ),
                 child: Icon(
                   icon,
                   size: 18,
                   color: isAlert
-                      ? const Color(0xFFE11D48)
-                      : (isSuccess ? const Color(0xFF15803D) : const Color(0xFF3A3564)),
+                      ? AppTheme.badgeRoseText
+                      : (isSuccess ? AppTheme.badgeEmeraldText : AppTheme.headingObsidian),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: isAlert
-                      ? const Color(0xFFFFF1F2)
-                      : const Color(0xFFFAF7F0),
+                      ? AppTheme.badgeRoseBg
+                      : AppTheme.bgCanvas,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isAlert ? const Color(0xFFFECDD3) : const Color(0x1A000000),
+                    color: isAlert ? AppTheme.badgeRoseBorder : AppTheme.borderLight,
                   ),
                 ),
                 child: Text(
@@ -516,7 +518,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: isAlert ? const Color(0xFFE11D48) : const Color(0xFF3A3564),
+                    color: isAlert ? AppTheme.badgeRoseText : AppTheme.headingObsidian,
                   ),
                 ),
               ),
@@ -530,7 +532,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             style: GoogleFonts.publicSans(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+              color: AppTheme.headingObsidian,
             ),
           ),
           Text(
@@ -539,18 +541,18 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.publicSans(
               fontSize: 10,
-              color: const Color(0xFF94A3B8),
+              color: AppTheme.bodyInk,
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.subtleDivider),
           const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
+              color: AppTheme.headingObsidian,
             ),
           ),
         ],
@@ -562,13 +564,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 2,
+            color: Color(0x06000000),
+            blurRadius: 3,
             offset: Offset(0, 1),
           ),
         ],
@@ -582,7 +584,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF94A3B8),
+                color: AppTheme.faintInk,
                 letterSpacing: 0.5,
               ),
             ),
@@ -599,20 +601,29 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                   },
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                      color: isSelected ? AppTheme.brandMint : AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000),
+                        color: isSelected ? AppTheme.brandMint : AppTheme.borderLight,
                       ),
+                      boxShadow: isSelected
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x1F14C8B4),
+                                blurRadius: 3,
+                                offset: Offset(0, 1),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Text(
                       po,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : const Color(0xFF334155),
+                        color: isSelected ? AppTheme.headingObsidian : AppTheme.bodyInk,
                       ),
                     ),
                   ),
@@ -633,13 +644,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 2,
+            color: Color(0x06000000),
+            blurRadius: 3,
             offset: Offset(0, 1),
           ),
         ],
@@ -655,11 +666,11 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: const Color(0x3314C8B4)),
                 ),
-                child: const Icon(Icons.schedule_rounded, color: Color(0xFF3A3564), size: 18),
+                child: const Icon(Icons.schedule_rounded, color: AppTheme.headingObsidian, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -671,14 +682,14 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                     Text(
                       'ISO 9001 Standard Lead-Time Schedule',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
-                        color: const Color(0xFF94A3B8),
+                        color: AppTheme.faintInk,
                       ),
                     ),
                   ],
@@ -687,23 +698,23 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: AppTheme.bgCanvas,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
                 ),
                 child: Text(
                   '${activeMilestones.length} Serial Gates',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.bodyInk,
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.subtleDivider),
           const SizedBox(height: 16),
 
           // Content: Empty State vs Milestone Timeline
@@ -726,11 +737,11 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: AppTheme.mintSurface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x1A000000)),
+              border: Border.all(color: const Color(0x3314C8B4)),
             ),
-            child: const Icon(Icons.calendar_month_outlined, size: 28, color: Color(0xFF3A3564)),
+            child: const Icon(Icons.calendar_month_outlined, size: 28, color: AppTheme.headingObsidian),
           ),
           const SizedBox(height: 12),
           Text(
@@ -738,7 +749,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
+              color: AppTheme.headingObsidian,
             ),
           ),
           const SizedBox(height: 6),
@@ -749,7 +760,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.publicSans(
               fontSize: 12.5,
-              color: const Color(0xFF64748B),
+              color: AppTheme.bodyInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -766,7 +777,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3A3564),
+              backgroundColor: AppTheme.brandRoyalBlue,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -795,7 +806,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDelayed ? const Color(0xFFFECDD3) : const Color(0x1A000000),
+              color: isDelayed ? AppTheme.badgeRoseBorder : AppTheme.borderLight,
             ),
             boxShadow: const [
               BoxShadow(
@@ -815,15 +826,16 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Text(
                       'GATE ${(idx + 1).toString().padLeft(2, '0')}',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: AppTheme.bodyInk,
                       ),
                     ),
                   ),
@@ -834,7 +846,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ),
@@ -846,34 +858,34 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
               // Planned Target & Actual Dates
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_outlined, size: 12, color: Color(0xFF94A3B8)),
+                  const Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.faintInk),
                   const SizedBox(width: 4),
                   Text(
                     'Planned: ',
-                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                    style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                   ),
                   Text(
                     m.targetDate.isNotEmpty ? m.targetDate : 'N/A',
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11.5,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
+                      color: AppTheme.headingObsidian,
                     ),
                   ),
                   if (m.actualDate != null && m.actualDate!.isNotEmpty) ...[
                     const SizedBox(width: 12),
-                    const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF15803D)),
+                    const Icon(Icons.check_circle_outline_rounded, size: 12, color: AppTheme.badgeEmeraldText),
                     const SizedBox(width: 4),
                     Text(
                       'Actual: ',
-                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF15803D)),
+                      style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.badgeEmeraldText),
                     ),
                     Text(
                       m.actualDate!,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF15803D),
+                        color: AppTheme.badgeEmeraldText,
                       ),
                     ),
                   ],
@@ -886,13 +898,13 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF1F2),
+                    color: AppTheme.badgeRoseBg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFECDD3)),
+                    border: Border.all(color: AppTheme.badgeRoseBorder),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, size: 12, color: Color(0xFFE11D48)),
+                      const Icon(Icons.error_outline_rounded, size: 12, color: AppTheme.badgeRoseText),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -902,7 +914,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF9F1239),
+                            color: AppTheme.badgeRoseText,
                           ),
                         ),
                       ),
@@ -919,7 +931,7 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                   style: GoogleFonts.publicSans(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.bodyInk,
                   ),
                 ),
               ],
@@ -938,27 +950,26 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
                         style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF15803D),
-                        side: const BorderSide(color: Color(0xFFBBF7D0)),
-                        backgroundColor: const Color(0xFFDCFCE7),
+                        foregroundColor: AppTheme.badgeEmeraldText,
+                        side: const BorderSide(color: AppTheme.badgeEmeraldBorder),
+                        backgroundColor: AppTheme.badgeEmeraldBg,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                     const SizedBox(width: 8),
                   ],
-                  ElevatedButton.icon(
+                  OutlinedButton.icon(
                     onPressed: () => _openUpdateMilestoneModal(m),
                     icon: const Icon(Icons.edit_outlined, size: 14),
                     label: Text(
                       'Update gate',
                       style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFAF7F0),
-                      foregroundColor: const Color(0xFF3A3564),
-                      elevation: 0,
-                      side: const BorderSide(color: Color(0x1A000000)),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.headingObsidian,
+                      side: const BorderSide(color: AppTheme.borderLight),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -982,27 +993,27 @@ class _TnaPlannerScreenState extends ConsumerState<TnaPlannerScreen> {
     switch (status) {
       case 'COMPLETED':
       case 'CLEARED':
-        bg = const Color(0xFFDCFCE7);
-        border = const Color(0xFFBBF7D0);
-        text = const Color(0xFF15803D);
+        bg = AppTheme.badgeEmeraldBg;
+        border = AppTheme.badgeEmeraldBorder;
+        text = AppTheme.badgeEmeraldText;
         label = 'COMPLETED';
         break;
       case 'DELAYED':
-        bg = const Color(0xFFFFF1F2);
-        border = const Color(0xFFFECDD3);
-        text = const Color(0xFFE11D48);
+        bg = AppTheme.badgeRoseBg;
+        border = AppTheme.badgeRoseBorder;
+        text = AppTheme.badgeRoseText;
         label = 'DELAYED';
         break;
       case 'ESCALATED':
-        bg = const Color(0xFFFFF1F2);
-        border = const Color(0xFFFECDD3);
-        text = const Color(0xFFE11D48);
+        bg = AppTheme.badgeRoseBg;
+        border = AppTheme.badgeRoseBorder;
+        text = AppTheme.badgeRoseText;
         label = 'ESCALATED';
         break;
       default:
-        bg = const Color(0xFFFAF7F0);
-        border = const Color(0x1A000000);
-        text = const Color(0xFF3A3564);
+        bg = AppTheme.badgeBlueBg;
+        border = AppTheme.badgeBlueBorder;
+        text = AppTheme.badgeBlueText;
         label = 'ON SCHEDULE';
         break;
     }
