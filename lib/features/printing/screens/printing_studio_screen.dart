@@ -320,18 +320,18 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/printing'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: state.isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF3A3564)),
+              child: CircularProgressIndicator(color: Color(0xFF1D4ED8)),
             )
           : RefreshIndicator(
               onRefresh: () => ref.read(printingProvider.notifier).syncData(),
-              color: const Color(0xFF3A3564),
+              color: const Color(0xFF1D4ED8),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16.0),
@@ -355,19 +355,19 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                                const Icon(Icons.arrow_back, size: 13, color: Color(0xFF1D4ED8)),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Workspace hub / Division 04 - Printing studio',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                               ],
@@ -377,9 +377,9 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -398,7 +398,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF0B1220),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -418,9 +418,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        boxShadow: [BoxKeyValues.cardShadow],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,12 +431,12 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  color: const Color(0xFFF0FDFA),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
                                 child: const Center(
-                                  child: Icon(Icons.print_outlined, color: Color(0xFF3A3564), size: 24),
+                                  child: Icon(Icons.print_outlined, color: Color(0xFF0B1220), size: 24),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -455,23 +454,23 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                             letterSpacing: -0.3,
                                           ),
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFFAF7F0),
+                                            color: const Color(0xFFF0FDFA),
                                             borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                            border: Border.all(color: const Color(0x26000000)),
                                           ),
                                           child: Text(
                                             '${state.workers.length} WORKERS REGISTERED',
                                             style: GoogleFonts.jetBrainsMono(
                                               fontSize: 9.5,
                                               fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF3A3564),
+                                              color: const Color(0xFF0B1220),
                                             ),
                                           ),
                                         ),
@@ -482,7 +481,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       'Screen tables, automatic carousels, DTG stations, shift matrix tracking, and curing sign-offs',
                                       style: GoogleFonts.publicSans(
                                         fontSize: 12,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         height: 1.35,
                                       ),
                                     ),
@@ -533,9 +532,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        boxShadow: [BoxKeyValues.cardShadow],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,11 +544,11 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
-                                child: const Icon(Icons.business_outlined, color: Color(0xFF3A3564), size: 18),
+                                child: const Icon(Icons.business_outlined, color: Color(0xFF0B1220), size: 18),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -562,7 +560,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -576,24 +574,24 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                           buyerTitle,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0F172A),
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         if (articleCode != null && articleCode.isNotEmpty)
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFAF7F0),
+                                              color: const Color(0xFFF0FDFA),
                                               borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                              border: Border.all(color: const Color(0x26000000)),
                                             ),
                                             child: Text(
                                               'Article: $articleCode',
                                               style: GoogleFonts.jetBrainsMono(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF3A3564),
+                                                color: const Color(0xFF0B1220),
                                               ),
                                             ),
                                           ),
@@ -614,13 +612,13 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF3A3564)),
+                                  const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF1D4ED8)),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Wrap(
@@ -632,20 +630,20 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                           style: GoogleFonts.publicSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         Text(
                                           '(${routeOption.stepIndicator})',
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 10,
-                                            color: const Color(0xFF64748B),
+                                            color: const Color(0xFF475569),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.expand_more, size: 16, color: Color(0xFF64748B)),
+                                  const Icon(Icons.expand_more, size: 16, color: Color(0xFF475569)),
                                 ],
                               ),
                             ),
@@ -660,16 +658,16 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
                                     activeSelectedBuyerId == 'ALL' ? Icons.people_outline : Icons.business_outlined,
                                     size: 17,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF1D4ED8),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -678,12 +676,12 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       style: GoogleFonts.publicSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
+                                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF475569)),
                                 ],
                               ),
                             ),
@@ -696,13 +694,13 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF0F172A),
-                                side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                                foregroundColor: const Color(0xFF0B1220),
+                                side: const BorderSide(color: Color(0xFFE2E8F0)),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                               ),
                               onPressed: _openWorkerListModal,
-                              icon: const Icon(Icons.people_outline, size: 16, color: Color(0xFF3A3564)),
+                              icon: const Icon(Icons.people_outline, size: 16, color: Color(0xFF1D4ED8)),
                               label: Text(
                                 'View worker list (${state.workers.length})',
                                 style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
@@ -712,13 +710,13 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
 
                           const SizedBox(height: 8),
 
-                          // Two-button row: "+ Add worker" (Primary #3A3564) + Refresh icon button
+                          // Two-button row: "+ Add worker" + Refresh icon button
                           Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF3A3564),
+                                    backgroundColor: const Color(0xFF1D4ED8),
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -737,16 +735,16 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
                                 ),
                                 child: IconButton(
                                   icon: state.isSyncing
                                       ? const SizedBox(
                                           width: 18,
                                           height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3A3564)),
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D4ED8)),
                                         )
-                                      : const Icon(Icons.refresh, color: Color(0xFF3A3564), size: 20),
+                                      : const Icon(Icons.refresh, color: Color(0xFF1D4ED8), size: 20),
                                   onPressed: () => ref.read(printingProvider.notifier).syncData(),
                                   tooltip: 'Re-sync printing floor data',
                                 ),
@@ -805,9 +803,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                        boxShadow: [BoxKeyValues.cardShadow],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -824,11 +821,11 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       width: 36,
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
-                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 18),
+                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 18),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -836,8 +833,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                         'Printing floor task allocation matrix',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF0F172A),
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFF0B1220),
                                         ),
                                       ),
                                     ),
@@ -848,7 +845,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   'Distribute article print quotas, assign tables/carousels, and set shift deadline targets',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -857,14 +854,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                 Container(
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFAF7F0),
+                                    color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
                                   ),
                                   child: TextField(
                                     controller: _searchCtrl,
                                     onChanged: (val) => ref.read(printingProvider.notifier).setSearchQuery(val),
-                                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                                     decoration: InputDecoration(
                                       hintText: 'Search worker, article, table...',
                                       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
@@ -910,7 +907,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   height: 44,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF3A3564),
+                                      backgroundColor: const Color(0xFF1D4ED8),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -930,7 +927,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                             ),
                           ),
 
-                          const Divider(height: 1, color: Color(0x14000000)),
+                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                           // Task Items List or Empty State
                           if (displayedTasks.isEmpty)
@@ -944,19 +941,19 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
-                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 24),
+                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 24),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
                                       'No matching printing tasks',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -965,14 +962,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.publicSans(
                                         fontSize: 12,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         height: 1.4,
                                       ),
                                     ),
                                     const SizedBox(height: 16),
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF3A3564),
+                                        backgroundColor: const Color(0xFF1D4ED8),
                                         foregroundColor: Colors.white,
                                         elevation: 0,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1002,13 +999,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                               },
                             ),
 
-                          // Footer Summary Band (Cream-Tinted)
+                          // Footer Summary Band (Crisp Tech Slate)
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: const BoxDecoration(
-                              color: Color(0xFFFAF7F0),
-                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                              color: Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                             ),
                             child: Wrap(
                               alignment: WrapAlignment.spaceBetween,
@@ -1020,7 +1018,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   'Showing ${displayedTasks.length} task allocations across ${state.workers.length} registered workers',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 Text(
@@ -1028,7 +1026,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                               ],
@@ -1057,14 +1055,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F0),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF3A3564)),
+            Icon(icon, size: 16, color: const Color(0xFF1D4ED8)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -1072,7 +1070,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF3A3564),
+                  color: const Color(0xFF0B1220),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1095,15 +1093,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-          boxShadow: [BoxKeyValues.cardShadow],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -1116,7 +1113,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -1126,8 +1123,8 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                     style: isNumber
                         ? GoogleFonts.jetBrainsMono(
                             fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: valueColor ?? const Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            color: valueColor ?? const Color(0xFF0B1220),
                           )
                         : GoogleFonts.plusJakartaSans(
                             fontSize: 22,
@@ -1140,7 +1137,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                     description,
                     style: GoogleFonts.publicSans(
                       fontSize: 11.5,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                     ),
                   ),
                 ],
@@ -1150,11 +1147,11 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: const Color(0xFFF0FDFA),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                border: Border.all(color: const Color(0x26000000)),
               ),
-              child: Icon(icon, color: const Color(0xFF3A3564), size: 22),
+              child: Icon(icon, color: const Color(0xFF0B1220), size: 22),
             ),
           ],
         ),
@@ -1170,10 +1167,10 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -1210,18 +1207,18 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
       statusText = const Color(0xFF2563EB);
       statusLabel = 'IN PROGRESS';
     } else {
-      statusBg = const Color(0xFFFAF7F0);
+      statusBg = const Color(0xFFF8FAFC);
       statusBorder = const Color(0xFFE2E8F0);
-      statusText = const Color(0xFF3A3564);
+      statusText = const Color(0xFF0B1220);
       statusLabel = 'ASSIGNED';
     }
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F0),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1240,15 +1237,15 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                       task.workerName,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                     Text(
                       task.taskRef,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                       ),
                     ),
                   ],
@@ -1290,14 +1287,14 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.checkroom_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.checkroom_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         task.articleNumber,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ],
@@ -1305,7 +1302,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.table_restaurant_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.table_restaurant_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         task.tableNumber,
@@ -1319,13 +1316,13 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         '${task.allotedHours.toInt()}h shift',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
@@ -1337,7 +1334,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0F172A),
+                  color: const Color(0xFF0B1220),
                 ),
               ),
             ],
@@ -1350,7 +1347,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
               style: GoogleFonts.publicSans(
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
-                color: const Color(0xFF64748B),
+                color: const Color(0xFF475569),
               ),
             ),
           ],
@@ -1393,7 +1390,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
               ],
               IconButton(
                 onPressed: () => _confirmDeleteTask(task),
-                icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFF94A3B8)),
+                icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               ),

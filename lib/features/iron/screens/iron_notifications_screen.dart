@@ -77,7 +77,7 @@ class _IronNotificationsScreenState extends ConsumerState<IronNotificationsScree
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/iron/notifications'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -196,13 +196,13 @@ class _IronNotificationsScreenState extends ConsumerState<IronNotificationsScree
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
                         child: const Icon(
                           Icons.notifications_active_outlined,
-                          color: Color(0xFF3A3564),
+                          color: Color(0xFF0B1220),
                           size: 22,
                         ),
                       ),
@@ -218,23 +218,23 @@ class _IronNotificationsScreenState extends ConsumerState<IronNotificationsScree
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0F172A),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFE5EDF9),
+                                    color: const Color(0xFFF0FDFA),
                                     borderRadius: BorderRadius.circular(100),
-                                    border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.3)),
+                                    border: Border.all(color: const Color(0x26000000)),
                                   ),
                                   child: Text(
                                     '${unreadEvents.length} Unread',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF2E5AA8),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),
@@ -258,7 +258,7 @@ class _IronNotificationsScreenState extends ConsumerState<IronNotificationsScree
                     children: [
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -452,10 +452,10 @@ class _IronNotificationsScreenState extends ConsumerState<IronNotificationsScree
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+          color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(

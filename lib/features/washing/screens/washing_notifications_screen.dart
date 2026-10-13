@@ -77,7 +77,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/washing/notifications'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -106,7 +106,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                             style: GoogleFonts.publicSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ),
@@ -122,7 +122,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                             style: GoogleFonts.publicSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ),
@@ -135,7 +135,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                       ],
@@ -148,7 +148,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -184,8 +184,8 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,11 +197,11 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
-                        child: const Icon(Icons.notifications_outlined, color: Color(0xFF3A3564), size: 22),
+                        child: const Icon(Icons.notifications_outlined, color: Color(0xFF0B1220), size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -217,7 +217,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15.5,
                                       fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF0F172A),
+                                      color: const Color(0xFF0B1220),
                                       letterSpacing: -0.3,
                                     ),
                                     maxLines: 1,
@@ -226,18 +226,18 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFAF7F0),
+                                    color: const Color(0xFFF0FDFA),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                    border: Border.all(color: const Color(0x26000000)),
                                   ),
                                   child: Text(
                                     '${moduleEvents.length} EVENTS LOGGED',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 8.5,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),
@@ -248,7 +248,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                               'Live floor audit trail, liquor ratio batches, and department milestones for Demo Industries',
                               style: GoogleFonts.publicSans(
                                 fontSize: 11.5,
-                                color: const Color(0xFF64748B),
+                                color: const Color(0xFF475569),
                                 height: 1.3,
                               ),
                             ),
@@ -263,9 +263,9 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF3A3564),
+                            foregroundColor: const Color(0xFF1D4ED8),
                             backgroundColor: Colors.white,
-                            side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
                             padding: const EdgeInsets.symmetric(vertical: 9),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -281,9 +281,9 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF64748B),
+                            foregroundColor: const Color(0xFF475569),
                             backgroundColor: Colors.white,
-                            side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
                             padding: const EdgeInsets.symmetric(vertical: 9),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -310,7 +310,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,14 +331,14 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                   Container(
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged: (v) => setState(() => _searchQuery = v.trim()),
-                      style: GoogleFonts.publicSans(fontSize: 12),
+                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF0B1220)),
                       decoration: const InputDecoration(
                         hintText: 'Search by article, worker, task...',
                         hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
@@ -361,8 +361,8 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                 padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -371,13 +371,13 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
                       child: const Icon(
                         Icons.notifications_none_rounded,
-                        color: Color(0xFF3A3564),
+                        color: Color(0xFF0B1220),
                         size: 28,
                       ),
                     ),
@@ -386,8 +386,8 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                       _searchQuery.isNotEmpty ? 'No matching notifications found' : 'No notifications yet',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -398,7 +398,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                       textAlign: TextAlign.center,
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                         height: 1.4,
                       ),
                     ),
@@ -421,10 +421,10 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : const Color(0xFFF1F5F9),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? Colors.black.withValues(alpha: 0.12) : Colors.transparent,
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Row(
@@ -435,14 +435,14 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
               style: GoogleFonts.publicSans(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF64748B),
+                color: isSelected ? Colors.white : const Color(0xFF475569),
               ),
             ),
             const SizedBox(width: 5),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFFAF7F0) : const Color(0xFFE2E8F0),
+                color: isSelected ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -450,7 +450,7 @@ class _WashingNotificationsScreenState extends ConsumerState<WashingNotification
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 9.5,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF475569),
+                  color: isSelected ? Colors.white : const Color(0xFF475569),
                 ),
               ),
             ),

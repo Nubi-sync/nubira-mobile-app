@@ -18,12 +18,12 @@ class ChallanDetailsModal extends ConsumerStatefulWidget {
 }
 
 class _ChallanDetailsModalState extends ConsumerState<ChallanDetailsModal> {
-  static const Color kCanvasColor = Color(0xFFFAF7F0);
+  static const Color kCanvasColor = Color(0xFFF8FAFC);
   static const Color kCardBg = Color(0xFFFFFFFF);
-  static const Color kPrimaryBrand = Color(0xFF3A3564);
-  static const Color kBorderColor = Color(0xFFE7E1D6);
-  static const Color kMutedText = Color(0xFF7A7488);
-  static const Color kInkText = Color(0xFF232028);
+  static const Color kPrimaryBrand = Color(0xFF1D4ED8);
+  static const Color kBorderColor = Color(0xFFE2E8F0);
+  static const Color kMutedText = Color(0xFF475569);
+  static const Color kInkText = Color(0xFF0B1220);
 
   bool _isApproving = false;
 

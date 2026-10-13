@@ -62,7 +62,7 @@ class ReadyGoodsWorkerListModal extends ConsumerWidget {
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Add Worker'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -104,10 +104,10 @@ class ReadyGoodsWorkerListModal extends ConsumerWidget {
                           child: Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor: const Color(0xFF3A3564).withValues(alpha: 0.1),
+                                backgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
                                 child: Text(
                                   w.workerName.isNotEmpty ? w.workerName[0].toUpperCase() : 'W',
-                                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8)),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -119,7 +119,7 @@ class ReadyGoodsWorkerListModal extends ConsumerWidget {
                                       children: [
                                         Text(
                                           w.workerName,
-                                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0B1220)),
                                         ),
                                         const SizedBox(width: 6),
                                         Container(

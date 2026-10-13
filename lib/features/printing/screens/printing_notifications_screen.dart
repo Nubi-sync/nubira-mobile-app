@@ -43,7 +43,7 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
       'isRead': true,
       'type': 'HANDOVER',
       'icon': Icons.move_to_inbox_outlined,
-      'color': Color(0xFF3A3564),
+      'color': Color(0xFF1D4ED8),
     },
   ];
 
@@ -51,7 +51,7 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/printing/notifications'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -72,16 +72,16 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF1D4ED8)),
                         const SizedBox(width: 4),
                         Text(
                           'Printing Studio',
-                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -90,7 +90,7 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                 const SizedBox(width: 8),
                 Text(
                   '/ Floor Notifications',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF475569)),
                 ),
               ],
             ),
@@ -102,8 +102,8 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
@@ -111,11 +111,11 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.notifications_active_outlined, color: Color(0xFF3A3564), size: 22),
+                    child: const Icon(Icons.notifications_active_outlined, color: Color(0xFF0B1220), size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -124,11 +124,11 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                       children: [
                         Text(
                           'Printing Floor Alerts',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
                         ),
                         Text(
                           'Real-time strike-off approvals, curing alerts & lot handovers',
-                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -155,7 +155,7 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isRead ? Colors.black.withValues(alpha: 0.08) : color.withValues(alpha: 0.3),
+                      color: isRead ? const Color(0xFFE2E8F0) : color.withValues(alpha: 0.4),
                       width: isRead ? 1 : 1.5,
                     ),
                   ),
@@ -183,8 +183,8 @@ class _PrintingNotificationsScreenState extends ConsumerState<PrintingNotificati
                                     notif['title'] as String,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0F172A),
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),

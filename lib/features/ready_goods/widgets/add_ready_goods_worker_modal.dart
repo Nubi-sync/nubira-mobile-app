@@ -145,9 +145,9 @@ class _AddReadyGoodsWorkerModalState extends ConsumerState<AddReadyGoodsWorkerMo
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
@@ -172,9 +172,9 @@ class _AddReadyGoodsWorkerModalState extends ConsumerState<AddReadyGoodsWorkerMo
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
@@ -198,9 +198,9 @@ class _AddReadyGoodsWorkerModalState extends ConsumerState<AddReadyGoodsWorkerMo
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
@@ -224,7 +224,7 @@ class _AddReadyGoodsWorkerModalState extends ConsumerState<AddReadyGoodsWorkerMo
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -251,19 +251,19 @@ class _AddReadyGoodsWorkerModalState extends ConsumerState<AddReadyGoodsWorkerMo
       hintText: hint,
       hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
       filled: true,
-      fillColor: const Color(0xFFFAF7F0),
+      fillColor: const Color(0xFFF8FAFC),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
       ),
     );
   }

@@ -95,9 +95,9 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -105,11 +105,11 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.people_alt_outlined, color: Color(0xFF3A3564), size: 22),
+                    child: const Icon(Icons.people_alt_outlined, color: Color(0xFF0B1220), size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -121,21 +121,21 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF232028),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         Text(
                           '${workers.length} registered steam iron & vacuum buck pressers',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
-                            color: const Color(0xFF7A7488),
+                            color: const Color(0xFF475569),
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Color(0xFF7A7488), size: 20),
+                    icon: const Icon(Icons.close, color: Color(0xFF475569), size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -146,8 +146,8 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
-                border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                color: Color(0xFFF8FAFC),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Column(
                 children: [
@@ -158,21 +158,25 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                         child: TextField(
                           controller: _searchController,
                           onChanged: (_) => setState(() {}),
-                          style: GoogleFonts.publicSans(fontSize: 13),
+                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                           decoration: InputDecoration(
                             hintText: 'Search name, phone, table...',
-                            hintStyle: GoogleFonts.publicSans(color: const Color(0xFFA09BAA), fontSize: 12),
-                            prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF7A7488)),
+                            hintStyle: GoogleFonts.publicSans(color: const Color(0xFF94A3B8), fontSize: 12),
+                            prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0x1A000000)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0x1A000000)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                             ),
                           ),
                         ),
@@ -181,7 +185,7 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                       // Add Worker Button
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -271,16 +275,16 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0x1A000000)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
                                 child: Center(
                                   child: Text(
                                     worker.workerName.isNotEmpty ? worker.workerName[0].toUpperCase() : 'P',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),
@@ -299,7 +303,7 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF232028),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -395,16 +399,16 @@ class _IronWorkerListModalState extends ConsumerState<IronWorkerListModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+          color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? const Color(0xFF3A3564) : const Color(0x1A000000)),
+          border: Border.all(color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0)),
         ),
         child: Text(
           label,
           style: GoogleFonts.jetBrainsMono(
             fontSize: 10.5,
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : const Color(0xFF7A7488),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),

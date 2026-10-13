@@ -84,9 +84,9 @@ class WashingWorkerListModal extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
+              color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,16 +111,16 @@ class WashingWorkerListModal extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: Text(
                             '${workers.length} OPERATORS REGISTERED',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ),
@@ -129,8 +129,8 @@ class WashingWorkerListModal extends ConsumerWidget {
                           'Washing Floor Operators',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                       ],
@@ -144,9 +144,9 @@ class WashingWorkerListModal extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
                       ),
                     ),
                   ],
@@ -167,22 +167,22 @@ class WashingWorkerListModal extends ConsumerWidget {
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.people_outline_rounded, color: Color(0xFF3A3564), size: 24),
+                          child: const Icon(Icons.people_outline_rounded, color: Color(0xFF0B1220), size: 24),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           'No washing operators registered yet',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Add washing floor operators to assign garment washing batches.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -196,9 +196,9 @@ class WashingWorkerListModal extends ConsumerWidget {
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
@@ -206,7 +206,7 @@ class WashingWorkerListModal extends ConsumerWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF1D4ED8),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Center(
@@ -223,11 +223,11 @@ class WashingWorkerListModal extends ConsumerWidget {
                                 children: [
                                   Text(
                                     w.workerName,
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0B1220)),
                                   ),
                                   Text(
                                     '${w.machineNumber} • ${w.specialization}',
-                                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                                   ),
                                   if (w.phoneNumber.isNotEmpty)
                                     Text(
@@ -253,15 +253,15 @@ class WashingWorkerListModal extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
-              border: Border(top: BorderSide(color: Color(0x1A000000))),
+              color: Color(0xFFF8FAFC),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 11),

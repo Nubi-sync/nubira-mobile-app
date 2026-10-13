@@ -52,13 +52,13 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header Section with Cream background
+              // Header Section with Brand background
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFAF7F0),
+                  color: Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                  border: Border(bottom: BorderSide(color: Color(0x26000000))),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,14 +86,14 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0x1A000000)),
+                                border: Border.all(color: const Color(0x26000000)),
                               ),
                               child: Text(
                                 'DIV 05 OUTWARD',
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF0B1220),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -104,7 +104,7 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ],
@@ -118,9 +118,9 @@ class _EmbroideryStoreScreenState extends ConsumerState<EmbroideryStoreScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0x1A000000)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
                           ),
                         ),
                       ],

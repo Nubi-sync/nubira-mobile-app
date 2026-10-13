@@ -82,13 +82,13 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/printing/store'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF1D4ED8),
         onRefresh: () => ref.read(printingStoreProvider.notifier).fetchStoreData(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -110,16 +110,16 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                              const Icon(Icons.arrow_back, size: 13, color: Color(0xFF0B1220)),
                               const SizedBox(width: 4),
                               Text(
                                 'Printing Studio',
-                                style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                               ),
                             ],
                           ),
@@ -148,7 +148,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,11 +160,11 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.storefront_outlined, color: Color(0xFF3A3564), size: 22),
+                          child: const Icon(Icons.storefront_outlined, color: Color(0xFF0B1220), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -175,19 +175,19 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                                 children: [
                                   Text(
                                     'Printing Division Store',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                   ),
                                   const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                      border: Border.all(color: const Color(0x26000000)),
                                     ),
                                     child: Text(
                                       'DIV 04',
-                                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                     ),
                                   ),
                                 ],
@@ -195,7 +195,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 'Material receipts from preceding stage and handoff issues to next line',
-                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                               ),
                             ],
                           ),
@@ -209,7 +209,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3A3564),
+                              backgroundColor: const Color(0xFF1D4ED8),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 11),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -241,7 +241,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                       value: NumberFormat('#,###').format(storeState.totalReceivedQty),
                       badge: '${storeState.receipts.length} LOTS',
                       icon: Icons.arrow_downward_rounded,
-                      iconColor: const Color(0xFF3A3564),
+                      iconColor: const Color(0xFF0B1220),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -253,7 +253,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                       value: NumberFormat('#,###').format(storeState.totalIssuedQty),
                       badge: '${storeState.issues.length} CHALLANS',
                       icon: Icons.arrow_upward_rounded,
-                      iconColor: const Color(0xFF3A3564),
+                      iconColor: const Color(0xFF0B1220),
                     ),
                   ),
                 ],
@@ -293,7 +293,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,25 +321,25 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                           TextField(
                             controller: _searchCtrl,
                             onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                            style: GoogleFonts.publicSans(fontSize: 12.5),
+                            style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                             decoration: InputDecoration(
                               hintText: 'Search challan, article, division...',
                               hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                               ),
                               isDense: true,
                             ),
@@ -347,7 +347,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         ],
                       ),
                     ),
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                     // Tab Body
                     if (_selectedTabIndex == 0)
@@ -375,10 +375,10 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.06),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -407,7 +407,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,22 +419,22 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Icon(icon, size: 16, color: iconColor),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   tag,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                 ),
               ),
             ],
@@ -442,14 +442,14 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
           const SizedBox(height: 10),
           Text(
             label,
-            style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+            style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
           ),
           Text(
             subtitle,
-            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+            style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF475569)),
           ),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -458,18 +458,18 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
             children: [
               Text(
                 value,
-                style: GoogleFonts.jetBrainsMono(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
                   badge,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                 ),
               ),
             ],
@@ -496,7 +496,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: receipts.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
       itemBuilder: (ctx, idx) {
         final r = receipts[idx];
         final challanNo = r.issue?.issueChallanNo ?? 'MANUAL-REC';
@@ -518,7 +518,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 children: [
                   Text(
                     challanNo,
-                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
@@ -529,7 +529,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                     ),
                     child: Text(
                       fromDiv,
-                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                     ),
                   ),
                 ],
@@ -539,13 +539,13 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
               // Row 2: Article & Material Details
               Text(
                 article,
-                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
               ),
               if (details.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(
                   details,
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                 ),
               ],
               const SizedBox(height: 10),
@@ -554,9 +554,9 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -568,7 +568,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         const SizedBox(height: 2),
                         Text(
                           '${NumberFormat('#,###').format(r.receivedQuantity)} ${r.unit}',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ],
                     ),
@@ -579,7 +579,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         const SizedBox(height: 2),
                         Text(
                           r.rackLocation ?? 'PRINT-INTAKE-01',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: const Color(0xFF334155), fontWeight: FontWeight.w600),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 11.5, color: const Color(0xFF0B1220), fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -590,7 +590,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         const SizedBox(height: 2),
                         Text(
                           r.receivedBy ?? 'Kamal',
-                          style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF334155), fontWeight: FontWeight.w600),
+                          style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF0B1220), fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -632,7 +632,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: issues.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
       itemBuilder: (ctx, idx) {
         final i = issues[idx];
         final article = i.articleNo != null ? 'Art #${i.articleNo}' : 'General Stock';
@@ -650,7 +650,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 children: [
                   Text(
                     i.issueChallanNo,
-                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   ),
                   Row(
                     children: [
@@ -663,7 +663,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         ),
                         child: Text(
                           i.toDivision,
-                          style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -709,9 +709,9 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -723,7 +723,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         const SizedBox(height: 2),
                         Text(
                           '${NumberFormat('#,###').format(i.quantity)} ${i.unit}',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ],
                     ),
@@ -734,7 +734,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                         const SizedBox(height: 2),
                         Text(
                           i.issuedBy ?? 'Store Supervisor',
-                          style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF334155), fontWeight: FontWeight.w600),
+                          style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF0B1220), fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -777,7 +777,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: pending.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
       itemBuilder: (ctx, idx) {
         final p = pending[idx];
         final article = p.articleNo != null ? 'Art #${p.articleNo}' : 'General Stock';
@@ -793,7 +793,7 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 children: [
                   Text(
                     p.issueChallanNo,
-                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
@@ -812,13 +812,13 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
               const SizedBox(height: 6),
               Text(
                 article,
-                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
               ),
               if (details.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(
                   details,
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                 ),
               ],
               const SizedBox(height: 10),
@@ -827,11 +827,11 @@ class _PrintingStoreScreenState extends ConsumerState<PrintingStoreScreen> {
                 children: [
                   Text(
                     'Dispatched: ${NumberFormat('#,###').format(p.quantity)} ${p.unit}',
-                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                    style: GoogleFonts.jetBrainsMono(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -956,11 +956,11 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Web Style Top Header with Cream BG & DIV 04 OUTWARD Badge
+            // Web Style Top Header with Crisp Brand Header & DIV 04 OUTWARD Badge
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Column(
@@ -986,16 +986,16 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Text(
                               'DIV 04 OUTWARD',
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -1005,14 +1005,14 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ],
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                       ),
                     ],
                   ),
@@ -1050,13 +1050,13 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                     child: DropdownButton<String>(
                                       value: _targetDivision,
                                       isExpanded: true,
-                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569), size: 18),
                                       items: _divisionList.map((d) {
                                         return DropdownMenuItem<String>(
                                           value: d['code'],
                                           child: Text(
                                             d['label']!,
-                                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         );
@@ -1079,7 +1079,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _articleCtrl,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('E.G. 9437'),
                                 ),
                               ],
@@ -1101,7 +1101,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _buyerCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('e.g. Zara / HM'),
                                 ),
                               ],
@@ -1116,7 +1116,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _colorCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('e.g. Navy Blue'),
                                 ),
                               ],
@@ -1157,7 +1157,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                     if (n == null || n <= 0) return 'Invalid';
                                     return null;
                                   },
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('0'),
                                 ),
                               ],
@@ -1184,13 +1184,13 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                     child: DropdownButton<String>(
                                       value: _unit,
                                       isExpanded: true,
-                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B), size: 18),
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569), size: 18),
                                       items: _unitList.map((u) {
                                         return DropdownMenuItem<String>(
                                           value: u['code'],
                                           child: Text(
                                             u['label']!,
-                                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                            style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         );
@@ -1217,7 +1217,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                                 TextFormField(
                                   controller: _rollsCtrl,
                                   keyboardType: TextInputType.number,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('0'),
                                 ),
                               ],
@@ -1233,7 +1233,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                       TextFormField(
                         controller: _notesCtrl,
                         maxLines: 2,
-                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                         decoration: _inputDecoration('Remarks or instructions...'),
                       ),
                     ],
@@ -1246,7 +1246,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
@@ -1255,9 +1255,9 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF334155),
+                      foregroundColor: const Color(0xFF0B1220),
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
@@ -1270,7 +1270,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
                   const SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1301,7 +1301,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF334155),
+            color: const Color(0xFF0B1220),
             letterSpacing: 0.5,
           ),
         ),
@@ -1322,7 +1322,7 @@ class _IssueMaterialChallanModalState extends ConsumerState<IssueMaterialChallan
       fillColor: const Color(0xFFF8FAFC),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
     );
@@ -1415,11 +1415,11 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header with Cream BG & INWARD ACKNOWLEDGMENT Badge
+            // Top Header with Crisp Brand BG & INWARD ACKNOWLEDGMENT Badge
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Column(
@@ -1445,16 +1445,16 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Text(
                               'INWARD ACKNOWLEDGMENT',
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -1464,14 +1464,14 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ],
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                       ),
                     ],
                   ),
@@ -1502,7 +1502,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                             const SizedBox(height: 4),
                             _buildSummaryRow('Article:', p.articleNo ?? 'N/A'),
                             const SizedBox(height: 4),
-                            _buildSummaryRow('Dispatched Qty:', '${p.quantity} ${p.unit}', valueColor: const Color(0xFF3A3564)),
+                            _buildSummaryRow('Dispatched Qty:', '${p.quantity} ${p.unit}', valueColor: const Color(0xFF1D4ED8)),
                           ],
                         ),
                       ),
@@ -1522,7 +1522,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                                   controller: _recQtyCtrl,
                                   keyboardType: TextInputType.number,
                                   validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('0'),
                                 ),
                               ],
@@ -1538,7 +1538,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                                 TextFormField(
                                   controller: _shortageCtrl,
                                   keyboardType: TextInputType.number,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('0'),
                                 ),
                               ],
@@ -1560,7 +1560,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _rackCtrl,
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.jetBrainsMono(fontSize: 12.5, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('e.g. PRINT-INTAKE-01'),
                                 ),
                               ],
@@ -1575,7 +1575,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                                 const SizedBox(height: 6),
                                 TextFormField(
                                   controller: _receiverCtrl,
-                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                                   decoration: _inputDecoration('Supervisor Name'),
                                 ),
                               ],
@@ -1591,7 +1591,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                       TextFormField(
                         controller: _notesCtrl,
                         maxLines: 2,
-                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                         decoration: _inputDecoration('Inspection remarks...'),
                       ),
                     ],
@@ -1604,7 +1604,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
@@ -1613,9 +1613,9 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF334155),
+                      foregroundColor: const Color(0xFF0B1220),
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
@@ -1628,7 +1628,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
                   const SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1661,7 +1661,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11.5,
             fontWeight: FontWeight.bold,
-            color: valueColor ?? const Color(0xFF0F172A),
+            color: valueColor ?? const Color(0xFF0B1220),
           ),
         ),
       ],
@@ -1676,7 +1676,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF334155),
+            color: const Color(0xFF0B1220),
             letterSpacing: 0.5,
           ),
         ),
@@ -1697,7 +1697,7 @@ class _AcknowledgeReceiptModalState extends ConsumerState<AcknowledgeReceiptModa
       fillColor: const Color(0xFFF8FAFC),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
     );

@@ -118,9 +118,9 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -128,11 +128,11 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.person_add_outlined, color: Color(0xFF3A3564), size: 22),
+                    child: const Icon(Icons.person_add_outlined, color: Color(0xFF0B1220), size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -144,14 +144,14 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF232028),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         Text(
                           'Create presser profile and floor access login',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
-                            color: const Color(0xFF7A7488),
+                            color: const Color(0xFF475569),
                           ),
                         ),
                       ],
@@ -191,19 +191,19 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                           hintText: 'e.g. Rajesh Halder',
                           hintStyle: GoogleFonts.publicSans(color: const Color(0xFFA09BAA), fontSize: 13),
                           filled: true,
-                          fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                          fillColor: const Color(0xFFF8FAFC),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                            borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                           ),
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter presser name' : null,
@@ -239,19 +239,19 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                           hintText: '9876543210',
                           hintStyle: GoogleFonts.jetBrainsMono(color: const Color(0xFFA09BAA), fontSize: 13),
                           filled: true,
-                          fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                          fillColor: const Color(0xFFF8FAFC),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                            borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                           ),
                         ),
                         validator: (v) {
@@ -269,7 +269,7 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF7A7488),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -281,27 +281,27 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                           hintText: 'Min 6 characters (e.g. iron@123)',
                           hintStyle: GoogleFonts.jetBrainsMono(color: const Color(0xFFA09BAA), fontSize: 13),
                           filled: true,
-                          fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                          fillColor: const Color(0xFFF8FAFC),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                               size: 18,
                             ),
                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0x1A000000)),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                            borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                           ),
                         ),
                         validator: (v) => (v == null || v.trim().length < 6) ? 'Password must be >= 6 characters' : null,
@@ -417,10 +417,10 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                             margin: const EdgeInsets.only(bottom: 6),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: isChecked ? const Color(0xFFE5EDF9) : const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                              color: isChecked ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isChecked ? const Color(0xFF2E5AA8).withValues(alpha: 0.3) : const Color(0x1A000000),
+                                color: isChecked ? const Color(0xFF1D4ED8).withValues(alpha: 0.3) : const Color(0xFFE2E8F0),
                               ),
                             ),
                             child: Row(
@@ -428,7 +428,7 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                                 Icon(
                                   isChecked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
                                   size: 18,
-                                  color: isChecked ? const Color(0xFF2E5AA8) : const Color(0xFF7A7488),
+                                  color: isChecked ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -437,7 +437,7 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                                     style: GoogleFonts.publicSans(
                                       fontSize: 12.5,
                                       fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
-                                      color: isChecked ? const Color(0xFF2E5AA8) : const Color(0xFF232028),
+                                      color: isChecked ? const Color(0xFF1D4ED8) : const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),
@@ -458,7 +458,7 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-                border: Border(top: BorderSide(color: Color(0x1A000000))),
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -469,14 +469,14 @@ class _AddIronWorkerModalState extends ConsumerState<AddIronWorkerModal> {
                       'Cancel',
                       style: GoogleFonts.publicSans(
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF7A7488),
+                        color: const Color(0xFF475569),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

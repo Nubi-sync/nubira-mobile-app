@@ -276,18 +276,18 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/embroidery'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: state.isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF3A3564)),
+              child: CircularProgressIndicator(color: Color(0xFF1D4ED8)),
             )
           : RefreshIndicator(
               onRefresh: () => ref.read(embroideryProvider.notifier).loadInitialData(isRefresh: true),
-              color: const Color(0xFF3A3564),
+              color: const Color(0xFF1D4ED8),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16.0),
@@ -311,19 +311,19 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                                const Icon(Icons.arrow_back, size: 13, color: Color(0xFF1D4ED8)),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Workspace hub / Division 05 - Embroidery studio',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                               ],
@@ -333,9 +333,9 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -354,7 +354,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF0B1220),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -374,8 +374,8 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: [BoxKeyValues.cardShadow],
                       ),
                       child: Column(
@@ -388,12 +388,12 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
                                 child: const Center(
-                                  child: Icon(Icons.auto_awesome, color: Color(0xFF3A3564), size: 24),
+                                  child: Icon(Icons.auto_awesome, color: Color(0xFF0B1220), size: 24),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -411,23 +411,23 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                             letterSpacing: -0.3,
                                           ),
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFFAF7F0),
+                                            color: const Color(0xFFF0FDFA),
                                             borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                            border: Border.all(color: const Color(0x26000000)),
                                           ),
                                           child: Text(
                                             '${state.workers.length} WORKERS REGISTERED',
                                             style: GoogleFonts.jetBrainsMono(
                                               fontSize: 9.5,
                                               fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF3A3564),
+                                              color: const Color(0xFF0B1220),
                                             ),
                                           ),
                                         ),
@@ -438,7 +438,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       'Multi-head computerized machines, hooping stations, shift matrix tracking, and stitch sign-offs',
                                       style: GoogleFonts.publicSans(
                                         fontSize: 12,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         height: 1.35,
                                       ),
                                     ),
@@ -489,8 +489,8 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: [BoxKeyValues.cardShadow],
                       ),
                       child: Column(
@@ -502,11 +502,11 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
-                                child: const Icon(Icons.business_outlined, color: Color(0xFF3A3564), size: 18),
+                                child: const Icon(Icons.business_outlined, color: Color(0xFF0B1220), size: 18),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -518,7 +518,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -533,23 +533,23 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         if (articleCode != null && articleCode.isNotEmpty)
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFAF7F0),
+                                              color: const Color(0xFFF0FDFA),
                                               borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                              border: Border.all(color: const Color(0x26000000)),
                                             ),
                                             child: Text(
                                               'Article: $articleCode',
                                               style: GoogleFonts.jetBrainsMono(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF3A3564),
+                                                color: const Color(0xFF0B1220),
                                               ),
                                             ),
                                           ),
@@ -570,13 +570,13 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF3A3564)),
+                                  const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF0B1220)),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Wrap(
@@ -588,20 +588,20 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                           style: GoogleFonts.publicSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         Text(
                                           '(${routeDetails.badgeLabel})',
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 10,
-                                            color: const Color(0xFF64748B),
+                                            color: const Color(0xFF475569),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.expand_more, size: 16, color: Color(0xFF64748B)),
+                                  const Icon(Icons.expand_more, size: 16, color: Color(0xFF475569)),
                                 ],
                               ),
                             ),
@@ -616,16 +616,16 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
                                     activeSelectedBuyerId == 'ALL' ? Icons.people_outline : Icons.business_outlined,
                                     size: 17,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -634,12 +634,12 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       style: GoogleFonts.publicSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF64748B)),
+                                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF475569)),
                                 ],
                               ),
                             ),
@@ -652,13 +652,13 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF0F172A),
-                                side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                                foregroundColor: const Color(0xFF0B1220),
+                                side: const BorderSide(color: Color(0xFFE2E8F0)),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                               ),
                               onPressed: _openWorkerListModal,
-                              icon: const Icon(Icons.people_outline, size: 16, color: Color(0xFF3A3564)),
+                              icon: const Icon(Icons.people_outline, size: 16, color: Color(0xFF0B1220)),
                               label: Text(
                                 'View worker list (${state.workers.length})',
                                 style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
@@ -668,13 +668,13 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
 
                           const SizedBox(height: 8),
 
-                          // Two-button row: "+ Add worker" (Primary #3A3564) + Refresh icon button
+                          // Two-button row: "+ Add worker" (Primary #1D4ED8) + Refresh icon button
                           Row(
                             children: [
                               Expanded(
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF3A3564),
+                                    backgroundColor: const Color(0xFF1D4ED8),
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -693,16 +693,16 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
                                 ),
                                 child: IconButton(
                                   icon: state.isSyncing
                                       ? const SizedBox(
                                           width: 18,
                                           height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3A3564)),
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D4ED8)),
                                         )
-                                      : const Icon(Icons.refresh, color: Color(0xFF3A3564), size: 20),
+                                      : const Icon(Icons.refresh, color: Color(0xFF1D4ED8), size: 20),
                                   onPressed: () => ref.read(embroideryProvider.notifier).loadInitialData(isRefresh: true),
                                   tooltip: 'Re-sync embroidery floor data',
                                 ),
@@ -751,8 +751,8 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: [BoxKeyValues.cardShadow],
                       ),
                       child: Column(
@@ -770,11 +770,11 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       width: 36,
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
-                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 18),
+                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 18),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -783,7 +783,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF0F172A),
+                                          color: const Color(0xFF0B1220),
                                         ),
                                       ),
                                     ),
@@ -794,7 +794,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                   'Distribute article embroidery quotas, assign multi-head machines, and set shift deadline targets',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -803,21 +803,21 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                 Container(
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFAF7F0),
+                                    color: const Color(0xFFF8FAFC),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
                                   ),
                                   child: TextField(
                                     controller: _searchCtrl,
                                     onChanged: (val) => ref.read(embroideryProvider.notifier).setSearchQuery(val),
-                                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                                     decoration: InputDecoration(
                                       hintText: 'Search worker, article, machine...',
                                       hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-                                      prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                                      prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                                       suffixIcon: _searchCtrl.text.isNotEmpty
                                           ? IconButton(
-                                              icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
+                                              icon: const Icon(Icons.clear, size: 16, color: Color(0xFF475569)),
                                               onPressed: () {
                                                 _searchCtrl.clear();
                                                 ref.read(embroideryProvider.notifier).setSearchQuery('');
@@ -856,7 +856,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                   height: 44,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF3A3564),
+                                      backgroundColor: const Color(0xFF1D4ED8),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -876,7 +876,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                             ),
                           ),
 
-                          const Divider(height: 1, color: Color(0x14000000)),
+                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                           // Task Items List or Empty State
                           if (displayedTasks.isEmpty)
@@ -890,11 +890,11 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
-                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 24),
+                                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 24),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
@@ -902,7 +902,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -911,14 +911,14 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.publicSans(
                                         fontSize: 12,
-                                        color: const Color(0xFF64748B),
+                                        color: const Color(0xFF475569),
                                         height: 1.4,
                                       ),
                                     ),
                                     const SizedBox(height: 16),
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF3A3564),
+                                        backgroundColor: const Color(0xFF1D4ED8),
                                         foregroundColor: Colors.white,
                                         elevation: 0,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -948,13 +948,14 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                               },
                             ),
 
-                          // Footer Summary Band (Cream-Tinted)
+                          // Footer Summary Band
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: const BoxDecoration(
-                              color: Color(0xFFFAF7F0),
-                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                              color: Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                             ),
                             child: Wrap(
                               alignment: WrapAlignment.spaceBetween,
@@ -966,7 +967,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                   'Showing ${displayedTasks.length} task allocations across ${state.workers.length} registered workers',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
-                                    color: const Color(0xFF64748B),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 Text(
@@ -974,7 +975,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                               ],
@@ -1003,14 +1004,14 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F0),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF3A3564)),
+            Icon(icon, size: 16, color: const Color(0xFF0B1220)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -1018,7 +1019,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF3A3564),
+                  color: const Color(0xFF0B1220),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1042,8 +1043,8 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [BoxKeyValues.cardShadow],
       ),
       child: Row(
@@ -1058,7 +1059,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF475569),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1069,13 +1070,13 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       ? GoogleFonts.jetBrainsMono(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFF0B1220),
                           letterSpacing: -0.5,
                         )
                       : GoogleFonts.plusJakartaSans(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFF0B1220),
                         ),
                 ),
                 const SizedBox(height: 4),
@@ -1083,7 +1084,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                   description,
                   style: GoogleFonts.publicSans(
                     fontSize: 11.5,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF475569),
                   ),
                 ),
               ],
@@ -1092,11 +1093,11 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: const Color(0xFFF0FDFA),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+              border: Border.all(color: const Color(0x26000000)),
             ),
-            child: Icon(icon, color: const Color(0xFF3A3564), size: 22),
+            child: Icon(icon, color: const Color(0xFF0B1220), size: 22),
           ),
         ],
       ),
@@ -1111,10 +1112,10 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isActive ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+            color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -1122,7 +1123,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11,
             fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-            color: isActive ? Colors.white : const Color(0xFF64748B),
+            color: isActive ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),
@@ -1134,9 +1135,9 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
     final isWorkerDone = task.status == 'WORKER_COMPLETED';
     final dueTimeline = _formatDueTimeline(task.dueTime, task.allotedHours);
 
-    Color statusBg = const Color(0xFFFAF7F0);
-    Color statusText = const Color(0xFF3A3564);
-    Color statusBorder = Colors.black.withValues(alpha: 0.1);
+    Color statusBg = const Color(0xFFF0FDFA);
+    Color statusText = const Color(0xFF0B1220);
+    Color statusBorder = const Color(0x26000000);
     String statusLabel = 'IN PROGRESS';
 
     if (isDone) {
@@ -1157,7 +1158,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
         color: isDone ? const Color(0xFFF8FAFC) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDone ? const Color(0xFFE2E8F0) : Colors.black.withValues(alpha: 0.08),
+          color: const Color(0xFFE2E8F0),
         ),
       ),
       child: Column(
@@ -1170,16 +1171,16 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Text(
                   '#${task.taskRef}',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
@@ -1193,7 +1194,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
+                        color: const Color(0xFF0B1220),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1203,7 +1204,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                         '+91 ${task.workerPhone}',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                   ],
@@ -1258,14 +1259,14 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.style_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.style_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         '${task.buyerName} • ${task.articleNumber}',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                     ],
@@ -1273,7 +1274,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.precision_manufacturing_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.precision_manufacturing_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         task.tableNumber,
@@ -1287,13 +1288,13 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF64748B)),
+                      const Icon(Icons.schedule_outlined, size: 12, color: Color(0xFF475569)),
                       const SizedBox(width: 4),
                       Text(
                         dueTimeline,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
@@ -1305,7 +1306,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 13.5,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0F172A),
+                  color: const Color(0xFF0B1220),
                 ),
               ),
             ],
@@ -1318,7 +1319,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
               style: GoogleFonts.publicSans(
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
-                color: const Color(0xFF64748B),
+                color: const Color(0xFF475569),
               ),
             ),
           ],
@@ -1362,14 +1363,14 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check, size: 12, color: Color(0xFF64748B)),
+                    const Icon(Icons.check, size: 12, color: Color(0xFF475569)),
                     const SizedBox(width: 3),
                     Text(
                       'Done',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                       ),
                     ),
                   ],

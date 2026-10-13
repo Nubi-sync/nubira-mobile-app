@@ -70,11 +70,11 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.people_outline, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.people_outline, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Column(
@@ -85,19 +85,19 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         Text(
                           'Filter embroidery floor schedule & quotas',
-                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                   onPressed: () => Navigator.pop(context),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -112,14 +112,14 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TextField(
                 controller: _searchCtrl,
                 onChanged: (v) => setState(() => _query = v.trim()),
-                style: GoogleFonts.publicSans(fontSize: 13),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                   hintText: 'Search buyers, articles...',
                   hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                   border: InputBorder.none,
@@ -127,7 +127,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                   isDense: true,
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFF64748B)),
+                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFF475569)),
                           onPressed: () {
                             _searchCtrl.clear();
                             setState(() => _query = '');
@@ -156,10 +156,10 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                         margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: activeSelectedId == 'ALL' ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                          color: activeSelectedId == 'ALL' ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: activeSelectedId == 'ALL' ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                            color: activeSelectedId == 'ALL' ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Row(
@@ -174,7 +174,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.bold,
-                                      color: activeSelectedId == 'ALL' ? Colors.white : const Color(0xFF0F172A),
+                                      color: activeSelectedId == 'ALL' ? Colors.white : const Color(0xFF0B1220),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -182,7 +182,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                     'Showing aggregated floor tasks across all contracted brands',
                                     style: GoogleFonts.publicSans(
                                       fontSize: 11,
-                                      color: activeSelectedId == 'ALL' ? Colors.white70 : const Color(0xFF64748B),
+                                      color: activeSelectedId == 'ALL' ? const Color(0xFFDBEAFE) : const Color(0xFF475569),
                                     ),
                                   ),
                                 ],
@@ -213,10 +213,10 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                           margin: const EdgeInsets.only(bottom: 6),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                              color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           child: Row(
@@ -233,7 +233,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
-                                            color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                                            color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                           ),
                                         ),
                                         if (b.buyerCode != null && b.buyerCode!.isNotEmpty) ...[
@@ -241,10 +241,10 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                             decoration: BoxDecoration(
-                                              color: isSelected ? Colors.white24 : const Color(0xFFFAF7F0),
+                                              color: isSelected ? Colors.white24 : const Color(0xFFF0FDFA),
                                               borderRadius: BorderRadius.circular(6),
                                               border: Border.all(
-                                                color: isSelected ? Colors.white30 : Colors.black.withValues(alpha: 0.1),
+                                                color: isSelected ? Colors.transparent : const Color(0x26000000),
                                               ),
                                             ),
                                             child: Text(
@@ -252,7 +252,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                               style: GoogleFonts.jetBrainsMono(
                                                 fontSize: 9.5,
                                                 fontWeight: FontWeight.bold,
-                                                color: isSelected ? Colors.white : const Color(0xFF3A3564),
+                                                color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                               ),
                                             ),
                                           ),
@@ -264,7 +264,7 @@ class _SelectEmbroideryBuyerModalState extends ConsumerState<SelectEmbroideryBuy
                                       '${cutPieces.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} Cut Pcs (of ${b.contractedVolume.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} BPO) • Article: ${b.linkedArticleNumber ?? "Pending"}',
                                       style: GoogleFonts.publicSans(
                                         fontSize: 11,
-                                        color: isSelected ? Colors.white70 : const Color(0xFF64748B),
+                                        color: isSelected ? const Color(0xFFDBEAFE) : const Color(0xFF475569),
                                       ),
                                     ),
                                   ],

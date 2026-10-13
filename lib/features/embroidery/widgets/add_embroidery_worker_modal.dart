@@ -134,11 +134,11 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.person_add_alt_1, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.person_add_alt_1, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -150,21 +150,21 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
                             'Create worker credentials for embroidery studio portal access',
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -177,32 +177,32 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _nameCtrl,
-                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'e.g. Suresh Kumar',
                     hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                    prefixIcon: const Icon(Icons.badge_outlined, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.badge_outlined, size: 18, color: Color(0xFF475569)),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -220,7 +220,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -228,31 +228,31 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                 TextFormField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: '9876543210',
                     hintStyle: GoogleFonts.jetBrainsMono(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                    prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF475569)),
                     prefixText: '+91 ',
                     prefixStyle: GoogleFonts.jetBrainsMono(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
+                      color: const Color(0xFF0B1220),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -274,7 +274,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -282,33 +282,33 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: !_showPassword,
-                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'Min. 6 characters',
                     hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                    prefixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFF475569)),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                         size: 18,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF475569),
                       ),
                       onPressed: () => setState(() => _showPassword = !_showPassword),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -329,7 +329,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -344,11 +344,10 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFFAF7F0) : Colors.white,
+                          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
-                            width: isSelected ? 1.5 : 1.0,
+                            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Row(
@@ -357,14 +356,14 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                               width: 20,
                               height: 20,
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF94A3B8),
+                                  color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
                                 ),
                               ),
                               child: isSelected
-                                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                  ? const Icon(Icons.check, size: 14, color: Color(0xFF1D4ED8))
                                   : null,
                             ),
                             const SizedBox(width: 12),
@@ -374,7 +373,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12.5,
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF475569),
+                                  color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                 ),
                               ),
                             ),
@@ -394,7 +393,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                         onPressed: _isSubmitting ? null : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Text(
@@ -402,7 +401,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                           ),
                         ),
                       ),
@@ -412,7 +411,7 @@ class _AddEmbroideryWorkerModalState extends ConsumerState<AddEmbroideryWorkerMo
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

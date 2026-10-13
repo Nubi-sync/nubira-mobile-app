@@ -134,11 +134,11 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.person_add_alt_1, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.person_add_alt_1, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -150,7 +150,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -160,7 +160,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                           'Create worker credentials for printing studio access',
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -177,9 +177,9 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                      child: const Icon(Icons.close, size: 16, color: Color(0xFF64748B)),
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF475569)),
                     ),
                   ),
                 ],
@@ -195,7 +195,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF0B1220),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -203,7 +203,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
               TextFormField(
                 controller: _nameCtrl,
                 validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter worker full name.' : null,
-                style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                style: GoogleFonts.publicSans(fontSize: 13.5, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                 decoration: InputDecoration(
                   hintText: 'e.g. Anand Sharma',
                   hintStyle: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF94A3B8)),
@@ -211,15 +211,15 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                    borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -233,7 +233,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF0B1220),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -242,23 +242,23 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
-                        border: Border(right: BorderSide(color: Colors.black.withValues(alpha: 0.1))),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.horizontal(left: Radius.circular(11)),
+                        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                       child: Text(
                         '+91',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 12.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                     ),
@@ -275,14 +275,14 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 13.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFF0B1220),
                         ),
                         decoration: InputDecoration(
                           hintText: 'Enter 10-digit phone number',
                           hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          suffixIcon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF94A3B8)),
+                          suffixIcon: const Icon(Icons.phone_outlined, size: 18, color: Color(0xFF475569)),
                         ),
                       ),
                     ),
@@ -298,7 +298,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF0B1220),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -307,7 +307,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: TextFormField(
                   controller: _passwordCtrl,
@@ -316,7 +316,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0F172A),
+                    color: const Color(0xFF0B1220),
                   ),
                   decoration: InputDecoration(
                     hintText: 'Enter password (min. 6 characters)',
@@ -327,7 +327,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       icon: Icon(
                         _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                         size: 18,
-                        color: const Color(0xFF94A3B8),
+                        color: const Color(0xFF475569),
                       ),
                       onPressed: () => setState(() => _showPassword = !_showPassword),
                     ),
@@ -347,7 +347,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF334155),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.4,
                       ),
                       maxLines: 1,
@@ -360,7 +360,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 10.5,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                     ),
                   ),
                 ],
@@ -382,10 +382,10 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isChecked ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                        color: isChecked ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isChecked ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                          color: isChecked ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Row(
@@ -397,7 +397,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                               style: GoogleFonts.publicSans(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.bold,
-                                color: isChecked ? Colors.white : const Color(0xFF334155),
+                                color: isChecked ? Colors.white : const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -417,7 +417,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                                     child: Icon(
                                       Icons.check,
                                       size: 13,
-                                      color: Color(0xFF3A3564),
+                                      color: Color(0xFF1D4ED8),
                                     ),
                                   )
                                 : null,
@@ -440,8 +440,8 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF334155),
-                          side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                          foregroundColor: const Color(0xFF0B1220),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () => Navigator.pop(context),
@@ -459,7 +459,7 @@ class _AddPrintingWorkerModalState extends ConsumerState<AddPrintingWorkerModal>
                       height: 44,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

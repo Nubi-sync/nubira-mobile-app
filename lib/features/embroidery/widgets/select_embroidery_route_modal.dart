@@ -80,11 +80,11 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.alt_route_rounded, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.alt_route_rounded, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Column(
@@ -95,19 +95,19 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         Text(
                           'Process sequence for $buyerName',
-                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                   onPressed: () => Navigator.pop(context),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -131,7 +131,7 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Routing updated: ${route['shortLabel']}'),
-                            backgroundColor: const Color(0xFF3A3564),
+                            backgroundColor: const Color(0xFF0B1220),
                           ),
                         );
                       },
@@ -140,10 +140,10 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                             width: isSelected ? 1.5 : 1.0,
                           ),
                         ),
@@ -153,13 +153,14 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: isSelected ? Colors.white24 : const Color(0xFFFAF7F0),
+                                color: isSelected ? Colors.white24 : const Color(0xFFF0FDFA),
                                 borderRadius: BorderRadius.circular(8),
+                                border: isSelected ? null : Border.all(color: const Color(0x26000000)),
                               ),
                               child: Icon(
                                 Icons.route_outlined,
                                 size: 16,
-                                color: isSelected ? Colors.white : const Color(0xFF3A3564),
+                                color: isSelected ? Colors.white : const Color(0xFF0B1220),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -174,22 +175,23 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.bold,
-                                          color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                                          color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                         decoration: BoxDecoration(
-                                          color: isSelected ? Colors.white24 : const Color(0xFFFAF7F0),
+                                          color: isSelected ? Colors.white24 : const Color(0xFFF0FDFA),
                                           borderRadius: BorderRadius.circular(6),
+                                          border: isSelected ? null : Border.all(color: const Color(0x26000000)),
                                         ),
                                         child: Text(
                                           route['badgeLabel']!,
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
-                                            color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                            color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                           ),
                                         ),
                                       ),
@@ -200,7 +202,7 @@ class SelectEmbroideryRouteModal extends ConsumerWidget {
                                     route['flowDescription']!,
                                     style: GoogleFonts.publicSans(
                                       fontSize: 11,
-                                      color: isSelected ? Colors.white70 : const Color(0xFF64748B),
+                                      color: isSelected ? const Color(0xFFDBEAFE) : const Color(0xFF475569),
                                       height: 1.3,
                                     ),
                                   ),

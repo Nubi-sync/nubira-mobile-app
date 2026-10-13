@@ -115,11 +115,11 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
-                  child: const Icon(Icons.people_outline, color: Color(0xFF3A3564), size: 20),
+                  child: const Icon(Icons.people_outline, color: Color(0xFF0B1220), size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -131,21 +131,21 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                       Text(
                         '${state.workers.length} active machine operators & framing specialists',
                         style: GoogleFonts.publicSans(
                           fontSize: 11.5,
-                          color: const Color(0xFF64748B),
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -155,21 +155,21 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
             // Search Bar
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TextField(
                 controller: _searchCtrl,
                 onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                style: GoogleFonts.publicSans(fontSize: 13),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                 decoration: InputDecoration(
                   hintText: 'Search worker by name, phone, or role...',
                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFF64748B)),
+                          icon: const Icon(Icons.clear, size: 16, color: Color(0xFF475569)),
                           onPressed: () {
                             _searchCtrl.clear();
                             setState(() => _searchQuery = '');
@@ -197,7 +197,7 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -216,9 +216,9 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Row(
                             children: [
@@ -227,9 +227,8 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFF1D4ED8),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -237,7 +236,7 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3A3564),
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ),
@@ -256,23 +255,23 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                         const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFECFDF5),
+                                            color: const Color(0xFFF0FDFA),
                                             borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                                            border: Border.all(color: const Color(0x26000000)),
                                           ),
                                           child: Text(
                                             worker.status,
                                             style: GoogleFonts.jetBrainsMono(
                                               fontSize: 9,
                                               fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF047857),
+                                              color: const Color(0xFF0B1220),
                                             ),
                                           ),
                                         ),
@@ -297,7 +296,7 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF64748B),
+                                            color: const Color(0xFF475569),
                                           ),
                                         ),
                                         if (worker.assignedPieces > 0) ...[
@@ -305,16 +304,16 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFAF7F0),
+                                              color: const Color(0xFFF0FDFA),
                                               borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                              border: Border.all(color: const Color(0x26000000)),
                                             ),
                                             child: Text(
                                               '${worker.assignedPieces} pcs assigned',
                                               style: GoogleFonts.jetBrainsMono(
                                                 fontSize: 9.5,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF3A3564),
+                                                color: const Color(0xFF0B1220),
                                               ),
                                             ),
                                           ),
@@ -361,7 +360,7 @@ class _EmbroideryWorkerListModalState extends ConsumerState<EmbroideryWorkerList
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3A3564),
+                  backgroundColor: const Color(0xFF1D4ED8),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

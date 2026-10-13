@@ -74,14 +74,14 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: TextField(
                       autofocus: false,
                       onChanged: (v) => setSheetState(() => searchQuery = v.trim()),
-                      style: GoogleFonts.publicSans(fontSize: 12.5),
+                      style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                       decoration: const InputDecoration(
                         hintText: 'Search buyers...',
                         hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
@@ -150,10 +150,10 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
         ),
       ),
       child: InkWell(
@@ -171,8 +171,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                       title,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                        color: isSelected ? Colors.white : const Color(0xFF0B1220),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -181,7 +181,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w500,
-                        color: isSelected ? const Color(0xFFC7D2FE) : const Color(0xFF64748B),
+                        color: isSelected ? const Color(0xFFDBEAFE) : const Color(0xFF475569),
                       ),
                     ),
                   ],
@@ -307,13 +307,13 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/washing'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF1D4ED8),
         onRefresh: () => ref.read(washingProvider.notifier).loadInitialData(isRefresh: true),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -341,19 +341,19 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.arrow_back_ios_new_rounded, size: 11, color: Color(0xFF3A3564)),
+                            const Icon(Icons.arrow_back_ios_new_rounded, size: 11, color: Color(0xFF1D4ED8)),
                             const SizedBox(width: 4),
                             Text(
                               'Workspace Hub',
                               style: GoogleFonts.publicSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF1D4ED8),
                               ),
                             ),
                           ],
@@ -364,16 +364,16 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5EDF9),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.2)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
                       child: Text(
                         'Division 07 • Wet Processing & Laundry',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 9.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF2E5AA8),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                     ),
@@ -423,8 +423,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,11 +436,11 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.waves_rounded, color: Color(0xFF3A3564), size: 24),
+                          child: const Icon(Icons.waves_rounded, color: Color(0xFF0B1220), size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -456,25 +456,25 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF0F172A),
+                                        color: const Color(0xFF0B1220),
                                         letterSpacing: -0.3,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                      border: Border.all(color: const Color(0x26000000)),
                                     ),
                                     child: Text(
                                       '${state.workers.length} Washers Registered',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 8.5,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF3A3564),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ),
@@ -485,7 +485,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 'Enzyme bio-polishing, silicon softening, 1:5.0 liquor ratio management, and hydro-dryer piece allocations.',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11.5,
-                                  color: const Color(0xFF64748B),
+                                  color: const Color(0xFF475569),
                                   height: 1.35,
                                 ),
                               ),
@@ -501,9 +501,9 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF3A3564),
-                              backgroundColor: const Color(0xFFFAF7F0),
-                              side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              foregroundColor: const Color(0xFF0B1220),
+                              backgroundColor: const Color(0xFFF8FAFC),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
@@ -512,7 +512,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 const SnackBar(content: Text('Zigza AI Washing Assistant active on floor.')),
                               );
                             },
-                            icon: const Icon(Icons.smart_toy_outlined, size: 15),
+                            icon: const Icon(Icons.smart_toy_outlined, size: 15, color: Color(0xFF1D4ED8)),
                             label: Text('Zigza AI', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -520,9 +520,9 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF3A3564),
-                              backgroundColor: const Color(0xFFFAF7F0),
-                              side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              foregroundColor: const Color(0xFF0B1220),
+                              backgroundColor: const Color(0xFFF8FAFC),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
@@ -532,7 +532,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
                               );
                             },
-                            icon: const Icon(Icons.people_outline_rounded, size: 15),
+                            icon: const Icon(Icons.people_outline_rounded, size: 15, color: Color(0xFF1D4ED8)),
                             label: Text('Division Profile', style: GoogleFonts.publicSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -552,8 +552,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,11 +565,11 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.apartment_rounded, color: Color(0xFF3A3564), size: 20),
+                          child: const Icon(Icons.apartment_rounded, color: Color(0xFF0B1220), size: 20),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -581,7 +581,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF64748B),
+                                  color: const Color(0xFF475569),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -592,8 +592,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                     selectedBuyer != null ? selectedBuyer.buyerName : 'All Buyers & Contracts',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0F172A),
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                   if (selectedBuyer != null && selectedBuyer.linkedArticleNumber.isNotEmpty) ...[
@@ -601,16 +601,16 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFAF7F0),
+                                        color: const Color(0xFFF0FDFA),
                                         borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                                        border: Border.all(color: const Color(0x26000000)),
                                       ),
                                       child: Text(
                                         'Article: ${selectedBuyer.linkedArticleNumber}',
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 9,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF3A3564),
+                                          color: const Color(0xFF0B1220),
                                         ),
                                       ),
                                     ),
@@ -622,7 +622,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         ),
                         IconButton(
                           onPressed: () => ref.read(washingProvider.notifier).loadInitialData(isRefresh: true),
-                          icon: const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF3A3564)),
+                          icon: const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF1D4ED8)),
                           tooltip: 'Refresh floor state',
                         ),
                       ],
@@ -636,23 +636,23 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.people_outline_rounded, size: 16, color: Color(0xFF3A3564)),
+                            const Icon(Icons.people_outline_rounded, size: 16, color: Color(0xFF1D4ED8)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 selectedBuyerDisplayText,
-                                style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF64748B)),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF475569)),
                           ],
                         ),
                       ),
@@ -666,14 +666,14 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF0F172A),
+                              foregroundColor: const Color(0xFF0B1220),
                               backgroundColor: Colors.white,
-                              side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () => WashingWorkerListModal.show(context),
-                            icon: const Icon(Icons.people_outline_rounded, size: 15, color: Color(0xFF3A3564)),
+                            icon: const Icon(Icons.people_outline_rounded, size: 15, color: Color(0xFF1D4ED8)),
                             label: Text(
                               'View Worker List (${state.workers.length})',
                               style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold),
@@ -684,7 +684,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3A3564),
+                              backgroundColor: const Color(0xFF1D4ED8),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -745,8 +745,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -763,11 +763,11 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
-                                child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 18),
+                                child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 18),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -778,13 +778,13 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                       'Washing Floor Task Allocation Matrix',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0F172A),
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                     Text(
                                       'Distribute garment washing batches, assign hydro-dryers, and set shift completion targets.',
-                                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                                     ),
                                   ],
                                 ),
@@ -797,14 +797,14 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                           Container(
                             height: 38,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: TextField(
                               controller: _searchCtrl,
                               onChanged: (v) => ref.read(washingProvider.notifier).setSearchQuery(v.trim()),
-                              style: GoogleFonts.publicSans(fontSize: 12),
+                              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF0B1220)),
                               decoration: const InputDecoration(
                                 hintText: 'Search worker, article, machine...',
                                 hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
@@ -838,7 +838,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3A3564),
+                                backgroundColor: const Color(0xFF1D4ED8),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(vertical: 11),
@@ -856,7 +856,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                       ),
                     ),
 
-                    const Divider(height: 1, color: Color(0x14000000)),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
                     // Table / List Content
                     if (filteredTasks.isEmpty)
@@ -869,25 +869,25 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: const Color(0xFFF0FDFA),
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                                  border: Border.all(color: const Color(0x26000000)),
                                 ),
-                                child: const Icon(Icons.waves_rounded, color: Color(0xFF3A3564), size: 24),
+                                child: const Icon(Icons.waves_rounded, color: Color(0xFF0B1220), size: 24),
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 'No tasks yet. Click "+ Add Task Row" to begin.',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0B1220),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Allocate garment batches to washing operators.',
-                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                               ),
                             ],
                           ),
@@ -897,15 +897,15 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
                           headingTextStyle: GoogleFonts.jetBrainsMono(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                           ),
                           dataTextStyle: GoogleFonts.publicSans(
                             fontSize: 11.5,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                           columns: const [
                             DataColumn(label: Text('TASK REF')),
@@ -926,14 +926,14 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                                 DataCell(
                                   Text(
                                     '#${task.taskRef}',
-                                    style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                    style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8)),
                                   ),
                                 ),
                                 DataCell(Text(task.buyerName, style: const TextStyle(fontWeight: FontWeight.w600))),
                                 DataCell(
                                   Text(
                                     task.articleNumber,
-                                    style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                    style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                                   ),
                                 ),
                                 DataCell(
@@ -1038,8 +1038,8 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1052,7 +1052,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF64748B),
+                  color: const Color(0xFF475569),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1060,11 +1060,11 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
-                child: Icon(icon, color: const Color(0xFF3A3564), size: 18),
+                child: Icon(icon, color: const Color(0xFF0B1220), size: 18),
               ),
             ],
           ),
@@ -1074,14 +1074,14 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
+              color: const Color(0xFF0B1220),
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             subtext,
-            style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+            style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
           ),
         ],
       ),
@@ -1098,10 +1098,10 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -1109,7 +1109,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
           style: GoogleFonts.jetBrainsMono(
             fontSize: 10.5,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),

@@ -46,7 +46,7 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/printing/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -66,16 +66,16 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF1D4ED8)),
                         const SizedBox(width: 4),
                         Text(
                           'Printing Studio',
-                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -84,7 +84,7 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
                 const SizedBox(width: 8),
                 Text(
                   '/ Zigza AI Copilot',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF475569)),
                 ),
               ],
             ),
@@ -106,18 +106,15 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF3A3564) : Colors.white,
+                      color: isUser ? const Color(0xFF1D4ED8) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isUser ? Colors.transparent : Colors.black.withValues(alpha: 0.08)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 1)),
-                      ],
+                      border: isUser ? null : Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Text(
                       msg['text']!,
                       style: GoogleFonts.publicSans(
                         fontSize: 13,
-                        color: isUser ? Colors.white : const Color(0xFF0F172A),
+                        color: isUser ? Colors.white : const Color(0xFF0B1220),
                         height: 1.4,
                       ),
                     ),
@@ -130,9 +127,9 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
           // Input Bar
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.black.withValues(alpha: 0.08))),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Row(
               children: [
@@ -140,14 +137,14 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
                   child: Container(
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: TextField(
                       controller: _chatCtrl,
                       onSubmitted: (_) => _sendMessage(),
-                      style: GoogleFonts.publicSans(fontSize: 13),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'Ask about ink mesh, oven temps, pantones...',
                         hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
@@ -165,7 +162,7 @@ class _PrintingZigzaAiScreenState extends ConsumerState<PrintingZigzaAiScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3A3564),
+                      color: const Color(0xFF1D4ED8),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),

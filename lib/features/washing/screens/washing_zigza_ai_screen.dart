@@ -44,7 +44,7 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/washing/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -58,7 +58,7 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: Row(
               children: [
@@ -66,10 +66,11 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
-                  child: const Icon(Icons.smart_toy_outlined, color: Color(0xFF3A3564), size: 20),
+                  child: const Icon(Icons.smart_toy_outlined, color: Color(0xFF0B1220), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -78,11 +79,11 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
                     children: [
                       Text(
                         'Industrial Washing AI Copilot',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
                       ),
                       Text(
                         'Liquor ratios, bio-enzyme dosages, and shrinkage compensation',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                       ),
                     ],
                   ),
@@ -104,18 +105,18 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
                     decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF3A3564) : Colors.white,
+                      color: isUser ? const Color(0xFF1D4ED8) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: isUser ? Colors.transparent : Colors.black.withValues(alpha: 0.08)),
+                      border: isUser ? null : Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Text(
                       m['text'] ?? '',
                       style: GoogleFonts.publicSans(
                         fontSize: 12.5,
-                        color: isUser ? Colors.white : const Color(0xFF0F172A),
-                        height: 1.35,
+                        color: isUser ? Colors.white : const Color(0xFF0B1220),
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -126,35 +127,43 @@ class _WashingZigzaAiScreenState extends State<WashingZigzaAiScreen> {
 
           // Input Bar
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-            color: Colors.white,
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
-                    ),
-                    child: TextField(
-                      controller: _msgCtrl,
-                      onSubmitted: (_) => _sendMessage(),
-                      style: GoogleFonts.publicSans(fontSize: 12.5),
-                      decoration: const InputDecoration(
-                        hintText: 'Ask washing recipes, liquor ratios, enzymes...',
-                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                  child: TextField(
+                    controller: _msgCtrl,
+                    onSubmitted: (_) => _sendMessage(),
+                    style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
+                    decoration: InputDecoration(
+                      hintText: 'Ask washing recipes, liquor ratios, enzymes...',
+                      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _sendMessage,
-                  icon: const Icon(Icons.send_rounded, color: Color(0xFF3A3564)),
+                  icon: const Icon(Icons.send_rounded, color: Color(0xFF1D4ED8)),
                 ),
               ],
             ),

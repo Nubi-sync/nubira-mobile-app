@@ -124,27 +124,27 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: const Color(0xFFF0FDFA),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                border: Border.all(color: const Color(0x26000000)),
               ),
-              child: const Icon(Icons.people_outline_rounded, color: Color(0xFF3A3564), size: 24),
+              child: const Icon(Icons.people_outline_rounded, color: Color(0xFF0B1220), size: 24),
             ),
             const SizedBox(height: 12),
             Text(
               'No Washers Registered',
-              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
             ),
             const SizedBox(height: 4),
             Text(
               'Please register at least one washing floor operator before allocating task batches.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
+              style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
             ),
             const SizedBox(height: 18),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: const Color(0xFF1D4ED8),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -175,9 +175,9 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
+              color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,16 +202,16 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: Text(
                             'TASK ALLOCATION',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A3564),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ),
@@ -220,8 +220,8 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
                           'Allocate Washing Batch',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                       ],
@@ -235,9 +235,9 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF475569)),
                       ),
                     ),
                   ],
@@ -344,8 +344,8 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
-              border: Border(top: BorderSide(color: Color(0x1A000000))),
+              color: Color(0xFFF8FAFC),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -364,7 +364,7 @@ class _AddWashingTaskModalState extends ConsumerState<AddWashingTaskModal> {
                 const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),

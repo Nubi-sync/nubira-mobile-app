@@ -20,17 +20,17 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchCtrl = TextEditingController();
 
-  // Design Tokens (Industrial Luxury Aesthetic - Fixed Palette)
-  static const Color kCanvasColor = Color(0xFFFAF7F0); // Warm cream canvas
-  static const Color kCardBg = Color(0xFFFFFFFF);
-  static const Color kPrimaryBrand = Color(0xFF3A3564); // Primary brand plum
-  static const Color kBorderColor = Color(0xFFE7E1D6); // Hairline border
-  static const Color kMutedText = Color(0xFF7A7488); // Muted text
-  static const Color kInkText = Color(0xFF232028); // Primary ink text
-  static const Color kBluePastelBg = Color(0xFFE5EDF9); // Blue pastel bg
-  static const Color kBluePastelText = Color(0xFF2E5AA8); // Blue pastel text
-  static const Color kFilterChipInactiveBg = Color(0xFFEEF1F8); // Inactive filter chip
-  static const Color kSearchInputBg = Color(0xFFF6F8FC); // Search input bg
+  // Canonical Master Zigza Brand Tokens (web_admin alignment)
+  static const Color kCanvasColor = Color(0xFFF8FAFC); // Crisp Tech Slate Canvas (#F8FAFC)
+  static const Color kCardBg = Color(0xFFFFFFFF); // Pure Elevated White
+  static const Color kPrimaryBrand = Color(0xFF1D4ED8); // Deep Royal Blue Action & Links (#1D4ED8)
+  static const Color kBorderColor = Color(0xFFE2E8F0); // Slate-200 1px Border (#E2E8F0)
+  static const Color kMutedText = Color(0xFF475569); // Slate-600 Body & Subtitles (#475569)
+  static const Color kInkText = Color(0xFF0B1220); // Deep Obsidian Headings (#0B1220)
+  static const Color kBluePastelBg = Color(0xFFEFF6FF); // Crisp Blue-50 Accent Surface
+  static const Color kBluePastelText = Color(0xFF1D4ED8); // Royal Blue Text
+  static const Color kFilterChipInactiveBg = Color(0xFFF1F5F9); // Slate-100 Chip Inactive
+  static const Color kSearchInputBg = Color(0xFFF8FAFC); // Slate Input Canvas
 
   @override
   void dispose() {
@@ -183,11 +183,11 @@ class _DispatchLogisticsHubScreenState extends ConsumerState<DispatchLogisticsHu
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: kCanvasColor,
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: kBorderColor),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.local_shipping_outlined, size: 22, color: kPrimaryBrand),
+                          child: const Icon(Icons.local_shipping_outlined, size: 22, color: Color(0xFF0B1220)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

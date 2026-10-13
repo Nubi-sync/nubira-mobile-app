@@ -156,9 +156,9 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAF7F0),
+                color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -166,11 +166,11 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 22),
+                    child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -182,14 +182,14 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF232028),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         Text(
                           'Allocate garment pressing quotas & set table assignment',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
-                            color: const Color(0xFF7A7488),
+                            color: const Color(0xFF475569),
                           ),
                         ),
                       ],
@@ -216,9 +216,9 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -231,7 +231,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF7A7488),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -240,7 +240,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   style: GoogleFonts.publicSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF232028),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                               ],
@@ -253,7 +253,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF7A7488),
+                                    color: const Color(0xFF475569),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -262,7 +262,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF3A3564),
+                                    color: const Color(0xFF1D4ED8),
                                   ),
                                 ),
                               ],
@@ -298,7 +298,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF3A3564),
+                                  color: const Color(0xFF1D4ED8),
                                 ),
                               ),
                             ),
@@ -386,19 +386,19 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   decoration: InputDecoration(
                                     hintText: 'e.g. IRON-201-08',
                                     filled: true,
-                                    fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                                    fillColor: const Color(0xFFF8FAFC),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0x1A000000)),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0x1A000000)),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                                     ),
                                   ),
                                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Article required' : null,
@@ -475,19 +475,19 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                                   decoration: InputDecoration(
                                     hintText: '500',
                                     filled: true,
-                                    fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                                    fillColor: const Color(0xFFF8FAFC),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0x1A000000)),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0x1A000000)),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                                     ),
                                   ),
                                   validator: (v) {
@@ -664,7 +664,7 @@ class _AddIronTaskModalState extends ConsumerState<AddIronTaskModal> {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

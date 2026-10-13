@@ -186,13 +186,13 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0), // Canvas warm cream
+      backgroundColor: const Color(0xFFF8FAFC), // Crisp Tech Slate Canvas (#F8FAFC)
       drawer: const WorkspaceHubDrawer(activeRoute: '/iron'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF1D4ED8),
         onRefresh: () async {
           await ref.read(ironProvider.notifier).loadInitialData(isRefresh: true);
         },
@@ -219,26 +219,26 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                               style: GoogleFonts.publicSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: const Color(0xFF7A7488),
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text('/', style: TextStyle(color: Color(0xFFE7E1D6), fontSize: 12)),
+                          const Text('/', style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 12)),
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE5EDF9),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(100),
-                              border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.3)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Text(
                               'Division 08 · Steam Finishing & Ironing',
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2E5AA8),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -256,7 +256,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF232028),
+                  color: const Color(0xFF0B1220),
                 ),
               ),
               const SizedBox(height: 10),
@@ -299,8 +299,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -316,17 +316,17 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 46,
-                          height: 46,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
                           child: const Icon(
                             Icons.air_rounded,
-                            color: Color(0xFF3A3564),
-                            size: 24,
+                            color: Color(0xFF0B1220),
+                            size: 22,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -344,22 +344,22 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF232028),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(100),
-                                      border: Border.all(color: const Color(0x1A000000)),
+                                      border: Border.all(color: const Color(0x26000000)),
                                     ),
                                     child: Text(
                                       '${workers.length} Pressers Registered',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF3A3564),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ),
@@ -370,7 +370,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 'Industrial boiler telemetry (4.5 Bar steam), vacuum buck table allocation, thermal shine QC, and finished garment sign-offs.',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF7A7488),
+                                  color: const Color(0xFF475569),
                                   height: 1.35,
                                 ),
                               ),
@@ -387,8 +387,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF3A3564),
-                            side: const BorderSide(color: Color(0x1A000000)),
+                            foregroundColor: const Color(0xFF1D4ED8),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -407,8 +407,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF3A3564),
-                            side: const BorderSide(color: Color(0x1A000000)),
+                            foregroundColor: const Color(0xFF1D4ED8),
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -436,8 +436,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -458,7 +458,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10.5,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF7A7488),
+                            color: const Color(0xFF475569),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -467,7 +467,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           constraints: const BoxConstraints(),
                           icon: const Icon(
                             Icons.refresh_rounded,
-                            color: Color(0xFF3A3564),
+                            color: Color(0xFF1D4ED8),
                             size: 18,
                           ),
                           tooltip: 'Refresh cloud data',
@@ -490,23 +490,23 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF232028),
+                            color: const Color(0xFF0B1220),
                           ),
                         ),
                         if (selectedBuyer != null)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0x1A000000)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Text(
                               'Article: ${selectedBuyer.linkedArticleNumber}',
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -518,19 +518,19 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: validSelectedBuyerId,
                           isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7A7488)),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF475569)),
                           style: GoogleFonts.publicSans(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF232028),
+                            color: const Color(0xFF0B1220),
                           ),
                           items: [
                             DropdownMenuItem(
@@ -561,12 +561,12 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF232028),
-                              side: const BorderSide(color: Color(0x1A000000)),
+                              foregroundColor: const Color(0xFF0B1220),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 11),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            icon: const Icon(Icons.people_alt_outlined, size: 16, color: Color(0xFF3A3564)),
+                            icon: const Icon(Icons.people_alt_outlined, size: 16, color: Color(0xFF1D4ED8)),
                             label: Text(
                               'View Worker List (${workers.length})',
                               style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
@@ -583,7 +583,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                         Expanded(
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3A3564),
+                              backgroundColor: const Color(0xFF1D4ED8),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 11),
@@ -616,8 +616,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -632,11 +632,11 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF3A3564), size: 22),
+                      child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF0B1220), size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -648,7 +648,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -657,7 +657,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF232028),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
@@ -666,7 +666,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 : '0 pcs in hand (All garments allocated to pressers)',
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -684,8 +684,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -700,11 +700,11 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.access_time_rounded, color: Color(0xFF3A3564), size: 22),
+                      child: const Icon(Icons.access_time_rounded, color: Color(0xFF0B1220), size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -716,7 +716,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -725,7 +725,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF232028),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
@@ -734,7 +734,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 : '0 pcs in active steam pressing',
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -752,8 +752,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -768,11 +768,11 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.check_circle_outline, color: Color(0xFF3A3564), size: 22),
+                      child: const Icon(Icons.check_circle_outline, color: Color(0xFF0B1220), size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -784,7 +784,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -793,7 +793,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF232028),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
@@ -802,7 +802,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 : '0 pressed garments verified',
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              color: const Color(0xFF7A7488),
+                              color: const Color(0xFF475569),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -819,8 +819,8 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x08000000),
@@ -839,11 +839,11 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
+                          child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -855,14 +855,14 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF232028),
+                                  color: const Color(0xFF0B1220),
                                 ),
                               ),
                               Text(
                                 'Distribute garment pressing quotas, assign vacuum buck tables, and set shift completion targets.',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11.5,
-                                  color: const Color(0xFF7A7488),
+                                  color: const Color(0xFF475569),
                                 ),
                               ),
                             ],
@@ -876,25 +876,25 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                     TextField(
                       controller: _taskSearchCtrl,
                       onChanged: (_) => setState(() {}),
-                      style: GoogleFonts.publicSans(fontSize: 13),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'Search presser, article, table…',
-                        hintStyle: GoogleFonts.publicSans(color: const Color(0xFFA09BAA), fontSize: 12.5),
-                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF7A7488)),
+                        hintStyle: GoogleFonts.publicSans(color: const Color(0xFF94A3B8), fontSize: 12.5),
+                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                         filled: true,
-                        fillColor: const Color(0xFFFAF7F0).withValues(alpha: 0.5),
+                        fillColor: const Color(0xFFF8FAFC),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0x1A000000)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0x1A000000)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                          borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                         ),
                       ),
                     ),
@@ -906,9 +906,9 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
@@ -930,7 +930,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -985,15 +985,15 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                 ),
                               )
                             : DataTable(
-                                headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF7F0)),
+                                headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
                                 headingTextStyle: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF7A7488),
+                                  color: const Color(0xFF475569),
                                 ),
                                 dataTextStyle: GoogleFonts.publicSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF232028),
+                                  color: const Color(0xFF0B1220),
                                 ),
                                 columns: const [
                                   DataColumn(label: Text('Task Ref')),
@@ -1020,7 +1020,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                       DataCell(
                                         Text(
                                           task.articleNumber,
-                                          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                                          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8)),
                                         ),
                                       ),
                                       DataCell(
@@ -1032,7 +1032,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                                             if (task.workerPhone != null && task.workerPhone!.isNotEmpty)
                                               Text(
                                                 '+91 ${task.workerPhone}',
-                                                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF7A7488)),
+                                                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF475569)),
                                               ),
                                           ],
                                         ),
@@ -1128,7 +1128,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3A3564) : Colors.transparent,
+          color: isSelected ? const Color(0xFF1D4ED8) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -1136,7 +1136,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : const Color(0xFF7A7488),
+            color: isSelected ? Colors.white : const Color(0xFF475569),
           ),
         ),
       ),

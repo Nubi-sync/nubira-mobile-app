@@ -126,9 +126,9 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
+              color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border(bottom: BorderSide(color: Color(0x1A000000))),
+              border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,11 +153,11 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.person_add_alt_1_outlined, color: Color(0xFF3A3564), size: 20),
+                          child: const Icon(Icons.person_add_alt_1_outlined, color: Color(0xFF0B1220), size: 20),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -167,8 +167,8 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                               'Register Washing Operator',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                             const SizedBox(height: 1),
@@ -176,7 +176,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                               'Create operator profile and floor access login',
                               style: GoogleFonts.publicSans(
                                 fontSize: 11,
-                                color: const Color(0xFF64748B),
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ],
@@ -192,9 +192,9 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                        child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF475569)),
                       ),
                     ),
                   ],
@@ -255,7 +255,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                color: const Color(0xFF0B1220),
                               ),
                               decoration: InputDecoration(
                                 hintText: '9876543210',
@@ -292,7 +292,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                       child: TextFormField(
                         controller: _passwordCtrl,
                         obscureText: _obscurePassword,
-                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                         decoration: InputDecoration(
                           hintText: 'Min 6 characters (e.g. wash@123)',
                           hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
@@ -370,10 +370,10 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFFAF7F0) : Colors.white,
+                          color: isSelected ? const Color(0xFFF0FDFA) : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                             width: isSelected ? 1.5 : 1.0,
                           ),
                         ),
@@ -390,7 +390,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                                     style: GoogleFonts.publicSans(
                                       fontSize: 12,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFF475569),
+                                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
                                     ),
                                   ),
                                 ),
@@ -398,10 +398,10 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                                   width: 18,
                                   height: 18,
                                   decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFF3A3564) : Colors.white,
+                                    color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
                                     borderRadius: BorderRadius.circular(5),
                                     border: Border.all(
-                                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFCBD5E1),
+                                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFCBD5E1),
                                     ),
                                   ),
                                   child: isSelected
@@ -424,8 +424,8 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: const BoxDecoration(
-              color: Color(0xFFFAF7F0),
-              border: Border(top: BorderSide(color: Color(0x1A000000))),
+              color: Color(0xFFF8FAFC),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -444,7 +444,7 @@ class _AddWashingWorkerModalState extends ConsumerState<AddWashingWorkerModal> {
                 const SizedBox(width: 10),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: const Color(0xFF1D4ED8),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),

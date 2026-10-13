@@ -46,7 +46,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/embroidery/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -66,16 +66,16 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF3A3564)),
+                        const Icon(Icons.arrow_back, size: 13, color: Color(0xFF0B1220)),
                         const SizedBox(width: 4),
                         Text(
                           'Embroidery Studio',
-                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564)),
+                          style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ],
                     ),
@@ -108,9 +108,9 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                     ),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isAi ? Colors.white : const Color(0xFF3A3564),
+                      color: isAi ? Colors.white : const Color(0xFF1D4ED8),
                       borderRadius: BorderRadius.circular(16),
-                      border: isAi ? Border.all(color: Colors.black.withValues(alpha: 0.08)) : null,
+                      border: isAi ? Border.all(color: const Color(0xFFE2E8F0)) : null,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.03),
@@ -128,7 +128,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                             Icon(
                               isAi ? Icons.auto_awesome : Icons.person_outline,
                               size: 14,
-                              color: isAi ? const Color(0xFF3A3564) : Colors.white70,
+                              color: isAi ? const Color(0xFF0B1220) : Colors.white70,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -136,7 +136,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
-                                color: isAi ? const Color(0xFF3A3564) : Colors.white70,
+                                color: isAi ? const Color(0xFF0B1220) : Colors.white70,
                               ),
                             ),
                           ],
@@ -146,7 +146,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                           msg['text']!,
                           style: GoogleFonts.publicSans(
                             fontSize: 13,
-                            color: isAi ? const Color(0xFF0F172A) : Colors.white,
+                            color: isAi ? const Color(0xFF0B1220) : Colors.white,
                             height: 1.4,
                           ),
                         ),
@@ -163,7 +163,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0x14000000))),
+              border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
             ),
             child: SafeArea(
               child: Row(
@@ -172,24 +172,24 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                     child: TextField(
                       controller: _chatCtrl,
                       onSubmitted: (_) => _sendMessage(),
-                      style: GoogleFonts.publicSans(fontSize: 13),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                       decoration: InputDecoration(
                         hintText: 'Ask about stitch rates, machine RPM, punch density...',
                         hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                         filled: true,
-                        fillColor: const Color(0xFFFAF7F0),
+                        fillColor: const Color(0xFFF8FAFC),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                          borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                         ),
                       ),
                     ),
@@ -197,7 +197,7 @@ class _EmbroideryZigzaAiScreenState extends ConsumerState<EmbroideryZigzaAiScree
                   const SizedBox(width: 8),
                   IconButton(
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFF3A3564),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

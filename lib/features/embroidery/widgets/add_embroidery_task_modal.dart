@@ -221,11 +221,11 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -237,21 +237,21 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
                             'Allocate piece quota to multi-head machine with shift targets',
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              color: const Color(0xFF64748B),
+                              color: const Color(0xFF475569),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -262,9 +262,9 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0x26000000)),
                   ),
                   child: Row(
                     children: [
@@ -273,9 +273,9 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
-                        child: const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF3A3564)),
+                        child: const Icon(Icons.alt_route_rounded, size: 16, color: Color(0xFF0B1220)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -287,14 +287,14 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                             Text(
                               '${routeDetails.stepText} (${routeDetails.badgeLabel})',
                               style: GoogleFonts.publicSans(
                                 fontSize: 10.5,
-                                color: const Color(0xFF64748B),
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ],
@@ -332,7 +332,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -352,7 +352,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ),
@@ -362,15 +362,15 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedWorkerId,
                       isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF3A3564)),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569)),
                       hint: Text(
                         'Select an embroidery worker',
                         style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
@@ -380,7 +380,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                           value: w.id,
                           child: Row(
                             children: [
-                              const Icon(Icons.person_outline, size: 16, color: Color(0xFF3A3564)),
+                              const Icon(Icons.person_outline, size: 16, color: Color(0xFF475569)),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -390,7 +390,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                                   style: GoogleFonts.publicSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF0F172A),
+                                    color: const Color(0xFF0B1220),
                                   ),
                                 ),
                               ),
@@ -413,7 +413,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -424,7 +424,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ),
@@ -437,24 +437,24 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       Expanded(
                         child: TextField(
                           controller: _newMachineCtrl,
-                          style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0B1220)),
                           decoration: InputDecoration(
                             hintText: 'e.g. Machine 05 (Tajima 24-Head)',
                             hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
                             filled: true,
-                            fillColor: const Color(0xFFFAF7F0),
+                            fillColor: const Color(0xFFF8FAFC),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                              borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                             ),
                           ),
                         ),
@@ -463,7 +463,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       ElevatedButton(
                         onPressed: _handleAddCustomMachine,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -480,21 +480,21 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: state.availableMachines.contains(_selectedMachine) ? _selectedMachine : state.availableMachines.firstOrNull,
                         isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF3A3564)),
+                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569)),
                         items: state.availableMachines.map((m) {
                           return DropdownMenuItem<String>(
                             value: m,
                             child: Row(
                               children: [
-                                const Icon(Icons.precision_manufacturing_outlined, size: 16, color: Color(0xFF3A3564)),
+                                const Icon(Icons.precision_manufacturing_outlined, size: 16, color: Color(0xFF475569)),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -504,7 +504,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                                     style: GoogleFonts.publicSans(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF0F172A),
+                                      color: const Color(0xFF0B1220),
                                     ),
                                   ),
                                 ),
@@ -527,31 +527,31 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _articleCtrl,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'e.g. DEMO-101-03',
-                    prefixIcon: const Icon(Icons.style_outlined, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.style_outlined, size: 18, color: Color(0xFF475569)),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -570,7 +570,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -579,7 +579,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
+                        color: const Color(0xFF1D4ED8),
                       ),
                     ),
                   ],
@@ -588,30 +588,30 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                 TextFormField(
                   controller: _piecesCtrl,
                   keyboardType: TextInputType.number,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: '500',
-                    prefixIcon: const Icon(Icons.tag, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.tag, size: 18, color: Color(0xFF475569)),
                     suffixText: 'pcs',
                     suffixStyle: GoogleFonts.jetBrainsMono(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -629,10 +629,10 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ActionChip(
-                          label: Text('$qty pcs', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                          backgroundColor: const Color(0xFFFAF7F0),
+                          label: Text('$qty pcs', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
+                          backgroundColor: const Color(0xFFF1F5F9),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
                           onPressed: () => setState(() => _piecesCtrl.text = qty.toString()),
                         ),
                       );
@@ -641,10 +641,10 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: ActionChip(
-                            label: Text('Max In Hand ($inHand)', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
-                            backgroundColor: const Color(0xFFFAF7F0),
+                            label: Text('Max In Hand ($inHand)', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
+                            backgroundColor: const Color(0xFFF0FDFA),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            side: BorderSide(color: const Color(0xFF3A3564).withValues(alpha: 0.3)),
+                            side: const BorderSide(color: Color(0x26000000)),
                             onPressed: () => setState(() => _piecesCtrl.text = inHand.toString()),
                           ),
                         ),
@@ -662,7 +662,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -681,30 +681,30 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                   controller: _hoursCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (_) => setState(() {}),
-                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: '4.0',
-                    prefixIcon: const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF3A3564)),
+                    prefixIcon: const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF475569)),
                     suffixText: 'hours',
                     suffixStyle: GoogleFonts.jetBrainsMono(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF475569),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                   validator: (val) {
@@ -720,10 +720,10 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ActionChip(
-                        label: Text('${h.toStringAsFixed(1)}h', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                        backgroundColor: const Color(0xFFFAF7F0),
+                        label: Text('${h.toStringAsFixed(1)}h', style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
+                        backgroundColor: const Color(0xFFF1F5F9),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
                         onPressed: () {
                           setState(() {
                             _hoursCtrl.text = h.toStringAsFixed(1);
@@ -741,7 +741,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
+                    color: const Color(0xFF0B1220),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -749,24 +749,24 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                 TextFormField(
                   controller: _notesCtrl,
                   maxLines: 2,
-                  style: GoogleFonts.publicSans(fontSize: 12.5),
+                  style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0B1220)),
                   decoration: InputDecoration(
                     hintText: 'e.g. Madeira Polyneon 40wt thread, Tear-Away backing',
                     hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
                     filled: true,
-                    fillColor: const Color(0xFFFAF7F0),
+                    fillColor: const Color(0xFFF8FAFC),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                     ),
                   ),
                 ),
@@ -780,7 +780,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                         onPressed: _isSubmitting ? null : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Text(
@@ -788,7 +788,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                           ),
                         ),
                       ),
@@ -798,7 +798,7 @@ class _AddEmbroideryTaskModalState extends ConsumerState<AddEmbroideryTaskModal>
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

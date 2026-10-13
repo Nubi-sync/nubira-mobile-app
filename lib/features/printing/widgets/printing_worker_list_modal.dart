@@ -102,11 +102,11 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.people_alt_outlined, color: Color(0xFF3A3564), size: 20),
+                    child: const Icon(Icons.people_alt_outlined, color: Color(0xFF0B1220), size: 20),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -117,19 +117,19 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFF0B1220),
                         ),
                       ),
                       Text(
                         '${state.workers.length} registered station operators',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF64748B)),
+                        style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF475569)),
                       ),
                     ],
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -141,18 +141,18 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
           Container(
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: TextField(
               controller: _searchCtrl,
               onChanged: (val) => setState(() => _query = val),
-              style: GoogleFonts.publicSans(fontSize: 13),
+              style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
               decoration: InputDecoration(
                 hintText: 'Search by name, phone, or skill...',
                 hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF475569)),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
@@ -172,7 +172,7 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                         const SizedBox(height: 8),
                         Text(
                           'No printing workers found',
-                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -185,9 +185,9 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
@@ -195,7 +195,7 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3A3564),
+                                color: const Color(0xFF1D4ED8),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Center(
@@ -222,7 +222,7 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0F172A),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -231,16 +231,16 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: const Color(0xFFF0FDFA),
                                           borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          border: Border.all(color: const Color(0x26000000)),
                                         ),
                                         child: Text(
                                           worker.shift,
                                           style: GoogleFonts.jetBrainsMono(
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF3A3564),
+                                            color: const Color(0xFF0B1220),
                                           ),
                                         ),
                                       ),
@@ -249,7 +249,7 @@ class _PrintingWorkerListModalState extends ConsumerState<PrintingWorkerListModa
                                   const SizedBox(height: 2),
                                   Text(
                                     worker.role,
-                                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(

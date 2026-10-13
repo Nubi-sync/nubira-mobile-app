@@ -238,11 +238,11 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF3A3564), size: 20),
+                      child: const Icon(Icons.table_chart_outlined, color: Color(0xFF0B1220), size: 20),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -254,14 +254,14 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         Text(
                           'Allocate article print pieces to worker with strict timeline & table assignment',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10.5,
-                            color: const Color(0xFF64748B),
+                            color: const Color(0xFF475569),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -278,9 +278,9 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                      child: const Icon(Icons.close, size: 16, color: Color(0xFF64748B)),
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF475569)),
                     ),
                   ),
                 ],
@@ -292,14 +292,14 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0x26000000)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.view_timeline_outlined, size: 18, color: Color(0xFF3A3564)),
+                    const Icon(Icons.view_timeline_outlined, size: 18, color: Color(0xFF0B1220)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -310,7 +310,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 11.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -342,7 +342,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF334155),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -364,7 +364,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3A3564),
+                        color: const Color(0xFF1D4ED8),
                       ),
                     ),
                   ),
@@ -376,13 +376,13 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedWorkerId,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF475569)),
                     items: state.workers.map((w) {
                       return DropdownMenuItem<String>(
                         value: w.id,
@@ -391,7 +391,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                           style: GoogleFonts.publicSans(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFF0B1220),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -416,7 +416,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF334155),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -425,16 +425,16 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Text(
                       'CONTRACT LOCKED',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF94A3B8),
+                        color: const Color(0xFF64748B),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -446,16 +446,16 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
                   selectedBuyer.linkedArticleNumber ?? 'DEMO-101-03',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
@@ -464,7 +464,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                 'Contracted Buyer: ${selectedBuyer.buyerName}',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
-                  color: const Color(0xFF64748B),
+                  color: const Color(0xFF475569),
                 ),
               ),
 
@@ -484,7 +484,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF334155),
+                            color: const Color(0xFF0B1220),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -498,23 +498,23 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                             if (n == null || n <= 0) return 'Invalid count';
                             return null;
                           },
-                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                           decoration: InputDecoration(
                             suffixText: 'Pcs',
-                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
+                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                              borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                             ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -522,7 +522,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                         const SizedBox(height: 4),
                         Text(
                           'In Hand Queue: $inHandPieces Pcs available (Max limit)',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -538,7 +538,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF334155),
+                            color: const Color(0xFF0B1220),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -553,23 +553,23 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                             if (h == null || h <= 0) return 'Invalid hours';
                             return null;
                           },
-                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                           decoration: InputDecoration(
                             suffixText: 'Hrs',
-                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8)),
+                            suffixStyle: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                              borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                             ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -577,7 +577,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                         const SizedBox(height: 4),
                         Text(
                           'Due: ${_calculateDeadline()}',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                         ),
                       ],
                     ),
@@ -599,7 +599,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF334155),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -613,7 +613,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A3564),
+                          color: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ),
@@ -626,9 +626,9 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     children: [
@@ -636,7 +636,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                         child: TextField(
                           controller: _newStationCtrl,
                           autofocus: true,
-                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5),
+                          style: GoogleFonts.jetBrainsMono(fontSize: 12.5, color: const Color(0xFF0B1220)),
                           decoration: InputDecoration(
                             hintText: 'e.g. Print Table ${_stationList.length + 1}',
                             hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
@@ -647,10 +647,10 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       ),
                       TextButton(
                         onPressed: _saveNewStation,
-                        child: Text('Save', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                        child: Text('Save', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8))),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, size: 16),
+                        icon: const Icon(Icons.close, size: 16, color: Color(0xFF475569)),
                         onPressed: () => setState(() => _isAddingStation = false),
                       ),
                     ],
@@ -669,10 +669,10 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.1),
+                          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Text(
@@ -680,7 +680,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                         style: GoogleFonts.publicSans(
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? Colors.white : const Color(0xFF334155),
+                          color: isSelected ? Colors.white : const Color(0xFF0B1220),
                         ),
                       ),
                     ),
@@ -696,7 +696,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF334155),
+                  color: const Color(0xFF0B1220),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -704,7 +704,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
               TextFormField(
                 controller: _notesCtrl,
                 maxLines: 2,
-                style: GoogleFonts.publicSans(fontSize: 13),
+                style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
                 decoration: InputDecoration(
                   hintText: 'e.g. 2-stroke plastisol white underbase, cure at 160°C',
                   hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
@@ -712,15 +712,15 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.5),
+                    borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.all(12),
                 ),
@@ -737,8 +737,8 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF334155),
-                          side: BorderSide(color: Colors.black.withValues(alpha: 0.15)),
+                          foregroundColor: const Color(0xFF0B1220),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () => Navigator.pop(context),
@@ -756,7 +756,7 @@ class _AddPrintingTaskModalState extends ConsumerState<AddPrintingTaskModal> {
                       height: 44,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A3564),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

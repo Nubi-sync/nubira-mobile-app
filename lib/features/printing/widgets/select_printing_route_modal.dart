@@ -55,11 +55,11 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
-                        child: const Icon(Icons.alt_route_rounded, color: Color(0xFF3A3564), size: 20),
+                        child: const Icon(Icons.alt_route_rounded, color: Color(0xFF0B1220), size: 20),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -71,13 +71,13 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
+                                color: const Color(0xFF0B1220),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               'Process flow for $buyerName',
-                              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF475569)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -87,14 +87,14 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
                   onPressed: () => Navigator.pop(context),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
               ],
             ),
-            const Divider(height: 20),
+            const Divider(height: 20, color: Color(0xFFE2E8F0)),
 
             ...kPrintingRouteOptions.map((opt) {
               final isSelected = opt.key == activeRouteKey;
@@ -107,7 +107,7 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Manufacturing route updated to: ${opt.shortLabel}'),
-                        backgroundColor: const Color(0xFF3A3564),
+                        backgroundColor: const Color(0xFF0B1220),
                       ),
                     );
                   },
@@ -115,10 +115,10 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF3A3564) : Colors.black.withValues(alpha: 0.08),
+                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: Row(
@@ -138,16 +138,16 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                                      color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? Colors.white.withValues(alpha: 0.2) : Colors.white,
+                                      color: isSelected ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: isSelected ? Colors.transparent : Colors.black.withValues(alpha: 0.08),
+                                        color: isSelected ? Colors.transparent : const Color(0x26000000),
                                       ),
                                     ),
                                     child: Text(
@@ -155,7 +155,7 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
-                                        color: isSelected ? Colors.white : const Color(0xFF3A3564),
+                                        color: isSelected ? Colors.white : const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ),
@@ -166,7 +166,7 @@ class SelectPrintingRouteModal extends ConsumerWidget {
                                 opt.fullFlow,
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11,
-                                  color: isSelected ? const Color(0xFFE2E8F0) : const Color(0xFF64748B),
+                                  color: isSelected ? const Color(0xFFDBEAFE) : const Color(0xFF475569),
                                   height: 1.3,
                                 ),
                               ),
