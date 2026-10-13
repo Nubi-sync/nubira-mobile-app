@@ -946,11 +946,11 @@ class _OnboardDesignerSheetState extends ConsumerState<_OnboardDesignerSheet> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF332B6B), size: 20),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF0B1220), size: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(

@@ -544,11 +544,11 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x26000000)),
                           ),
-                          child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF332B6B), size: 20),
+                          child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF0B1220), size: 20),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -571,16 +571,16 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAF7F0),
+                                      color: const Color(0xFFF0FDFA),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: const Color(0x26332B6B)),
+                                      border: Border.all(color: const Color(0x26000000)),
                                     ),
                                     child: Text(
                                       'V1.0',
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF332B6B),
+                                        color: const Color(0xFF0B1220),
                                       ),
                                     ),
                                   ),
@@ -1093,13 +1093,13 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F0),
+                color: const Color(0xFFF0FDFA),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: const Color(0x26000000)),
               ),
               child: Text(
                 '${_bomItems.length} items',
-                style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
               ),
             ),
           ],
@@ -1289,11 +1289,11 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: const Color(0xFFF0FDFA),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x26000000)),
                       ),
-                      child: Text(b.componentType, style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
+                      child: Text(b.componentType, style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
