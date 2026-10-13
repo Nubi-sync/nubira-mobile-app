@@ -79,51 +79,51 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
     switch (s) {
       case 'IN_CUTTING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'IN CUTTING',
         );
       case 'IN_PRINTING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'IN PRINTING',
         );
       case 'IN_EMBROIDERY':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'IN EMBROIDERY',
         );
       case 'IN_SEWING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'IN SEWING',
         );
       case 'IRON':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'IRON',
         );
       case 'WASHING':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'WASHING',
         );
       case 'ALTER':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFFAF7F0),
-          border: Color(0x1A000000),
-          text: Color(0xFF3A3564),
+          bg: Color(0xFFF0FDFA),
+          border: Color(0x26000000),
+          text: Color(0xFF0B1220),
           label: 'ALTER',
         );
       case 'DISPATCHED':
@@ -142,9 +142,9 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
         );
       default:
         return _StatusBadgeConfig(
-          bg: const Color(0xFFFAF7F0),
-          border: const Color(0x1A000000),
-          text: const Color(0xFF3A3564),
+          bg: const Color(0xFFF0FDFA),
+          border: const Color(0x26000000),
+          text: const Color(0xFF0B1220),
           label: s.replaceAll('_', ' ').toUpperCase(),
         );
     }
@@ -221,11 +221,11 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0), // Warm cream canvas matching design.md
+      backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising/orders'),
       appBar: ZigzaAppBar(
         trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF3A3564), size: 20),
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220), size: 20),
           tooltip: 'Refresh Ledger',
           onPressed: () {
             ref.read(merchandisingProvider.notifier).fetchMerchandisingData();
@@ -233,7 +233,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: const Color(0xFF1D4ED8),
         backgroundColor: Colors.white,
         onRefresh: () async {
           await ref.read(merchandisingProvider.notifier).fetchMerchandisingData();
@@ -284,7 +284,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF3A3564), strokeWidth: 2.5),
+                    child: CircularProgressIndicator(color: Color(0xFF1D4ED8), strokeWidth: 2.5),
                   ),
                 ),
               ] else if (filteredOrders.isEmpty) ...[
@@ -309,7 +309,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateOrderModal,
-        backgroundColor: const Color(0xFF3A3564),
+        backgroundColor: const Color(0xFF1D4ED8),
         foregroundColor: Colors.white,
         elevation: 3,
         icon: const Icon(Icons.add_rounded, size: 20),
@@ -394,13 +394,13 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000), width: 0.5),
+                  border: Border.all(color: const Color(0x26000000), width: 0.5),
                 ),
                 child: const Icon(
                   Icons.receipt_long_rounded,
-                  color: Color(0xFF3A3564),
+                  color: Color(0xFF0B1220),
                   size: 22,
                 ),
               ),
@@ -426,16 +426,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: const Color(0xFFF0FDFA),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0x1F000000), width: 0.5),
+                            border: Border.all(color: const Color(0x26000000), width: 0.5),
                           ),
                           child: Text(
                             '$count Active',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF3A3564),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ),
@@ -461,7 +461,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
             child: ElevatedButton.icon(
               onPressed: _openCreateOrderModal,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: const Color(0xFF1D4ED8),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 11),
@@ -582,11 +582,11 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAF7F0),
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: const Color(0x14000000), width: 0.5),
+                  border: Border.all(color: const Color(0x26000000), width: 0.5),
                 ),
-                child: Icon(icon, color: const Color(0xFF3A3564), size: 17),
+                child: Icon(icon, color: const Color(0xFF0B1220), size: 17),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -652,16 +652,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: const Color(0xFFF0FDFA),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0x14000000), width: 0.5),
+                    border: Border.all(color: const Color(0x26000000), width: 0.5),
                   ),
                   child: Text(
                     pillLabel,
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 8.5,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF3A3564),
+                      color: const Color(0xFF0B1220),
                     ),
                   ),
                 ),
@@ -742,16 +742,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF3A3564) : const Color(0xFFFAF7F0),
+                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF3A3564) : const Color(0x0D000000), // rgba(0,0,0,0.05)
+                          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                           width: 0.8,
                         ),
                         boxShadow: isSelected
                             ? const [
                                 BoxShadow(
-                                  color: Color(0x1F3A3564),
+                                  color: Color(0x1F1D4ED8),
                                   blurRadius: 3,
                                   offset: Offset(0, 1),
                                 ),
@@ -812,12 +812,12 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F0), // cream-tinted #FAF7F0 background
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x0F000000), width: 1), // 1px rgba(0,0,0,0.06) border
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x04000000),
+            color: Color(0x06000000),
             blurRadius: 3,
             offset: Offset(0, 1),
           ),
@@ -903,7 +903,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF3A3564), // brand-color buyer name
+                        color: const Color(0xFF0B1220),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -960,13 +960,13 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
 
           const SizedBox(height: 12),
 
-          // 3. WHITE INNER STAT STRIP (Bordered, Rounded, 3 Columns)
+          // 3. INNER STAT STRIP (Bordered, Rounded, 3 Columns)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0x18000000), width: 0.6),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
             ),
             child: Row(
               children: [
@@ -1096,16 +1096,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0x18000000), width: 0.6),
+                  border: Border.all(color: const Color(0x26000000), width: 0.6),
                 ),
                 child: Text(
                   routeText,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF3A3564),
+                    color: const Color(0xFF0B1220),
                   ),
                 ),
               ),
@@ -1120,7 +1120,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
             child: ElevatedButton(
               onPressed: () => _openViewOrderModal(order),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: const Color(0xFF1D4ED8),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 11),
@@ -1168,11 +1168,11 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: const Color(0xFFF0FDFA),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0x14000000), width: 0.5),
+              border: Border.all(color: const Color(0x26000000), width: 0.5),
             ),
-            child: const Icon(Icons.receipt_long_outlined, size: 28, color: Color(0xFF3A3564)),
+            child: const Icon(Icons.receipt_long_outlined, size: 28, color: Color(0xFF0B1220)),
           ),
           const SizedBox(height: 14),
           Text(
@@ -1207,8 +1207,8 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF3A3564),
-                side: const BorderSide(color: Color(0xFF3A3564)),
+                foregroundColor: const Color(0xFF1D4ED8),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -1221,7 +1221,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                 style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3A3564),
+                backgroundColor: const Color(0xFF1D4ED8),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,

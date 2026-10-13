@@ -47,11 +47,11 @@ class ViewOrderModal extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAF8),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
-                        child: const Icon(Icons.description_outlined, color: Color(0xFF332B6B), size: 22),
+                        child: const Icon(Icons.description_outlined, color: Color(0xFF0B1220), size: 22),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -63,7 +63,7 @@ class ViewOrderModal extends StatelessWidget {
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF332B6B),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                             Text(
@@ -71,7 +71,7 @@ class ViewOrderModal extends StatelessWidget {
                               style: GoogleFonts.publicSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1C1C1A),
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ],
@@ -104,9 +104,9 @@ class ViewOrderModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF8),
+                color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
@@ -136,7 +136,7 @@ class ViewOrderModal extends StatelessWidget {
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF6B6A65),
+                color: const Color(0xFF475569),
                 letterSpacing: 0.5,
               ),
             ),
@@ -149,7 +149,7 @@ class ViewOrderModal extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +162,7 @@ class ViewOrderModal extends StatelessWidget {
                             style: GoogleFonts.publicSans(
                               fontSize: 12.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1C1C1A),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                           Text(
@@ -170,7 +170,7 @@ class ViewOrderModal extends StatelessWidget {
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF332B6B),
+                              color: const Color(0xFF0B1220),
                             ),
                           ),
                         ],
@@ -183,16 +183,16 @@ class ViewOrderModal extends StatelessWidget {
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAFAF8),
+                              color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0x1A000000)),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Text(
                               '${sz.key}: ${sz.value}',
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1C1C1A),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           );
@@ -206,19 +206,20 @@ class ViewOrderModal extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
                   'Standard size ratio allocated (100% contract volume).',
-                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF6B6A65)),
+                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
                 ),
               ),
 
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF332B6B),
+                backgroundColor: const Color(0xFF1D4ED8),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -244,7 +245,7 @@ class ViewOrderModal extends StatelessWidget {
           label,
           style: GoogleFonts.publicSans(
             fontSize: 11.5,
-            color: const Color(0xFF6B6A65),
+            color: const Color(0xFF475569),
           ),
         ),
         Flexible(
@@ -254,7 +255,7 @@ class ViewOrderModal extends StatelessWidget {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 11.5,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1C1C1A),
+              color: const Color(0xFF0B1220),
             ),
           ),
         ),

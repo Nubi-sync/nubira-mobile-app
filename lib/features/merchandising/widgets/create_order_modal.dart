@@ -457,7 +457,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFF7F4EC), // Warm Cream Canvas matching Web
+        color: Color(0xFFF8FAFC), // Web Admin Canvas Background
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
@@ -496,16 +496,16 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
                     child: Text(
                       'MASTER BUYER PO BOOKING',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF241D52),
+                        color: const Color(0xFF0B1220),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -630,7 +630,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   flex: 3,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF241D52),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -655,7 +655,7 @@ class _CreateOrderModalState extends ConsumerState<CreateOrderModal> {
                   flex: 3,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF241D52),
+                      backgroundColor: const Color(0xFF1D4ED8),
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: const Color(0xFFCBD5E1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
