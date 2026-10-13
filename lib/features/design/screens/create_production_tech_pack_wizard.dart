@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';
 
@@ -621,7 +622,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAFAF8),
+                color: AppTheme.cardSurface,
                 border: Border(
                   top: BorderSide(color: Color(0xFFF1F5F9)),
                   bottom: BorderSide(color: Color(0xFFF1F5F9)),
@@ -638,7 +639,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           width: 24,
                           height: 24,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF332B6B),
+                            color: AppTheme.brandRoyalBlue,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -660,7 +661,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: _currentStep == 1 ? FontWeight.w800 : FontWeight.w600,
-                            color: _currentStep == 1 ? const Color(0xFF332B6B) : const Color(0xFF64748B),
+                            color: _currentStep == 1 ? AppTheme.brandRoyalBlue : const Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -672,7 +673,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                     child: Container(
                       height: 2,
                       margin: const EdgeInsets.symmetric(horizontal: 10),
-                      color: _currentStep == 2 ? const Color(0xFF332B6B) : const Color(0xFFE2E8F0),
+                      color: _currentStep == 2 ? AppTheme.brandRoyalBlue : const Color(0xFFE2E8F0),
                     ),
                   ),
 
@@ -687,7 +688,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
-                            color: _currentStep == 2 ? const Color(0xFF332B6B) : const Color(0xFFE2E8F0),
+                            color: _currentStep == 2 ? AppTheme.brandRoyalBlue : const Color(0xFFE2E8F0),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -707,7 +708,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             fontWeight: _currentStep == 2 ? FontWeight.w800 : FontWeight.w600,
-                            color: _currentStep == 2 ? const Color(0xFF332B6B) : const Color(0xFF94A3B8),
+                            color: _currentStep == 2 ? AppTheme.brandRoyalBlue : const Color(0xFF94A3B8),
                           ),
                         ),
                       ],
@@ -737,7 +738,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: const BoxDecoration(
-                color: Color(0xFFFAFAF8),
+                color: AppTheme.cardSurface,
                 border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
               ),
               child: Row(
@@ -751,8 +752,8 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () => _goToStep(1),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF332B6B)),
-                      label: Text('Back', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B))),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 16, color: AppTheme.brandRoyalBlue),
+                      label: Text('Back', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.brandRoyalBlue)),
                     )
                   else
                     OutlinedButton(
@@ -773,7 +774,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                   if (_currentStep == 1)
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
+                        backgroundColor: AppTheme.brandRoyalBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -795,7 +796,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                   else
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF332B6B),
+                        backgroundColor: AppTheme.brandRoyalBlue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1058,7 +1059,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           margin: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAF8),
+                            color: AppTheme.bgCanvas,
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
@@ -1088,7 +1089,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
           children: [
             Text(
               'BILL OF MATERIALS (BOM) & TRIMS',
-              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
@@ -1241,7 +1242,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF332B6B),
+                  backgroundColor: AppTheme.brandRoyalBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1261,7 +1262,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF8),
+              color: AppTheme.bgCanvas,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
             ),
@@ -1336,7 +1337,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
         // 1. Embellishment Routing Rule * (5 selectable radio-cards)
         Text(
           'EMBELLISHMENT ROUTING RULE *',
-          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+          style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian),
         ),
         const SizedBox(height: 8),
         Column(
@@ -1349,10 +1350,10 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSel ? const Color(0xFFFAFAF8) : Colors.white,
+                  color: isSel ? AppTheme.mintSurface : Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSel ? const Color(0xFF332B6B) : const Color(0xFFDAD9D3),
+                    color: isSel ? AppTheme.brandRoyalBlue : const Color(0xFFDAD9D3),
                     width: isSel ? 1.5 : 1.0,
                   ),
                 ),
@@ -1363,14 +1364,14 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                       height: 18,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: isSel ? const Color(0xFF332B6B) : const Color(0xFF94A3B8), width: 1.5),
+                        border: Border.all(color: isSel ? AppTheme.brandRoyalBlue : const Color(0xFF94A3B8), width: 1.5),
                       ),
                       child: isSel
                           ? Center(
                               child: Container(
                                 width: 9,
                                 height: 9,
-                                decoration: const BoxDecoration(color: Color(0xFF332B6B), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: AppTheme.brandRoyalBlue, shape: BoxShape.circle),
                               ),
                             )
                           : null,
@@ -1552,7 +1553,7 @@ class _CreateProductionTechPackWizardState extends ConsumerState<CreateProductio
                       _targetCutDate.toIso8601String().split('T').first,
                       style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                     ),
-                    const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF332B6B)),
+                    const Icon(Icons.calendar_today_rounded, size: 16, color: AppTheme.brandRoyalBlue),
                   ],
                 ),
               ),

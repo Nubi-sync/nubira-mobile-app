@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
@@ -102,7 +103,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/design/settings'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -111,7 +112,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         onRefresh: () async {
           await ref.read(phSettingsProvider.notifier).fetchSettings();
         },
-        color: const Color(0xFF332B6B),
+        color: AppTheme.brandRoyalBlue,
         backgroundColor: Colors.white,
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -169,8 +170,8 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF8),
-                borderRadius: BorderRadius.circular(20),
+                color: AppTheme.cardSurface,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0x1A000000)),
                 boxShadow: const [
                   BoxShadow(
@@ -219,16 +220,16 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEFEBFB),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: const Color(0x26332B6B)),
+                                    color: AppTheme.mintSurface,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0x26000000)),
                                   ),
                                   child: Text(
                                     'PH PRIVILEGED',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF332B6B),
+                                      color: AppTheme.headingObsidian,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -352,17 +353,17 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF332B6B) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isActive ? AppTheme.brandRoyalBlue : Colors.white,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isActive ? const Color(0xFF332B6B) : const Color(0xFFDAD9D3),
+            color: isActive ? AppTheme.brandRoyalBlue : const Color(0xFFDAD9D3),
           ),
           boxShadow: isActive
-              ? const [
+              ? [
                   BoxShadow(
-                    color: Color(0x1F332B6B),
+                    color: AppTheme.brandRoyalBlue.withOpacity(0.18),
                     blurRadius: 6,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ]
               : null,
@@ -417,7 +418,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAF8),
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -426,7 +427,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: Color(0xFF332B6B)),
+                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppTheme.brandRoyalBlue),
                   const SizedBox(width: 8),
                   Text(
                     'Add Body Part Code',
@@ -458,7 +459,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
@@ -482,7 +483,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
@@ -499,7 +500,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF332B6B),
+                    backgroundColor: AppTheme.brandRoyalBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -532,7 +533,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF3F2EE),
+                        color: AppTheme.mintSurface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0x18000000)),
                       ),
@@ -541,7 +542,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF332B6B),
+                          color: AppTheme.headingObsidian,
                         ),
                       ),
                     ),
@@ -557,7 +558,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAF8),
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -720,7 +721,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAF8),
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -729,7 +730,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: Color(0xFF332B6B)),
+                  const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppTheme.brandRoyalBlue),
                   const SizedBox(width: 8),
                   Text(
                     'Add BOM Component',
@@ -798,7 +799,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
@@ -822,7 +823,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
@@ -839,7 +840,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF332B6B),
+                    backgroundColor: AppTheme.brandRoyalBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -874,7 +875,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF3F2EE),
+                          color: AppTheme.mintSurface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: const Color(0x18000000)),
                         ),
@@ -882,7 +883,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                           children: [
                             Text(
                               p.type,
-                              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+                              style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.headingObsidian),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -911,7 +912,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAF8),
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -1082,7 +1083,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAFAF8),
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -1107,7 +1108,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                     icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
                     label: const Text('New Template'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF332B6B),
+                      backgroundColor: AppTheme.brandRoyalBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1173,10 +1174,10 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: tmpl.isSystemTemplate ? const Color(0xFFF1F5F9) : const Color(0xFFEFEBFB),
+                              color: tmpl.isSystemTemplate ? const Color(0xFFF1F5F9) : AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: tmpl.isSystemTemplate ? const Color(0xFFCBD5E1) : const Color(0x33332B6B),
+                                color: tmpl.isSystemTemplate ? const Color(0xFFCBD5E1) : const Color(0x26000000),
                               ),
                             ),
                             child: Text(
@@ -1184,7 +1185,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.bold,
-                                color: tmpl.isSystemTemplate ? const Color(0xFF475569) : const Color(0xFF332B6B),
+                                color: tmpl.isSystemTemplate ? const Color(0xFF475569) : AppTheme.headingObsidian,
                               ),
                             ),
                           ),
@@ -1212,7 +1213,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFF332B6B),
+                                color: AppTheme.headingObsidian,
                               ),
                             ),
                           );
@@ -1245,7 +1246,7 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAF8),
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
@@ -1573,7 +1574,7 @@ class _CreateTemplateSheetState extends ConsumerState<_CreateTemplateSheet> {
                 fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFDAD9D3))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
@@ -1587,8 +1588,8 @@ class _CreateTemplateSheetState extends ConsumerState<_CreateTemplateSheet> {
                 ),
                 TextButton.icon(
                   onPressed: () => _addRow(),
-                  icon: const Icon(Icons.add, size: 14, color: Color(0xFF332B6B)),
-                  label: Text('Add Row', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF332B6B))),
+                  icon: const Icon(Icons.add, size: 14, color: AppTheme.brandRoyalBlue),
+                  label: Text('Add Row', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.brandRoyalBlue)),
                 ),
               ],
             ),
@@ -1663,7 +1664,7 @@ class _CreateTemplateSheetState extends ConsumerState<_CreateTemplateSheet> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF332B6B),
+                      backgroundColor: AppTheme.brandRoyalBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),

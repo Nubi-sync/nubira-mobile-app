@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
@@ -381,7 +382,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      backgroundColor: verdict == 'APPROVED' ? const Color(0xFF059669) : const Color(0xFF332B6B),
+                      backgroundColor: verdict == 'APPROVED' ? AppTheme.badgeEmeraldText : AppTheme.brandRoyalBlue,
                       content: Row(
                         children: [
                           Icon(
@@ -438,7 +439,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFAFAF8),
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                       border: Border(bottom: BorderSide(color: Color(0x1A000000))),
                     ),
@@ -759,8 +760,8 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                               borderSide: const BorderSide(color: Color(0x1A000000)),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
                             ),
                           ),
                           style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
@@ -773,11 +774,11 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFAFAF8),
+                      color: AppTheme.cardSurface,
                       border: Border(top: BorderSide(color: Color(0x1A000000))),
                     ),
                     child: isSaving
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF332B6B)))
+                        ? const Center(child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue))
                         : Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -807,7 +808,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF332B6B),
+                                        foregroundColor: AppTheme.brandRoyalBlue,
                                         backgroundColor: Colors.white,
                                         side: const BorderSide(color: Color(0x26000000)),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

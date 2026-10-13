@@ -277,7 +277,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.brandSteel,
+              backgroundColor: AppTheme.brandRoyalBlue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
@@ -328,7 +328,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.camera_alt_outlined, color: AppTheme.brandSteel),
+                leading: const Icon(Icons.camera_alt_outlined, color: AppTheme.brandRoyalBlue),
                 title: const Text('Take Photo with Camera'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -336,7 +336,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.brandSteel),
+                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.brandRoyalBlue),
                 title: const Text('Choose from Gallery'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -344,7 +344,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.link, color: AppTheme.brandSteel),
+                leading: const Icon(Icons.link, color: AppTheme.brandRoyalBlue),
                 title: const Text('Paste Public Image URL'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -439,7 +439,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
     final currentColorway = currentConcept.colorways[_activeColorwayTab] ?? _ColorwayFormState();
 
     return Scaffold(
-      backgroundColor: AppTheme.canvasCream,
+      backgroundColor: AppTheme.bgCanvas,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -515,7 +515,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.brandSteel,
+                      color: AppTheme.brandRoyalBlue,
                     ),
                   ),
                 ],
@@ -667,7 +667,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.layers_outlined, size: 18, color: AppTheme.brandSteel),
+                          const Icon(Icons.layers_outlined, size: 18, color: AppTheme.brandRoyalBlue),
                           const SizedBox(width: 8),
                           Text(
                             'Design Concepts Deck ($_targetDesignsCount Required)',
@@ -716,12 +716,12 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: isTabActive
-                                    ? AppTheme.brandSteel
+                                    ? AppTheme.brandRoyalBlue
                                     : (isFullyDone ? const Color(0xFFECFDF5) : AppTheme.canvasCream),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isTabActive
-                                      ? AppTheme.brandSteel
+                                      ? AppTheme.brandRoyalBlue
                                       : (isFullyDone ? const Color(0xFFA7F3D0) : AppTheme.standardBorder),
                                 ),
                               ),
@@ -866,7 +866,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: isColorSelected
-                                        ? AppTheme.brandSteel
+                                        ? AppTheme.brandRoyalBlue
                                         : (hasPhoto ? const Color(0xFFBBF7D0) : AppTheme.standardBorder),
                                     width: isColorSelected ? 1.8 : 1.0,
                                   ),
@@ -889,7 +889,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                                       style: GoogleFonts.publicSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: isColorSelected ? AppTheme.brandSteel : AppTheme.foregroundInk,
+                                        color: isColorSelected ? AppTheme.brandRoyalBlue : AppTheme.foregroundInk,
                                       ),
                                     ),
                                     const SizedBox(width: 6),
@@ -1026,7 +1026,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                         style: ElevatedButton.styleFrom(
                           backgroundColor: readySlotsCount >= totalSlots
                               ? const Color(0xFF16A34A)
-                              : AppTheme.brandSteel,
+                              : AppTheme.brandRoyalBlue,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -1180,7 +1180,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                         Icon(
                           Icons.add_photo_alternate_outlined,
                           size: 26,
-                          color: isEditable ? AppTheme.brandSteel : AppTheme.faintInk,
+                          color: isEditable ? AppTheme.brandRoyalBlue : AppTheme.faintInk,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -1188,7 +1188,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                           style: GoogleFonts.publicSans(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isEditable ? AppTheme.brandSteel : AppTheme.faintInk,
+                            color: isEditable ? AppTheme.brandRoyalBlue : AppTheme.faintInk,
                           ),
                         ),
                       ],
@@ -1202,7 +1202,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
 
   Widget _buildStatusBadge(String status) {
     Color bg = AppTheme.badgeNeutralBg;
-    Color text = AppTheme.brandSteel;
+    Color text = AppTheme.brandRoyalBlue;
     Color border = AppTheme.badgeNeutralBorder;
     String label = status.replaceAll('_', ' ');
 
