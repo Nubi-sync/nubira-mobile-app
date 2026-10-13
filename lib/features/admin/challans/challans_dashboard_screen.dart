@@ -9,6 +9,7 @@ import '../screens/admin_shell.dart';
 import 'challan_models.dart';
 import 'challan_detail_screen.dart';
 import 'widgets/create_job_work_challan_sheet.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ChallansDashboardScreen extends ConsumerStatefulWidget {
   const ChallansDashboardScreen({super.key});
@@ -217,14 +218,14 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAF7F0),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const AdminDrawer(activeRoute: '/stitching-sewing/production-orders'),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: const Border(
-          bottom: BorderSide(color: Color(0xFFE7E1D6), width: 1),
+          bottom: BorderSide(color: AppTheme.borderLight, width: 1),
         ),
         leadingWidth: 56,
         leading: Center(
@@ -243,9 +244,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE7E1D6)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
-              child: const Icon(Icons.menu_rounded, color: Color(0xFF232028), size: 20),
+              child: const Icon(Icons.menu_rounded, color: AppTheme.headingObsidian, size: 20),
             ),
           ),
         ),
@@ -271,30 +272,22 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             margin: const EdgeInsets.only(right: 6),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
             decoration: BoxDecoration(
-              color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
-                  ? const Color(0xFFF0FDFA)
-                  : const Color(0xFFE3F3EA),
+              color: AppTheme.mintSurface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
-                    ? const Color(0xFF14C8B4).withValues(alpha: 0.3)
-                    : const Color(0xFFA7F3D0),
-              ),
+              border: Border.all(color: AppTheme.badgeMintBorder),
             ),
             child: Text(
               (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER') ? 'PROD MES' : 'ERP MES',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER')
-                    ? const Color(0xFF0B1220)
-                    : const Color(0xFF1F8A5A),
+                color: AppTheme.headingObsidian,
                 letterSpacing: 0.5,
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF7A7488), size: 20),
+            icon: const Icon(Icons.refresh_rounded, color: AppTheme.bodyInk, size: 20),
             onPressed: () {
               ref.invalidate(challanGroupedOrdersProvider);
               ref.invalidate(adminDashboardProvider);
@@ -303,7 +296,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         ],
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF3A3564),
+        color: AppTheme.brandRoyalBlue,
         backgroundColor: Colors.white,
         onRefresh: () async {
           ref.invalidate(challanGroupedOrdersProvider);
@@ -311,7 +304,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         },
         child: challansAsync.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFF3A3564)),
+            child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue),
           ),
           error: (err, _) => Center(
             child: Padding(
@@ -323,18 +316,18 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   const SizedBox(height: 12),
                   Text(
                     'Error Loading Challans',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF232028)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '$err',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF7A7488)),
+                    style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => ref.invalidate(challanGroupedOrdersProvider),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3A3564), foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.brandRoyalBlue, foregroundColor: Colors.white),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -480,9 +473,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppTheme.cardSurface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE7E1D6)),
+                        border: Border.all(color: AppTheme.borderLight),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -491,11 +491,11 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                             width: 48,
                             height: 48,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: AppTheme.bgCanvas,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE7E1D6)),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
-                            child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF7A7488), size: 24),
+                            child: const Icon(Icons.inventory_2_outlined, color: AppTheme.faintInk, size: 24),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -507,7 +507,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF232028),
+                              color: AppTheme.headingObsidian,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -516,7 +516,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                 ? 'Try searching with another article number or challan ID.'
                                 : 'Tap "+ New Delivery Challan" to create or import cutting job sheets.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF7A7488)),
+                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
                           ),
                           const SizedBox(height: 14),
                           if (isSearching)
@@ -526,17 +526,17 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                 setState(() {});
                               },
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFE7E1D6)),
+                                side: const BorderSide(color: AppTheme.borderLight),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF3A3564)),
-                              label: Text('Clear Search Filter', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3A3564))),
+                              icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.bodyInk),
+                              label: Text('Clear Search Filter', style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
                             )
                           else
                             ElevatedButton.icon(
                               onPressed: _showCreateChallanModal,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3A3564),
+                                backgroundColor: AppTheme.brandRoyalBlue,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -585,7 +585,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             style: GoogleFonts.publicSans(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF7A7488),
+              color: AppTheme.faintInk,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -594,16 +594,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
           decoration: BoxDecoration(
-            color: const Color(0xFFE3F3EA),
+            color: AppTheme.mintSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFA7F3D0)),
+            border: Border.all(color: AppTheme.badgeMintBorder),
           ),
           child: Text(
             companyName,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1F8A5A),
+              color: AppTheme.headingObsidian,
             ),
           ),
         ),
@@ -622,9 +622,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7E1D6)),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -643,11 +643,11 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F3EA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                  border: Border.all(color: AppTheme.badgeMintBorder),
                 ),
-                child: const Icon(Icons.layers_rounded, color: Color(0xFF1F8A5A), size: 22),
+                child: const Icon(Icons.layers_rounded, color: Color(0xFF0F766E), size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -661,8 +661,8 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                             'Welcome, $companyName',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15.5,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF232028),
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.headingObsidian,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -671,16 +671,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE3F3EA),
+                            color: AppTheme.mintSurface,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                            border: Border.all(color: AppTheme.badgeMintBorder),
                           ),
                           child: Text(
                             'MES Multi-Article',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1F8A5A),
+                              color: AppTheme.headingObsidian,
                             ),
                           ),
                         ),
@@ -691,7 +691,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       'Real-world job work challans with multi-article size grids, BOM fabrics & lineman allotments.',
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
-                        color: const Color(0xFF7A7488),
+                        color: AppTheme.bodyInk,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -707,7 +707,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 child: ElevatedButton.icon(
                   onPressed: _showCreateChallanModal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: AppTheme.brandRoyalBlue,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -724,12 +724,12 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
               OutlinedButton.icon(
                 onPressed: () => _showTvViewModal(allOrders),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFE7E1D6)),
-                  foregroundColor: const Color(0xFF232028),
+                  side: const BorderSide(color: AppTheme.borderLight),
+                  foregroundColor: AppTheme.headingObsidian,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.tv_rounded, size: 16, color: Color(0xFF3A3564)),
+                icon: const Icon(Icons.tv_rounded, size: 16, color: AppTheme.bodyInk),
                 label: Text(
                   'TV View',
                   style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
@@ -804,7 +804,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
         ),
         const SizedBox(height: 10),
 
-        // Row 3: In Production (Peach) & Ready / Out (Mint)
+        // Row 3: In Production & Ready / Out
         Row(
           children: [
             Expanded(
@@ -813,9 +813,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 value: NumberFormat('#,###').format(inProductionPcs),
                 caption: 'Active Sewing (pcs)',
                 icon: Icons.bolt_rounded,
-                bgColor: const Color(0xFFFBEEE2),
-                borderColor: const Color(0xFFFED7AA),
-                textColor: const Color(0xFFC2410C),
+                iconColor: const Color(0xFFD97706),
               ),
             ),
             const SizedBox(width: 10),
@@ -825,9 +823,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 value: NumberFormat('#,###').format(readyOutPcs),
                 caption: 'QC Passed / Gate Out',
                 icon: Icons.local_shipping_outlined,
-                bgColor: const Color(0xFFE3F3EA),
-                borderColor: const Color(0xFFA7F3D0),
-                textColor: const Color(0xFF1F8A5A),
+                iconColor: const Color(0xFF059669),
               ),
             ),
           ],
@@ -841,12 +837,13 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
     required String value,
     required String caption,
     required IconData icon,
-    Color bgColor = Colors.white,
-    Color borderColor = const Color(0xFFE7E1D6),
-    Color textColor = const Color(0xFF232028),
+    Color bgColor = AppTheme.cardSurface,
+    Color borderColor = AppTheme.borderLight,
+    Color textColor = AppTheme.headingObsidian,
+    Color? iconColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(14),
@@ -872,20 +869,20 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF7A7488),
+                    color: AppTheme.faintInk,
                     letterSpacing: 0.4,
                   ),
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(icon, size: 15, color: textColor),
+              Icon(icon, size: 16, color: iconColor ?? AppTheme.faintInk),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.jetBrainsMono(
-              fontSize: 19,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
               color: textColor,
             ),
@@ -896,8 +893,8 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.publicSans(
-              fontSize: 10,
-              color: const Color(0xFF7A7488),
+              fontSize: 10.5,
+              color: AppTheme.bodyInk,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -915,11 +912,11 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.cardSurface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF2E5AA8).withValues(alpha: 0.3)),
+          border: Border.all(color: AppTheme.borderLight),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -941,25 +938,25 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 9.5,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF7A7488),
+                      color: AppTheme.faintInk,
                       letterSpacing: 0.3,
                     ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5EDF9),
+                    color: AppTheme.badgeBlueBg,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: AppTheme.badgeBlueBorder),
                   ),
                   child: Text(
                     'Explorer ↗',
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 8,
+                      fontSize: 8.5,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2E5AA8),
+                      color: AppTheme.brandRoyalBlue,
                     ),
                   ),
                 ),
@@ -969,9 +966,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             Text(
               '$count',
               style: GoogleFonts.jetBrainsMono(
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF232028),
+                color: AppTheme.headingObsidian,
               ),
             ),
             const SizedBox(height: 2),
@@ -980,7 +977,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 Expanded(
                   child: Text(
                     '($variantsCount Variants)',
-                    style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF7A7488)),
+                    style: GoogleFonts.publicSans(fontSize: 10, color: AppTheme.bodyInk),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -988,9 +985,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                 Text(
                   'Ledger →',
                   style: GoogleFonts.publicSans(
-                    fontSize: 9.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF2E5AA8),
+                    color: AppTheme.brandRoyalBlue,
                   ),
                 ),
               ],
@@ -1020,9 +1017,17 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
               decoration: BoxDecoration(
-                color: isPending ? const Color(0xFF1F8A5A) : Colors.white,
+                color: isPending ? AppTheme.headingObsidian : AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isPending ? const Color(0xFF1F8A5A) : const Color(0xFFE7E1D6)),
+                border: Border.all(color: isPending ? AppTheme.headingObsidian : AppTheme.borderLight),
+                boxShadow: [
+                  if (isPending)
+                    BoxShadow(
+                      color: AppTheme.headingObsidian.withValues(alpha: 0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1030,7 +1035,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   Icon(
                     Icons.schedule_rounded,
                     size: 15,
-                    color: isPending ? Colors.white : const Color(0xFFA56A17),
+                    color: isPending ? const Color(0xFFFBBF24) : AppTheme.faintInk,
                   ),
                   const SizedBox(width: 6),
                   Flexible(
@@ -1039,24 +1044,25 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: isPending ? Colors.white : const Color(0xFF475569),
+                        color: isPending ? Colors.white : AppTheme.bodyInk,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                     decoration: BoxDecoration(
-                      color: isPending ? Colors.white : const Color(0xFFFBF0DD),
+                      color: isPending ? Colors.white.withValues(alpha: 0.18) : AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(10),
+                      border: isPending ? null : Border.all(color: AppTheme.borderLight),
                     ),
                     child: Text(
                       '$pendingCount',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w800,
-                        color: isPending ? const Color(0xFF1F8A5A) : const Color(0xFFA56A17),
+                        color: isPending ? Colors.white : AppTheme.faintInk,
                       ),
                     ),
                   ),
@@ -1073,9 +1079,17 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
               decoration: BoxDecoration(
-                color: isInProgress ? const Color(0xFF1F8A5A) : Colors.white,
+                color: isInProgress ? AppTheme.headingObsidian : AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isInProgress ? const Color(0xFF1F8A5A) : const Color(0xFFE7E1D6)),
+                border: Border.all(color: isInProgress ? AppTheme.headingObsidian : AppTheme.borderLight),
+                boxShadow: [
+                  if (isInProgress)
+                    BoxShadow(
+                      color: AppTheme.headingObsidian.withValues(alpha: 0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1083,7 +1097,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   Icon(
                     Icons.bolt_rounded,
                     size: 15,
-                    color: isInProgress ? Colors.white : const Color(0xFF1F8A5A),
+                    color: isInProgress ? const Color(0xFF38BDF8) : AppTheme.faintInk,
                   ),
                   const SizedBox(width: 6),
                   Flexible(
@@ -1092,24 +1106,25 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: isInProgress ? Colors.white : const Color(0xFF475569),
+                        color: isInProgress ? Colors.white : AppTheme.bodyInk,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                     decoration: BoxDecoration(
-                      color: isInProgress ? Colors.white : const Color(0xFFE3F3EA),
+                      color: isInProgress ? Colors.white.withValues(alpha: 0.18) : AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(10),
+                      border: isInProgress ? null : Border.all(color: AppTheme.borderLight),
                     ),
                     child: Text(
                       '$inProgressCount',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1F8A5A),
+                        color: isInProgress ? Colors.white : AppTheme.faintInk,
                       ),
                     ),
                   ),
@@ -1134,9 +1149,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE7E1D6)),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -1146,11 +1168,11 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: 'Search by Article No, Challan #…',
-              hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF7A7488)),
-              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF7A7488)),
+              hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.faintInk),
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.faintInk),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF7A7488)),
+                      icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.faintInk),
                       onPressed: () {
                         _searchController.clear();
                         setState(() {});
@@ -1158,18 +1180,18 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                     )
                   : null,
               filled: true,
-              fillColor: const Color(0xFFFAF7F0),
+              fillColor: AppTheme.bgCanvas,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE7E1D6))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE7E1D6))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF3A3564), width: 1.2)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderLight)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderLight)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.2)),
               isDense: true,
             ),
-            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+            style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
           ),
           const SizedBox(height: 8),
 
-          // 3 Stacked Dropdowns (Brand, Vendor, Status)
+          // Stacked Dropdowns (Brand, Status)
           Row(
             children: [
               // Brand Dropdown
@@ -1178,16 +1200,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   height: 36,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: AppTheme.bgCanvas,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE7E1D6)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: brands.contains(_selectedBrand) ? _selectedBrand : 'ALL',
                       isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF7A7488)),
-                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF232028)),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.faintInk),
+                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.headingObsidian),
                       items: brands.map((b) {
                         return DropdownMenuItem<String>(
                           value: b,
@@ -1210,16 +1232,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   height: 36,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F0),
+                    color: AppTheme.bgCanvas,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE7E1D6)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedStatus,
                       isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF7A7488)),
-                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF232028)),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.faintInk),
+                      style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.headingObsidian),
                       items: [
                         DropdownMenuItem(value: 'PENDING', child: Text('Pending ($pendingCount)')),
                         DropdownMenuItem(value: 'IN_PROGRESS', child: Text('Allotted ($inProgressCount)')),
@@ -1250,9 +1272,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7E1D6)),
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1279,21 +1301,21 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE3F3EA),
+                        color: AppTheme.mintSurface,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                        border: Border.all(color: AppTheme.badgeMintBorder),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.description_outlined, size: 12, color: Color(0xFF1F8A5A)),
+                          const Icon(Icons.description_outlined, size: 12, color: Color(0xFF0F766E)),
                           const SizedBox(width: 4),
                           Text(
                             'Challan ${challan.challanNo}',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1F8A5A),
+                              color: const Color(0xFF0F766E),
                             ),
                           ),
                         ],
@@ -1303,16 +1325,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: AppTheme.bgCanvas,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Text(
                           'Art: ${artNos.join(', ')}',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF334155),
+                            color: AppTheme.bodyInk,
                           ),
                         ),
                       ),
@@ -1320,16 +1342,16 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: AppTheme.bgCanvas,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE7E1D6)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Text(
                           challan.brand,
                           style: GoogleFonts.publicSans(
                             fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF475569),
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
                       ),
@@ -1337,15 +1359,15 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: AppTheme.bgCanvas,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE7E1D6)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Text(
                           challan.fabricType!,
                           style: GoogleFonts.publicSans(
                             fontSize: 9.5,
-                            color: const Color(0xFF64748B),
+                            color: AppTheme.faintInk,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1354,21 +1376,21 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE3F3EA),
+                          color: AppTheme.mintSurface,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                          border: Border.all(color: AppTheme.badgeMintBorder),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.check_rounded, size: 10, color: Color(0xFF1F8A5A)),
+                            const Icon(Icons.check_rounded, size: 10, color: Color(0xFF0F766E)),
                             const SizedBox(width: 3),
                             Text(
                               'Sample Attached',
                               style: GoogleFonts.publicSans(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1F8A5A),
+                                color: const Color(0xFF0F766E),
                               ),
                             ),
                           ],
@@ -1389,7 +1411,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                         style: GoogleFonts.publicSans(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF475569),
+                          color: AppTheme.bodyInk,
                         ),
                       ),
                     ),
@@ -1398,7 +1420,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       'Created: ${_formatDateTime(challan.createdAt)}',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 8.5,
-                        color: const Color(0xFF7A7488),
+                        color: AppTheme.faintInk,
                       ),
                     ),
                   ],
@@ -1410,8 +1432,8 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                   '• Art: ${artNos.join(', ')} • ${artNos.length} Master Style${artNos.length > 1 ? 's' : ''} (${challan.articles.length} Variants)',
                   style: GoogleFonts.publicSans(
                     fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.bodyInk,
                   ),
                 ),
               ],
@@ -1423,9 +1445,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             margin: const EdgeInsets.symmetric(horizontal: 14),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0FDFA),
+              color: AppTheme.bgCanvas,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFBFE9DC)),
+              border: Border.all(color: AppTheme.borderLight),
             ),
             child: Row(
               children: [
@@ -1438,9 +1460,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0F766E),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.headingObsidian,
                         ),
                       ),
                       Text(
@@ -1448,8 +1470,8 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                         style: GoogleFonts.publicSans(
                           fontSize: 8.5,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F766E),
-                          letterSpacing: 0.4,
+                          color: AppTheme.faintInk,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
@@ -1459,53 +1481,47 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
 
                 // Status Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: isPartiallyAllotted
-                        ? const Color(0xFFFBF0DD)
-                        : isPending
-                            ? const Color(0xFFFFF7ED)
-                            : isInProgress
-                                ? const Color(0xFFE3F3EA)
-                                : isQcPassed
-                                    ? const Color(0xFFD1FAE5)
-                                    : const Color(0xFF1E293B),
+                    color: (isPartiallyAllotted || isPending)
+                        ? AppTheme.badgeAmberBg
+                        : isInProgress
+                            ? AppTheme.badgeBlueBg
+                            : isQcPassed
+                                ? AppTheme.mintSurface
+                                : AppTheme.bgCanvas,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isPartiallyAllotted
-                          ? const Color(0xFFFDE68A)
-                          : isPending
-                              ? const Color(0xFFFFEDD5)
-                              : isInProgress
-                                  ? const Color(0xFFA7F3D0)
-                                  : isQcPassed
-                                      ? const Color(0xFF6EE7B7)
-                                      : const Color(0xFF0F172A),
+                      color: (isPartiallyAllotted || isPending)
+                          ? AppTheme.badgeAmberBorder
+                          : isInProgress
+                              ? AppTheme.badgeBlueBorder
+                              : isQcPassed
+                                  ? AppTheme.badgeMintBorder
+                                  : AppTheme.borderLight,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isPartiallyAllotted || isPending
+                        (isPartiallyAllotted || isPending)
                             ? Icons.schedule_rounded
                             : isInProgress
                                 ? Icons.bolt_rounded
                                 : isQcPassed
                                     ? Icons.check_circle_rounded
                                     : Icons.local_shipping_rounded,
-                        size: 10,
-                        color: isPartiallyAllotted
-                            ? const Color(0xFFA56A17)
-                            : isPending
-                                ? const Color(0xFFEA580C)
-                                : isInProgress
-                                    ? const Color(0xFF1F8A5A)
-                                    : isQcPassed
-                                        ? const Color(0xFF047857)
-                                        : Colors.white,
+                        size: 11,
+                        color: (isPartiallyAllotted || isPending)
+                            ? AppTheme.badgeAmberText
+                            : isInProgress
+                                ? AppTheme.brandRoyalBlue
+                                : isQcPassed
+                                    ? const Color(0xFF0F766E)
+                                    : AppTheme.bodyInk,
                       ),
-                      const SizedBox(width: 3.5),
+                      const SizedBox(width: 4),
                       Text(
                         isPartiallyAllotted
                             ? 'Partially Allotted'
@@ -1517,17 +1533,15 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                                         ? 'Ready (QC Passed)'
                                         : 'Dispatched',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 8.5,
+                          fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: isPartiallyAllotted
-                              ? const Color(0xFFA56A17)
-                              : isPending
-                                  ? const Color(0xFFEA580C)
-                                  : isInProgress
-                                      ? const Color(0xFF1F8A5A)
-                                      : isQcPassed
-                                          ? const Color(0xFF047857)
-                                          : Colors.white,
+                          color: (isPartiallyAllotted || isPending)
+                              ? AppTheme.badgeAmberText
+                              : isInProgress
+                                  ? AppTheme.brandRoyalBlue
+                                  : isQcPassed
+                                      ? const Color(0xFF0F766E)
+                                      : AppTheme.bodyInk,
                         ),
                       ),
                     ],
@@ -1550,18 +1564,18 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       OutlinedButton.icon(
                         onPressed: () => _handleRecallChallan(challan),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFFDE68A)),
-                          backgroundColor: const Color(0xFFFFFBEB),
+                          side: const BorderSide(color: AppTheme.badgeAmberBorder),
+                          backgroundColor: AppTheme.badgeAmberBg,
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                           visualDensity: VisualDensity.compact,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
-                        icon: const Icon(Icons.rotate_left_rounded, size: 12, color: Color(0xFFA56A17)),
-                        label: Text('Recall', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFA56A17))),
+                        icon: const Icon(Icons.rotate_left_rounded, size: 12, color: AppTheme.badgeAmberText),
+                        label: Text('Recall', style: GoogleFonts.publicSans(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.badgeAmberText)),
                       ),
                     if (isInProgress || isPartiallyAllotted) const SizedBox(width: 4),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.faintInk),
                       visualDensity: VisualDensity.compact,
                       splashRadius: 16,
                       onPressed: () => _handleDeleteChallan(challan),
@@ -1583,9 +1597,9 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: AppTheme.bgCanvas,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE7E1D6)),
+                        border: Border.all(color: AppTheme.borderLight),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1598,12 +1612,12 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF3A3564),
+                                color: AppTheme.brandRoyalBlue,
                               ),
                             ),
                           ),
                           const SizedBox(width: 3),
-                          const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFF1F8A5A)),
+                          const Icon(Icons.chevron_right_rounded, size: 15, color: AppTheme.brandRoyalBlue),
                         ],
                       ),
                     ),
@@ -1680,7 +1694,7 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF7F0),
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -1689,9 +1703,9 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.cardSurface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              border: Border(bottom: BorderSide(color: Color(0xFFE7E1D6))),
+              border: Border(bottom: BorderSide(color: AppTheme.borderLight)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1701,10 +1715,10 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5EDF9),
+                        color: AppTheme.badgeBlueBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.sell_outlined, color: Color(0xFF2E5AA8), size: 18),
+                      child: const Icon(Icons.sell_outlined, color: AppTheme.brandRoyalBlue, size: 18),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -1712,13 +1726,13 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF232028),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF7A7488)),
+                  icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.faintInk),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -1733,15 +1747,17 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Search style / article number…',
-                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF7A7488)),
+                hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.faintInk),
+                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.faintInk),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppTheme.cardSurface,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE7E1D6))),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE7E1D6))),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.2)),
                 isDense: true,
               ),
-              style: GoogleFonts.publicSans(fontSize: 12.5),
+              style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
             ),
           ),
 
@@ -1756,9 +1772,9 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE7E1D6)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
                   child: Row(
                     children: [
@@ -1766,7 +1782,7 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3A3564),
+                          color: AppTheme.headingObsidian,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
@@ -1785,18 +1801,18 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF232028),
+                                color: AppTheme.headingObsidian,
                               ),
                             ),
                             if (art.description.isNotEmpty)
                               Text(
                                 art.description,
-                                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF7A7488)),
+                                style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                               ),
                             const SizedBox(height: 2),
                             Text(
                               'In Challans: ${art.challanNos.join(', ')}',
-                              style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: AppTheme.faintInk),
                             ),
                           ],
                         ),
@@ -1809,12 +1825,12 @@ class _ArticleStylesExplorerSheetState extends State<_ArticleStylesExplorerSheet
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w900,
-                              color: const Color(0xFF1F8A5A),
+                              color: AppTheme.brandRoyalBlue,
                             ),
                           ),
                           Text(
                             '${art.totalSets} sets',
-                            style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF7A7488)),
+                            style: GoogleFonts.publicSans(fontSize: 10.5, color: AppTheme.faintInk),
                           ),
                         ],
                       ),
