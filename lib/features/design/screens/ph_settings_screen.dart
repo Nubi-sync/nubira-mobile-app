@@ -190,11 +190,11 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: const Color(0xFFF0FDFA),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x26000000)),
                         ),
-                        child: const Icon(Icons.settings_outlined, color: Color(0xFF332B6B), size: 22),
+                        child: const Icon(Icons.settings_outlined, color: Color(0xFF0B1220), size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -248,16 +248,16 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF0FDFA),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0x18000000)),
+                                border: Border.all(color: const Color(0x26000000)),
                               ),
                               child: Text(
                                 'Admin Workspace',
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF332B6B),
+                                  color: const Color(0xFF0B1220),
                                 ),
                               ),
                             ),
@@ -590,16 +590,16 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0x18000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
                     child: Text(
                       '${state.bodyCodes.length} codes',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF332B6B),
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                   ),
@@ -632,16 +632,16 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: const Color(0xFFF0FDFA),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0x18000000)),
+                              border: Border.all(color: const Color(0x26000000)),
                             ),
                             child: Text(
                               item.code,
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF332B6B),
+                                color: const Color(0xFF0B1220),
                               ),
                             ),
                           ),
@@ -944,16 +944,16 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: const Color(0xFFF0FDFA),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0x18000000)),
+                      border: Border.all(color: const Color(0x26000000)),
                     ),
                     child: Text(
                       '${state.bomCodes.length} components',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF332B6B),
+                        color: const Color(0xFF0B1220),
                       ),
                     ),
                   ),
@@ -1006,13 +1006,13 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF0FDFA),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0x18000000)),
+                                border: Border.all(color: const Color(0x26000000)),
                               ),
                               child: Text(
                                 item.code!,
-                                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -1149,10 +1149,10 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFFAF7F0) : Colors.white,
+                    color: isSelected ? const Color(0xFFF0FDFA) : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF332B6B) : const Color(0xFFE2E8F0),
+                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -1291,13 +1291,13 @@ class _PHSettingsScreenState extends ConsumerState<PHSettingsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAF7F0),
+                                color: const Color(0xFFF0FDFA),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0x18000000)),
+                                border: Border.all(color: const Color(0x26000000)),
                               ),
                               child: Text(
                                 bp.code,
-                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF332B6B)),
+                                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
                               ),
                             ),
                             const SizedBox(width: 10),
