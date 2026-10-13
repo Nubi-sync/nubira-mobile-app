@@ -96,7 +96,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.bgCanvas,
       drawer: WorkspaceHubDrawer(
         activeRoute: '/design/tech-packs',
         onOpenTeam: () => Navigator.pop(context),
@@ -105,7 +105,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: AppTheme.brandSteel,
+        color: AppTheme.brandRoyalBlue,
         onRefresh: () async {
           await ref.read(designerProvider.notifier).fetchStudioData();
         },
@@ -158,12 +158,12 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
               const SizedBox(height: 12),
 
               // ==========================================
-              // 2. HERO HEADER CARD (#FAFAF8 matching Web)
+              // 2. HERO HEADER CARD (Pure White matching Web)
               // ==========================================
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: const Color(0x1A000000)),
                   boxShadow: const [
@@ -532,7 +532,7 @@ class _TechPackCatalogScreenState extends ConsumerState<TechPackCatalogScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAF8),
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0x1A000000)),
         boxShadow: const [

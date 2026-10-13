@@ -164,7 +164,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFAFAF8),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: WorkspaceHubDrawer(
         activeRoute: '/design',
         onOpenTechPacks: () => _openTechPacksModal(context, techPacks),
@@ -175,7 +175,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: AppTheme.brandSteel,
+        color: AppTheme.brandRoyalBlue,
         onRefresh: () async {
           await ref.read(designerProvider.notifier).fetchStudioData();
         },
@@ -511,7 +511,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
-                          child: CircularProgressIndicator(color: AppTheme.brandSteel),
+                          child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue),
                         ),
                       )
                     else if (filteredConceptRows.isEmpty)
@@ -1021,7 +1021,7 @@ class _DesignStudioScreenState extends ConsumerState<DesignStudioScreen> {
               if (mounted) {
                 messenger.showSnackBar(
                   SnackBar(
-                    backgroundColor: success ? AppTheme.brandSteel : const Color(0xFFDC2626),
+                    backgroundColor: success ? AppTheme.badgeEmeraldText : const Color(0xFFDC2626),
                     content: Text(success ? 'Brief deleted successfully' : 'Failed to delete brief'),
                   ),
                 );
@@ -1235,7 +1235,7 @@ class _NewBriefCreationSheetState extends ConsumerState<_NewBriefCreationSheet> 
                               label: Center(child: Text(c)),
                               selected: isSel,
                               onSelected: (_) => setState(() => _category = c),
-                              selectedColor: AppTheme.brandSteel,
+                              selectedColor: AppTheme.brandRoyalBlue,
                               labelStyle: TextStyle(
                                 color: isSel ? Colors.white : const Color(0xFF334155),
                                 fontWeight: FontWeight.w600,
@@ -1316,8 +1316,8 @@ class _NewBriefCreationSheetState extends ConsumerState<_NewBriefCreationSheet> 
                               }
                             });
                           },
-                          selectedColor: AppTheme.brandSteel.withValues(alpha: 0.15),
-                          checkmarkColor: AppTheme.brandSteel,
+                          selectedColor: AppTheme.brandRoyalBlue.withValues(alpha: 0.15),
+                          checkmarkColor: AppTheme.brandRoyalBlue,
                         );
                       }).toList(),
                     ),
@@ -1369,7 +1369,7 @@ class _NewBriefCreationSheetState extends ConsumerState<_NewBriefCreationSheet> 
               child: ElevatedButton(
                 onPressed: _submitBrief,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.brandSteel,
+                  backgroundColor: AppTheme.brandRoyalBlue,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text('Create & Dispatch Brief', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
@@ -1401,7 +1401,7 @@ class _NewBriefCreationSheetState extends ConsumerState<_NewBriefCreationSheet> 
       nav.pop();
       messenger.showSnackBar(
         SnackBar(
-          backgroundColor: success ? AppTheme.brandSteel : const Color(0xFFDC2626),
+          backgroundColor: success ? AppTheme.badgeEmeraldText : const Color(0xFFDC2626),
           content: Text(success ? 'Design brief created successfully!' : 'Failed to create design brief'),
         ),
       );
