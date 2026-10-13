@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
 import 'tna_planner_screen.dart';
@@ -159,9 +160,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
     final int grandTotal = matrix.fold<int>(0, (sum, row) => sum + row.total);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Modern Canvas
+      backgroundColor: AppTheme.bgCanvas,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppTheme.bgCanvas,
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -172,11 +173,11 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
+                color: AppTheme.mintSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0x26000000)),
+                border: Border.all(color: const Color(0x3314C8B4)),
               ),
-              child: const Icon(Icons.work_outline, color: Color(0xFF0B1220), size: 19),
+              child: const Icon(Icons.work_outline, color: AppTheme.headingObsidian, size: 19),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -188,16 +189,16 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDFA),
+                          color: AppTheme.mintSurface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x26000000)),
+                          border: Border.all(color: const Color(0x3314C8B4)),
                         ),
                         child: Text(
                           'BUYER PO SPECIFICATION',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0B1220),
+                            color: AppTheme.headingObsidian,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -209,7 +210,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF9B9A94),
+                            color: AppTheme.faintInk,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -222,7 +223,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1C1C1A),
+                      color: AppTheme.headingObsidian,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -236,7 +237,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              icon: const Icon(Icons.close_rounded, color: Color(0xFF6B6A65), size: 22),
+              icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk, size: 22),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -425,23 +426,23 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.image_outlined, size: 17, color: Color(0xFF332B6B)),
+                      const Icon(Icons.image_outlined, size: 17, color: AppTheme.headingObsidian),
                       const SizedBox(width: 8),
                       Text(
                         'ATTACHED DESIGN REFERENCE & CAD ARTWORK',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1A),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -456,9 +457,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F4EC),
+                            color: AppTheme.bgCanvas,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: AppTheme.borderLight),
                           ),
                           child: Column(
                             children: [
@@ -468,7 +469,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0x0D000000)),
+                                  border: Border.all(color: AppTheme.borderLight),
                                 ),
                                 child: effectiveCadFront != null && effectiveCadFront.isNotEmpty
                                     ? ClipRRect(
@@ -487,7 +488,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF6B6A65),
+                                  color: AppTheme.faintInk,
                                 ),
                               ),
                             ],
@@ -501,9 +502,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F4EC),
+                            color: AppTheme.bgCanvas,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: AppTheme.borderLight),
                           ),
                           child: Column(
                             children: [
@@ -513,7 +514,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0x0D000000)),
+                                  border: Border.all(color: AppTheme.borderLight),
                                 ),
                                 child: effectiveCadBack != null && effectiveCadBack.isNotEmpty
                                     ? ClipRRect(
@@ -532,7 +533,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF6B6A65),
+                                  color: AppTheme.faintInk,
                                 ),
                               ),
                             ],
@@ -552,23 +553,23 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.checkroom_outlined, size: 18, color: Color(0xFF332B6B)),
+                      const Icon(Icons.checkroom_outlined, size: 18, color: AppTheme.headingObsidian),
                       const SizedBox(width: 8),
                       Text(
                         'GARMENT BLUEPRINT & PRODUCTION ROUTING',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: 0.4,
                         ),
                       ),
@@ -584,9 +585,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: AppTheme.bgCanvas,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: AppTheme.borderLight),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,7 +597,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF94A3B8),
+                                  color: AppTheme.faintInk,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -606,7 +607,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
+                                  color: AppTheme.headingObsidian,
                                   height: 1.25,
                                 ),
                               ),
@@ -616,7 +617,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF475569),
+                                  color: AppTheme.bodyInk,
                                   height: 1.3,
                                 ),
                               ),
@@ -631,9 +632,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: AppTheme.bgCanvas,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: AppTheme.borderLight),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,7 +644,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF94A3B8),
+                                  color: AppTheme.faintInk,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -651,16 +652,16 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAF7F0),
+                                  color: AppTheme.mintSurface,
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0x1A000000)),
+                                  border: Border.all(color: const Color(0x3314C8B4)),
                                 ),
                                 child: Text(
                                   _formatEmbellishmentSequence(effectiveSeq),
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF332B6B),
+                                    color: AppTheme.headingObsidian,
                                   ),
                                 ),
                               ),
@@ -681,9 +682,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,14 +694,14 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.inventory_2_outlined, size: 17, color: Color(0xFF332B6B)),
+                          const Icon(Icons.inventory_2_outlined, size: 17, color: AppTheme.headingObsidian),
                           const SizedBox(width: 8),
                           Text(
                             'BILL OF MATERIALS (BOM) & TRIMS',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 10.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1C1C1A),
+                              color: AppTheme.headingObsidian,
                               letterSpacing: 0.3,
                             ),
                           ),
@@ -709,16 +710,16 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F4EC),
+                          color: AppTheme.mintSurface,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x3314C8B4)),
                         ),
                         child: Text(
                           '${materials.length} Items',
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF332B6B),
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
                       ),
@@ -737,9 +738,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       return Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAF8),
+                          color: AppTheme.bgCanvas,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -755,7 +756,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1C1C1A),
+                                      color: AppTheme.headingObsidian,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -763,7 +764,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                     mat['item_name'] ?? '-',
                                     style: GoogleFonts.publicSans(
                                       fontSize: 11,
-                                      color: const Color(0xFF6B6A65),
+                                      color: AppTheme.bodyInk,
                                     ),
                                   ),
                                   if (mat['placement'] != null && mat['placement'] != '-') ...[
@@ -772,7 +773,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                       mat['placement']!,
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 9.5,
-                                        color: const Color(0xFF9B9A94),
+                                        color: AppTheme.faintInk,
                                       ),
                                     ),
                                   ],
@@ -786,14 +787,14 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0x1A000000)),
+                                border: Border.all(color: AppTheme.borderLight),
                               ),
                               child: Text(
                                 mat['consumption'] ?? '1 PC/pc',
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF332B6B),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                             ),
@@ -813,23 +814,23 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardSurface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0x1A000000)),
+                border: Border.all(color: AppTheme.borderLight),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.palette_outlined, size: 17, color: Color(0xFF332B6B)),
+                      const Icon(Icons.palette_outlined, size: 17, color: AppTheme.headingObsidian),
                       const SizedBox(width: 8),
                       Text(
                         'COLORWAY & SIZE BREAKDOWN MATRIX',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1A),
+                          color: AppTheme.headingObsidian,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -841,7 +842,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Table(
@@ -858,7 +859,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                       children: [
                         // Table Header
                         TableRow(
-                          decoration: const BoxDecoration(color: Color(0xFFF7F4EC)),
+                          decoration: const BoxDecoration(color: AppTheme.bgCanvas),
                           children: [
                             _buildTableHeaderCell('Colorway', align: TextAlign.left),
                             ...defaultSizes.map((s) => _buildTableHeaderCell(s)),
@@ -871,7 +872,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                           return TableRow(
                             decoration: const BoxDecoration(
                               color: Colors.white,
-                              border: Border(bottom: BorderSide(color: Color(0x0D000000))),
+                              border: Border(bottom: BorderSide(color: AppTheme.borderLight)),
                             ),
                             children: [
                               Padding(
@@ -881,7 +882,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C1A),
+                                    color: AppTheme.headingObsidian,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -896,7 +897,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10.5,
-                                      color: const Color(0xFF6B6A65),
+                                      color: AppTheme.bodyInk,
                                     ),
                                   ),
                                 );
@@ -909,7 +910,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF332B6B),
+                                    color: AppTheme.headingObsidian,
                                   ),
                                 ),
                               ),
@@ -919,7 +920,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
 
                         // Totals Row
                         TableRow(
-                          decoration: const BoxDecoration(color: Color(0xFFF7F4EC)),
+                          decoration: const BoxDecoration(color: AppTheme.bgCanvas),
                           children: [
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -928,7 +929,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                             ),
@@ -941,7 +942,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C1A),
+                                    color: AppTheme.headingObsidian,
                                   ),
                                 ),
                               );
@@ -954,7 +955,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF332B6B),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                             ),
@@ -976,9 +977,9 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF3A3564),
-                    side: const BorderSide(color: Color(0x1A000000)),
-                    backgroundColor: const Color(0xFFFAF7F0),
+                    foregroundColor: AppTheme.headingObsidian,
+                    side: const BorderSide(color: AppTheme.borderLight),
+                    backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
@@ -1002,7 +1003,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A3564),
+                    backgroundColor: AppTheme.brandRoyalBlue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -1035,7 +1036,7 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
         style: GoogleFonts.jetBrainsMono(
           fontSize: 9.5,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFF6B6A65),
+          color: AppTheme.faintInk,
         ),
       ),
     );
@@ -1046,11 +1047,11 @@ class BuyerPOSpecificationScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.checkroom_outlined, size: 30, color: Color(0xFFB6B4AC)),
+          const Icon(Icons.checkroom_outlined, size: 30, color: AppTheme.faintInk),
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: const Color(0xFF9B9A94)),
+            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: AppTheme.faintInk),
           ),
         ],
       ),

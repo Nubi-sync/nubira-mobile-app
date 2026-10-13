@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/merchandising_models.dart';
@@ -63,26 +64,31 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Remove Buyer Contract?',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppTheme.headingObsidian,
+          ),
         ),
         content: Text(
           'Are you sure you want to remove buyer contract "${buyer.buyerName}" (${buyer.buyerCode})? This cannot be undone.',
-          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF6B6A65)),
+          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.bodyInk),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: GoogleFonts.publicSans(color: const Color(0xFF6B6A65), fontWeight: FontWeight.bold),
+              style: GoogleFonts.publicSans(color: AppTheme.bodyInk, fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
+              backgroundColor: AppTheme.badgeRoseText,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -120,13 +126,13 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising/buyers'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF332B6B),
+        color: AppTheme.brandRoyalBlue,
         backgroundColor: Colors.white,
         onRefresh: () => ref.read(merchandisingProvider.notifier).fetchMerchandisingData(),
         child: SingleChildScrollView(
@@ -147,7 +153,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                       style: GoogleFonts.publicSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF9B9A94),
+                        color: AppTheme.faintInk,
                       ),
                     ),
                   ),
@@ -155,7 +161,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text(
                       '/',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF9B9A94)),
+                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFCBD5E1)),
                     ),
                   ),
                   Text(
@@ -163,7 +169,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                     style: GoogleFonts.publicSans(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C1A),
+                      color: AppTheme.headingObsidian,
                     ),
                   ),
                 ],
@@ -176,9 +182,16 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,13 +203,13 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAF7F0),
+                            color: AppTheme.mintSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x3314C8B4)),
                           ),
                           child: const Icon(
                             Icons.people_outline_rounded,
-                            color: Color(0xFF332B6B),
+                            color: AppTheme.headingObsidian,
                             size: 22,
                           ),
                         ),
@@ -206,11 +219,11 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Active buyers & accounts',
+                                'Active Buyers & Accounts',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 19,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: AppTheme.headingObsidian,
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -219,7 +232,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                 'Contracted buyer order volumes, piece-rate pricing, and tech pack article allocations',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF6B6A65),
+                                  color: AppTheme.bodyInk,
                                   height: 1.3,
                                 ),
                               ),
@@ -241,24 +254,24 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0x1A000000)),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
                             child: const Icon(
                               Icons.refresh_rounded,
-                              color: Color(0xFF332B6B),
+                              color: AppTheme.headingObsidian,
                               size: 20,
                             ),
                           ),
                         ),
                         const SizedBox(width: 10),
 
-                        // Filled "+ Contract new buyer" Button
+                        // Filled "+ Contract new buyer" Button (Royal Blue)
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF241D52),
+                              backgroundColor: AppTheme.brandRoyalBlue,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -342,10 +355,10 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF6B6A65)),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.faintInk),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF6B6A65)),
+                          icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.faintInk),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
@@ -353,21 +366,21 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                         )
                       : null,
                   hintText: 'Search buyers by name, code, brand, or link',
-                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFFB6B4AC)),
+                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.faintInk),
                   filled: true,
-                  fillColor: const Color(0xFFFAFAF8),
+                  fillColor: AppTheme.cardSurface,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0x1A000000)),
+                    borderSide: const BorderSide(color: AppTheme.borderLight),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0x1A000000)),
+                    borderSide: const BorderSide(color: AppTheme.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+                    borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
                   ),
                 ),
               ),
@@ -407,9 +420,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    border: Border.all(color: AppTheme.borderLight),
                   ),
                   child: Column(
                     children: [
@@ -417,11 +430,11 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFAF7F0),
+                          color: AppTheme.mintSurface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: const Color(0x3314C8B4)),
                         ),
-                        child: const Icon(Icons.people_outline_rounded, color: Color(0xFF332B6B), size: 28),
+                        child: const Icon(Icons.people_outline_rounded, color: AppTheme.headingObsidian, size: 28),
                       ),
                       const SizedBox(height: 14),
                       Text(
@@ -429,7 +442,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1A),
+                          color: AppTheme.headingObsidian,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -438,13 +451,13 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                             ? 'Get started by contracting your first buyer account and assigning contracted order volumes.'
                             : 'No buyers match the current search filter.',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF6B6A65), height: 1.3),
+                        style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.bodyInk, height: 1.3),
                       ),
                       if (buyers.isEmpty) ...[
                         const SizedBox(height: 16),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF241D52),
+                            backgroundColor: AppTheme.brandRoyalBlue,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -452,7 +465,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                           ),
                           onPressed: _openCreateBuyerModal,
                           child: Text(
-                            'Contract first buyer',
+                            '+ Contract first buyer',
                             style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -480,22 +493,27 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.cardSurface,
                           borderRadius: BorderRadius.circular(14),
-                          // Highlight selection with single 1.5px navy border, keep card light
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF241D52) : const Color(0x1A000000),
+                            color: isSelected ? AppTheme.brandRoyalBlue : AppTheme.borderLight,
                             width: isSelected ? 1.5 : 1.0,
                           ),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: const Color(0xFF241D52).withValues(alpha: 0.08),
+                                    color: AppTheme.brandRoyalBlue.withValues(alpha: 0.1),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
                                 ]
-                              : null,
+                              : const [
+                                  BoxShadow(
+                                    color: Color(0x06000000),
+                                    blurRadius: 3,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,9 +526,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFAF7F0),
+                                    color: AppTheme.mintSurface,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0x1A000000)),
+                                    border: Border.all(color: const Color(0x3314C8B4)),
                                   ),
                                   child: Center(
                                     child: Text(
@@ -520,7 +538,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF332B6B),
+                                        color: AppTheme.headingObsidian,
                                       ),
                                     ),
                                   ),
@@ -540,7 +558,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF1C1C1A),
+                                                color: AppTheme.headingObsidian,
                                               ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -549,7 +567,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                             const SizedBox(width: 6),
                                             Text(
                                               '• ${buyer.brandName}',
-                                              style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65)),
+                                              style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
@@ -561,7 +579,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF9B9A94),
+                                          color: AppTheme.faintInk,
                                         ),
                                       ),
                                     ],
@@ -573,15 +591,16 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEDEBF9),
+                                      color: AppTheme.mintSurface,
                                       borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0x3314C8B4)),
                                     ),
                                     child: Text(
                                       buyer.linkedArticleNumber!,
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF332B6B),
+                                        color: AppTheme.headingObsidian,
                                       ),
                                     ),
                                   )
@@ -611,7 +630,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     width: 22,
                                     height: 22,
                                     decoration: const BoxDecoration(
-                                      color: Color(0xFF241D52),
+                                      color: AppTheme.brandRoyalBlue,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
@@ -622,7 +641,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     height: 22,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: const Color(0x33000000)),
+                                      border: Border.all(color: AppTheme.borderLight),
                                     ),
                                   ),
                               ],
@@ -633,8 +652,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFAFAF8),
+                                color: AppTheme.bgCanvas,
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.borderLight),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -643,8 +663,8 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     '${NumberFormat.decimalPattern('en_IN').format(buyer.contractedVolume)} Pcs · $curSym${buyer.pricePerPiece.toStringAsFixed(2)} / pc',
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF6B6A65),
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.bodyInk,
                                     ),
                                   ),
                                   Text(
@@ -652,7 +672,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1C1C1A),
+                                      color: AppTheme.headingObsidian,
                                     ),
                                   ),
                                 ],
@@ -667,7 +687,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                 // Link / Change Article button
                                 TextButton.icon(
                                   style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF332B6B),
+                                    foregroundColor: AppTheme.brandRoyalBlue,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -684,9 +704,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                 // View Contract button
                                 OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF332B6B),
-                                    backgroundColor: const Color(0xFFFAF7F0),
-                                    side: const BorderSide(color: Color(0x1A000000)),
+                                    foregroundColor: AppTheme.headingObsidian,
+                                    backgroundColor: Colors.white,
+                                    side: const BorderSide(color: AppTheme.borderLight),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                     minimumSize: Size.zero,
@@ -703,7 +723,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
 
                                 // Delete button
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF9B9A94)),
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppTheme.faintInk),
                                   visualDensity: VisualDensity.compact,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -734,9 +754,16 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -745,11 +772,11 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAF7F0),
+              color: AppTheme.mintSurface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0x1A000000)),
+              border: Border.all(color: const Color(0x3314C8B4)),
             ),
-            child: Icon(icon, color: const Color(0xFF332B6B), size: 16),
+            child: Icon(icon, color: AppTheme.headingObsidian, size: 16),
           ),
           const SizedBox(height: 10),
           Text(
@@ -757,7 +784,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 9.5,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF9B9A94),
+              color: AppTheme.faintInk,
               letterSpacing: 0.3,
             ),
             maxLines: 1,
@@ -772,7 +799,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1C1C1A),
+                color: AppTheme.headingObsidian,
               ),
               children: unit != null
                   ? [
@@ -781,7 +808,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                         style: GoogleFonts.publicSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF6B6A65),
+                          color: AppTheme.bodyInk,
                         ),
                       ),
                     ]
@@ -804,10 +831,10 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF241D52) : const Color(0xFFFAF7F0),
+          color: isSelected ? AppTheme.brandMint : AppTheme.cardSurface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF241D52) : const Color(0x1A000000),
+            color: isSelected ? AppTheme.brandMint : AppTheme.borderLight,
           ),
         ),
         child: Text(
@@ -815,7 +842,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
           style: GoogleFonts.jetBrainsMono(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : const Color(0xFF6B6A65),
+            color: isSelected ? AppTheme.headingObsidian : AppTheme.bodyInk,
           ),
         ),
       ),
@@ -977,11 +1004,11 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: AppTheme.mintSurface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: const Color(0x3314C8B4)),
                       ),
-                      child: const Icon(Icons.apartment_rounded, color: Color(0xFF332B6B), size: 20),
+                      child: const Icon(Icons.apartment_rounded, color: AppTheme.headingObsidian, size: 20),
                     ),
                     const SizedBox(width: 10),
                     Column(
@@ -992,24 +1019,24 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1C1C1A),
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
                         Text(
                           'Record volume, unit rate, and contract terms',
-                          style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65)),
+                          style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                         ),
                       ],
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFF6B6A65)),
+                  icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const Divider(height: 20, color: Color(0xFFF1F5F9)),
+            const Divider(height: 20, color: AppTheme.borderLight),
 
             Expanded(
               child: SingleChildScrollView(
@@ -1131,9 +1158,9 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFAF7F0),
+                        color: AppTheme.bgCanvas,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0x1A000000)),
+                        border: Border.all(color: AppTheme.borderLight),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1143,7 +1170,7 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B6A65),
+                              color: AppTheme.faintInk,
                             ),
                           ),
                           Text(
@@ -1151,7 +1178,7 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: const Color(0xFF332B6B),
+                              color: AppTheme.headingObsidian,
                             ),
                           ),
                         ],
@@ -1207,7 +1234,7 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
             // Submit Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF241D52),
+                backgroundColor: AppTheme.brandRoyalBlue,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1239,7 +1266,7 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
         style: GoogleFonts.jetBrainsMono(
           fontSize: 9.5,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFF6B6A65),
+          color: AppTheme.faintInk,
           letterSpacing: 0.3,
         ),
       ),
@@ -1249,21 +1276,21 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFB6B4AC)),
+      hintStyle: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.faintInk),
       filled: true,
-      fillColor: const Color(0xFFFAFAF8),
+      fillColor: AppTheme.cardSurface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0x1A000000)),
+        borderSide: const BorderSide(color: AppTheme.borderLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0x1A000000)),
+        borderSide: const BorderSide(color: AppTheme.borderLight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF332B6B), width: 1.5),
+        borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
       ),
     );
   }
@@ -1353,11 +1380,11 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: AppTheme.mintSurface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x3314C8B4)),
                     ),
-                    child: const Icon(Icons.layers_outlined, color: Color(0xFF332B6B), size: 20),
+                    child: const Icon(Icons.layers_outlined, color: AppTheme.headingObsidian, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -1368,24 +1395,24 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1C1C1A),
+                          color: AppTheme.headingObsidian,
                         ),
                       ),
                       Text(
                         'Allocate article to ${widget.buyer.buyerName}',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65)),
+                        style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                       ),
                     ],
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF6B6A65)),
+                icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+          const Divider(height: 20, color: AppTheme.borderLight),
 
           Expanded(
             child: articles.isEmpty
@@ -1393,7 +1420,7 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                     child: Text(
                       'No Tech Pack articles available. Create articles in Design Studio first.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF9B9A94)),
+                      style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.faintInk),
                     ),
                   )
                 : ListView.separated(
@@ -1409,10 +1436,10 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFEDEBF9) : const Color(0xFFFAFAF8),
+                            color: isSelected ? AppTheme.mintSurface : AppTheme.cardSurface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF332B6B) : const Color(0x1A000000),
+                              color: isSelected ? AppTheme.brandMint : AppTheme.borderLight,
                               width: isSelected ? 1.5 : 1.0,
                             ),
                           ),
@@ -1422,11 +1449,11 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AppTheme.bgCanvas,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0x1A000000)),
+                                  border: Border.all(color: AppTheme.borderLight),
                                 ),
-                                child: const Icon(Icons.checkroom_outlined, size: 18, color: Color(0xFF332B6B)),
+                                child: const Icon(Icons.checkroom_outlined, size: 18, color: AppTheme.headingObsidian),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -1438,13 +1465,13 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1C1C1A),
+                                        color: AppTheme.headingObsidian,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '${art.category} • ${art.fabricComposition}',
-                                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF6B6A65)),
+                                      style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1452,7 +1479,7 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                                 ),
                               ),
                               if (isSelected)
-                                const Icon(Icons.check_circle_rounded, color: Color(0xFF332B6B), size: 20),
+                                const Icon(Icons.check_circle_rounded, color: AppTheme.brandMint, size: 20),
                             ],
                           ),
                         ),
@@ -1464,7 +1491,7 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
 
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF241D52),
+              backgroundColor: AppTheme.brandRoyalBlue,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1538,11 +1565,11 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAF7F0),
+                      color: AppTheme.mintSurface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: const Color(0x3314C8B4)),
                     ),
-                    child: const Icon(Icons.description_outlined, color: Color(0xFF332B6B), size: 20),
+                    child: const Icon(Icons.description_outlined, color: AppTheme.headingObsidian, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -1553,24 +1580,24 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF1C1C1A),
+                          color: AppTheme.headingObsidian,
                         ),
                       ),
                       Text(
                         'Ref: ${buyer.buyerCode} • ${buyer.brandName ?? "Direct Buyer"}',
-                        style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: const Color(0xFF6B6A65)),
+                        style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.faintInk),
                       ),
                     ],
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF6B6A65)),
+                icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+          const Divider(height: 20, color: AppTheme.borderLight),
 
           Expanded(
             child: SingleChildScrollView(
@@ -1609,9 +1636,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1624,21 +1651,22 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF6B6A65),
+                                color: AppTheme.faintInk,
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isLinked ? const Color(0xFFE9F7EE) : const Color(0xFFFEF3C7),
+                                color: isLinked ? AppTheme.mintSurface : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: isLinked ? const Color(0x3314C8B4) : const Color(0xFFFDE68A)),
                               ),
                               child: Text(
                                 isLinked ? 'Active' : 'Action Required',
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
-                                  color: isLinked ? const Color(0xFF1B7A43) : const Color(0xFF92400E),
+                                  color: isLinked ? AppTheme.headingObsidian : const Color(0xFF92400E),
                                 ),
                               ),
                             ),
@@ -1657,13 +1685,13 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF332B6B),
+                                      color: AppTheme.headingObsidian,
                                     ),
                                   ),
                                   if (buyer.linkedArticleName != null)
                                     Text(
                                       buyer.linkedArticleName!,
-                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF6B6A65)),
+                                      style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.bodyInk),
                                     ),
                                 ],
                               ),
@@ -1671,7 +1699,7 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                                 onPressed: () => onOpenLinkModal(buyer),
                                 child: Text(
                                   'Change',
-                                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF332B6B)),
+                                  style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.brandRoyalBlue),
                                 ),
                               ),
                             ],
@@ -1679,12 +1707,12 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         ] else ...[
                           Text(
                             'No tech pack article linked yet.',
-                            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF9B9A94)),
+                            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.faintInk),
                           ),
                           const SizedBox(height: 8),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF332B6B),
+                              backgroundColor: AppTheme.brandRoyalBlue,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1703,9 +1731,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.cardSurface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1715,7 +1743,7 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B6A65),
+                            color: AppTheme.faintInk,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -1735,16 +1763,19 @@ class _ViewContractBottomSheet extends ConsumerWidget {
           ),
 
           // Close button
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF241D52),
-              foregroundColor: Colors.white,
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.headingObsidian,
+              backgroundColor: Colors.white,
+              side: const BorderSide(color: AppTheme.borderLight),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              elevation: 0,
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close Contract View'),
+            child: Text(
+              'Close Contract View',
+              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -1755,9 +1786,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF7F0),
+        color: AppTheme.bgCanvas,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1767,7 +1798,7 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 8.5,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF9B9A94),
+              color: AppTheme.faintInk,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1778,7 +1809,7 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             style: GoogleFonts.jetBrainsMono(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: isPrimary ? const Color(0xFF332B6B) : const Color(0xFF1C1C1A),
+              color: AppTheme.headingObsidian,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1796,12 +1827,12 @@ class _ViewContractBottomSheet extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF6B6A65)),
+            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
           ),
           Flexible(
             child: Text(
               value,
-              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C1A)),
+              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
               textAlign: TextAlign.right,
             ),
           ),
