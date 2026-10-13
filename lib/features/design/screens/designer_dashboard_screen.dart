@@ -130,7 +130,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
     final displayedBriefs = _selectedTab == 0 ? activeBriefs : historyBriefs;
 
     return Scaffold(
-      backgroundColor: AppTheme.canvasCream,
+      backgroundColor: AppTheme.bgCanvas,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -157,7 +157,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.brandSteel),
+            icon: const Icon(Icons.refresh, color: AppTheme.brandRoyalBlue),
             onPressed: () => ref.read(designerProvider.notifier).fetchAllocatedBriefs(),
           ),
           IconButton(
@@ -175,9 +175,9 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
         ],
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.brandSteel))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue))
           : RefreshIndicator(
-              color: AppTheme.brandSteel,
+              color: AppTheme.brandRoyalBlue,
               onRefresh: () => ref.read(designerProvider.notifier).fetchAllocatedBriefs(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -253,7 +253,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                                     style: GoogleFonts.jetBrainsMono(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.brandSteel,
+                                      color: AppTheme.brandRoyalBlue,
                                     ),
                                   ),
                                 ),
@@ -269,8 +269,8 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: AppTheme.canvasCream,
-                        borderRadius: BorderRadius.circular(14),
+                        color: AppTheme.cardSurface,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTheme.standardBorder),
                       ),
                       child: Row(
@@ -282,7 +282,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: _selectedTab == 0 ? AppTheme.brandSteel : Colors.transparent,
+                                  color: _selectedTab == 0 ? AppTheme.brandRoyalBlue : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Center(
@@ -317,7 +317,7 @@ class _DesignerDashboardScreenState extends ConsumerState<DesignerDashboardScree
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: _selectedTab == 1 ? AppTheme.brandSteel : Colors.transparent,
+                                  color: _selectedTab == 1 ? AppTheme.brandRoyalBlue : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Center(
