@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../../design/screens/tech_pack_catalog_screen.dart';
@@ -76,7 +77,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             }).toList();
 
             return AlertDialog(
-              backgroundColor: Colors.white,
+              backgroundColor: AppTheme.cardSurface,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -88,11 +89,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C1A),
+                      color: AppTheme.headingObsidian,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF6B6A65)),
+                    icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.bodyInk),
                     onPressed: () => Navigator.pop(ctx),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -106,19 +107,23 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   children: [
                     TextField(
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF6B6A65)),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.bodyInk),
                         hintText: 'Search buyers...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFFB6B4AC)),
+                        hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.faintInk),
                         filled: true,
-                        fillColor: const Color(0xFFFAFAF8),
+                        fillColor: AppTheme.bgCanvas,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0x1A000000)),
+                          borderSide: const BorderSide(color: AppTheme.borderLight),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0x1A000000)),
+                          borderSide: const BorderSide(color: AppTheme.borderLight),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
                         ),
                       ),
                       onChanged: (v) {
@@ -133,33 +138,43 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                               padding: const EdgeInsets.all(20),
                               child: Text(
                                 'No buyers match search.',
-                                style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF9B9A94)),
+                                style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.faintInk),
                               ),
                             )
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: filtered.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                              separatorBuilder: (_, __) => const Divider(height: 1, color: AppTheme.subtleDivider),
                               itemBuilder: (_, idx) {
                                 final b = filtered[idx];
                                 final isSelected = b.id == currentBuyerId;
                                 return ListTile(
                                   dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  tileColor: isSelected ? AppTheme.mintSurface : Colors.transparent,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                   title: Text(
                                     b.buyerName,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: isSelected ? const Color(0xFF332B6B) : const Color(0xFF1C1C1A),
+                                      color: AppTheme.headingObsidian,
                                     ),
                                   ),
                                   subtitle: Text(
                                     '${b.contractedVolume} Pcs ${b.linkedArticleNumber != null ? '• ${b.linkedArticleNumber}' : '• Pending Link'}',
-                                    style: GoogleFonts.jetBrainsMono(fontSize: 11, color: const Color(0xFF6B6A65)),
+                                    style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.bodyInk),
                                   ),
                                   trailing: isSelected
-                                      ? const Icon(Icons.check_circle_rounded, color: Color(0xFF332B6B), size: 18)
+                                      ? Container(
+                                          width: 22,
+                                          height: 22,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.brandMint,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.check, color: AppTheme.headingObsidian, size: 14),
+                                        )
                                       : null,
                                   onTap: () {
                                     ref.read(merchandisingProvider.notifier).setSelectedBuyerId(b.id);
@@ -177,7 +192,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF6B6A65)),
+                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.bodyInk),
                   ),
                 ),
               ],
@@ -190,6 +205,47 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
 
   String _formatQty(num val) {
     return NumberFormat.decimalPattern('en_IN').format(val);
+  }
+
+  Widget _buildStatusBadge(String status, String label) {
+    Color bg;
+    Color text;
+    Color border;
+    final s = status.toUpperCase().trim();
+    if (s == 'COMPLETED' || s == 'APPROVED' || s == 'IN_STOCK' || s == 'DISPATCHED') {
+      bg = AppTheme.badgeEmeraldBg;
+      text = AppTheme.badgeEmeraldText;
+      border = AppTheme.badgeEmeraldBorder;
+    } else if (s.contains('PENDING') || s.contains('REVIEW') || s.contains('WAITING')) {
+      bg = AppTheme.badgeAmberBg;
+      text = AppTheme.badgeAmberText;
+      border = AppTheme.badgeAmberBorder;
+    } else if (s.contains('REJECT') || s.contains('DELAY') || s.contains('DEFECT') || s.contains('ALTER')) {
+      bg = AppTheme.badgeRoseBg;
+      text = AppTheme.badgeRoseText;
+      border = AppTheme.badgeRoseBorder;
+    } else {
+      bg = AppTheme.badgeBlueBg;
+      text = AppTheme.badgeBlueText;
+      border = AppTheme.badgeBlueBorder;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: text,
+        ),
+      ),
+    );
   }
 
   @override
@@ -208,13 +264,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: AppTheme.bgCanvas,
       drawer: const WorkspaceHubDrawer(activeRoute: '/merchandising'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF332B6B),
+        color: AppTheme.brandRoyalBlue,
         backgroundColor: Colors.white,
         onRefresh: () => ref.read(merchandisingProvider.notifier).fetchMerchandisingData(),
         child: SingleChildScrollView(
@@ -224,14 +280,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // =========================================================
-              // 1. PAGE HEADER CARD (#FAFAF8)
+              // 1. PAGE HEADER CARD (#FFFFFF with border-slate-200)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,13 +306,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppTheme.mintSurface,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x3314C8B4)),
                           ),
                           child: const Icon(
                             Icons.work_outline,
-                            color: Color(0xFF332B6B),
+                            color: AppTheme.headingObsidian,
                             size: 22,
                           ),
                         ),
@@ -259,11 +322,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Merchandising & sourcing desk',
+                                'Merchandising & Sourcing Desk',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: AppTheme.headingObsidian,
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -272,7 +335,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 'Real-time buyer PO contracts and critical path T&A tracking',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 12.5,
-                                  color: const Color(0xFF6B6A65),
+                                  color: AppTheme.bodyInk,
                                   height: 1.35,
                                 ),
                               ),
@@ -291,8 +354,8 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1C1C1A),
-                              side: const BorderSide(color: Color(0x26000000)),
+                              foregroundColor: AppTheme.headingObsidian,
+                              side: const BorderSide(color: AppTheme.borderLight),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 11),
                             ),
@@ -300,11 +363,15 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.people_outline_rounded, size: 16, color: Color(0xFF332B6B)),
+                                const Icon(Icons.people_outline_rounded, size: 16, color: AppTheme.headingObsidian),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Active buyers',
-                                  style: GoogleFonts.publicSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.headingObsidian,
+                                  ),
                                 ),
                               ],
                             ),
@@ -312,11 +379,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                         ),
                         const SizedBox(width: 10),
 
-                        // "+ Book new PO" filled indigo button
+                        // "+ Book new PO" Royal Blue button
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF332B6B),
+                              backgroundColor: AppTheme.brandRoyalBlue,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(vertical: 11),
@@ -326,7 +393,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.add_rounded, size: 18),
+                                const Icon(Icons.add_rounded, size: 18, color: Colors.white),
                                 const SizedBox(width: 4),
                                 Text(
                                   '+ Book new PO',
@@ -344,14 +411,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
               const SizedBox(height: 14),
 
               // =========================================================
-              // 2. SELECTED BUYER CONTRACT CARD (#FAFAF8)
+              // 2. SELECTED BUYER CONTRACT CARD (#FFFFFF)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,13 +436,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppTheme.mintSurface,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x3314C8B4)),
                           ),
                           child: const Icon(
                             Icons.business_outlined,
-                            color: Color(0xFF332B6B),
+                            color: AppTheme.headingObsidian,
                             size: 19,
                           ),
                         ),
@@ -382,7 +456,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF9B9A94),
+                                  color: AppTheme.faintInk,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -395,7 +469,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1C1C1A),
+                                        color: AppTheme.headingObsidian,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -406,16 +480,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: AppTheme.mintSurface,
                                         borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: const Color(0x1A000000)),
+                                        border: Border.all(color: const Color(0x4D14C8B4)),
                                       ),
                                       child: Text(
                                         selectedBuyer.linkedArticleNumber!,
                                         style: GoogleFonts.jetBrainsMono(
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF332B6B),
+                                          color: AppTheme.headingObsidian,
                                         ),
                                       ),
                                     ),
@@ -440,16 +514,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.bgCanvas,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0x1A000000)),
+                                border: Border.all(color: AppTheme.borderLight),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(Icons.people_alt_outlined, size: 15, color: Color(0xFF332B6B)),
+                                      const Icon(Icons.people_alt_outlined, size: 15, color: AppTheme.headingObsidian),
                                       const SizedBox(width: 8),
                                       ConstrainedBox(
                                         constraints: BoxConstraints(
@@ -460,14 +534,14 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                           style: GoogleFonts.publicSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF1C1C1A),
+                                            color: AppTheme.headingObsidian,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF6B6A65)),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppTheme.bodyInk),
                                 ],
                               ),
                             ),
@@ -485,7 +559,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0x1A000000)),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
                             child: state.isSyncing
                                 ? const Center(
@@ -494,11 +568,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Color(0xFF332B6B),
+                                        color: AppTheme.brandRoyalBlue,
                                       ),
                                     ),
                                   )
-                                : const Icon(Icons.sync_rounded, color: Color(0xFF332B6B), size: 18),
+                                : const Icon(Icons.sync_rounded, color: AppTheme.headingObsidian, size: 18),
                           ),
                         ),
                       ],
@@ -565,14 +639,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
               const SizedBox(height: 16),
 
               // =========================================================
-              // 4. LIVE REVIEW SECTION (#FAFAF8)
+              // 4. LIVE REVIEW SECTION (#FFFFFF)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,13 +668,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                               width: 34,
                               height: 34,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.mintSurface,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0x1A000000)),
+                                border: Border.all(color: const Color(0x3314C8B4)),
                               ),
                               child: const Icon(
                                 Icons.trending_up_rounded,
-                                color: Color(0xFF332B6B),
+                                color: AppTheme.headingObsidian,
                                 size: 18,
                               ),
                             ),
@@ -606,14 +687,14 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C1A),
+                                    color: AppTheme.headingObsidian,
                                   ),
                                 ),
                                 Text(
                                   'Commercial lead-time and factory floor conversion',
                                   style: GoogleFonts.publicSans(
                                     fontSize: 11,
-                                    color: const Color(0xFF6B6A65),
+                                    color: AppTheme.bodyInk,
                                   ),
                                 ),
                               ],
@@ -633,11 +714,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C1A),
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
                         InkWell(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TnaPlannerScreen()),
+                            );
+                          },
                           child: Row(
                             children: [
                               Text(
@@ -645,11 +731,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF332B6B),
+                                  color: AppTheme.brandRoyalBlue,
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFF332B6B)),
+                              const Icon(Icons.arrow_forward_rounded, size: 13, color: AppTheme.brandRoyalBlue),
                             ],
                           ),
                         ),
@@ -667,14 +753,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
               const SizedBox(height: 16),
 
               // =========================================================
-              // 6. ACTIVE COMMERCIAL ORDERS PIPELINE CARD (#FAFAF8)
+              // 6. ACTIVE COMMERCIAL ORDERS PIPELINE CARD (#FFFFFF)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -692,7 +785,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -700,16 +793,14 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 'Live buyer contracts with BOM variance and production floor handshake status',
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11,
-                                  color: const Color(0xFF6B6A65),
+                                  color: AppTheme.bodyInk,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         InkWell(
-                          onTap: () {
-                            ref.read(merchandisingProvider.notifier).setStatusFilter('ALL');
-                          },
+                          onTap: _openBuyerPurchaseOrdersScreen,
                           child: Row(
                             children: [
                               Text(
@@ -717,11 +808,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 style: GoogleFonts.publicSans(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF332B6B),
+                                  color: AppTheme.brandRoyalBlue,
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(Icons.arrow_forward_rounded, size: 13, color: Color(0xFF332B6B)),
+                              const Icon(Icons.arrow_forward_rounded, size: 13, color: AppTheme.brandRoyalBlue),
                             ],
                           ),
                         ),
@@ -729,7 +820,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     ),
                     const SizedBox(height: 12),
 
-                    // Horizontal Filter Tabs matching 8 stages
+                    // Horizontal Filter Tabs matching 8 stages (Electric Cyan #14C8B4 Active Pill)
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -753,21 +844,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.bgCanvas,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x1A000000)),
+                          border: Border.all(color: AppTheme.borderLight),
                         ),
                         child: Center(
                           child: Column(
                             children: [
-                              const Icon(Icons.work_outline, size: 36, color: Color(0xFFB6B4AC)),
+                              const Icon(Icons.work_outline, size: 36, color: AppTheme.faintInk),
                               const SizedBox(height: 8),
                               Text(
                                 state.statusFilter != 'ALL' ? 'No orders in this stage' : 'No active commercial orders',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C1A),
+                                  color: AppTheme.headingObsidian,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -775,12 +866,12 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 state.statusFilter != 'ALL'
                                     ? 'Try switching tabs or resetting the filter.'
                                     : 'Book a buyer purchase order to begin tracking.',
-                                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF6B6A65)),
+                                style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.bodyInk),
                               ),
                               const SizedBox(height: 12),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF332B6B),
+                                  backgroundColor: AppTheme.brandRoyalBlue,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -810,14 +901,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
               const SizedBox(height: 16),
 
               // =========================================================
-              // 7. COMMERCIAL ACTIVITY STREAM CARD (#FAFAF8)
+              // 7. COMMERCIAL ACTIVITY STREAM CARD (#FFFFFF)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF8),
+                  color: AppTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0x1A000000)),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,10 +929,10 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C1A),
+                            color: AppTheme.headingObsidian,
                           ),
                         ),
-                        const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFF332B6B)),
+                        const Icon(Icons.access_time_rounded, size: 18, color: AppTheme.headingObsidian),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -847,7 +945,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           child: Text(
                             'No recent activity. Activity logs appear automatically as purchase orders progress.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF9B9A94)),
+                            style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.faintInk),
                           ),
                         ),
                       )
@@ -855,7 +953,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       ...activities.map((act) => _buildActivityItem(act)),
 
                     const SizedBox(height: 12),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                    const Divider(height: 1, color: AppTheme.subtleDivider),
                     const SizedBox(height: 12),
 
                     // Footer Row
@@ -866,14 +964,15 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                           'Real-time ERP synchronization',
                           style: GoogleFonts.publicSans(
                             fontSize: 11.5,
-                            color: const Color(0xFF6B6A65),
+                            color: AppTheme.bodyInk,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE9F7EE),
+                            color: AppTheme.badgeEmeraldBg,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.badgeEmeraldBorder),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -882,7 +981,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 width: 6,
                                 height: 6,
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF1B7A43),
+                                  color: AppTheme.badgeEmeraldText,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -892,7 +991,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1B7A43),
+                                  color: AppTheme.badgeEmeraldText,
                                 ),
                               ),
                             ],
@@ -923,9 +1022,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFAF8),
+          color: AppTheme.cardSurface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0x1A000000)),
+          border: Border.all(color: AppTheme.borderLight),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -938,13 +1044,13 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.mintSurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x1A000000)),
+                    border: Border.all(color: const Color(0x3314C8B4)),
                   ),
-                  child: Icon(icon, color: const Color(0xFF332B6B), size: 17),
+                  child: Icon(icon, color: AppTheme.headingObsidian, size: 17),
                 ),
-                const Icon(Icons.arrow_outward_rounded, size: 14, color: Color(0xFF9B9A94)),
+                const Icon(Icons.arrow_outward_rounded, size: 14, color: AppTheme.faintInk),
               ],
             ),
             Column(
@@ -955,7 +1061,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF6B6A65),
+                    color: AppTheme.bodyInk,
                     letterSpacing: 0.3,
                   ),
                   maxLines: 1,
@@ -967,7 +1073,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1C1C1A),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
               ],
@@ -1008,13 +1114,20 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardSurface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0x1A000000)),
+            border: Border.all(color: AppTheme.borderLight),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x04000000),
+                blurRadius: 2,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
           child: Stack(
             children: [
-              // Left indigo accent indicator
+              // Left Electric Mint accent indicator (matching web border-l-4 border-l-[#14C8B4])
               Positioned(
                 left: 0,
                 top: 0,
@@ -1022,7 +1135,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                 child: Container(
                   width: 3.5,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF332B6B),
+                    color: AppTheme.brandMint,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1042,25 +1155,25 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B6A65),
+                              color: AppTheme.bodyInk,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAF8),
+                            color: AppTheme.mintSurface,
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0x1A000000)),
+                            border: Border.all(color: const Color(0x4D14C8B4)),
                           ),
                           child: Text(
                             '$pct%',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF332B6B),
+                              color: AppTheme.headingObsidian,
                             ),
                           ),
                         ),
@@ -1071,7 +1184,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                     // Progress bar
@@ -1079,9 +1192,9 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       borderRadius: BorderRadius.circular(2),
                       child: LinearProgressIndicator(
                         value: (pct / 100.0).clamp(0.0, 1.0),
-                        backgroundColor: const Color(0xFFF1F5F9),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF332B6B)),
-                        minHeight: 3,
+                        backgroundColor: AppTheme.subtleDivider,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandRoyalBlue),
+                        minHeight: 3.5,
                       ),
                     ),
                   ],
@@ -1106,10 +1219,10 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF332B6B) : Colors.white,
+            color: isSelected ? AppTheme.brandMint : AppTheme.bgCanvas,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? const Color(0xFF332B6B) : const Color(0x1A000000),
+              color: isSelected ? AppTheme.brandMint : AppTheme.borderLight,
             ),
           ),
           child: Text(
@@ -1117,7 +1230,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             style: GoogleFonts.publicSans(
               fontSize: 11.5,
               fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : const Color(0xFF6B6A65),
+              color: isSelected ? AppTheme.headingObsidian : AppTheme.bodyInk,
             ),
           ),
         ),
@@ -1129,9 +1242,16 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1152,7 +1272,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF332B6B),
+                        color: AppTheme.headingObsidian,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1160,10 +1280,10 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                     const SizedBox(height: 2),
                     Text(
                       ord.brandName,
-                      style: GoogleFonts.publicSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1183,7 +1303,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1194,7 +1314,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       ord.styleName,
                       style: GoogleFonts.publicSans(
                         fontSize: 10.5,
-                        color: const Color(0xFF6B6A65),
+                        color: AppTheme.bodyInk,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1206,7 +1326,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             ],
           ),
           const SizedBox(height: 10),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppTheme.subtleDivider),
           const SizedBox(height: 10),
 
           // Volume, FOB & Contract Value, Route, Status
@@ -1224,7 +1344,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1A),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -1232,7 +1352,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                       '${ord.currency == 'INR' ? '₹' : '\$'}${ord.unitFobPrice.toStringAsFixed(0)} • ${ord.currency == 'INR' ? '₹' : '\$'}${(ord.totalContractValue >= 100000 ? '${(ord.totalContractValue / 100000).toStringAsFixed(1)}L' : '${(ord.totalContractValue / 1000).toStringAsFixed(0)}k')}',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
-                        color: const Color(0xFF6B6A65),
+                        color: AppTheme.bodyInk,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1248,36 +1368,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
+                      color: AppTheme.bgCanvas,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0x1A000000)),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                     child: Text(
                       ord.routeLabel,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF332B6B),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9F7EE),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0x331B7A43)),
-                    ),
-                    child: Text(
-                      ord.statusLabel,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1B7A43),
-                      ),
-                    ),
-                  ),
+                  _buildStatusBadge(ord.status, ord.statusLabel),
                 ],
               ),
             ],
@@ -1290,9 +1395,9 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             children: [
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFAFAF8),
-                  foregroundColor: const Color(0xFF332B6B),
-                  side: const BorderSide(color: Color(0x1A000000)),
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.headingObsidian,
+                  side: const BorderSide(color: AppTheme.borderLight),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   minimumSize: const Size(0, 0),
@@ -1303,7 +1408,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
               const SizedBox(width: 8),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF332B6B),
+                  backgroundColor: AppTheme.brandRoyalBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1325,9 +1430,9 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x1A000000)),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1336,11 +1441,11 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF8),
+              color: AppTheme.mintSurface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0x1A000000)),
+              border: Border.all(color: const Color(0x3314C8B4)),
             ),
-            child: const Icon(Icons.work_outline, color: Color(0xFF332B6B), size: 16),
+            child: const Icon(Icons.work_outline, color: AppTheme.headingObsidian, size: 16),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1352,7 +1457,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1C1C1A),
+                    color: AppTheme.headingObsidian,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1360,7 +1465,7 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   act.details,
                   style: GoogleFonts.publicSans(
                     fontSize: 11,
-                    color: const Color(0xFF6B6A65),
+                    color: AppTheme.bodyInk,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1369,20 +1474,21 @@ class _MerchandisingDashboardScreenState extends ConsumerState<MerchandisingDash
                   children: [
                     Text(
                       act.location,
-                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: const Color(0xFF9B9A94)),
+                      style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: AppTheme.faintInk),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE9F7EE),
+                        color: AppTheme.badgeEmeraldBg,
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppTheme.badgeEmeraldBorder),
                       ),
                       child: Text(
                         act.relativeTime,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1B7A43),
+                          color: AppTheme.badgeEmeraldText,
                         ),
                       ),
                     ),

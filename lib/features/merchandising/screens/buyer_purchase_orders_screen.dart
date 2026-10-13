@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/merchandising_models.dart';
@@ -78,73 +79,37 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
     final s = _normalizeStatus(rawStatus);
     switch (s) {
       case 'IN_CUTTING':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'IN CUTTING',
-        );
       case 'IN_PRINTING':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'IN PRINTING',
-        );
       case 'IN_EMBROIDERY':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'IN EMBROIDERY',
-        );
       case 'IN_SEWING':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'IN SEWING',
-        );
       case 'IRON':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'IRON',
-        );
       case 'WASHING':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
-          label: 'WASHING',
+        return _StatusBadgeConfig(
+          bg: AppTheme.badgeBlueBg,
+          border: AppTheme.badgeBlueBorder,
+          text: AppTheme.badgeBlueText,
+          label: s.replaceAll('_', ' '),
         );
       case 'ALTER':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFF0FDFA),
-          border: Color(0x26000000),
-          text: Color(0xFF0B1220),
+          bg: AppTheme.badgeRoseBg,
+          border: AppTheme.badgeRoseBorder,
+          text: AppTheme.badgeRoseText,
           label: 'ALTER',
         );
       case 'DISPATCHED':
-        return const _StatusBadgeConfig(
-          bg: Color(0xFFDCFCE7),
-          border: Color(0xFFBBF7D0),
-          text: Color(0xFF15803D),
-          label: 'DISPATCHED',
-        );
       case 'COMPLETED':
         return const _StatusBadgeConfig(
-          bg: Color(0xFFDCFCE7),
-          border: Color(0xFFBBF7D0),
-          text: Color(0xFF15803D),
+          bg: AppTheme.badgeEmeraldBg,
+          border: AppTheme.badgeEmeraldBorder,
+          text: AppTheme.badgeEmeraldText,
           label: 'COMPLETED',
         );
       default:
         return _StatusBadgeConfig(
-          bg: const Color(0xFFF0FDFA),
-          border: const Color(0x26000000),
-          text: const Color(0xFF0B1220),
+          bg: AppTheme.badgeNeutralBg,
+          border: AppTheme.badgeNeutralBorder,
+          text: AppTheme.headingObsidian,
           label: s.replaceAll('_', ' ').toUpperCase(),
         );
     }
@@ -742,16 +707,16 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFF1F5F9),
+                        color: isSelected ? AppTheme.brandMint : AppTheme.bgCanvas,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+                          color: isSelected ? AppTheme.brandMint : AppTheme.borderLight,
                           width: 0.8,
                         ),
                         boxShadow: isSelected
                             ? const [
                                 BoxShadow(
-                                  color: Color(0x1F1D4ED8),
+                                  color: Color(0x1F14C8B4),
                                   blurRadius: 3,
                                   offset: Offset(0, 1),
                                 ),
@@ -765,8 +730,8 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                             tabLabel,
                             style: GoogleFonts.publicSans(
                               fontSize: 11.5,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                              color: isSelected ? Colors.white : const Color(0xFF475569),
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              color: isSelected ? AppTheme.headingObsidian : AppTheme.bodyInk,
                             ),
                           ),
                           if (count > 0 || tabKey == 'ALL') ...[
@@ -775,8 +740,8 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                               padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0x33FFFFFF)
-                                    : const Color(0x0A000000),
+                                    ? AppTheme.headingObsidian
+                                    : AppTheme.subtleDivider,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -784,7 +749,7 @@ class _BuyerPurchaseOrdersScreenState extends ConsumerState<BuyerPurchaseOrdersS
                                 style: GoogleFonts.jetBrainsMono(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                  color: isSelected ? Colors.white : AppTheme.bodyInk,
                                 ),
                               ),
                             ),
