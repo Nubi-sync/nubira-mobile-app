@@ -634,21 +634,6 @@ class AdminDrawer extends ConsumerWidget {
                     _buildSectionHeader('PRODUCTION OPERATIONS'),
                     _buildDrawerItem(
                       context: context,
-                      icon: Icons.layers_outlined,
-                      title: 'Production Chart',
-                      isSelected: activeRoute == '/stitching-sewing/production-orders',
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (activeRoute != '/stitching-sewing/production-orders') {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
-                          );
-                        }
-                      },
-                    ),
-                    _buildDrawerItem(
-                      context: context,
                       icon: Icons.precision_manufacturing_outlined,
                       title: 'Floor Overview',
                       isSelected: activeRoute == '/stitching-sewing/production-manager',
@@ -658,6 +643,21 @@ class AdminDrawer extends ConsumerWidget {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (_) => const ProductionManagerDashboard()),
+                          );
+                        }
+                      },
+                    ),
+                    _buildDrawerItem(
+                      context: context,
+                      icon: Icons.layers_outlined,
+                      title: 'Production Chart',
+                      isSelected: activeRoute == '/stitching-sewing/production-orders',
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (activeRoute != '/stitching-sewing/production-orders') {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
                           );
                         }
                       },
