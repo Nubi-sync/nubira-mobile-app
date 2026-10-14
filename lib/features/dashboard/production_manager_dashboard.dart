@@ -571,6 +571,16 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final tenant = authState.tenantProfile;
+    final companyName = (tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
+        ? tenant.companyName.trim()
+        : 'Nubira Creation';
+    final user = supabase.auth.currentUser;
+    final userName = user?.userMetadata?['full_name'] ??
+        user?.email?.split('@')[0] ??
+        'Production Manager';
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppTheme.bg,
@@ -590,7 +600,15 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                     const ConnectivityIndicator(),
                     const SizedBox(height: 8),
 
-                    // Floor Header & Shift Info
+                    // 1. Breadcrumbs Row
+                    _buildBreadcrumbs(companyName),
+                    const SizedBox(height: 10),
+
+                    // 2. Welcome Hero Card (Main Landing Screen)
+                    _buildHeroCard(companyName, userName),
+                    const SizedBox(height: 14),
+
+                    // 3. Floor Header & Shift Info
                     _buildShiftBanner(),
                     const SizedBox(height: 14),
 
@@ -801,6 +819,169 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         ),
         const SizedBox(width: 8),
       ],
+    );
+  }
+
+  Widget _buildBreadcrumbs(String companyName) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Workspace Hub / Sewing Operations / Floor Overview',
+            style: GoogleFonts.publicSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.faintInk,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: AppTheme.mintSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.badgeMintBorder),
+          ),
+          child: Text(
+            companyName,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.headingObsidian,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroCard(String companyName, String userName) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppTheme.mintSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.badgeMintBorder),
+                ),
+                child: const Icon(
+                  Icons.precision_manufacturing_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Welcome, $companyName',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.headingObsidian,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.mintSurface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.badgeMintBorder),
+                          ),
+                          child: Text(
+                            'MES Floor',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.headingObsidian,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Live factory floor overview, line tracking, bottleneck alerts & supervisor shifts.',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 11.5,
+                        color: AppTheme.bodyInk,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _showCreateChallanModal,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.brandRoyalBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text('+ New Delivery Challan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.headingObsidian,
+                    side: const BorderSide(color: AppTheme.borderLight),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  icon: const Icon(Icons.layers_outlined, size: 16),
+                  label: Text('Production Chart', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

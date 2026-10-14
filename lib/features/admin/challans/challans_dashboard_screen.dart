@@ -684,7 +684,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
                       children: [
                         Flexible(
                           child: Text(
-                            'Welcome, $companyName',
+                            'Production & Job Work Challans',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
