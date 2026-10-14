@@ -218,9 +218,19 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final tenant = authState.tenantProfile;
-    final companyName = tenant?.companyName ?? 'Nubira Creation';
-    final userName = tenant?.userEmail ?? authState.cachedUsername ?? 'AJ';
+    final currentUser = supabase.auth.currentUser;
+    final companyName = (tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
+        ? tenant!.companyName.trim()
+        : (currentUser?.userMetadata?['company_name'] ??
+           currentUser?.userMetadata?['company'] ??
+           '').toString().trim();
+    final userName = (authState.cachedUsername != null && authState.cachedUsername!.trim().isNotEmpty && !authState.cachedUsername!.contains('@'))
+        ? authState.cachedUsername!.trim()
+        : (tenant?.adminDisplayName != null && tenant!.adminDisplayName.trim().isNotEmpty && !tenant.adminDisplayName.contains('@')
+            ? tenant.adminDisplayName.trim()
+            : (currentUser?.userMetadata?['full_name'] ??
+               currentUser?.email?.split('@').first ??
+               ''));
 
     final challansAsync = ref.watch(challanGroupedOrdersProvider);
 

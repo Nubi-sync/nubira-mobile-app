@@ -893,28 +893,34 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: AppTheme.mintSurface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.badgeMintBorder),
-          ),
-          child: Text(
-            companyName,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.headingObsidian,
+        if (companyName.trim().isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: AppTheme.mintSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.badgeMintBorder),
+            ),
+            child: Text(
+              companyName.trim(),
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.headingObsidian,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
 
   Widget _buildHeroCard(String companyName, String userName) {
+    final String displayName = companyName.trim().isNotEmpty
+        ? companyName.trim()
+        : (userName.trim().isNotEmpty ? userName.trim() : 'Production Floor');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -958,7 +964,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                       children: [
                         Flexible(
                           child: Text(
-                            'Welcome, $companyName',
+                            'Welcome, $displayName',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
@@ -976,7 +982,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                             border: Border.all(color: AppTheme.badgeMintBorder),
                           ),
                           child: Text(
-                            'MES Floor',
+                            userName.trim().isNotEmpty && userName.trim() != displayName
+                                ? userName.trim()
+                                : 'MES Floor',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,
@@ -988,7 +996,9 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Live factory floor overview, line tracking, bottleneck alerts & supervisor shifts.',
+                      userName.trim().isNotEmpty && companyName.trim().isNotEmpty && userName.trim() != companyName.trim()
+                          ? 'Signed in as $userName · Live floor tracking & supervisor shifts.'
+                          : 'Live factory floor overview, line tracking, bottleneck alerts & supervisor shifts.',
                       style: GoogleFonts.publicSans(
                         fontSize: 11.5,
                         color: AppTheme.bodyInk,
