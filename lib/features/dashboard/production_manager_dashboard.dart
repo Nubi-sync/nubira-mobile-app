@@ -46,6 +46,10 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   String? _selectedLinemanId;
   String? _selectedLinemanName;
 
+  // Dynamic user and company identity
+  String _companyName = '';
+  String _userName = '';
+
   Timer? _autoRefreshTimer;
 
   @override
@@ -83,17 +87,51 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     try {
       final currentUser = supabase.auth.currentUser;
       ResolvedTenantProfile? tenant;
+      String compName = '';
+      String usrName = '';
       if (currentUser != null) {
         try {
           tenant = await TenantResolverService.resolveUserTenant(currentUser);
         } catch (_) {}
+
+        if (tenant != null && tenant.companyName.trim().isNotEmpty) {
+          compName = tenant.companyName.trim();
+        }
+
+        // Direct database query for accurate user profile and company
+        try {
+          final prof = await supabase
+              .from('profiles')
+              .select('username, company_name, designation')
+              .eq('id', currentUser.id)
+              .maybeSingle();
+          if (prof != null) {
+            final c = (prof['company_name'] ?? '').toString().trim();
+            if (c.isNotEmpty) compName = c;
+            final u = (prof['username'] ?? '').toString().trim();
+            if (u.isNotEmpty) usrName = u;
+          }
+        } catch (_) {}
+
+        if (compName.isEmpty) {
+          compName = (currentUser.userMetadata?['company_name'] ?? currentUser.userMetadata?['company'] ?? '').toString().trim();
+        }
+
+        if (usrName.isEmpty && tenant != null) {
+          if (tenant.adminDisplayName.trim().isNotEmpty && !tenant.adminDisplayName.contains('@')) {
+            usrName = tenant.adminDisplayName.trim();
+          } else if (tenant.customUsername.trim().isNotEmpty && !tenant.customUsername.contains('@')) {
+            usrName = tenant.customUsername.trim();
+          }
+        }
+        if (usrName.isEmpty) {
+          usrName = (currentUser.userMetadata?['full_name'] ?? currentUser.userMetadata?['username'] ?? currentUser.email?.split('@').first ?? '').toString().trim();
+        }
       }
       final isPlatformSuper = tenant?.isPlatformAdmin == true || tenant?.role == 'PLATFORM_SUPERADMIN';
-      final isCustomPlant = tenant?.isCustomStitching == true || tenant?.companyName.toLowerCase().contains('nubira') == true;
+      final isCustomPlant = tenant?.isCustomStitching == true || (compName.isNotEmpty && compName.toLowerCase().contains('nubira'));
       final isProvisionedTenant = tenant?.isProvisionedTenant == true;
-      final targetComp = (tenant != null && tenant.companyName.trim().isNotEmpty)
-          ? tenant.companyName.trim().toLowerCase()
-          : null;
+      final targetComp = compName.isNotEmpty ? compName.toLowerCase() : null;
 
       // 1. Concurrently fetch all floor orders, challans, and allotments data safely without fragile PostgREST FK join syntax
       List<ChallanGroupedOrder> groupedChallans = [];
@@ -539,6 +577,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
       if (mounted) {
         setState(() {
+          if (compName.isNotEmpty) _companyName = compName;
+          if (usrName.isNotEmpty) _userName = usrName;
           _allotments = enrichedAllotments;
           _linemenSummary = linemenMap.values.toList();
           _bottlenecks = alertBottlenecks;
@@ -573,13 +613,30 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final tenant = authState.tenantProfile;
-    final companyName = (tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
-        ? tenant.companyName.trim()
-        : 'Nubira Creation';
-    final user = supabase.auth.currentUser;
-    final userName = user?.userMetadata?['full_name'] ??
-        user?.email?.split('@')[0] ??
-        'Production Manager';
+    final currentUser = supabase.auth.currentUser;
+
+    // Dynamically resolve company name without hardcoded fallbacks
+    final String companyName = _companyName.isNotEmpty
+        ? _companyName
+        : ((tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
+            ? tenant.companyName.trim()
+            : (currentUser?.userMetadata?['company_name'] ??
+               currentUser?.userMetadata?['company'] ??
+               '').toString().trim());
+
+    // Dynamically resolve manager user name
+    final String userName = _userName.isNotEmpty
+        ? _userName
+        : ((authState.cachedUsername != null && authState.cachedUsername!.trim().isNotEmpty && !authState.cachedUsername!.contains('@'))
+            ? authState.cachedUsername!.trim()
+            : (tenant?.adminDisplayName != null && tenant!.adminDisplayName.trim().isNotEmpty && !tenant.adminDisplayName.contains('@')
+                ? tenant.adminDisplayName.trim()
+                : (tenant?.customUsername != null && tenant!.customUsername.trim().isNotEmpty && !tenant.customUsername.contains('@')
+                    ? tenant.customUsername.trim()
+                    : (currentUser?.userMetadata?['full_name'] ??
+                       currentUser?.userMetadata?['username'] ??
+                       currentUser?.email?.split('@').first ??
+                       'Production Manager'))));
 
     return Scaffold(
       key: _scaffoldKey,
