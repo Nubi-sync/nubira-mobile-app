@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/admin_providers.dart';
 import '../widgets/admin_drawer.dart';
@@ -218,9 +219,10 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final currentUser = supabase.auth.currentUser;
+    final tenant = authState.tenantProfile;
+    final currentUser = Supabase.instance.client.auth.currentUser;
     final companyName = (tenant?.companyName != null && tenant!.companyName.trim().isNotEmpty)
-        ? tenant!.companyName.trim()
+        ? tenant.companyName.trim()
         : (currentUser?.userMetadata?['company_name'] ??
            currentUser?.userMetadata?['company'] ??
            '').toString().trim();
@@ -231,7 +233,6 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             : (currentUser?.userMetadata?['full_name'] ??
                currentUser?.email?.split('@').first ??
                ''));
-
     final challansAsync = ref.watch(challanGroupedOrdersProvider);
 
     return Scaffold(
@@ -626,23 +627,25 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-          decoration: BoxDecoration(
-            color: AppTheme.mintSurface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.badgeMintBorder),
-          ),
-          child: Text(
-            companyName,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.headingObsidian,
+        if (companyName.trim().isNotEmpty) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: AppTheme.mintSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.badgeMintBorder),
+            ),
+            child: Text(
+              companyName.trim(),
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.headingObsidian,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
