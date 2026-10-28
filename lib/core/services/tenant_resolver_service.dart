@@ -64,12 +64,18 @@ class ResolvedTenantProfile {
   });
 
   bool get isLegacyNubira {
-    final email = userEmail.toLowerCase().trim();
     final comp = companyName.toLowerCase().trim();
-    return email == 'team.anga9@gmail.com' ||
+    final email = userEmail.toLowerCase().trim();
+    // If company name explicitly belongs to another tenant/business, NEVER treat as Nubira
+    if (comp.isNotEmpty && !comp.contains('nubira') && comp != 'account deactivated' && comp != 'zigza mes platform operations') {
+      return false;
+    }
+    return comp.contains('nubira') ||
+        email == 'team.anga9@gmail.com' ||
         email == 'admin@nubira.local' ||
+        email == 'aj@nubiracreation.com' ||
         email.endsWith('@nubira.local') ||
-        comp == 'nubira creation';
+        email.contains('nubira');
   }
 
   bool get isCustomStitching {

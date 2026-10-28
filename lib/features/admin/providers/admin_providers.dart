@@ -314,7 +314,9 @@ final challanGroupedOrdersProvider = FutureProvider.autoDispose<List<ChallanGrou
         if (p['id'] != null) p['id'].toString(): p,
     };
 
-    if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
+    final isLegacy = tenant != null ? tenant.isLegacyNubira : (targetComp?.contains('nubira') == true);
+
+    if (!isLegacy && targetComp != null && targetComp.isNotEmpty) {
       challansRaw = challansRaw.where((ch) {
         final brand = (ch['brand']?.toString() ?? '').toLowerCase();
         final notes = (ch['notes']?.toString() ?? '').toLowerCase();

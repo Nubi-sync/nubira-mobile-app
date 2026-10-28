@@ -250,8 +250,10 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           if (c['id'] != null) c['id'].toString(): c,
       };
 
-      // Filter challans and allotments by tenant account if provisioned
-      if (isProvisionedTenant && !isCustomPlant && !isPlatformSuper && targetComp != null && targetComp.isNotEmpty) {
+      final isLegacy = tenant != null ? tenant.isLegacyNubira : compName.toLowerCase().contains('nubira');
+
+      // Filter challans and allotments by tenant account if not legacy
+      if (!isLegacy && targetComp != null && targetComp.isNotEmpty) {
         allotmentsRaw = allotmentsRaw.where((al) {
           final chId = al['challan_id']?.toString() ?? '';
           final ch = challansMap[chId];
