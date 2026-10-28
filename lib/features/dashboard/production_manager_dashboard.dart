@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
@@ -31,6 +32,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
   // Floor KPI Metrics
   int _totalActiveLots = 0;
+  int _totalStocks = 0;
+  int _unallottedStocks = 0;
   int _totalTargetPieces = 0;
   int _totalStitchedPieces = 0;
   int _totalQcPassedPieces = 0;
@@ -575,6 +578,21 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
       final efficiency = sumTarget > 0 ? ((sumStitched / sumTarget) * 100).clamp(0.0, 100.0) : 0.0;
 
+      // Calculate Total Order Pipeline & Unallotted Stocks (Synced with Web Stage 01)
+      int totalChallanPcs = 0;
+      if (groupedChallans.isNotEmpty) {
+        for (var ch in groupedChallans) {
+          totalChallanPcs += ch.totalPcs;
+        }
+      } else {
+        for (var c in challansRaw) {
+          totalChallanPcs += parseQty(c['total_pcs']);
+        }
+      }
+
+      final totalStocks = totalChallanPcs > 0 ? totalChallanPcs : sumTarget;
+      final unallottedStocks = (totalStocks - sumTarget) > 0 ? (totalStocks - sumTarget) : 0;
+
       if (mounted) {
         setState(() {
           if (compName.isNotEmpty) _companyName = compName;
@@ -583,6 +601,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           _linemenSummary = linemenMap.values.toList();
           _bottlenecks = alertBottlenecks;
           _totalActiveLots = enrichedAllotments.where((a) => a['status'] != 'DISPATCHED' && a['store_inward_status'] != 'RECEIVED').length;
+          _totalStocks = totalStocks;
+          _unallottedStocks = unallottedStocks;
           _totalTargetPieces = sumTarget;
           _totalStitchedPieces = sumStitched;
           _totalQcPassedPieces = sumPassed;
@@ -1092,30 +1112,37 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   }
 
   Widget _buildKpiMetrics() {
+    final fmt = NumberFormat('#,###');
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
-      childAspectRatio: 1.15,
+      childAspectRatio: 1.10,
       children: [
         _buildMetricCard(
           stageTag: 'STAGE 01',
-          title: 'TARGET VOLUME',
-          value: '$_totalTargetPieces',
+          title: 'TOTAL STOCKS',
+          value: fmt.format(_unallottedStocks),
           unit: 'pcs',
-          subtitle: 'Active floor work',
-          icon: Icons.flag_rounded,
-          badgeText: 'ON FLOOR',
+          subtitle: 'Pending Allotment Balance',
+          icon: Icons.warehouse_rounded,
+          badgeText: 'UNALLOTTED',
           badgeBg: AppTheme.mintSurface,
           badgeBorder: AppTheme.badgeMintBorder,
           badgeTextCol: AppTheme.headingObsidian,
+          footerRightText: '${fmt.format(_totalStocks)} total',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ChallansDashboardScreen()),
+            );
+          },
         ),
         _buildMetricCard(
           stageTag: 'STAGE 02',
           title: 'SEWN OUTPUT',
-          value: '$_totalStitchedPieces',
+          value: fmt.format(_totalStitchedPieces),
           unit: 'pcs',
           subtitle: '${_floorEfficiency.toStringAsFixed(1)}% Floor Progress',
           icon: Icons.precision_manufacturing_rounded,
@@ -1127,7 +1154,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         _buildMetricCard(
           stageTag: 'STAGE 03',
           title: 'QC PASSED',
-          value: '$_totalQcPassedPieces',
+          value: fmt.format(_totalQcPassedPieces),
           unit: 'pcs',
           subtitle: 'Ready for gate pass',
           icon: Icons.verified_rounded,
@@ -1139,7 +1166,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         _buildMetricCard(
           stageTag: 'STAGE 04',
           title: 'MENDING / DEFECTS',
-          value: '$_totalMendingPieces',
+          value: fmt.format(_totalMendingPieces),
           unit: 'pcs',
           subtitle: _totalMendingPieces > 0 ? 'Pending line repairs' : 'Zero alterations',
           icon: Icons.handyman_rounded,
@@ -1163,8 +1190,10 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
     required Color badgeBg,
     required Color badgeBorder,
     required Color badgeTextCol,
+    String? footerRightText,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final cardContent = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppTheme.cardSurface,
@@ -1263,28 +1292,51 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: badgeBg,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: badgeBorder),
-            ),
-            child: Text(
-              badgeText,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                color: badgeTextCol,
-                letterSpacing: 0.3,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: badgeBorder),
+                ),
+                child: Text(
+                  badgeText,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: badgeTextCol,
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              if (footerRightText != null && footerRightText.isNotEmpty)
+                Text(
+                  footerRightText,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.faintInk,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: cardContent,
+      );
+    }
+    return cardContent;
   }
 
   Widget _buildPipelineStageTracker() {
