@@ -30,10 +30,15 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
 
-  // Floor KPI Metrics
+  // Floor KPI Metrics (6 Lifecycle Stages Synced with Web)
   int _totalActiveLots = 0;
   int _totalStocks = 0;
   int _unallottedStocks = 0;
+  int _goodsInLine = 0;
+  int _mendingChecking = 0;
+  int _readyGoods = 0;
+  int _rtoRejection = 0;
+  int _readyDelivery = 0;
   int _totalTargetPieces = 0;
   int _totalStitchedPieces = 0;
   int _totalQcPassedPieces = 0;
@@ -146,6 +151,8 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
       List<dynamic> variantsRes = [];
       List<dynamic> assignmentsRes = [];
       List<dynamic> qcLogsRes = [];
+      List<dynamic> storeRaw = [];
+      List<dynamic> dispatchRaw = [];
 
       await Future.wait([
         (() async {
@@ -209,6 +216,20 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             qcLogsRes = await supabase.from('qc_logs').select('id, allotment_id, article_id, qty_received, qty_passed, qty_rejected, defect_type, created_at').order('created_at', ascending: false).limit(100);
           } catch (e) {
             debugPrint('Floor: qcLogs error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            storeRaw = await supabase.from('store_transactions').select('id, type, quantity').limit(300);
+          } catch (e) {
+            debugPrint('Floor: store error: $e');
+          }
+        })(),
+        (() async {
+          try {
+            dispatchRaw = await supabase.from('delivery_challans').select('id, total_pieces, status').limit(200);
+          } catch (e) {
+            debugPrint('Floor: dispatch error: $e');
           }
         })(),
       ]);
@@ -578,7 +599,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
 
       final efficiency = sumTarget > 0 ? ((sumStitched / sumTarget) * 100).clamp(0.0, 100.0) : 0.0;
 
-      // Calculate Total Order Pipeline & Unallotted Stocks (Synced with Web Stage 01)
+      // Calculate 6 Factory Floor Lifecycle Stages (100% Synced with Web Factory Flow)
       int totalChallanPcs = 0;
       if (groupedChallans.isNotEmpty) {
         for (var ch in groupedChallans) {
@@ -590,8 +611,68 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
         }
       }
 
-      final totalStocks = totalChallanPcs > 0 ? totalChallanPcs : sumTarget;
-      final unallottedStocks = (totalStocks - sumTarget) > 0 ? (totalStocks - sumTarget) : 0;
+      int totalStoreInward = 0;
+      int totalStoreRto = 0;
+      for (var s in storeRaw) {
+        final t = (s['type'] ?? '').toString().toUpperCase();
+        final q = parseQty(s['quantity']);
+        if (t == 'INWARD') totalStoreInward += q;
+        if (t == 'RTO' || t == 'REJECT' || t == 'RETURN') totalStoreRto += q;
+      }
+
+      int totalDispatched = 0;
+      for (var d in dispatchRaw) {
+        totalDispatched += parseQty(d['total_pieces']);
+      }
+
+      int activeLinemanAllotmentPcs = 0;
+      int mendingFloorPcs = 0;
+
+      for (var a in rawAllotments) {
+        final aStatus = (a['status']?.toString() ?? '').toUpperCase();
+        final mStatus = (a['mending_status']?.toString() ?? '').toUpperCase();
+        final qcStatus = (a['qc_status']?.toString() ?? '').toUpperCase();
+        final tQty = parseQty(a['target_qty']);
+
+        if (aStatus != 'CANCELLED') {
+          if ((mStatus.isEmpty || mStatus == 'PENDING_STITCHING') && aStatus != 'COMPLETED') {
+            activeLinemanAllotmentPcs += tQty;
+          }
+          if (mStatus == 'PENDING_MENDING' || mStatus == 'IN_MENDING' || (aStatus == 'COMPLETED' && (qcStatus.isEmpty || qcStatus == 'PENDING_STITCHING'))) {
+            mendingFloorPcs += tQty;
+          }
+        }
+      }
+
+      if (activeLinemanAllotmentPcs == 0 && sumTarget > 0) {
+        activeLinemanAllotmentPcs = sumTarget;
+      }
+
+      final totalStocks = totalChallanPcs > 0 ? totalChallanPcs : (activeLinemanAllotmentPcs > 0 ? activeLinemanAllotmentPcs : sumTarget);
+
+      // Stage 1: Unallotted Stocks (Pending Pipeline)
+      final unallottedStocks = (totalStocks - activeLinemanAllotmentPcs) > 0
+          ? (totalStocks - activeLinemanAllotmentPcs)
+          : 0;
+
+      // Stage 2: Goods in Line (Sewing WIP)
+      final goodsInLine = activeLinemanAllotmentPcs > 0
+          ? ((activeLinemanAllotmentPcs - sumPassed - totalDispatched - sumMending) > 0
+              ? (activeLinemanAllotmentPcs - sumPassed - totalDispatched - sumMending)
+              : 0)
+          : 0;
+
+      // Stage 3: Mending & Checking
+      final mendingChecking = mendingFloorPcs + sumMending + ((sumStitched - sumPassed - totalDispatched) > 0 ? (sumStitched - sumPassed - totalDispatched) : 0);
+
+      // Stage 4: Ready Goods
+      final readyGoods = ((sumPassed - totalDispatched) > 0 ? (sumPassed - totalDispatched) : 0) + totalStoreInward;
+
+      // Stage 5: RTO & Rejection
+      final rtoRejection = totalStoreRto;
+
+      // Stage 6: Ready for Delivery
+      final readyDelivery = totalDispatched;
 
       if (mounted) {
         setState(() {
@@ -603,6 +684,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
           _totalActiveLots = enrichedAllotments.where((a) => a['status'] != 'DISPATCHED' && a['store_inward_status'] != 'RECEIVED').length;
           _totalStocks = totalStocks;
           _unallottedStocks = unallottedStocks;
+          _goodsInLine = goodsInLine;
+          _mendingChecking = mendingChecking;
+          _readyGoods = readyGoods;
+          _rtoRejection = rtoRejection;
+          _readyDelivery = readyDelivery;
           _totalTargetPieces = sumTarget;
           _totalStitchedPieces = sumStitched;
           _totalQcPassedPieces = sumPassed;
@@ -1121,11 +1207,12 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
       mainAxisSpacing: 10,
       childAspectRatio: 1.10,
       children: [
+        // STAGE 01: TOTAL STOCKS
         _buildMetricCard(
           stageTag: 'STAGE 01',
-          title: 'TOTAL STOCKS',
+          title: '1. TOTAL STOCKS',
           value: fmt.format(_unallottedStocks),
-          unit: 'pcs',
+          unit: '',
           subtitle: 'Pending Allotment Balance',
           icon: Icons.warehouse_rounded,
           badgeText: 'UNALLOTTED',
@@ -1139,41 +1226,85 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             );
           },
         ),
+
+        // STAGE 02: GOODS IN LINE
         _buildMetricCard(
           stageTag: 'STAGE 02',
-          title: 'SEWN OUTPUT',
-          value: fmt.format(_totalStitchedPieces),
-          unit: 'pcs',
-          subtitle: '${_floorEfficiency.toStringAsFixed(1)}% Floor Progress',
-          icon: Icons.precision_manufacturing_rounded,
-          badgeText: '${_floorEfficiency.toStringAsFixed(1)}% PROGRESS',
-          badgeBg: AppTheme.badgeEmeraldBg,
-          badgeBorder: AppTheme.badgeEmeraldBorder,
-          badgeTextCol: AppTheme.badgeEmeraldText,
+          title: '2. GOODS IN LINE',
+          value: fmt.format(_goodsInLine),
+          unit: '',
+          subtitle: 'Sewing Machines WIP',
+          icon: Icons.show_chart_rounded,
+          badgeText: 'ON FLOOR',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
         ),
+
+        // STAGE 03: MENDING & CHECKING
         _buildMetricCard(
           stageTag: 'STAGE 03',
-          title: 'QC PASSED',
-          value: fmt.format(_totalQcPassedPieces),
-          unit: 'pcs',
-          subtitle: 'Ready for gate pass',
-          icon: Icons.verified_rounded,
-          badgeText: 'GATE READY',
-          badgeBg: AppTheme.badgeBlueBg,
-          badgeBorder: AppTheme.badgeBlueBorder,
-          badgeTextCol: AppTheme.badgeBlueText,
+          title: '3. MENDING & CHECKING',
+          value: fmt.format(_mendingChecking),
+          unit: '',
+          subtitle: 'QC Inspection & Repairs',
+          icon: Icons.warning_amber_rounded,
+          badgeText: 'FINISHING TABLE',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MendingDashboard()),
+            );
+          },
         ),
+
+        // STAGE 04: READY GOODS
         _buildMetricCard(
           stageTag: 'STAGE 04',
-          title: 'MENDING / DEFECTS',
-          value: fmt.format(_totalMendingPieces),
-          unit: 'pcs',
-          subtitle: _totalMendingPieces > 0 ? 'Pending line repairs' : 'Zero alterations',
-          icon: Icons.handyman_rounded,
-          badgeText: _totalMendingPieces > 0 ? '$_totalMendingPieces IN REPAIR' : 'ZERO DEFECTS',
-          badgeBg: _totalMendingPieces > 0 ? AppTheme.badgeAmberBg : AppTheme.bgCanvas,
-          badgeBorder: _totalMendingPieces > 0 ? AppTheme.badgeAmberBorder : AppTheme.borderLight,
-          badgeTextCol: _totalMendingPieces > 0 ? AppTheme.badgeAmberText : AppTheme.faintInk,
+          title: '4. READY GOODS',
+          value: fmt.format(_readyGoods),
+          unit: '',
+          subtitle: 'QC Passed & Packed',
+          icon: Icons.inventory_2_rounded,
+          badgeText: 'IN GODOWN',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const QcDashboard()),
+            );
+          },
+        ),
+
+        // STAGE 05: RTO & REJECTION
+        _buildMetricCard(
+          stageTag: 'STAGE 05',
+          title: '5. RTO & REJECTION',
+          value: fmt.format(_rtoRejection),
+          unit: '',
+          subtitle: 'Return to Origin',
+          icon: Icons.replay_rounded,
+          badgeText: 'DEFECT / REJECT',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
+        ),
+
+        // STAGE 06: READY FOR DELIVERY
+        _buildMetricCard(
+          stageTag: 'STAGE 06',
+          title: '6. READY FOR DELIVERY',
+          value: fmt.format(_readyDelivery),
+          unit: '',
+          subtitle: 'Gate Pass & Dispatched',
+          icon: Icons.local_shipping_rounded,
+          badgeText: 'DISPATCHED PCS',
+          badgeBg: AppTheme.mintSurface,
+          badgeBorder: AppTheme.badgeMintBorder,
+          badgeTextCol: AppTheme.headingObsidian,
         ),
       ],
     );
@@ -1281,15 +1412,17 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                   color: AppTheme.headingObsidian,
                 ),
               ),
-              const SizedBox(width: 4),
-              Text(
-                unit,
-                style: GoogleFonts.publicSans(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.faintInk,
+              if (unit.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.faintInk,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           Row(
