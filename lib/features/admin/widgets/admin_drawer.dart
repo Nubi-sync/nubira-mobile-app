@@ -679,21 +679,6 @@ class AdminDrawer extends ConsumerWidget {
                     ),
                     _buildDrawerItem(
                       context: context,
-                      icon: Icons.assignment_ind_outlined,
-                      title: 'Supervisor Desk',
-                      isSelected: activeRoute == '/stitching-sewing/supervisor-desk',
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (activeRoute != '/stitching-sewing/supervisor-desk') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SupervisorFloorStationsScreen()),
-                          );
-                        }
-                      },
-                    ),
-                    _buildDrawerItem(
-                      context: context,
                       icon: Icons.notifications_none_rounded,
                       title: 'Notification',
                       isSelected: activeRoute == '/stitching-sewing/notifications',
