@@ -50,9 +50,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   List<Map<String, dynamic>> _linemenSummary = [];
   List<Map<String, dynamic>> _bottlenecks = [];
 
-  // Lineman Filter
+  // Lineman & Search Filters
   String? _selectedLinemanId;
   String? _selectedLinemanName;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   // Dynamic user and company identity
   String _companyName = '';
@@ -73,6 +75,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -1924,9 +1927,33 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
   }
 
   Widget _buildActiveAllotmentsSection() {
-    final filteredLots = _selectedLinemanId == null
-        ? _allotments
-        : _allotments.where((a) => a['lineman']?['id']?.toString() == _selectedLinemanId).toList();
+    final filteredLots = _allotments.where((a) {
+      if (_selectedLinemanId != null && a['lineman']?['id']?.toString() != _selectedLinemanId) {
+        return false;
+      }
+      if (_searchQuery.trim().isNotEmpty) {
+        final q = _searchQuery.trim().toLowerCase();
+        final artNo = (a['article']?['art_no']?.toString() ?? '').toLowerCase();
+        final desc = (a['article']?['description']?.toString() ?? '').toLowerCase();
+        final chNo = (a['challan']?['challan_no']?.toString() ?? a['challan_id']?.toString() ?? '').toLowerCase();
+        final lmName = (a['lineman']?['username']?.toString() ?? '').toLowerCase();
+        final color = (a['color']?.toString() ?? '').toLowerCase();
+        final size = (a['size_range']?.toString() ?? '').toLowerCase();
+        final stage = (a['stage']?.toString() ?? '').toLowerCase();
+        final brand = (a['challan']?['brand']?.toString() ?? '').toLowerCase();
+
+        final matches = artNo.contains(q) ||
+            desc.contains(q) ||
+            chNo.contains(q) ||
+            lmName.contains(q) ||
+            color.contains(q) ||
+            size.contains(q) ||
+            stage.contains(q) ||
+            brand.contains(q);
+        if (!matches) return false;
+      }
+      return true;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1951,7 +1978,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 border: Border.all(color: AppTheme.borderLight),
               ),
               child: Text(
-                _selectedLinemanId != null
+                (_selectedLinemanId != null || _searchQuery.isNotEmpty)
                     ? '${filteredLots.length} of ${_allotments.length} Lots'
                     : '${_allotments.length} Total Lots',
                 style: GoogleFonts.jetBrainsMono(
@@ -1962,6 +1989,59 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+
+        // Live Allotments Search Bar
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.borderLight),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val;
+              });
+            },
+            style: GoogleFonts.publicSans(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.headingObsidian,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search by Art No, Challan, Lineman, Pattern...',
+              hintStyle: GoogleFonts.publicSans(
+                fontSize: 12,
+                color: AppTheme.faintInk,
+                fontWeight: FontWeight.w500,
+              ),
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.faintInk),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.bodyInk),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              isDense: true,
+            ),
+          ),
         ),
         const SizedBox(height: 10),
         // Lineman Quick Filter Chips
@@ -2009,7 +2089,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             ],
           ),
         ),
-        if (_selectedLinemanId != null) ...[
+        if (_selectedLinemanId != null || _searchQuery.isNotEmpty) ...[
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -2024,7 +2104,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Filtered by: ${_selectedLinemanName?.toUpperCase() ?? "Lineman"} (${filteredLots.length} lots)',
+                    _selectedLinemanId != null && _searchQuery.isNotEmpty
+                        ? 'Filter: ${_selectedLinemanName?.toUpperCase() ?? "Line"} • "$_searchQuery" (${filteredLots.length} lots)'
+                        : _selectedLinemanId != null
+                            ? 'Filtered by: ${_selectedLinemanName?.toUpperCase() ?? "Lineman"} (${filteredLots.length} lots)'
+                            : 'Search: "$_searchQuery" (${filteredLots.length} lots)',
                     style: GoogleFonts.publicSans(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
@@ -2035,9 +2119,11 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 ),
                 InkWell(
                   onTap: () {
+                    _searchController.clear();
                     setState(() {
                       _selectedLinemanId = null;
                       _selectedLinemanName = null;
+                      _searchQuery = '';
                     });
                   },
                   child: Container(
@@ -2092,18 +2178,25 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _selectedLinemanName != null
-                      ? 'No active lots assigned to $_selectedLinemanName.'
-                      : 'Floor allotments list is empty.',
+                  _selectedLinemanName != null && _searchQuery.isNotEmpty
+                      ? 'No active lots match "$_searchQuery" for $_selectedLinemanName.'
+                      : _searchQuery.isNotEmpty
+                          ? 'No active lots match "$_searchQuery".'
+                          : _selectedLinemanName != null
+                              ? 'No active lots assigned to $_selectedLinemanName.'
+                              : 'Floor allotments list is empty.',
                   style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
+                  textAlign: TextAlign.center,
                 ),
-                if (_selectedLinemanId != null) ...[
+                if (_selectedLinemanId != null || _searchQuery.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: () {
+                      _searchController.clear();
                       setState(() {
                         _selectedLinemanId = null;
                         _selectedLinemanName = null;
+                        _searchQuery = '';
                       });
                     },
                     style: OutlinedButton.styleFrom(
