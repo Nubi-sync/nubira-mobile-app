@@ -112,31 +112,31 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
               case 'appoint_head':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const DepartmentHeadsScreen()),
+                  MaterialPageRoute(builder: (_) => DepartmentHeadsScreen()),
                 );
                 break;
               case 'design_approvals':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SaDesignApprovalsScreen()),
+                  MaterialPageRoute(builder: (_) => SaDesignApprovalsScreen()),
                 );
                 break;
               case 'cutting_floor':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CuttingLayFloorScreen()),
+                  MaterialPageRoute(builder: (_) => CuttingLayFloorScreen()),
                 );
                 break;
               case 'sewing_dashboard':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const LinemanDashboard()),
+                  MaterialPageRoute(builder: (_) => LinemanDashboard()),
                 );
                 break;
               case 'company_profile':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                 );
                 break;
             }
@@ -321,7 +321,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CuttingNotificationsScreen()),
+            MaterialPageRoute(builder: (_) => CuttingNotificationsScreen()),
           );
         },
         borderRadius: BorderRadius.circular(10),
@@ -349,7 +349,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            MaterialPageRoute(builder: (_) => ProfileScreen()),
           );
         },
         borderRadius: BorderRadius.circular(10),

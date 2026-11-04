@@ -420,7 +420,7 @@ class _IronFloorScreenState extends ConsumerState<IronFloorScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                              MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                             );
                           },
                         ),

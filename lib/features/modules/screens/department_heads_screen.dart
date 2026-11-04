@@ -170,7 +170,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
               if (context.mounted) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CuttingLayFloorScreen()),
+                  MaterialPageRoute(builder: (_) => CuttingLayFloorScreen()),
                 );
               }
             });
@@ -225,7 +225,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
               if (context.mounted) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                 );
               }
             });
@@ -583,7 +583,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CuttingNotificationsScreen()),
+                MaterialPageRoute(builder: (_) => CuttingNotificationsScreen()),
               );
             },
             borderRadius: BorderRadius.circular(12),
@@ -611,7 +611,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                 );
               },
               borderRadius: BorderRadius.circular(12),

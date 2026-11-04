@@ -469,7 +469,7 @@ class _EmbroideryStudioScreenState extends ConsumerState<EmbroideryStudioScreen>
                                   label: 'Division profile',
                                   onTap: () => Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                                    MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                                   ),
                                 ),
                               ),

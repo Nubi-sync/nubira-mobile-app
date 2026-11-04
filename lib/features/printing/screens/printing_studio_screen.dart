@@ -512,7 +512,7 @@ class _PrintingStudioScreenState extends ConsumerState<PrintingStudioScreen> {
                                   label: 'Division profile',
                                   onTap: () => Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                                    MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                                   ),
                                 ),
                               ),

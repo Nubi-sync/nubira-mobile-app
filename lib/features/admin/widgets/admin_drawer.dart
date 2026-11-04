@@ -440,7 +440,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/profile') {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },
@@ -458,7 +458,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/lineman') {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (_) => const LinemanDashboard()),
+                            MaterialPageRoute(builder: (_) => LinemanDashboard()),
                           );
                         }
                       },
@@ -500,7 +500,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/profile') {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },
@@ -560,7 +560,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/profile') {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },
@@ -620,7 +620,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/profile') {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },
@@ -710,7 +710,7 @@ class AdminDrawer extends ConsumerWidget {
                         if (activeRoute != '/stitching-sewing/profile') {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },
@@ -756,7 +756,7 @@ class AdminDrawer extends ConsumerWidget {
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                          MaterialPageRoute(builder: (_) => ProfileScreen()),
                         );
                       },
                     ),
@@ -781,7 +781,7 @@ class AdminDrawer extends ConsumerWidget {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        MaterialPageRoute(builder: (_) => ProfileScreen()),
                       );
                     },
                     borderRadius: BorderRadius.circular(20),
@@ -813,7 +813,7 @@ class AdminDrawer extends ConsumerWidget {
                         } else {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(builder: (_) => ProfileScreen()),
                           );
                         }
                       },

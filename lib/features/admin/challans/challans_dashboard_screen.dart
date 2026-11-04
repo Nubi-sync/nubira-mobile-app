@@ -287,9 +287,6 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           ],
         ),
         actions: [
-          
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppTheme.bodyInk, size: 20),
             onPressed: () {

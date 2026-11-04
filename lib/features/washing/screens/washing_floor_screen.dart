@@ -529,7 +529,7 @@ class _WashingFloorScreenState extends ConsumerState<WashingFloorScreen> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
+                                MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
                               );
                             },
                             icon: const Icon(Icons.people_outline_rounded, size: 15, color: Color(0xFF1D4ED8)),
