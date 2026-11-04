@@ -925,12 +925,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // --- 3. NATIVE PILL SWITCHER: MOBILE VS EMAIL ---
+                    // --- 3. NATIVE PILL SWITCHER: MOBILE VS EMAIL (SLIDING BRAND BLUE INDICATOR) ---
                     Container(
                       height: 48,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: [
@@ -941,223 +941,283 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Stack(
                         children: [
-                          // Mobile Phone Tab
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (!_isPhoneMode) {
-                                  setState(() {
-                                    _isPhoneMode = true;
-                                    _inputError = null;
-                                    _inputController.clear();
-                                  });
-                                }
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeInOut,
+                          // Animated Sliding Brand Blue Pill
+                          AnimatedAlign(
+                            alignment: _isPhoneMode ? Alignment.centerLeft : Alignment.centerRight,
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeInOutCubic,
+                            child: FractionallySizedBox(
+                              widthFactor: 0.5,
+                              child: Container(
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  color: _isPhoneMode ? const Color(0xFF0B1220) : Colors.transparent,
+                                  color: const Color(0xFF1D4ED8),
                                   borderRadius: BorderRadius.circular(10),
-                                ),
-                                alignment: Alignment.center,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.phone_android_rounded,
-                                      size: 16,
-                                      color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
-                                    ),
-                                    const SizedBox(width: 7),
-                                    Text(
-                                      'Mobile Number',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13,
-                                        fontWeight: _isPhoneMode ? FontWeight.w700 : FontWeight.w600,
-                                        color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
-                                      ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF1D4ED8).withValues(alpha: 0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                          // Work Email Tab
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (_isPhoneMode) {
-                                  setState(() {
-                                    _isPhoneMode = false;
-                                    _inputError = null;
-                                    _inputController.clear();
-                                  });
-                                }
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeInOut,
-                                decoration: BoxDecoration(
-                                  color: !_isPhoneMode ? const Color(0xFF0B1220) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                alignment: Alignment.center,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.mail_outline_rounded,
-                                      size: 16,
-                                      color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+
+                          // Clickable Tab Labels
+                          Row(
+                            children: [
+                              // Mobile Phone Tab
+                              Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (!_isPhoneMode) {
+                                      setState(() {
+                                        _isPhoneMode = true;
+                                        _inputError = null;
+                                        _inputController.clear();
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    height: 40,
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.phone_android_rounded,
+                                          size: 16,
+                                          color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 7),
+                                        AnimatedDefaultTextStyle(
+                                          duration: const Duration(milliseconds: 200),
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 13,
+                                            fontWeight: _isPhoneMode ? FontWeight.w700 : FontWeight.w600,
+                                            color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                          ),
+                                          child: const Text('Mobile Number'),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 7),
-                                    Text(
-                                      'Work Email',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13,
-                                        fontWeight: !_isPhoneMode ? FontWeight.w700 : FontWeight.w600,
-                                        color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
+                              // Work Email Tab
+                              Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (_isPhoneMode) {
+                                      setState(() {
+                                        _isPhoneMode = false;
+                                        _inputError = null;
+                                        _inputController.clear();
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    height: 40,
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.mail_outline_rounded,
+                                          size: 16,
+                                          color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                        ),
+                                        const SizedBox(width: 7),
+                                        AnimatedDefaultTextStyle(
+                                          duration: const Duration(milliseconds: 200),
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 13,
+                                            fontWeight: !_isPhoneMode ? FontWeight.w700 : FontWeight.w600,
+                                            color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                          ),
+                                          child: const Text('Work Email'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 22),
 
-                    // --- 4. IDENTIFIER INPUT (PHONE OR EMAIL) ---
-                    Text(
-                      _isPhoneMode ? 'Mobile Number' : 'Work Email',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF334155),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    if (_isPhoneMode)
-                      Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                    // --- 4. IDENTIFIER INPUT (SMOOTH TRANSITION ANIMATION) ---
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 240),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.04, 0),
+                            end: Offset.zero,
+                          ).animate(anim),
+                          child: child,
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.horizontal(left: Radius.circular(13)),
-                                border: Border(
-                                  right: BorderSide(color: Color(0xFFCBD5E1)),
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                      ),
+                      child: _isPhoneMode
+                          ? KeyedSubtree(
+                              key: const ValueKey('phone_mode_field'),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  const Text('🇮🇳', style: TextStyle(fontSize: 14)),
-                                  const SizedBox(width: 6),
                                   Text(
-                                    '+91',
-                                    style: GoogleFonts.jetBrainsMono(
+                                    'Mobile Number',
+                                    style: GoogleFonts.publicSans(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0B1220),
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF334155),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.03),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFF8FAFC),
+                                            borderRadius: BorderRadius.horizontal(left: Radius.circular(13)),
+                                            border: Border(
+                                              right: BorderSide(color: Color(0xFFCBD5E1)),
+                                            ),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('🇮🇳', style: TextStyle(fontSize: 14)),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '+91',
+                                                style: GoogleFonts.jetBrainsMono(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF0B1220),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _inputController,
+                                            keyboardType: TextInputType.phone,
+                                            maxLength: 10,
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 14.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFF0F172A),
+                                              letterSpacing: 0.5,
+                                            ),
+                                            onChanged: (_) {
+                                              if (_inputError != null) setState(() => _inputError = null);
+                                            },
+                                            decoration: InputDecoration(
+                                              counterText: '',
+                                              hintText: 'Enter 10-digit number',
+                                              hintStyle: GoogleFonts.publicSans(
+                                                fontSize: 13,
+                                                color: const Color(0xFF94A3B8),
+                                                fontWeight: FontWeight.normal,
+                                              ),
+                                              border: InputBorder.none,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : KeyedSubtree(
+                              key: const ValueKey('email_mode_field'),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'Work Email',
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF334155),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.03),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: TextField(
+                                      controller: _inputController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                      onChanged: (_) {
+                                        if (_inputError != null) setState(() => _inputError = null);
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: 'name@company.com',
+                                        hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                                        prefixIcon: const Icon(Icons.alternate_email_rounded, size: 19, color: Color(0xFF64748B)),
+                                        border: InputBorder.none,
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Expanded(
-                              child: TextField(
-                                controller: _inputController,
-                                keyboardType: TextInputType.phone,
-                                maxLength: 10,
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 14.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                  letterSpacing: 0.5,
-                                ),
-                                onChanged: (_) {
-                                  if (_inputError != null) setState(() => _inputError = null);
-                                },
-                                decoration: InputDecoration(
-                                  counterText: '',
-                                  hintText: 'Enter 10-digit number',
-                                  hintStyle: GoogleFonts.publicSans(
-                                    fontSize: 13,
-                                    color: const Color(0xFF94A3B8),
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _inputController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF0F172A),
-                          ),
-                          onChanged: (_) {
-                            if (_inputError != null) setState(() => _inputError = null);
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'name@company.com',
-                            hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-                            prefixIcon: const Icon(Icons.alternate_email_rounded, size: 19, color: Color(0xFF64748B)),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
-
+                    ),
                     if (_inputError != null) ...[
                       const SizedBox(height: 5),
                       Text(
@@ -1410,17 +1470,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 36),
 
-                    // --- 10. CLEAN MOBILE APP FOOTER BADGE ---
-                    Center(
-                      child: Text(
-                        'Zigza Apparel MES • Floor Edition v1.0.1',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
+
                     const SizedBox(height: 12),
                   ],
                 ),
