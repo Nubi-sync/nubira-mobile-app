@@ -1,3 +1,4 @@
+import '../../../core/widgets/zigza_brand_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -121,7 +122,7 @@ class AdminDrawer extends ConsumerWidget {
     // Determine Top Header Badge
     final String badgeText;
     if (isAdmin) {
-      badgeText = 'ERP MES';
+      badgeText = '';
     } else if (isStoreUser) {
       badgeText = 'STORE MES';
     } else if (isLineman) {
@@ -139,7 +140,7 @@ class AdminDrawer extends ConsumerWidget {
     // Determine Footer Role Label
     final String roleLabel;
     if (isAdmin) {
-      roleLabel = 'Super Admin';
+      roleLabel = isSuperAdmin ? 'Owner' : 'Manager';
     } else if (isProductionManager) {
       roleLabel = 'Production Manager';
     } else if (isStoreUser) {
@@ -177,22 +178,17 @@ class AdminDrawer extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        'assets/images/zigza_web_logo.png',
-                        height: 24,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/images/zigza_new_logo.png',
-                          height: 24,
-                          fit: BoxFit.contain,
-                        ),
+                      const ZigzaBrandLogo(
+                        iconHeight: 25,
+                        logoHeight: 20,
+                        spacing: 7.5,
                       ),
                     ],
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
+                      if (badgeText.isNotEmpty) Container(
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0FDFA),

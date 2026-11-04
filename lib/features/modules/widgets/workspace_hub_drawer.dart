@@ -1451,7 +1451,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
               border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
             ),
             child: Text(
-              isSuperAdmin ? 'SUPERADMIN' : (role == 'ADMIN' ? 'ADMIN' : role),
+              isSuperAdmin ? 'OWNER' : (role == 'ADMIN' ? 'MANAGER' : role),
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w800,

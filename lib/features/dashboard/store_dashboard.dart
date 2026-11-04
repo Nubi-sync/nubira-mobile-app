@@ -4682,28 +4682,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           logoHeight: 20,
           spacing: 7.5,
         ),
-        actions: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0B1220),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-        ],
+        actions: const [SizedBox(width: 8)],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF2F55D4)))

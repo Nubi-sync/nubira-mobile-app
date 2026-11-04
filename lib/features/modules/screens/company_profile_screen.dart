@@ -640,7 +640,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                                   border: Border.all(color: const Color(0xFFA7F3D0)),
                                 ),
                                 child: Text(
-                                  isSuperAdmin ? 'ENTERPRISE MASTER' : (tenant?.role.toUpperCase() ?? 'PLANT ADMIN'),
+                                  isSuperAdmin ? 'FACTORY OWNER' : (tenant?.role.toUpperCase() == 'ADMIN' ? 'FACTORY MANAGER' : (tenant?.role.toUpperCase() ?? 'FACTORY MANAGER')),
                                   style: GoogleFonts.jetBrainsMono(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w700,

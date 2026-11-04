@@ -212,26 +212,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
           ],
         ),
         actions: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x26000000)),
-              ),
-              child: Text(
-                'ERP MES',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0B1220),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
+
         ],
       ),
       body: RefreshIndicator(

@@ -287,22 +287,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           ],
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-            decoration: BoxDecoration(
-              color: AppTheme.mintSurface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.badgeMintBorder),
-            ),
-            child: Text(
-              (authState.userRole?.toUpperCase() == 'PRODUCTION_MANAGER') ? 'PROD MES' : 'ERP MES',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.headingObsidian,
-                letterSpacing: 0.5,
-              ),
+          
             ),
           ),
           IconButton(

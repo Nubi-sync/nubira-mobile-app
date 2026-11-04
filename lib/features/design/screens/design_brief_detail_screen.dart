@@ -1070,7 +1070,7 @@ class _DesignBriefDetailScreenState extends ConsumerState<DesignBriefDetailScree
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'This design concept has been officially greenlit by Super Admin.',
+                              'This design concept has been officially greenlit by Owner.',
                               style: GoogleFonts.publicSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

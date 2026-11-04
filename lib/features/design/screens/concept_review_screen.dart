@@ -172,7 +172,7 @@ class _ConceptReviewScreenState extends ConsumerState<ConceptReviewScreen> {
         SnackBar(
           content: Text(
             verdict == 'APPROVED'
-                ? 'Review updated! Approved designs synced to Super Admin.'
+                ? 'Review updated! Approved designs synced to Owner.'
                 : 'Design returned to designer with revision feedback.',
           ),
           backgroundColor: verdict == 'APPROVED' ? const Color(0xFF047857) : const Color(0xFFC23838),

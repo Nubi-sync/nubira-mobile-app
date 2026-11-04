@@ -1306,7 +1306,7 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'When Supervisors approve designer submissions, each individual design and colorway appears here for Super Admin executive review.',
+                            'When Supervisors approve designer submissions, each individual design and colorway appears here for Owner executive review.',
                             style: GoogleFonts.publicSans(
                               fontSize: 12,
                               color: const Color(0xFF64748B),
