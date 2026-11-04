@@ -138,6 +138,10 @@ class AdminDrawer extends ConsumerWidget {
     }
 
     // Determine Footer Role Label
+    final isSuperAdmin = tenant?.isSuperAdmin == true ||
+        roleUpper == 'SUPERADMIN' ||
+        roleUpper == 'PLATFORM_SUPERADMIN' ||
+        emailLower == 'admin@zigza.in';
     final String roleLabel;
     if (isAdmin) {
       roleLabel = isSuperAdmin ? 'Owner' : 'Manager';

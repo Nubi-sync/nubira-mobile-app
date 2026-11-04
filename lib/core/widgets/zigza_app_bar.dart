@@ -118,7 +118,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
               case 'design_approvals':
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => SaDesignApprovalsScreen()),
+                  MaterialPageRoute(builder: (_) => SADesignApprovalsScreen()),
                 );
                 break;
               case 'cutting_floor':
