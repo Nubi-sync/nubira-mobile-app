@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
-import 'zigza_brand_logo.dart';
-import '../../modules/screens/department_heads_screen.dart';
-import '../../design/screens/sa_design_approvals_screen.dart';
-import '../../cutting/screens/cutting_lay_floor_screen.dart';
-import '../../dashboard/lineman_dashboard.dart';
-import '../../modules/screens/company_profile_screen.dart';
-import '../../admin/screens/profile_screen.dart';
-import '../../cutting/screens/cutting_notifications_screen.dart';
+import 'package:mobile_app/core/theme/app_theme.dart';
+import 'package:mobile_app/core/widgets/zigza_brand_logo.dart';
+import 'package:mobile_app/features/modules/screens/department_heads_screen.dart';
+import 'package:mobile_app/features/design/screens/sa_design_approvals_screen.dart';
+import 'package:mobile_app/features/cutting/screens/cutting_lay_floor_screen.dart';
+import 'package:mobile_app/features/dashboard/lineman_dashboard.dart';
+import 'package:mobile_app/features/modules/screens/company_profile_screen.dart';
+import 'package:mobile_app/features/admin/screens/profile_screen.dart';
+import 'package:mobile_app/features/cutting/screens/cutting_notifications_screen.dart';
 
 class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
