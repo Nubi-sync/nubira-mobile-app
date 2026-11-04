@@ -1,3 +1,4 @@
+import '../../core/widgets/zigza_brand_logo.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -2229,16 +2230,10 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Web Logo (Unified modern logo matching web)
-              Image.asset(
-                'assets/images/zigza_web_logo.png',
-                height: 24,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Image.asset(
-                  'assets/images/zigza_new_logo.png',
-                  height: 24,
-                  fit: BoxFit.contain,
-                ),
+              const ZigzaBrandLogo(
+                iconHeight: 25,
+                logoHeight: 20,
+                spacing: 7.5,
               ),
             ],
           ),
