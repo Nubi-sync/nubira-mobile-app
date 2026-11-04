@@ -858,15 +858,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final lockoutTimeString = '${lockoutMin.toString().padLeft(2, '0')}:${lockoutSec.toString().padLeft(2, '0')}';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // ==========================================
-          // 1. FULL PAGE WALLPAPER BACKGROUND (ISOMETRIC SKETCH)
-          // ==========================================
+          // Background Art (Garment factory floor sketch watermark)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.28,
+              opacity: 0.22,
               child: Image.asset(
                 'assets/images/factory_bg_tinted_sketch.jpg',
                 fit: BoxFit.cover,
@@ -875,502 +873,153 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
 
-          // ==========================================
-          // 2. MAIN SCROLLABLE CONTENT
-          // ==========================================
+          // Main Scrollable Content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // --- TOP HEADER: BRAND LOGO (CLEAN & CENTERED/LEFT) ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Image.asset(
-                            'assets/images/zigza_web_logo.png',
-                            height: 28,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Image.asset(
-                              'assets/images/zigza_new_logo.png',
-                              height: 28,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 12),
+
+                    // --- 1. BRAND LOGO (CENTERED & CRISP) ---
+                    Center(
+                      child: Image.asset(
+                        'assets/images/zigza_web_logo.png',
+                        height: 36,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/zigza_new_logo.png',
+                          height: 36,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 28),
 
-                    // --- CENTERED WHITE CARD (CONTAINING FACTORY PHOTO & FORM) ---
+                    // --- 2. CLEAN HERO HEADER ---
+                    Center(
+                      child: Text(
+                        'Welcome Back',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Text(
+                        'Sign in to access your factory floor & tasks',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 13.5,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // --- 3. NATIVE PILL SWITCHER: MOBILE VS EMAIL ---
                     Container(
-                      width: double.infinity,
+                      height: 48,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE2E8F0).withValues(alpha: 0.85)),
-                        boxShadow: const [
+                        color: Colors.white.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: [
                           BoxShadow(
-                            color: Color(0x12000000),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      child: Row(
                         children: [
-                          // 1. Factory Photo Banner inside Card (Indian Garment Manufacturing Floor)
-                          Container(
-                            height: 165,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE2E8F0).withValues(alpha: 0.8)),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Image.asset(
-                              'assets/images/factory_handshake_art.jpg',
-                              fit: BoxFit.cover,
-                              alignment: const Alignment(0.0, 0.36),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // 2. Staff Portal Heading
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Staff ',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Portal',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1D4ED8),
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Access your factory floor allotments and live logs.',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12.5,
-                              color: const Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // 3. Work Email / Mobile (+91) Toggle Header
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                _isPhoneMode ? '10-DIGIT MOBILE' : 'WORK EMAIL',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF475569),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              InkWell(
-                                onTap: () {
+                          // Mobile Phone Tab
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                if (!_isPhoneMode) {
                                   setState(() {
-                                    _isPhoneMode = !_isPhoneMode;
+                                    _isPhoneMode = true;
                                     _inputError = null;
                                     _inputController.clear();
                                   });
-                                },
-                                borderRadius: BorderRadius.circular(4),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (!_isPhoneMode) ...[
-                                        const Text('🇮🇳', style: TextStyle(fontSize: 13)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Use Mobile (+91)',
-                                          style: GoogleFonts.publicSans(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF0B1220),
-                                            decoration: TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ] else ...[
-                                        const Icon(Icons.mail_outline_rounded, size: 14, color: Color(0xFF1D4ED8)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Use Email',
-                                          style: GoogleFonts.publicSans(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF0B1220),
-                                            decoration: TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-
-                          // 4. Input Field (Email or Phone +91 prefix)
-                          if (_isPhoneMode)
-                            Container(
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF0FDFA),
-                                      borderRadius: BorderRadius.horizontal(left: Radius.circular(11)),
-                                      border: Border(
-                                        right: BorderSide(color: Color(0xFFE2E8F0)),
-                                      ),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('🇮🇳', style: TextStyle(fontSize: 13)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '+91',
-                                          style: GoogleFonts.jetBrainsMono(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF0B1220),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _inputController,
-                                      keyboardType: TextInputType.phone,
-                                      maxLength: 10,
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                      onChanged: (_) {
-                                        if (_inputError != null) setState(() => _inputError = null);
-                                      },
-                                      decoration: InputDecoration(
-                                        counterText: '',
-                                        hintText: 'Enter 10-digit mobile number',
-                                        hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                                        border: InputBorder.none,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Container(
-                              height: 46,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: _inputController,
-                                keyboardType: TextInputType.emailAddress,
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                                onChanged: (_) {
-                                  if (_inputError != null) setState(() => _inputError = null);
-                                },
-                                decoration: InputDecoration(
-                                  hintText: 'Enter your email',
-                                  hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                                  prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-
-                          if (_inputError != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _inputError!,
-                              style: GoogleFonts.publicSans(
-                                fontSize: 11,
-                                color: const Color(0xFFE11D48),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-
-                          // 5. Password Field
-                          Text(
-                            'PASSWORD',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF475569),
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _passwordError != null ? const Color(0xFFE11D48) : const Color(0xFFE2E8F0),
-                              ),
-                            ),
-                            child: TextField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              style: GoogleFonts.publicSans(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF0F172A),
-                              ),
-                              onChanged: (_) {
-                                if (_passwordError != null) setState(() => _passwordError = null);
+                                }
                               },
-                              onSubmitted: (_) => _handleSubmit(),
-                              decoration: InputDecoration(
-                                hintText: 'Enter your password',
-                                hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                    size: 18,
-                                    color: const Color(0xFF94A3B8),
-                                  ),
-                                  onPressed: () {
-                                    setState(() => _obscurePassword = !_obscurePassword);
-                                  },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeInOut,
+                                decoration: BoxDecoration(
+                                  color: _isPhoneMode ? const Color(0xFF0B1220) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
-                          ),
-
-                          if (_passwordError != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _passwordError!,
-                              style: GoogleFonts.publicSans(
-                                fontSize: 11,
-                                color: const Color(0xFFE11D48),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 10),
-
-                          // 6. Remember Me & Forgot Password Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              InkWell(
-                                onTap: () => setState(() => _rememberMe = !_rememberMe),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: Checkbox(
-                                          value: _rememberMe,
-                                          activeColor: const Color(0xFF0B1220),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                          onChanged: (val) => setState(() => _rememberMe = val ?? true),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Keep me signed in',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 12.5,
-                                          color: const Color(0xFF475569),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: _showForgotPasswordModal,
-                                child: Text(
-                                  'Forgot password?',
-                                  style: GoogleFonts.publicSans(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF0B1220),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          // 7. Error Banner
-                          if (authState.error != null && !authState.isLoading) ...[
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF2F2),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFFECDD3)),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Icon(Icons.error_outline_rounded, size: 16, color: Color(0xFFE11D48)),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      authState.error!,
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 11.5,
-                                        color: const Color(0xFFBE123C),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                          ],
-
-                          // 8. Submit Button: "Sign In to Dashboard →"
-                          SizedBox(
-                            height: 46,
-                            child: ElevatedButton(
-                              onPressed: (authState.isLoading || isLocked) ? null : _handleSubmit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1D4ED8),
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.6),
-                                elevation: 1,
-                                shadowColor: const Color(0xFF1D4ED8).withValues(alpha: 0.25),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: authState.isLoading
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          'Signing in...',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          isLocked ? 'Locked ($lockoutTimeString)' : 'Sign In to Dashboard',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        if (!isLocked) ...[
-                                          const SizedBox(width: 8),
-                                          const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
-                                        ],
-                                      ],
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // 9. Free Trial Link
-                          Center(
-                            child: GestureDetector(
-                              onTap: _showFreeTrialSheet,
-                              child: RichText(
-                                text: TextSpan(
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    TextSpan(
-                                      text: 'New to Zigza? ',
+                                    Icon(
+                                      Icons.phone_android_rounded,
+                                      size: 16,
+                                      color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      'Mobile Number',
                                       style: GoogleFonts.publicSans(
-                                        fontSize: 12,
-                                        color: const Color(0xFF64748B),
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                        fontWeight: _isPhoneMode ? FontWeight.w700 : FontWeight.w600,
+                                        color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
                                       ),
                                     ),
-                                    TextSpan(
-                                      text: 'Start 7-Day Free Trial →',
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Work Email Tab
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                if (_isPhoneMode) {
+                                  setState(() {
+                                    _isPhoneMode = false;
+                                    _inputError = null;
+                                    _inputController.clear();
+                                  });
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeInOut,
+                                decoration: BoxDecoration(
+                                  color: !_isPhoneMode ? const Color(0xFF0B1220) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.mail_outline_rounded,
+                                      size: 16,
+                                      color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      'Work Email',
                                       style: GoogleFonts.publicSans(
-                                        fontSize: 12,
-                                        color: const Color(0xFF1D4ED8),
-                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        fontWeight: !_isPhoneMode ? FontWeight.w700 : FontWeight.w600,
+                                        color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
                                       ),
                                     ),
                                   ],
@@ -1381,89 +1030,398 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
 
-                    // --- FOOTER SECTION (OUTSIDE CARD, ON TOP OF BACKGROUND PATTERN) ---
-                    Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Proudly Made in India',
-                              style: GoogleFonts.playfairDisplay(
-                                fontSize: 14.5,
-                                fontStyle: FontStyle.italic,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0B1220),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('🇮🇳', style: TextStyle(fontSize: 15)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            GestureDetector(
-                              onTap: () => _showLegalDialog(
-                                'Privacy Policy',
-                                'Zigza strictly isolates all factory tenant records, worker allotments, production logs, and designs. Zero third-party telemetry is shared.',
-                              ),
-                              child: Text(
-                                'Privacy',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            GestureDetector(
-                              onTap: () => _showLegalDialog(
-                                'Terms of Service',
-                                'Standard enterprise service level agreement for real-time garment production execution and multi-division management.',
-                              ),
-                              child: Text(
-                                'Terms',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            GestureDetector(
-                              onTap: () => _showLegalDialog(
-                                'Enterprise Security',
-                                'End-to-end encrypted session tokens, Supabase Row-Level Security (RLS) enforcement, and strict multi-tenant authorization barriers.',
-                              ),
-                              child: Text(
-                                'Security',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
+                    // --- 4. IDENTIFIER INPUT (PHONE OR EMAIL) ---
+                    Text(
+                      _isPhoneMode ? 'Mobile Number' : 'Work Email',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    if (_isPhoneMode)
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '© 2026 Zigza. All rights reserved.',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.horizontal(left: Radius.circular(13)),
+                                border: Border(
+                                  right: BorderSide(color: Color(0xFFCBD5E1)),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('🇮🇳', style: TextStyle(fontSize: 14)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '+91',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF0B1220),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _inputController,
+                                keyboardType: TextInputType.phone,
+                                maxLength: 10,
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                  letterSpacing: 0.5,
+                                ),
+                                onChanged: (_) {
+                                  if (_inputError != null) setState(() => _inputError = null);
+                                },
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  hintText: 'Enter 10-digit number',
+                                  hintStyle: GoogleFonts.publicSans(
+                                    fontSize: 13,
+                                    color: const Color(0xFF94A3B8),
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _inputError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _inputController,
+                          keyboardType: TextInputType.emailAddress,
                           style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF94A3B8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF0F172A),
+                          ),
+                          onChanged: (_) {
+                            if (_inputError != null) setState(() => _inputError = null);
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'name@company.com',
+                            hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                            prefixIcon: const Icon(Icons.alternate_email_rounded, size: 19, color: Color(0xFF64748B)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                      ),
+
+                    if (_inputError != null) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        _inputError!,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          color: const Color(0xFFE11D48),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // --- 5. PASSWORD INPUT ---
+                    Text(
+                      'Password',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _passwordError != null ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF0F172A),
+                        ),
+                        onChanged: (_) {
+                          if (_passwordError != null) setState(() => _passwordError = null);
+                        },
+                        onSubmitted: (_) => _handleSubmit(),
+                        decoration: InputDecoration(
+                          hintText: 'Enter your password',
+                          hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 19, color: Color(0xFF64748B)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 19,
+                              color: const Color(0xFF64748B),
+                            ),
+                            onPressed: () {
+                              setState(() => _obscurePassword = !_obscurePassword);
+                            },
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+
+                    if (_passwordError != null) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        _passwordError!,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11.5,
+                          color: const Color(0xFFE11D48),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+
+                    // --- 6. REMEMBER ME & FORGOT PASSWORD ROW ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () => setState(() => _rememberMe = !_rememberMe),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: Checkbox(
+                                    value: _rememberMe,
+                                    activeColor: const Color(0xFF1D4ED8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (val) => setState(() => _rememberMe = val ?? true),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Remember me',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 13,
+                                    color: const Color(0xFF475569),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _showForgotPasswordModal,
+                          child: Text(
+                            'Forgot password?',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1D4ED8),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 22),
+
+                    // --- 7. AUTH STATE ERROR BANNER ---
+                    if (authState.error != null && !authState.isLoading) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFECDD3)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 18, color: Color(0xFFE11D48)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                authState.error!,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 12,
+                                  color: const Color(0xFFBE123C),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // --- 8. PRIMARY SIGN IN BUTTON ---
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: (authState.isLoading || isLocked) ? null : _handleSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1D4ED8),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.6),
+                          elevation: 1,
+                          shadowColor: const Color(0xFF1D4ED8).withValues(alpha: 0.25),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: authState.isLoading
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Signing in...',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    isLocked ? 'Locked ($lockoutTimeString)' : 'Sign In',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  if (!isLocked) ...[
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.arrow_forward_rounded, size: 17, color: Colors.white),
+                                  ],
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // --- 9. FREE TRIAL PROMPT ---
+                    Center(
+                      child: GestureDetector(
+                        onTap: _showFreeTrialSheet,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'New to Zigza? ',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Start 7-Day Free Trial →',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF1D4ED8),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // --- 10. CLEAN MOBILE APP FOOTER BADGE ---
+                    Center(
+                      child: Text(
+                        'Zigza Apparel MES • Floor Edition v1.0.1',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
