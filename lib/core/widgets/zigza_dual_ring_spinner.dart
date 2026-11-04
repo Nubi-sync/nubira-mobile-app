@@ -149,3 +149,4 @@ class _DualRingPainter extends CustomPainter {
         oldDelegate.innerColor != innerColor;
   }
 }
+

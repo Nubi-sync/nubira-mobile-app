@@ -52,3 +52,4 @@ class ZigzaBrandLogo extends StatelessWidget {
     );
   }
 }
+
