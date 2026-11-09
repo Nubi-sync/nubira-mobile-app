@@ -8,6 +8,7 @@ import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_brand_logo.dart';
 import '../../dashboard/plant_operations_dashboard_screen.dart';
 import '../../design/screens/design_studio_screen.dart';
 import '../../design/screens/design_team_management_screen.dart';
@@ -148,21 +149,10 @@ class WorkspaceHubDrawer extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/zigza_web_logo.png',
-                height: 26,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Image.asset(
-                  'assets/images/zigza_new_logo.png',
-                  height: 26,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ],
+          const ZigzaBrandLogo(
+            iconHeight: 25,
+            logoHeight: 20,
+            spacing: 7.5,
           ),
           InkWell(
             onTap: () => Navigator.pop(context),

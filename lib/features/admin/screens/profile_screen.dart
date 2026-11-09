@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../widgets/admin_drawer.dart';
+import '../../../core/widgets/zigza_brand_logo.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});

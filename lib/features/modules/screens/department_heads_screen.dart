@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_brand_logo.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import 'enterprise_workspace_hub_screen.dart';
 import 'company_profile_screen.dart';
@@ -529,20 +530,10 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           ),
         ),
       ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/zigza_web_logo.png',
-            height: 24,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_new_logo.png',
-              height: 24,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
+      title: const ZigzaBrandLogo(
+        iconHeight: 25,
+        logoHeight: 20,
+        spacing: 7.5,
       ),
       actions: [
         // Royal Blue + v Quick Action Button
