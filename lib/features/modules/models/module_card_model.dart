@@ -9,6 +9,9 @@ class ModuleCardData {
   final IconData icon;
   final String route;
   final List<String> features;
+  final String mobileNumber;
+  final String mobileTitle;
+  final String mobileSubtitle;
 
   const ModuleCardData({
     required this.id,
@@ -19,7 +22,14 @@ class ModuleCardData {
     required this.icon,
     required this.route,
     required this.features,
+    this.mobileNumber = '',
+    this.mobileTitle = '',
+    this.mobileSubtitle = '',
   });
+
+  String get displayNumber => mobileNumber.isNotEmpty ? mobileNumber : '01';
+  String get displayTitle => mobileTitle.isNotEmpty ? mobileTitle : title;
+  String get displaySubtitle => mobileSubtitle.isNotEmpty ? mobileSubtitle : subtitle;
 }
 
 const List<ModuleCardData> allEnterpriseModules = [
@@ -32,6 +42,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.palette_outlined,
     route: '/design',
     features: ['Tech Packs & Style Specs', 'Sample Approvals & Colors'],
+    mobileNumber: '01',
+    mobileTitle: 'Design Studio',
+    mobileSubtitle: 'Tech packs, specs & sample approvals',
   ),
   ModuleCardData(
     id: 'merchandising',
@@ -42,6 +55,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.work_outline,
     route: '/merchandising',
     features: ['Buyer Purchase Orders', 'Fabric & Trim Costing'],
+    mobileNumber: '02',
+    mobileTitle: 'Merchandising',
+    mobileSubtitle: 'Buyer POs, style costing & delivery',
   ),
   ModuleCardData(
     id: 'cutting',
@@ -52,6 +68,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.content_cut_outlined,
     route: '/cutting',
     features: ['Lay Planning & Roll Usage', 'Bundle Tags & Cut Challans'],
+    mobileNumber: '03',
+    mobileTitle: 'Cutting Floor',
+    mobileSubtitle: 'Fabric lays, cut lots & bundle tags',
   ),
   ModuleCardData(
     id: 'printing',
@@ -62,6 +81,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.print_outlined,
     route: '/printing',
     features: ['Sample Strike-Off Approvals', 'Print Production & Quality'],
+    mobileNumber: '04',
+    mobileTitle: 'Printing',
+    mobileSubtitle: 'Screen & digital print runs',
   ),
   ModuleCardData(
     id: 'embroidery',
@@ -72,6 +94,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.auto_awesome_outlined,
     route: '/embroidery',
     features: ['Punch Files & Stitch Count', 'Machine Production Logs'],
+    mobileNumber: '05',
+    mobileTitle: 'Embroidery',
+    mobileSubtitle: 'Machine status & stitch counts',
   ),
   ModuleCardData(
     id: 'stitching-sewing',
@@ -82,6 +107,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.layers_outlined,
     route: '/stitching-sewing',
     features: ['Sewing Lines & Bundle Issue', 'Hourly Output & End-Line QC'],
+    mobileNumber: '06',
+    mobileTitle: 'Sewing Floor',
+    mobileSubtitle: 'Lines, tailor bundles & hourly targets',
   ),
   ModuleCardData(
     id: 'washing',
@@ -92,6 +120,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.waves_outlined,
     route: '/washing',
     features: ['Wash Batches & Recipes', 'Lot Inward & Outward Status'],
+    mobileNumber: '07',
+    mobileTitle: 'Washing',
+    mobileSubtitle: 'Wash recipes & batch timings',
   ),
   ModuleCardData(
     id: 'iron',
@@ -102,6 +133,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.local_fire_department_outlined,
     route: '/iron',
     features: ['Table Pressing Counts', 'Finishing & Press Inspection'],
+    mobileNumber: '08',
+    mobileTitle: 'Iron & Press',
+    mobileSubtitle: 'Steam press tables & finishing',
   ),
   ModuleCardData(
     id: 'ready-goods',
@@ -112,6 +146,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.all_inbox_rounded,
     route: '/ready-goods',
     features: ['Final Inspection & Alterations', 'Polybag & Carton Packing'],
+    mobileNumber: '09',
+    mobileTitle: 'Quality & Packing',
+    mobileSubtitle: 'Final QC, mending & carton packing',
   ),
   ModuleCardData(
     id: 'store',
@@ -122,6 +159,9 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.storefront_outlined,
     route: '/store',
     features: ['Fabric Rolls & Trims Stock', 'Material Issues & Challans'],
+    mobileNumber: '10',
+    mobileTitle: 'Central Store',
+    mobileSubtitle: 'Fabric rolls, trims & material issues',
   ),
   ModuleCardData(
     id: 'dispatch',
@@ -132,5 +172,8 @@ const List<ModuleCardData> allEnterpriseModules = [
     icon: Icons.local_shipping_outlined,
     route: '/dispatch',
     features: ['Delivery Challans & Invoices', 'Carton Count & Gate Passes'],
+    mobileNumber: '11',
+    mobileTitle: 'Dispatch & Gate',
+    mobileSubtitle: 'Gate passes, challans & truck dispatch',
   ),
 ];

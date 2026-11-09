@@ -168,12 +168,13 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                 m.subtitle.toLowerCase().contains(query) ||
                 m.badge.toLowerCase().contains(query) ||
                 m.statusText.toLowerCase().contains(query) ||
+                m.displayTitle.toLowerCase().contains(query) ||
+                m.displaySubtitle.toLowerCase().contains(query) ||
+                m.displayNumber.toLowerCase().contains(query) ||
                 m.features.any((f) => f.toLowerCase().contains(query));
           }).toList();
 
-    final headingSubtitle = resolvedCompany.isNotEmpty
-        ? 'Central manufacturing execution and floor operations hub for $resolvedCompany'
-        : 'Central manufacturing execution hub across ${visibleModules.length == allEnterpriseModules.length ? 'all 11 apparel production divisions' : 'your authorized division modules'}';
+    const headingSubtitle = 'Tap any department to access floor operations';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -461,189 +462,154 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               ...filteredModules.map((mod) {
                 final isLaunching = _launchingId == mod.id;
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: isLaunching ? const Color(0xFFF0FDFA).withValues(alpha: 0.4) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
-                      width: isLaunching ? 1.5 : 1.0,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x06000000),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Row 1: Bare Outline Icon (left) + Category Tag (right)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0x26000000)),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  mod.icon,
-                                  color: const Color(0xFF0B1220),
-                                  size: 22,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-                              decoration: BoxDecoration(
-                                color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isLaunching ? const Color(0xFF0B1220) : const Color(0x26000000),
-                                ),
-                              ),
-                              child: Text(
-                                isLaunching ? 'OPENING...' : mod.badge,
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: isLaunching ? Colors.white : const Color(0xFF0B1220),
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: isLaunching ? null : () => _handleLaunch(mod),
+                      borderRadius: BorderRadius.circular(16),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isLaunching ? const Color(0xFFF0FDFA).withValues(alpha: 0.6) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isLaunching ? const Color(0xFF0B1220) : const Color(0xFFE2E8F0),
+                            width: isLaunching ? 1.5 : 1.0,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x06000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-
-                        // Module Title (Bold Plus Jakarta Sans)
-                        Text(
-                          mod.title,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0B1220),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Subtitle
-                        Text(
-                          mod.subtitle,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF64748B),
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // 2 Feature Bullets
-                        Column(
-                          children: mod.features.take(2).map((feat) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 6.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0B1220).withValues(alpha: 0.6),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      feat,
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF334155),
+                        child: Row(
+                          children: [
+                            // Clean Icon Box
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0FDFA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0x1F000000)),
+                              ),
+                              child: Center(
+                                child: isLaunching
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF0B1220),
+                                        ),
+                                      )
+                                    : Icon(
+                                        mod.icon,
+                                        color: const Color(0xFF0B1220),
+                                        size: 20,
                                       ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Number + Title + 1-Line Clean Subtitle
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(5),
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: Text(
+                                          mod.displayNumber,
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 7),
+                                      Expanded(
+                                        child: Text(
+                                          mod.displayTitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFF0B1220),
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    mod.displaySubtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 14),
+                            ),
 
-                        // Launch Button (Royal Blue full width)
-                        InkWell(
-                          onTap: isLaunching ? null : () => _handleLaunch(mod),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: double.infinity,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1D4ED8),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x2E1D4ED8),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
+                            const SizedBox(width: 8),
+
+                            // Right Arrow / Opening State
+                            if (isLaunching)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (isLaunching) ...[
-                                  const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                                child: Text(
+                                  'OPENING...',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1D4ED8),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Opening...',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Color(0xFF94A3B8),
+                                    size: 18,
                                   ),
-                                ] else ...[
-                                  Text(
-                                    'Launch',
-                                    style: GoogleFonts.publicSans(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );
