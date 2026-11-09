@@ -11,9 +11,9 @@ class ZigzaBrandLogo extends StatelessWidget {
 
   const ZigzaBrandLogo({
     super.key,
-    this.iconHeight = 28,
-    this.logoHeight = 22,
-    this.spacing = 8,
+    this.iconHeight = 30,
+    this.logoHeight = 24,
+    this.spacing = 8.5,
     this.mainAxisSize = MainAxisSize.min,
     this.mainAxisAlignment = MainAxisAlignment.center,
   });

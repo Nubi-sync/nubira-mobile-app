@@ -174,7 +174,6 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                 m.features.any((f) => f.toLowerCase().contains(query));
           }).toList();
 
-    const headingSubtitle = 'Tap any department to access floor operations';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -189,10 +188,10 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ==========================================
-            // 1. PAGE HEADER CARD (Matching Web Admin)
+            // 1. PAGE HEADER CARD (Minimalist: 3 elements)
             // ==========================================
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -208,91 +207,36 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 44x44 Icon Box with #F0FDFA bg and subtle border
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDFA),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x26000000)),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.grid_view_rounded,
-                            color: Color(0xFF0B1220),
-                            size: 22,
+                  // 1. Prominent Welcome Title
+                  RichText(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: resolvedCompany.isNotEmpty ? 'Welcome, ' : 'Enterprise ',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 20.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0B1220),
+                            letterSpacing: -0.4,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: resolvedCompany.isNotEmpty ? 'Welcome, ' : 'Enterprise ',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF0B1220),
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: resolvedCompany.isNotEmpty ? resolvedCompany : 'Workspace Hub',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF1D4ED8),
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(9999),
-                                border: Border.all(color: const Color(0x26000000)),
-                              ),
-                              child: Text(
-                                '$operatingUnitsCount OPERATING UNITS',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0B1220),
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                            ),
-                          ],
+                        TextSpan(
+                          text: resolvedCompany.isNotEmpty ? resolvedCompany : 'Hub',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 20.5,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1D4ED8),
+                            letterSpacing: -0.4,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    headingSubtitle,
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF64748B),
-                      height: 1.35,
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-                  // Search Bar
+                  // 2. Search Bar
                   Container(
                     height: 42,
                     decoration: BoxDecoration(
@@ -346,7 +290,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                                 ),
                               )
                             : null,
-                        hintText: 'Search modules & divisions...',
+                        hintText: 'Search modules...',
                         hintStyle: GoogleFonts.publicSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
@@ -360,6 +304,33 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                         disabledBorder: InputBorder.none,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // 3. Operating Units Count (Below Search Bar)
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _searchQuery.isNotEmpty
+                            ? '${filteredModules.length} of $operatingUnitsCount Operating Units'
+                            : '$operatingUnitsCount Operating Units Active',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF64748B),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

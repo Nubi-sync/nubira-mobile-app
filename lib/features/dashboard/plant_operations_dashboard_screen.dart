@@ -293,9 +293,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         ),
       ),
       title: const ZigzaBrandLogo(
-        iconHeight: 25,
-        logoHeight: 20,
-        spacing: 7.5,
+        iconHeight: 30,
+        logoHeight: 24,
+        spacing: 8.5,
       ),
       actions: [
         // Royal Blue + v Quick Add Button

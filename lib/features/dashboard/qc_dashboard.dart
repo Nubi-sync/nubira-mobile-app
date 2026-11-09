@@ -2231,9 +2231,9 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               ),
               const SizedBox(width: 10),
               const ZigzaBrandLogo(
-                iconHeight: 25,
-                logoHeight: 20,
-                spacing: 7.5,
+                iconHeight: 30,
+                logoHeight: 24,
+                spacing: 8.5,
               ),
             ],
           ),
