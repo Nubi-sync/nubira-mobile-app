@@ -292,20 +292,10 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           ),
         ),
       ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/zigza_web_logo.png',
-            height: 24,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_new_logo.png',
-              height: 24,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
+      title: const ZigzaBrandLogo(
+        iconHeight: 25,
+        logoHeight: 20,
+        spacing: 7.5,
       ),
       actions: [
         // Royal Blue + v Quick Add Button

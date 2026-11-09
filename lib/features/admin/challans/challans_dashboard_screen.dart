@@ -11,6 +11,7 @@ import 'challan_models.dart';
 import 'challan_detail_screen.dart';
 import 'widgets/create_job_work_challan_sheet.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_brand_logo.dart';
 
 class ChallansDashboardScreen extends ConsumerStatefulWidget {
   const ChallansDashboardScreen({super.key});
@@ -270,21 +271,10 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           ),
         ),
         titleSpacing: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/images/zigza_web_logo.png',
-              height: 24,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Image.asset(
-                'assets/images/zigza_new_logo.png',
-                height: 24,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
+        title: const ZigzaBrandLogo(
+          iconHeight: 25,
+          logoHeight: 20,
+          spacing: 7.5,
         ),
         actions: [
           IconButton(
