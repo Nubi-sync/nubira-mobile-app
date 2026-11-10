@@ -114,9 +114,9 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
 
   Future<void> _loadHistoryFromCloudAndLocal() async {
     final authState = ref.read(authProvider);
-    final email = (authState.tenantProfile?.email ??
-            authState.cachedUsername ??
+    final email = (authState.tenantProfile?.userEmail ??
             supabase.auth.currentUser?.email ??
+            authState.cachedUsername ??
             '')
         .trim();
 
@@ -193,9 +193,9 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
 
   Future<void> _persistSessions() async {
     final authState = ref.read(authProvider);
-    final email = (authState.tenantProfile?.email ??
-            authState.cachedUsername ??
+    final email = (authState.tenantProfile?.userEmail ??
             supabase.auth.currentUser?.email ??
+            authState.cachedUsername ??
             '')
         .trim();
 
