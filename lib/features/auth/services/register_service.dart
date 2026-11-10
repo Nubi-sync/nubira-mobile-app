@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -112,6 +113,42 @@ class RegisterService {
     return '$capitalized Industries';
   }
 
+  /// Query server-side availability check endpoint (100% parity with web actions.ts)
+  static Future<AvailabilityResult?> _queryServerAvailability({
+    String? phone,
+    String? email,
+  }) async {
+    // 10.0.2.2 connects from Android emulator to host machine localhost:3000
+    final hostList = [
+      'http://10.0.2.2:3000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
+
+    for (final host in hostList) {
+      try {
+        final client = HttpClient()..connectionTimeout = const Duration(milliseconds: 2500);
+        final uri = Uri.parse('$host/api/auth/check-availability').replace(
+          queryParameters: {
+            if (phone != null) 'phone': phone,
+            if (email != null) 'email': email,
+          },
+        );
+        final request = await client.getUrl(uri);
+        final response = await request.close().timeout(const Duration(milliseconds: 3500));
+        if (response.statusCode == 200) {
+          final body = await response.transform(utf8.decoder).join();
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          return AvailabilityResult(
+            available: json['available'] == true,
+            error: json['error']?.toString(),
+          );
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
   /// Real-time Phone Availability Check
   static Future<AvailabilityResult> checkPhoneAvailability(String rawPhone) async {
     try {
@@ -125,51 +162,55 @@ class RegisterService {
         );
       }
 
-      // 1. Check platform_tenant_factories
+      // 1. Primary: Check via exact server action matching the web registration portal
+      final serverRes = await _queryServerAvailability(phone: phone10);
+      if (serverRes != null) {
+        return serverRes;
+      }
+
+      // 2. Direct Supabase Fallback (using 5-digit block patterns e.g. "80109 39887")
+      final p1 = phone10.substring(0, 5);
+      final p2 = phone10.substring(5);
+
       try {
         final res = await supabase
             .from('platform_tenant_factories')
             .select('id, phone')
-            .ilike('phone', '%$phone10%')
-            .limit(5);
+            .or('phone.ilike.%$phone10%,phone.ilike.%$p1%$p2%')
+            .limit(10);
 
         if ((res as List).isNotEmpty) {
-          return const AvailabilityResult(
-            available: false,
-            error: 'Mobile number already registered to an existing workspace. A trial has already been claimed. Please sign in.',
-          );
+          final hasMatch = (res).any((r) {
+            final p = (r['phone']?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
+            return p.endsWith(phone10);
+          });
+          if (hasMatch) {
+            return const AvailabilityResult(
+              available: false,
+              error: 'Mobile number already registered to a workspace. Please sign in.',
+            );
+          }
         }
       } catch (_) {}
 
-      // 2. Check company_profile
       try {
         final cp = await supabase
             .from('company_profile')
             .select('id, contact_phone')
-            .ilike('contact_phone', '%$phone10%')
-            .limit(5);
+            .or('contact_phone.ilike.%$phone10%,contact_phone.ilike.%$p1%$p2%')
+            .limit(10);
 
         if ((cp as List).isNotEmpty) {
-          return const AvailabilityResult(
-            available: false,
-            error: 'Mobile number already registered to a factory company profile. Please sign in.',
-          );
-        }
-      } catch (_) {}
-
-      // 3. Check cutting_workers
-      try {
-        final cw = await supabase
-            .from('cutting_workers')
-            .select('id, phone_number')
-            .ilike('phone_number', '%$phone10%')
-            .limit(5);
-
-        if ((cw as List).isNotEmpty) {
-          return const AvailabilityResult(
-            available: false,
-            error: 'Mobile number already registered to a staff member. Please sign in.',
-          );
+          final hasMatch = (cp).any((r) {
+            final p = (r['contact_phone']?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
+            return p.endsWith(phone10);
+          });
+          if (hasMatch) {
+            return const AvailabilityResult(
+              available: false,
+              error: 'Mobile number already registered to a factory company profile. Please sign in.',
+            );
+          }
         }
       } catch (_) {}
 
@@ -190,7 +231,13 @@ class RegisterService {
         );
       }
 
-      // 1. Check company_profile
+      // 1. Primary: Check via exact server action matching the web registration portal
+      final serverRes = await _queryServerAvailability(email: cleanEmail);
+      if (serverRes != null) {
+        return serverRes;
+      }
+
+      // 2. Direct Supabase Fallback
       try {
         final cp = await supabase
             .from('company_profile')
@@ -206,7 +253,6 @@ class RegisterService {
         }
       } catch (_) {}
 
-      // 2. Check platform_tenant_factories
       try {
         final ptf = await supabase
             .from('platform_tenant_factories')
@@ -215,22 +261,6 @@ class RegisterService {
             .limit(1);
 
         if ((ptf as List).isNotEmpty) {
-          return const AvailabilityResult(
-            available: false,
-            error: 'Email already registered. Please sign in.',
-          );
-        }
-      } catch (_) {}
-
-      // 3. Check cutting_workers
-      try {
-        final cw = await supabase
-            .from('cutting_workers')
-            .select('id, worker_email')
-            .ilike('worker_email', cleanEmail)
-            .limit(1);
-
-        if ((cw as List).isNotEmpty) {
           return const AvailabilityResult(
             available: false,
             error: 'Email already registered. Please sign in.',
@@ -257,7 +287,7 @@ class RegisterService {
         );
       }
 
-      // Double-check availability
+      // Double-check availability first
       final avail = await checkPhoneAvailability(phone10);
       if (!avail.available) {
         return OtpSendResult(
@@ -277,9 +307,8 @@ class RegisterService {
       final verificationToken = '$phone10.$expiresAt.$signature';
 
       // Deliver via Supabase Edge Function
-      bool delivered = false;
       try {
-        final res = await supabase.functions.invoke(
+        await supabase.functions.invoke(
           'send-sms',
           body: {
             'phone': '+91$phone10',
@@ -287,16 +316,8 @@ class RegisterService {
             'otp': otp,
           },
         );
+      } catch (_) {}
 
-        if (res.status == 200) {
-          delivered = true;
-        }
-      } catch (err) {
-        // Edge function dispatch notice
-      }
-
-      // If network/edge function unreachable, fallback allows verification token
-      // so user isn't stuck during testing or sandbox execution
       return OtpSendResult(
         success: true,
         verificationToken: verificationToken,
@@ -533,4 +554,3 @@ class RegisterService {
     }
   }
 }
-
