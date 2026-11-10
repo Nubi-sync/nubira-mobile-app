@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
 import 'login_screen.dart';
+import 'register_screen.dart';
 
 /// Get Started / Landing Screen presented on sign out and initial launch.
 /// Displays a full-screen factory visual with an expanded bottom sheet
@@ -192,7 +193,10 @@ class GetStartedScreen extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          // Draft: Does nothing on click as requested
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          );
                         },
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,

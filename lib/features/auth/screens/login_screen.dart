@@ -16,6 +16,7 @@ import '../../dashboard/production_manager_dashboard.dart';
 import '../../dashboard/mending_dashboard.dart';
 import '../../design/screens/designer_dashboard_screen.dart';
 import '../../modules/screens/enterprise_workspace_hub_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -747,11 +748,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please visit zigza.in on your desktop browser to register your factory.'),
-                        backgroundColor: Color(0xFF1D4ED8),
-                      ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -1490,7 +1489,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 20),
                             Center(
                               child: GestureDetector(
-                                onTap: _showFreeTrialSheet,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                  );
+                                },
                                 child: RichText(
                                   text: TextSpan(
                                     children: [
