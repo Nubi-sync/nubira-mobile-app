@@ -124,17 +124,17 @@ class AdminDrawer extends ConsumerWidget {
     if (isAdmin) {
       badgeText = '';
     } else if (isStoreUser) {
-      badgeText = 'STORE MES';
+      badgeText = 'STORE';
     } else if (isLineman) {
-      badgeText = 'STITCHING MES';
+      badgeText = 'STITCHING';
     } else if (isMending) {
-      badgeText = 'MENDING MES';
+      badgeText = 'MENDING';
     } else if (isQc) {
-      badgeText = 'QC MES';
+      badgeText = 'QC';
     } else if (isProductionManager) {
-      badgeText = 'PROD MES';
+      badgeText = 'PROD';
     } else {
-      badgeText = '${roleUpper.isNotEmpty ? roleUpper : "ERP"} MES';
+      badgeText = roleUpper.isNotEmpty ? roleUpper : 'ERP';
     }
 
     // Determine Footer Role Label
@@ -857,15 +857,77 @@ class AdminDrawer extends ConsumerWidget {
                     ),
                   ),
                   InkWell(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await ref.read(authProvider.notifier).logout();
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
-                        );
-                      }
+                    onTap: () {
+                      bool isSigningOut = false;
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => StatefulBuilder(
+                          builder: (dialogCtx, setDialogState) => AlertDialog(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: Text(
+                              'Sign Out',
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            content: Text(
+                              'Are you sure you want to sign out of your Zigza account?',
+                              style: GoogleFonts.publicSans(fontSize: 13.5, color: const Color(0xFF475569)),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: isSigningOut ? null : () => Navigator.pop(ctx),
+                                child: Text(
+                                  'Cancel',
+                                  style: GoogleFonts.publicSans(
+                                    color: isSigningOut ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE11D48),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: const Color(0xFFFDA4AF),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                  elevation: 0,
+                                ),
+                                onPressed: isSigningOut
+                                    ? null
+                                    : () async {
+                                        setDialogState(() {
+                                          isSigningOut = true;
+                                        });
+                                        try {
+                                          await ref.read(authProvider.notifier).logout();
+                                        } finally {
+                                          if (ctx.mounted) {
+                                            Navigator.pop(ctx);
+                                          }
+                                          if (context.mounted) {
+                                            Navigator.of(context).pushAndRemoveUntil(
+                                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                              (route) => false,
+                                            );
+                                          }
+                                        }
+                                      },
+                                child: isSigningOut
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Text(
+                                        'Sign Out',
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
