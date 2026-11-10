@@ -1,4 +1,5 @@
 import '../../core/widgets/zigza_brand_logo.dart';
+import '../../core/widgets/live_date_time_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -292,11 +293,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           ),
         ),
       ),
-      title: const ZigzaBrandLogo(
-        iconHeight: 30,
-        logoHeight: 24,
-        spacing: 8.5,
-      ),
+      title: const LiveDateTimeHeader(),
       actions: [
         // Royal Blue + v Quick Add Button
         Center(

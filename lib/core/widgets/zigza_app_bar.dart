@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_app/core/theme/app_theme.dart';
 import 'package:mobile_app/core/widgets/zigza_brand_logo.dart';
+import 'package:mobile_app/core/widgets/live_date_time_header.dart';
 import 'package:mobile_app/features/modules/screens/department_heads_screen.dart';
 import 'package:mobile_app/features/design/screens/sa_design_approvals_screen.dart';
 import 'package:mobile_app/features/cutting/screens/cutting_lay_floor_screen.dart';
@@ -67,11 +68,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             )
           : null,
-      title: const ZigzaBrandLogo(
-        iconHeight: 30,
-        logoHeight: 24,
-        spacing: 8.5,
-      ),
+      title: const LiveDateTimeHeader(),
       actions: [
         if (trailing != null)
           trailing!

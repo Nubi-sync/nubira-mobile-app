@@ -1,4 +1,5 @@
 import '../../core/widgets/zigza_brand_logo.dart';
+import '../../core/widgets/live_date_time_header.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -4677,11 +4678,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
           ),
         ),
         titleSpacing: 0,
-        title: const ZigzaBrandLogo(
-          iconHeight: 30,
-          logoHeight: 24,
-          spacing: 8.5,
-        ),
+        title: const LiveDateTimeHeader(),
         actions: const [SizedBox(width: 8)],
       ),
       body: _isLoading

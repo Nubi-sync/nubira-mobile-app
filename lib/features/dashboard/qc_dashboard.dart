@@ -1,4 +1,5 @@
 import '../../core/widgets/zigza_brand_logo.dart';
+import '../../core/widgets/live_date_time_header.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -2230,11 +2231,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
                 ),
               ),
               const SizedBox(width: 10),
-              const ZigzaBrandLogo(
-                iconHeight: 30,
-                logoHeight: 24,
-                spacing: 8.5,
-              ),
+              const LiveDateTimeHeader(),
             ],
           ),
 

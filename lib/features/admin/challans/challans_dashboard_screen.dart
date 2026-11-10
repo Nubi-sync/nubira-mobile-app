@@ -12,6 +12,7 @@ import 'challan_detail_screen.dart';
 import 'widgets/create_job_work_challan_sheet.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
+import '../../../core/widgets/live_date_time_header.dart';
 
 class ChallansDashboardScreen extends ConsumerStatefulWidget {
   const ChallansDashboardScreen({super.key});
@@ -271,11 +272,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
           ),
         ),
         titleSpacing: 0,
-        title: const ZigzaBrandLogo(
-          iconHeight: 30,
-          logoHeight: 24,
-          spacing: 8.5,
-        ),
+        title: const LiveDateTimeHeader(),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppTheme.bodyInk, size: 20),

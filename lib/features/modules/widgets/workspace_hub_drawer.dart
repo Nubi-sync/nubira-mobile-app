@@ -1370,6 +1370,12 @@ class WorkspaceHubDrawer extends ConsumerWidget {
 
     return Drawer(
       backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 12,
+      shadowColor: Colors.black.withValues(alpha: 0.25),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+      ),
       width: MediaQuery.of(context).size.width * 0.84,
       child: SafeArea(
         child: Column(

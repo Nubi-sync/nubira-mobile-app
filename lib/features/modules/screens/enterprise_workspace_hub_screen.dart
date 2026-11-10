@@ -26,6 +26,63 @@ class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {
   ConsumerState<EnterpriseWorkspaceHubScreen> createState() => _EnterpriseWorkspaceHubScreenState();
 }
 
+/// Subtle, pleasing blinking live indicator dot for floor telemetry
+class _PulsingGreenDot extends StatefulWidget {
+  const _PulsingGreenDot();
+
+  @override
+  State<_PulsingGreenDot> createState() => _PulsingGreenDotState();
+}
+
+class _PulsingGreenDotState extends State<_PulsingGreenDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat(reverse: true);
+    _opacityAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _opacityAnimation,
+      builder: (context, _) {
+        final val = _opacityAnimation.value;
+        return Container(
+          width: 7.5,
+          height: 7.5,
+          decoration: BoxDecoration(
+            color: Color(0xFF10B981).withValues(alpha: val),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFF10B981).withValues(alpha: val * 0.5),
+                blurRadius: 4.5,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspaceHubScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
@@ -178,6 +235,8 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
+      drawerScrimColor: const Color(0x66000000),
+      drawerEdgeDragWidth: 32,
       drawer: const WorkspaceHubDrawer(activeRoute: '/modules'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -305,20 +364,12 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // 3. Operating Units Count (Below Search Bar)
+                  // 3. Operating Units Count (Below Search Bar - Moved down with subtle blinking live indicator)
+                  const SizedBox(height: 14),
                   Row(
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
+                      const _PulsingGreenDot(),
+                      const SizedBox(width: 7),
                       Text(
                         _searchQuery.isNotEmpty
                             ? '${filteredModules.length} of $operatingUnitsCount Operating Units'
@@ -434,7 +485,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                 final isLaunching = _launchingId == mod.id;
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -442,7 +493,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                       borderRadius: BorderRadius.circular(16),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                         decoration: BoxDecoration(
                           color: isLaunching ? const Color(0xFFF0FDFA).withValues(alpha: 0.6) : Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -453,42 +504,42 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x06000000),
-                              blurRadius: 6,
+                              blurRadius: 8,
                               offset: Offset(0, 2),
                             ),
                           ],
                         ),
                         child: Row(
                           children: [
-                            // Clean Icon Box
+                            // Serious & Prominent Icon Box
                             Container(
-                              width: 42,
-                              height: 42,
+                              width: 48,
+                              height: 48,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: const Color(0x1F000000)),
                               ),
                               child: Center(
                                 child: isLaunching
                                     ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
+                                        width: 20,
+                                        height: 20,
                                         child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                                          strokeWidth: 2.2,
                                           color: Color(0xFF0B1220),
                                         ),
                                       )
                                     : Icon(
                                         mod.icon,
                                         color: const Color(0xFF0B1220),
-                                        size: 20,
+                                        size: 23,
                                       ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 14),
 
-                            // Number + Title + 1-Line Clean Subtitle
+                            // Number + Title + Clean Subtitle
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,29 +547,29 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(5),
+                                          borderRadius: BorderRadius.circular(6),
                                           border: Border.all(color: const Color(0xFFE2E8F0)),
                                         ),
                                         child: Text(
                                           mod.displayNumber,
                                           style: GoogleFonts.jetBrainsMono(
-                                            fontSize: 10,
+                                            fontSize: 11,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(0xFF64748B),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 7),
+                                      const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           mod.displayTitle,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14.5,
+                                            fontSize: 15.5,
                                             fontWeight: FontWeight.w800,
                                             color: const Color(0xFF0B1220),
                                             letterSpacing: -0.2,
@@ -527,27 +578,28 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 4),
                                   Text(
                                     mod.displaySubtitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.publicSans(
-                                      fontSize: 11.5,
+                                      fontSize: 12.0,
                                       fontWeight: FontWeight.w500,
                                       color: const Color(0xFF64748B),
+                                      height: 1.35,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
 
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
 
                             // Right Arrow / Opening State
                             if (isLaunching)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(6),
@@ -555,7 +607,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                                 child: Text(
                                   'OPENING...',
                                   style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9.5,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                     color: const Color(0xFF1D4ED8),
                                   ),
@@ -563,18 +615,18 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                               )
                             else
                               Container(
-                                width: 30,
-                                height: 30,
+                                width: 34,
+                                height: 34,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: const Color(0xFFE2E8F0)),
                                 ),
                                 child: const Center(
                                   child: Icon(
                                     Icons.chevron_right_rounded,
                                     color: Color(0xFF94A3B8),
-                                    size: 18,
+                                    size: 20,
                                   ),
                                 ),
                               ),

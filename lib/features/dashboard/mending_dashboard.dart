@@ -1,4 +1,5 @@
 import '../../core/widgets/zigza_brand_logo.dart';
+import '../../core/widgets/live_date_time_header.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1865,11 +1866,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
                 ),
               ),
               const SizedBox(width: 10),
-              const ZigzaBrandLogo(
-                iconHeight: 30,
-                logoHeight: 24,
-                spacing: 8.5,
-              ),
+              const LiveDateTimeHeader(),
             ],
           ),
 
