@@ -524,9 +524,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: isKeyboardOpen ? 4.0 : 8.0,
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: isKeyboardOpen ? 6.0 : 16.0,
+                bottom: isKeyboardOpen ? 12.0 : 24.0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -585,11 +587,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 6 : 10),
+                  SizedBox(height: isKeyboardOpen ? 10 : 18),
 
                   // Stepper Pill & Progress Bar (Matching Welcome Back style)
                   _buildStepperHeader(),
-                  SizedBox(height: isKeyboardOpen ? 6 : 10),
+                  SizedBox(height: isKeyboardOpen ? 12 : 20),
 
                   // Clean Hero Header
                   Center(
@@ -599,14 +601,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : (_currentStep == 2 ? 'Choose Modules' : 'Trial Activated'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: isKeyboardOpen ? 20 : 23,
+                        fontSize: isKeyboardOpen ? 21 : 24,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0B1220),
-                        letterSpacing: -0.4,
+                        letterSpacing: -0.5,
+                        height: 1.25,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 8),
                   Center(
                     child: Text(
                       _currentStep == 1
@@ -616,13 +619,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               : 'Your enterprise apparel MES account is now active'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.publicSans(
-                        fontSize: isKeyboardOpen ? 12 : 13,
+                        fontSize: isKeyboardOpen ? 12.5 : 13.5,
                         color: const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
+                        height: 1.45,
                       ),
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 8 : 12),
+                  SizedBox(height: isKeyboardOpen ? 12 : 20),
 
                   // Error Banner if any
                   if (_errorMsg != null) ...[
@@ -769,7 +773,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             color: const Color(0xFF334155),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -813,7 +817,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             },
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 6 : 10),
+        SizedBox(height: isKeyboardOpen ? 8 : 14),
 
         // 2. MOBILE NUMBER
         Row(
@@ -870,7 +874,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -1214,7 +1218,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 6 : 10),
+        SizedBox(height: isKeyboardOpen ? 8 : 14),
 
         // 3. WORK EMAIL
         Row(
@@ -1255,7 +1259,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -1329,7 +1333,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 6 : 10),
+        SizedBox(height: isKeyboardOpen ? 8 : 14),
 
         // 4. PASSWORD
         Row(
@@ -1354,7 +1358,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -1438,7 +1442,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 6 : 10),
+        SizedBox(height: isKeyboardOpen ? 8 : 14),
 
         // 5. CONFIRM PASSWORD
         Row(
@@ -1463,7 +1467,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
           height: 48,
           decoration: BoxDecoration(
@@ -1515,11 +1519,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             onChanged: (_) => setState(() {}),
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 12 : 16),
+        SizedBox(height: isKeyboardOpen ? 14 : 22),
 
         // Primary Button: Next: Choose Modules
         Container(
-          height: 48,
+          height: 50,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             boxShadow: const [
@@ -1554,7 +1558,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
         // Already have an account? Sign in
         Center(
