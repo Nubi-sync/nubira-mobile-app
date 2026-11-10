@@ -76,6 +76,7 @@ flutter:
   # Assets declaration
   assets:
     - assets/images/
+    - assets/images/zigza_launch_bg_indian_owner.jpg
     - assets/images/zigza_launch_bg_commander.jpg
     - assets/images/zigza_launch_bg_cinematic.jpg
     - assets/images/zigza_launch_bg_stylized.jpg

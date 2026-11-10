@@ -18,10 +18,10 @@ class GetStartedScreen extends StatelessWidget {
         children: [
           // 1. Full Screen Background Image with Contrast Gradients
           Image.asset(
-            'assets/images/zigza_launch_bg_commander.jpg',
+            'assets/images/zigza_launch_bg_indian_owner.jpg',
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Image.asset(
-              'assets/images/zigza_launch_bg_cinematic.jpg',
+              'assets/images/zigza_launch_bg_commander.jpg',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Image.asset(
                 'assets/images/factory_handshake_art.jpg',
