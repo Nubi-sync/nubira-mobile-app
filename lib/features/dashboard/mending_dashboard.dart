@@ -1879,7 +1879,7 @@ class _MendingDashboardState extends ConsumerState<MendingDashboard>
               border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
             ),
             child: Text(
-              'MENDING MES',
+              'MENDING',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,

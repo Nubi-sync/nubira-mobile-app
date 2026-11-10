@@ -2244,7 +2244,7 @@ class _QcDashboardState extends ConsumerState<QcDashboard> {
               border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
             ),
             child: Text(
-              'QC MES',
+              'QC',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,

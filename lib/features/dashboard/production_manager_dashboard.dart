@@ -854,7 +854,7 @@ class _ProductionManagerDashboardState extends ConsumerState<ProductionManagerDa
             border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
           ),
           child: Text(
-            'PROD MES',
+            'PRODUCTION',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 10,
               fontWeight: FontWeight.w800,
