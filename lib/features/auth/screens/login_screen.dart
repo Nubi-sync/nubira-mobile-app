@@ -874,7 +874,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             height: screenSize.height,
             child: RepaintBoundary(
               child: Opacity(
-                opacity: 0.22,
+                opacity: 0.10,
                 child: Image.asset(
                   'assets/images/factory_bg_tinted_sketch.jpg',
                   fit: BoxFit.cover,
@@ -893,7 +893,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
                     horizontal: 24.0,
-                    vertical: isKeyboardOpen ? 8.0 : 18.0,
+                    vertical: isKeyboardOpen ? 8.0 : 16.0,
                   ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -904,24 +904,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           if (Navigator.canPop(context)) ...[
                             Align(
                               alignment: Alignment.centerLeft,
-                              child: InkWell(
-                                onTap: () => Navigator.pop(context),
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFF0F172A), width: 1.2),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x0C000000),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 1),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => Navigator.pop(context),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: Container(
+                                      width: 36,
+                                      height: 36,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFF0F172A), width: 1.2),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x0C000000),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                      child: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF0F172A)),
+                                    ),
                                   ),
-                                  child: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF0F172A)),
                                 ),
                               ),
                             ),
@@ -937,7 +945,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               spacing: 9,
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 12 : 26),
+                          SizedBox(height: isKeyboardOpen ? 12 : 24),
 
                           // --- 2. CLEAN HERO HEADER ---
                           Center(
@@ -951,10 +959,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 5),
                           Center(
                             child: Text(
-                              'Sign in to access your factory floor & tasks',
+                              'Enter your mobile number or email to continue',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.publicSans(
                                 fontSize: isKeyboardOpen ? 12.5 : 13.5,
@@ -963,23 +971,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 14 : 26),
+                          SizedBox(height: isKeyboardOpen ? 14 : 24),
 
                           // --- 3. NATIVE PILL SWITCHER: MOBILE VS EMAIL (SLIDING BRAND BLUE INDICATOR) ---
                           Container(
                             height: 48,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFFE2E8F0)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
                             ),
                             child: Stack(
                               children: [
@@ -995,11 +996,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF1D4ED8),
                                         borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
+                                        boxShadow: const [
                                           BoxShadow(
-                                            color: const Color(0xFF1D4ED8).withValues(alpha: 0.35),
+                                            color: Color(0x331D4ED8),
                                             blurRadius: 8,
-                                            offset: const Offset(0, 2),
+                                            offset: Offset(0, 2),
                                           ),
                                         ],
                                       ),
@@ -1032,7 +1033,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               Icon(
                                                 Icons.phone_android_rounded,
                                                 size: 16,
-                                                color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                                color: _isPhoneMode ? Colors.white : const Color(0xFF334155),
                                               ),
                                               const SizedBox(width: 7),
                                               AnimatedDefaultTextStyle(
@@ -1040,7 +1041,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 style: GoogleFonts.publicSans(
                                                   fontSize: 13,
                                                   fontWeight: _isPhoneMode ? FontWeight.w700 : FontWeight.w600,
-                                                  color: _isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                                  color: _isPhoneMode ? Colors.white : const Color(0xFF334155),
                                                 ),
                                                 child: const Text('Mobile Number'),
                                               ),
@@ -1071,7 +1072,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               Icon(
                                                 Icons.mail_outline_rounded,
                                                 size: 16,
-                                                color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                                color: !_isPhoneMode ? Colors.white : const Color(0xFF334155),
                                               ),
                                               const SizedBox(width: 7),
                                               AnimatedDefaultTextStyle(
@@ -1079,7 +1080,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 style: GoogleFonts.publicSans(
                                                   fontSize: 13,
                                                   fontWeight: !_isPhoneMode ? FontWeight.w700 : FontWeight.w600,
-                                                  color: !_isPhoneMode ? Colors.white : const Color(0xFF64748B),
+                                                  color: !_isPhoneMode ? Colors.white : const Color(0xFF334155),
                                                 ),
                                                 child: const Text('Work Email'),
                                               ),
@@ -1423,16 +1424,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
 
                           // --- 8. PRIMARY SIGN IN BUTTON (WITH DUAL-RING SPINNER) ---
-                          SizedBox(
+                          Container(
                             height: 52,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x381D4ED8),
+                                  blurRadius: 14,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
                             child: ElevatedButton(
                               onPressed: (authState.isLoading || isLocked) ? null : _handleSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1D4ED8),
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor: const Color(0xFF1D4ED8).withValues(alpha: 0.6),
-                                elevation: 1,
-                                shadowColor: const Color(0xFF1D4ED8).withValues(alpha: 0.25),
+                                elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
                               child: authState.isLoading
@@ -1475,37 +1485,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 14 : 24),
-
-                          // --- 9. FREE TRIAL PROMPT ---
-                          Center(
-                            child: GestureDetector(
-                              onTap: _showFreeTrialSheet,
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'New to Zigza? ',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13,
-                                        color: const Color(0xFF64748B),
-                                        fontWeight: FontWeight.w500,
+                          // --- 9. FREE TRIAL PROMPT (Positioned directly below Sign In button, hidden when keyboard is open) ---
+                          if (!isKeyboardOpen) ...[
+                            const SizedBox(height: 20),
+                            Center(
+                              child: GestureDetector(
+                                onTap: _showFreeTrialSheet,
+                                child: RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'New to Zigza? ',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 13.5,
+                                          color: const Color(0xFF64748B),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
-                                    TextSpan(
-                                      text: 'Start 7-Day Free Trial →',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 13,
-                                        color: const Color(0xFF1D4ED8),
-                                        fontWeight: FontWeight.w700,
+                                      TextSpan(
+                                        text: 'Start 7-Day Free Trial →',
+                                        style: GoogleFonts.publicSans(
+                                          fontSize: 13.5,
+                                          color: const Color(0xFF1D4ED8),
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(height: isKeyboardOpen ? 12 : 24),
+                          ],
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
