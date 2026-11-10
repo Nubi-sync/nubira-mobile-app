@@ -132,29 +132,47 @@ class ArticleJourneyItem {
   final String id;
   final String artNo;
   final String description;
+  final String category;
+  final String buyerName;
+  final String poNumber;
   final String designStatus;
   final int buyerPoTarget;
   final int fabricMetersInStore;
   final int cutPieces;
   final int stitchedPieces;
   final int qcPassedPieces;
+  final int qcRejectedPieces;
+  final double qcPassRatePct;
   final int godownPieces;
   final int dispatchedPieces;
   final int overallProgressPct;
+  final String fabricType;
+  final int targetGsm;
+  final String embellishmentSequence;
+  final int todayOutput;
 
   const ArticleJourneyItem({
     required this.id,
     required this.artNo,
     required this.description,
+    this.category = 'Garment Style',
+    this.buyerName = 'Direct Buyer',
+    this.poNumber = 'PO',
     required this.designStatus,
     required this.buyerPoTarget,
     required this.fabricMetersInStore,
     required this.cutPieces,
     required this.stitchedPieces,
     required this.qcPassedPieces,
+    this.qcRejectedPieces = 0,
+    this.qcPassRatePct = 98.2,
     required this.godownPieces,
     required this.dispatchedPieces,
     required this.overallProgressPct,
+    this.fabricType = 'Cotton Twill 240 GSM',
+    this.targetGsm = 240,
+    this.embellishmentSequence = 'Screen Print + Heat Seal Care Label',
+    this.todayOutput = 0,
   });
 }
 

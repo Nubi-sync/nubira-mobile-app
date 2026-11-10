@@ -472,11 +472,6 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
       drawer: const WorkspaceHubDrawer(activeRoute: '/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        trailing: IconButton(
-          tooltip: 'Reset Conversation',
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220), size: 20),
-          onPressed: () => _createNewSession(),
-        ),
       ),
       body: SafeArea(
         child: Column(
