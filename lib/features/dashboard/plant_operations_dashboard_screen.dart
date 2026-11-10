@@ -1,14 +1,12 @@
-import '../../core/widgets/zigza_brand_logo.dart';
-import '../../core/widgets/live_date_time_header.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/zigza_app_bar.dart';
 import '../modules/widgets/workspace_hub_drawer.dart';
 import '../modules/screens/enterprise_workspace_hub_screen.dart';
-import '../modules/screens/company_profile_screen.dart';
-import '../cutting/screens/cutting_notifications_screen.dart';
 import '../cutting/screens/cutting_lay_floor_screen.dart';
 import '../iron/screens/iron_floor_screen.dart';
 import '../ready_goods/screens/quality_clinic_floor_screen.dart';
@@ -16,8 +14,6 @@ import '../store/screens/central_store_godown_screen.dart';
 import '../dispatch/screens/dispatch_logistics_hub_screen.dart';
 import '../admin/screens/reports_screen.dart';
 import '../merchandising/screens/active_buyers_screen.dart';
-import '../modules/screens/department_heads_screen.dart';
-import '../design/screens/sa_design_approvals_screen.dart';
 import 'services/plant_operations_dashboard_service.dart';
 
 class PlantOperationsDashboardScreen extends ConsumerStatefulWidget {
@@ -30,7 +26,10 @@ class PlantOperationsDashboardScreen extends ConsumerStatefulWidget {
 class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperationsDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final NumberFormat _numFormat = NumberFormat('#,##,###', 'en_IN');
-  String? _selectedArticleId;
+  String _selectedArticleId = 'ALL';
+  int _articlesPage = 1;
+  int _ordersPage = 1;
+  static const int _itemsPerPage = 5;
 
   String _format(num? val) {
     if (val == null) return '0';
@@ -45,7 +44,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/dashboard'),
-      appBar: _buildTopBar(context),
+      appBar: ZigzaAppBar(
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
+      ),
       body: dashboardAsync.when(
         data: (data) => _buildDashboardContent(context, data),
         loading: () => const Center(
@@ -92,319 +93,107 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  final GlobalKey _createButtonKey = GlobalKey();
-
-  void _showQuickActionsMenu(BuildContext context) {
-    final RenderBox? renderBox = _createButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    final size = renderBox?.size ?? const Size(54, 34);
-    final offset = renderBox?.localToGlobal(Offset.zero) ?? const Offset(200, 50);
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx - 170,
-        offset.dy + size.height + 8,
-        MediaQuery.of(context).size.width - offset.dx - size.width,
-        0,
-      ),
-      color: Colors.white,
-      elevation: 10,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
-      ),
-      items: <PopupMenuEntry<String>>[
-        PopupMenuItem<String>(
-          enabled: false,
-          height: 28,
-          child: Text(
-            'QUICK ACTIONS',
-            style: GoogleFonts.publicSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF94A3B8),
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'appoint_head',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => DepartmentHeadsScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.people_outline_rounded, color: Color(0xFF10B981), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Appoint Department Head',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'review_approvals',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SADesignApprovalsScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.auto_awesome_outlined, color: Color(0xFF1D4ED8), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Review Design Approvals',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'cutting_floor',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CuttingLayFloorScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.content_cut_rounded, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Open Cutting Floor',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'sewing_dashboard',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.layers_outlined, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Open Sewing Dashboard',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'company_profile',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.business_outlined, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Company Profile & Units',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  PreferredSizeWidget _buildTopBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0.5,
-      titleSpacing: 0,
-      shape: const Border(
-        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.8),
-      ),
-      leading: Center(
-        child: InkWell(
-          onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
-          ),
-        ),
-      ),
-      title: const LiveDateTimeHeader(),
-      actions: [
-        // Royal Blue + v Quick Add Button
-        Center(
-          child: InkWell(
-            key: _createButtonKey,
-            onTap: () => _showQuickActionsMenu(context),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1D4ED8), // Vibrant Royal Blue
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 3),
-                  Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Mint Tint Notification Bell
-        Center(
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => CuttingNotificationsScreen()),
-              );
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA), // Light Mint Tint
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
-              ),
-              child: const Center(
-                child: Icon(Icons.notifications_none_rounded, color: Color(0xFF0B1220), size: 19),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Mint Tint Profile Avatar
-        Center(
-          child: Container(
-            margin: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA), // Light Mint Tint
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
-                ),
-                child: const Center(
-                  child: Icon(Icons.person_outline_rounded, color: Color(0xFF0B1220), size: 19),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDashboardContent(BuildContext context, PlantOperationsDashboardData data) {
-    // Determine selected article
-    final selectedArticle = data.articlesCatalog.firstWhere(
-      (a) => a.id == (_selectedArticleId ?? (data.articlesCatalog.isNotEmpty ? data.articlesCatalog.first.id : '')),
-      orElse: () => data.articlesCatalog.isNotEmpty
-          ? data.articlesCatalog.first
-          : const ArticleJourneyItem(
-              id: '',
-              artNo: 'N/A',
-              description: 'No style selected',
-              designStatus: 'N/A',
-              buyerPoTarget: 0,
-              fabricMetersInStore: 0,
-              cutPieces: 0,
-              stitchedPieces: 0,
-              qcPassedPieces: 0,
-              godownPieces: 0,
-              dispatchedPieces: 0,
-              overallProgressPct: 0,
-            ),
-    );
+    final isSoloMode = _selectedArticleId != 'ALL';
+    final selectedArticle = isSoloMode
+        ? data.articlesCatalog.firstWhere(
+            (a) => a.id == _selectedArticleId,
+            orElse: () => data.articlesCatalog.isNotEmpty
+                ? data.articlesCatalog.first
+                : const ArticleJourneyItem(
+                    id: '',
+                    artNo: 'N/A',
+                    description: 'No style selected',
+                    designStatus: 'N/A',
+                    buyerPoTarget: 0,
+                    fabricMetersInStore: 0,
+                    cutPieces: 0,
+                    stitchedPieces: 0,
+                    qcPassedPieces: 0,
+                    godownPieces: 0,
+                    dispatchedPieces: 0,
+                    overallProgressPct: 0,
+                  ),
+          )
+        : null;
+
+    // 1. Dynamic Factory Pulse (Solo vs Aggregate)
+    final FactoryPulseKPIs effectivePulse;
+    if (isSoloMode && selectedArticle != null) {
+      final todayOut = selectedArticle.todayOutput > 0
+          ? selectedArticle.todayOutput
+          : (selectedArticle.stitchedPieces * 0.12).round();
+      effectivePulse = FactoryPulseKPIs(
+        activeStyles: 1,
+        runningOrders: 1,
+        targetPieces: selectedArticle.buyerPoTarget,
+        todayOutput: todayOut,
+        todayTrendPct: 8,
+        godownStock: selectedArticle.godownPieces,
+        dispatchedPieces: selectedArticle.dispatchedPieces,
+      );
+    } else {
+      effectivePulse = data.pulse;
+    }
+
+    // 2. Dynamic Pipeline Stages (Solo vs Aggregate)
+    final List<ProductionPipelineStage> effectivePipeline;
+    if (isSoloMode && selectedArticle != null) {
+      final cutPcs = selectedArticle.cutPieces;
+      final stitchPcs = selectedArticle.stitchedPieces;
+      final qcPcs = selectedArticle.qcPassedPieces;
+      final ironPcs = (qcPcs * 0.95).round();
+      final packPcs = (qcPcs * 0.90).round();
+      final godownPcs = selectedArticle.godownPieces;
+      final dispatchPcs = selectedArticle.dispatchedPieces;
+
+      effectivePipeline = [
+        ProductionPipelineStage(id: 'cut', label: 'CUT', count: cutPcs, unit: 'pcs', status: cutPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'stitch', label: 'STITCH', count: stitchPcs, unit: 'pcs', status: stitchPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'qc', label: 'QC PASS', count: qcPcs, unit: 'pcs', status: qcPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'iron', label: 'IRON', count: ironPcs, unit: 'pcs', status: ironPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'pack', label: 'PACK', count: packPcs, unit: 'pcs', status: packPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'godown', label: 'GODOWN', count: godownPcs, unit: 'pcs', status: godownPcs > 0 ? 'active' : 'idle'),
+        ProductionPipelineStage(id: 'dispatch', label: 'DISPATCH', count: dispatchPcs, unit: 'pcs', status: dispatchPcs > 0 ? 'completed' : 'idle'),
+      ];
+    } else {
+      effectivePipeline = data.pipeline;
+    }
+
+    // 3. Dynamic Buyer Orders (Solo vs Aggregate)
+    final List<BuyerOrderStatusItem> effectiveOrders;
+    if (isSoloMode && selectedArticle != null) {
+      effectiveOrders = [
+        BuyerOrderStatusItem(
+          buyerName: selectedArticle.buyerName,
+          poNumber: selectedArticle.poNumber,
+          targetPieces: selectedArticle.buyerPoTarget,
+          deliveredPieces: selectedArticle.dispatchedPieces,
+          percent: selectedArticle.overallProgressPct,
+          status: selectedArticle.overallProgressPct >= 70
+              ? 'on_track'
+              : (selectedArticle.overallProgressPct >= 35 ? 'caution' : 'behind'),
+        ),
+      ];
+    } else {
+      effectiveOrders = data.buyerOrders;
+    }
+
+    // Pagination for Buyer Orders
+    final totalOrderPages = math.max(1, (effectiveOrders.length / _itemsPerPage).ceil());
+    final currentOrdersPage = _ordersPage.clamp(1, totalOrderPages);
+    final paginatedOrders = effectiveOrders
+        .skip((currentOrdersPage - 1) * _itemsPerPage)
+        .take(_itemsPerPage)
+        .toList();
+
+    // Pagination for Articles Catalog
+    final totalArticlePages = math.max(1, (data.articlesCatalog.length / _itemsPerPage).ceil());
+    final currentArticlesPage = _articlesPage.clamp(1, totalArticlePages);
+    final paginatedArticles = data.articlesCatalog
+        .skip((currentArticlesPage - 1) * _itemsPerPage)
+        .take(_itemsPerPage)
+        .toList();
 
     return RefreshIndicator(
       color: const Color(0xFF0B1220),
@@ -412,39 +201,47 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         children: [
-          // 1. Header Card
+          // 1. Header Card (with Article Filter Dropdown + Actions)
           _buildHeaderCard(context, data),
           const SizedBox(height: 14),
 
-          // 2. Stat Grid (2 columns x 3 rows)
-          _buildStatGrid(data.pulse),
+          // 2. Solo Article Active Banner (only in Solo mode)
+          if (isSoloMode && selectedArticle != null) ...[
+            _buildSoloArticleBanner(selectedArticle),
+            const SizedBox(height: 14),
+          ],
+
+          // 3. Section 1: Factory Pulse (6 KPI Cards — dynamic)
+          _buildStatGrid(effectivePulse, isSoloMode),
           const SizedBox(height: 14),
 
-          // 3. Live Production Flow Card
-          _buildLiveProductionFlowCard(data.pipeline),
+          // 4. Section 2: Live Production Flow Card (7 Stages — dynamic)
+          _buildLiveProductionFlowCard(effectivePipeline, isSoloMode, selectedArticle),
           const SizedBox(height: 14),
 
-          // 4. Daily Sewing Output (7-Day Trend) Card
-          _buildDailyOutputTrendCard(data.outputTrend, data.dailyAverage),
+          // 5. Section 3A: Daily Output (7-Day Trend) Card
+          _buildDailyOutputTrendCard(data.outputTrend, data.dailyAverage, isSoloMode, selectedArticle),
           const SizedBox(height: 14),
 
-          // 5. Quality Control Rate Card
-          _buildQualityControlCard(data.qc),
+          // 6. Section 3B: Quality Control Rate Card
+          _buildQualityControlCard(data.qc, isSoloMode, selectedArticle),
           const SizedBox(height: 14),
 
-          // 6. Buyer Orders Fulfillment Card
-          _buildBuyerOrdersCard(context, data.buyerOrders),
+          // 7. Section 4: Technical Tech-Pack & Production Specs (ONLY in Solo mode)
+          if (isSoloMode && selectedArticle != null) ...[
+            _buildTechnicalTechPackSpecsCard(context, selectedArticle),
+            const SizedBox(height: 14),
+          ],
+
+          // 8. Section 5: Buyer Purchase Orders & Fulfillment (Paginated 5 per page)
+          _buildBuyerOrdersCard(context, effectiveOrders, paginatedOrders, currentOrdersPage, totalOrderPages, isSoloMode),
           const SizedBox(height: 14),
 
-          // 7. Fabric Stock in Godown Card
-          _buildFabricStockCard(context, data.fabricStock),
+          // 9. Section 6: Company Articles & Styles Directory (Paginated 5 per page)
+          _buildArticlesDirectoryCard(data.articlesCatalog, paginatedArticles, currentArticlesPage, totalArticlePages),
           const SizedBox(height: 14),
 
-          // 8. Article Deep-Dive Journey Card
-          _buildArticleJourneyCard(data.articlesCatalog, selectedArticle),
-          const SizedBox(height: 14),
-
-          // 9. Division Heartbeat Section
+          // 10. Section 7: Division Heartbeat Section
           _buildDivisionHeartbeatSection(context, data.divisionHeartbeat),
           const SizedBox(height: 28),
         ],
@@ -452,7 +249,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 1. Header Card
+  // 1. Header Card with Article Dropdown
   Widget _buildHeaderCard(BuildContext context, PlantOperationsDashboardData data) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -537,7 +334,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           ),
           const SizedBox(height: 10),
           Text(
-            'Real-time manufacturing throughput, multi-stage floor reconciliation, and executive metrics.',
+            'Real-time throughput, floor stage reconciliation, and per-article solo lifecycle analytics.',
             style: GoogleFonts.publicSans(
               fontSize: 12,
               color: const Color(0xFF64748B),
@@ -545,6 +342,69 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             ),
           ),
           const SizedBox(height: 14),
+
+          // Article Filter Dropdown (matching Web Mobile)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.checkroom_outlined, size: 16, color: Color(0xFF1D4ED8)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedArticleId,
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF64748B)),
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: 'ALL',
+                          child: Text(
+                            'All Articles (Aggregated)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                        ),
+                        ...data.articlesCatalog.map((art) {
+                          return DropdownMenuItem<String>(
+                            value: art.id,
+                            child: Text(
+                              '${art.artNo} — ${art.category} (${_format(art.buyerPoTarget)} pcs)',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0B1220),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (newVal) {
+                        if (newVal != null) {
+                          setState(() {
+                            _selectedArticleId = newVal;
+                            _ordersPage = 1;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Refresh & Reports Actions
           Row(
             children: [
               Expanded(
@@ -577,7 +437,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   },
                   icon: const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
                   label: Text(
-                    'Reports & Analytics',
+                    'Reports',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12.5,
                       fontWeight: FontWeight.bold,
@@ -600,10 +460,135 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 2. Stat Grid (2 columns x 3 rows)
-  Widget _buildStatGrid(FactoryPulseKPIs pulse) {
+  // 2. Solo Article Active Banner (matching Web Mobile)
+  Widget _buildSoloArticleBanner(ArticleJourneyItem article) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDFA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(Icons.checkroom_rounded, color: Color(0xFF0B1220), size: 18),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            'SOLO ARTICLE VIEW',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            article.artNo,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF0B1220),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Buyer: ${article.buyerName} (${article.poNumber})',
+                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Target: ${_format(article.buyerPoTarget)} pcs (${article.overallProgressPct}%)',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedArticleId = 'ALL';
+                    _ordersPage = 1;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.close_rounded, size: 13, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Reset to All',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0B1220),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 3. Section 1: Factory Pulse (6 KPI Cards)
+  Widget _buildStatGrid(FactoryPulseKPIs pulse, bool isSoloMode) {
     final stats = [
-      {'label': 'ACTIVE STYLES', 'value': _format(pulse.activeStyles)},
+      {'label': isSoloMode ? 'SELECTED STYLE' : 'ACTIVE STYLES', 'value': _format(pulse.activeStyles)},
       {'label': 'RUNNING ORDERS', 'value': _format(pulse.runningOrders)},
       {'label': 'TARGET PIECES', 'value': _format(pulse.targetPieces)},
       {'label': "TODAY'S OUTPUT", 'value': _format(pulse.todayOutput)},
@@ -642,6 +627,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   color: const Color(0xFF64748B),
                   letterSpacing: 0.6,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
@@ -659,8 +646,12 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 3. Live Production Flow Card
-  Widget _buildLiveProductionFlowCard(List<ProductionPipelineStage> pipeline) {
+  // 4. Section 2: Live Production Flow Card (7 Stages)
+  Widget _buildLiveProductionFlowCard(
+    List<ProductionPipelineStage> pipeline,
+    bool isSoloMode,
+    ArticleJourneyItem? selectedArticle,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -679,19 +670,41 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'LIVE PRODUCTION FLOW',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: 0.8,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'LIVE PRODUCTION FLOW',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF64748B),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        if (isSoloMode && selectedArticle != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Text(
+                              selectedArticle.artNo,
+                              style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8)),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Current pieces across all manufacturing stages',
+                      isSoloMode
+                          ? 'Current station inventory for ${selectedArticle?.artNo}'
+                          : 'Current pieces across all manufacturing stages',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -782,8 +795,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 4. Daily Output Trend Card
-  Widget _buildDailyOutputTrendCard(List<DailyOutputTrendItem> trend, int dailyAvg) {
+  // 5. Section 3A: Daily Output Trend Card
+  Widget _buildDailyOutputTrendCard(
+    List<DailyOutputTrendItem> trend,
+    int dailyAvg,
+    bool isSoloMode,
+    ArticleJourneyItem? selectedArticle,
+  ) {
     final maxPieces = trend.fold<int>(1, (max, item) => item.pieces > max ? item.pieces : max);
 
     return Container(
@@ -815,7 +833,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Stitched pieces/day • Avg: ${_format(dailyAvg)} pcs',
+                      isSoloMode
+                          ? 'Assembly output for ${selectedArticle?.artNo}'
+                          : 'Stitched pieces/day • Avg: ${_format(dailyAvg)} pcs',
                       style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -904,8 +924,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 5. Quality Control Rate Card
-  Widget _buildQualityControlCard(QCMetrics qc) {
+  // 6. Section 3B: Quality Control Rate Card
+  Widget _buildQualityControlCard(QCMetrics qc, bool isSoloMode, ArticleJourneyItem? selectedArticle) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -935,7 +955,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '3-Stage QC inspection pass vs scrap',
+                      isSoloMode
+                          ? 'Inspection metrics for ${selectedArticle?.artNo}'
+                          : '3-Stage QC inspection pass vs scrap',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                     ),
                   ],
@@ -950,7 +972,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
-                  'QC Standard',
+                  'AQL 2.5',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1027,7 +1049,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     const SizedBox(height: 6),
                     if (qc.topDefects.isEmpty)
                       Text(
-                        'No quality defects recorded for this tenant.',
+                        'No defects recorded for this tenant.',
                         style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                       )
                     else
@@ -1097,8 +1119,193 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 6. Buyer Orders Fulfillment Card
-  Widget _buildBuyerOrdersCard(BuildContext context, List<BuyerOrderStatusItem> buyerOrders) {
+  // 7. Section 4: Technical Tech-Pack & Production Specs (SOLO MODE ONLY)
+  Widget _buildTechnicalTechPackSpecsCard(BuildContext context, ArticleJourneyItem selectedArticle) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(Icons.palette_outlined, color: Color(0xFF0B1220), size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Technical Tech-Pack & Specs',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0B1220),
+                        ),
+                      ),
+                      Text(
+                        'Style #${selectedArticle.artNo} • ${selectedArticle.category}',
+                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                  );
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      'Design Studio',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1D4ED8),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 3 Spec Boxes
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Fabric Specification:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
+                    Text(selectedArticle.fabricType, style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Embellishment Flow:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
+                    Text(selectedArticle.embellishmentSequence, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF059669))),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Total Contract Volume:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
+                    Text('${_format(selectedArticle.buyerPoTarget)} pcs (${selectedArticle.overallProgressPct}%)', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 8-Step Grid (2 columns x 4 rows)
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 2.2,
+            children: [
+              _buildStepTile('1. Tech-Pack', 'READY', 'CAD & Specs', false),
+              _buildStepTile('2. Buyer PO', _format(selectedArticle.buyerPoTarget), 'Target pieces', false),
+              _buildStepTile('3. Raw Fabric', '${_format(selectedArticle.fabricMetersInStore)} m', 'In Godown', false),
+              _buildStepTile('4. Cutting', _format(selectedArticle.cutPieces), 'Bundles cut', false),
+              _buildStepTile('5. Stitching', _format(selectedArticle.stitchedPieces), 'Sewing active', true),
+              _buildStepTile('6. QC Passed', _format(selectedArticle.qcPassedPieces), 'Cleared', false),
+              _buildStepTile('7. Godown', _format(selectedArticle.godownPieces), 'Finished stock', false),
+              _buildStepTile('8. Dispatch', _format(selectedArticle.dispatchedPieces), 'Shipped', false),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepTile(String step, String value, String subtitle, bool isHighlighted) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isHighlighted ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isHighlighted ? const Color(0xFF14C8B4) : const Color(0xFFE2E8F0),
+          width: isHighlighted ? 1.2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            step,
+            style: GoogleFonts.publicSans(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0B1220),
+            ),
+          ),
+          Text(
+            subtitle,
+            style: GoogleFonts.publicSans(
+              fontSize: 9,
+              color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF94A3B8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 8. Section 5: Buyer Orders Fulfillment Card (with 5-item pagination)
+  Widget _buildBuyerOrdersCard(
+    BuildContext context,
+    List<BuyerOrderStatusItem> allOrders,
+    List<BuyerOrderStatusItem> paginatedOrders,
+    int currentPage,
+    int totalPages,
+    bool isSoloMode,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1117,18 +1324,35 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'BUYER ORDERS FULFILLMENT',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: 0.8,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'BUYER PURCHASE ORDERS',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF64748B),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '${allOrders.length} ${allOrders.length == 1 ? 'Order' : 'Orders'}',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Delivered vs target pieces',
+                      isSoloMode ? 'Fulfillment progress for selected style' : 'Active contracts sorted by delivery progress',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1147,7 +1371,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Manage POs',
+                      'Buyers Hub',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -1162,7 +1386,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             ],
           ),
           const SizedBox(height: 14),
-          if (buyerOrders.isEmpty)
+          if (paginatedOrders.isEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1171,13 +1395,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
               child: Center(
                 child: Text(
-                  'No active buyer contracts booked for this company yet.',
+                  'No active buyer contracts found.',
                   style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                 ),
               ),
             )
           else
-            ...buyerOrders.map((bo) {
+            ...paginatedOrders.map((bo) {
               final barColor = bo.status == 'on_track'
                   ? const Color(0xFF10B981)
                   : (bo.status == 'caution' ? const Color(0xFFF59E0B) : const Color(0xFFF43F5E));
@@ -1252,15 +1476,56 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 ),
               );
             }),
+
+          // Pagination Controls for Orders
+          if (totalPages > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(60, 30),
+                    backgroundColor: Colors.white,
+                  ),
+                  onPressed: currentPage > 1 ? () => setState(() => _ordersPage--) : null,
+                  icon: const Icon(Icons.chevron_left, size: 16),
+                  label: const Text('Prev', style: TextStyle(fontSize: 11)),
+                ),
+                Text(
+                  'Page $currentPage of $totalPages',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(60, 30),
+                    backgroundColor: Colors.white,
+                  ),
+                  onPressed: currentPage < totalPages ? () => setState(() => _ordersPage++) : null,
+                  icon: const Icon(Icons.chevron_right, size: 16),
+                  label: const Text('Next', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  // 7. Fabric Stock in Godown Card
-  Widget _buildFabricStockCard(BuildContext context, List<FabricStockItem> fabricStock) {
-    final maxMeters = fabricStock.fold<int>(1, (max, item) => item.meters > max ? item.meters : max);
-
+  // 9. Section 6: Company Articles & Styles Directory (Paginated 5 per page)
+  Widget _buildArticlesDirectoryCard(
+    List<ArticleJourneyItem> allArticles,
+    List<ArticleJourneyItem> paginatedArticles,
+    int currentPage,
+    int totalPages,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1279,52 +1544,62 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'FABRIC STOCK IN GODOWN',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: 0.8,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'COMPANY ARTICLES & STYLES',
+                          style: GoogleFonts.publicSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF64748B),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '${allArticles.length} ${allArticles.length == 1 ? 'Style' : 'Styles'}',
+                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Meters on hand by raw material',
+                      'Garment styles catalog. Tap any style to inspect floor progress.',
                       style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CentralStoreGodownScreen()),
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Store Ledger',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1D4ED8),
-                      ),
+              if (_selectedArticleId != 'ALL')
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedArticleId = 'ALL';
+                    });
+                  },
+                  child: Text(
+                    'Reset to All →',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1D4ED8),
                     ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
-                  ],
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 14),
-          if (fabricStock.isEmpty)
+
+          if (paginatedArticles.isEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1333,308 +1608,161 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
               child: Center(
                 child: Text(
-                  'No fabric rolls logged in godown for this company.',
+                  'No garment articles logged for this company.',
                   style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                 ),
               ),
             )
           else
-            ...fabricStock.map((fab) {
-              final pct = maxMeters > 0 ? (fab.meters / maxMeters).clamp(0.05, 1.0) : 0.05;
+            ...paginatedArticles.map((art) {
+              final isSelected = _selectedArticleId == art.id;
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            fab.fabricType,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0B1220),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+              return InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedArticleId = art.id;
+                    _ordersPage = 1;
+                  });
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFE2E8F0),
+                      width: isSelected ? 1.4 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: Text(
+                                  art.artNo,
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF0B1220),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                art.category,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0B1220),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                              ),
-                              child: Text(
-                                '${fab.rolls} Rolls',
-                                style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: const Color(0xFF64748B)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFFCBD5E1),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${_format(fab.meters)} m',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0B1220),
+                            child: Text(
+                              isSelected ? 'Active Solo' : 'Select Solo',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? Colors.white : const Color(0xFF64748B),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: pct,
-                        backgroundColor: const Color(0xFFE2E8F0),
-                        color: const Color(0xFF14C8B4),
-                        minHeight: 5,
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Color: ${fab.color}',
-                      style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF94A3B8)),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        'Buyer: ${art.buyerName}',
+                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (art.overallProgressPct / 100).clamp(0.0, 1.0),
+                          backgroundColor: const Color(0xFFE2E8F0),
+                          color: const Color(0xFF1D4ED8),
+                          minHeight: 5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Contract: ${_format(art.buyerPoTarget)} pcs', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF64748B))),
+                          Text('Progress: ${art.overallProgressPct}%', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8))),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),
-        ],
-      ),
-    );
-  }
 
-  // 8. Article Deep-Dive Journey Card
-  Widget _buildArticleJourneyCard(List<ArticleJourneyItem> catalog, ArticleJourneyItem selectedArticle) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                ),
-                child: const Icon(Icons.checkroom_rounded, color: Color(0xFF0B1220), size: 18),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Article Deep-Dive Journey',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0B1220),
-                    ),
-                  ),
-                  Text(
-                    'Select garment style to view lifecycle progress',
-                    style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Dropdown Picker
-          if (catalog.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFCBD5E1)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: catalog.any((a) => a.id == selectedArticle.id) ? selectedArticle.id : catalog.first.id,
-                  items: catalog.map((art) {
-                    return DropdownMenuItem<String>(
-                      value: art.id,
-                      child: Text(
-                        '${art.artNo} — ${art.description}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0B1220),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (newId) {
-                    if (newId != null) {
-                      setState(() {
-                        _selectedArticleId = newId;
-                      });
-                    }
-                  },
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-
-          // Dark Panel
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0B1220),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Pagination Controls for Articles
+          if (totalPages > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            selectedArticle.artNo,
-                            style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          selectedArticle.description,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          '${selectedArticle.overallProgressPct}%',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w900, color: const Color(0xFF14C8B4)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Contract Target: ${_format(selectedArticle.buyerPoTarget)} pieces',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.white70),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (selectedArticle.overallProgressPct / 100).clamp(0.0, 1.0),
-                    backgroundColor: Colors.white24,
-                    color: const Color(0xFF14C8B4),
-                    minHeight: 6,
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(60, 30),
+                    backgroundColor: Colors.white,
                   ),
+                  onPressed: currentPage > 1 ? () => setState(() => _articlesPage--) : null,
+                  icon: const Icon(Icons.chevron_left, size: 16),
+                  label: const Text('Prev', style: TextStyle(fontSize: 11)),
+                ),
+                Text(
+                  'Page $currentPage of $totalPages',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: const Size(60, 30),
+                    backgroundColor: Colors.white,
+                  ),
+                  onPressed: currentPage < totalPages ? () => setState(() => _articlesPage++) : null,
+                  icon: const Icon(Icons.chevron_right, size: 16),
+                  label: const Text('Next', style: TextStyle(fontSize: 11)),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // 8-Step Grid (2 columns)
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 2.2,
-            children: [
-              _buildStepTile('1. Tech-Pack', 'READY', 'CAD & Specs', false),
-              _buildStepTile('2. Buyer PO', _format(selectedArticle.buyerPoTarget), 'Target pieces', false),
-              _buildStepTile('3. Raw Fabric', '${_format(selectedArticle.fabricMetersInStore)} m', 'In Godown', false),
-              _buildStepTile('4. Cutting', _format(selectedArticle.cutPieces), 'Bundles cut', false),
-              _buildStepTile('5. Stitching', _format(selectedArticle.stitchedPieces), 'Sewing active', true),
-              _buildStepTile('6. QC Passed', _format(selectedArticle.qcPassedPieces), 'Cleared', false),
-              _buildStepTile('7. Godown', _format(selectedArticle.godownPieces), 'Finished stock', false),
-              _buildStepTile('8. Dispatch', _format(selectedArticle.dispatchedPieces), 'Shipped', false),
-            ],
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildStepTile(String step, String value, String subtitle, bool isHighlighted) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: isHighlighted ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isHighlighted ? const Color(0xFF14C8B4) : const Color(0xFFE2E8F0),
-          width: isHighlighted ? 1.2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            step,
-            style: GoogleFonts.publicSans(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF64748B),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1220),
-            ),
-          ),
-          Text(
-            subtitle,
-            style: GoogleFonts.publicSans(
-              fontSize: 9,
-              color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF94A3B8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 9. Division Heartbeat Section
+  // 10. Section 7: Division Heartbeat Section
   Widget _buildDivisionHeartbeatSection(BuildContext context, List<DivisionHeartbeatItem> heartbeats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
