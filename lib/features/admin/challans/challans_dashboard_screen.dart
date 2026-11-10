@@ -271,7 +271,7 @@ class _ChallansDashboardScreenState extends ConsumerState<ChallansDashboardScree
             ),
           ),
         ),
-        titleSpacing: 0,
+        titleSpacing: 10,
         title: const LiveDateTimeHeader(),
         actions: [
           IconButton(

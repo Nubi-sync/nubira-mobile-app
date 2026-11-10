@@ -32,7 +32,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.white,
       elevation: 0,
       scrolledUnderElevation: 0.5,
-      titleSpacing: 8,
+      titleSpacing: 10,
       centerTitle: false,
       shape: const Border(
         bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.8),

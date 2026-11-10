@@ -18,27 +18,23 @@ class LiveDateTimeHeader extends StatefulWidget {
 }
 
 class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
-  late String _formatted;
+  String _datePart = '';
+  String _timePart = '';
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _formatted = _getFormattedTime();
+    _syncTime(isInitial: true);
     // Minute-aligned ticker (every 15s to catch the minute transition accurately)
     _timer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) {
-        final next = _getFormattedTime();
-        if (_formatted != next) {
-          setState(() {
-            _formatted = next;
-          });
-        }
+        _syncTime(isInitial: false);
       }
     });
   }
 
-  String _getFormattedTime() {
+  void _syncTime({required bool isInitial}) {
     final now = DateTime.now();
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const months = [
@@ -55,7 +51,18 @@ class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
     final minute = now.minute.toString().padLeft(2, '0');
     final amPm = hour24 >= 12 ? 'PM' : 'AM';
 
-    return '$weekday, $day $month • $hour12:$minute $amPm';
+    final newDate = '$weekday, $day $month';
+    final newTime = '$hour12:$minute $amPm';
+
+    if (isInitial) {
+      _datePart = newDate;
+      _timePart = newTime;
+    } else if (_datePart != newDate || _timePart != newTime) {
+      setState(() {
+        _datePart = newDate;
+        _timePart = newTime;
+      });
+    }
   }
 
   @override
@@ -66,17 +73,45 @@ class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _formatted,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: widget.textStyle ??
-          GoogleFonts.publicSans(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0B1220),
-            letterSpacing: -0.2,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            _datePart,
+            style: widget.textStyle ??
+                GoogleFonts.plusJakartaSans(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0B1220),
+                  letterSpacing: -0.3,
+                ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 7),
+            child: Container(
+              width: 3.5,
+              height: 3.5,
+              decoration: const BoxDecoration(
+                color: Color(0xFF94A3B8),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Text(
+            _timePart,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF334155),
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

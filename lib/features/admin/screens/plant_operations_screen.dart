@@ -196,7 +196,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
             ),
           ),
         ),
-        titleSpacing: 0,
+        titleSpacing: 10,
         title: const LiveDateTimeHeader(),
         actions: [
 

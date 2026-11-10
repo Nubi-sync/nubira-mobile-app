@@ -4677,7 +4677,7 @@ class _StoreDashboardState extends ConsumerState<StoreDashboard> {
             ),
           ),
         ),
-        titleSpacing: 0,
+        titleSpacing: 10,
         title: const LiveDateTimeHeader(),
         actions: const [SizedBox(width: 8)],
       ),
