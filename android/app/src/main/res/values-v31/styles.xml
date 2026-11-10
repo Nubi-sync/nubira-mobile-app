@@ -3,6 +3,7 @@
     <!-- Theme applied to the Android Window on Android 12+ (API 31+) while process starts -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent</item>
         <item name="android:windowSplashScreenAnimationDuration">0</item>
     </style>
 </resources>

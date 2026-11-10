@@ -10,3 +10,4 @@ async function inspectZigzaIcon() {
 }
 
 inspectZigzaIcon().catch(console.error);
+
