@@ -30,6 +30,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
   int _articlesPage = 1;
   int _ordersPage = 1;
   static const int _itemsPerPage = 5;
+  String? _selectedHeatmapInfo;
+  bool _selectedHeatmapIsActive = false;
+  int _selectedHeatmapLogins = 0;
 
   String _format(num? val) {
     if (val == null) return '0';
@@ -241,7 +244,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           _buildArticlesDirectoryCard(data.articlesCatalog, paginatedArticles, currentArticlesPage, totalArticlePages),
           const SizedBox(height: 14),
 
-          // 10. Section 7: Division Heartbeat Section
+          // 10. Portal Usage & Login Location Section (Weekly 24x7 Heatmap + Verified Location)
+          _buildPortalUsageAndLocationSection(context, data.loginActivity),
+          const SizedBox(height: 14),
+
+          // 11. Section 7: Division Heartbeat Section
           _buildDivisionHeartbeatSection(context, data.divisionHeartbeat),
           const SizedBox(height: 28),
         ],

@@ -119,18 +119,6 @@ class _CuttingZigzaAiScreenState extends ConsumerState<CuttingZigzaAiScreen> {
       drawer: const WorkspaceHubDrawer(activeRoute: '/cutting/zigza-ai'),
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        trailing: IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: AppTheme.headingObsidian),
-          onPressed: () {
-            setState(() {
-              _messages.clear();
-              _messages.add({
-                'role': 'assistant',
-                'content': 'Hello! I am **Zigza AI Cutting Floor Intelligence**. How can I assist you with marker yield, fabric consumption, and line dispatches today?',
-              });
-            });
-          },
-        ),
       ),
       body: SafeArea(
         child: Column(
