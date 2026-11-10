@@ -59,7 +59,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
         ),
-        titleSpacing: 0,
+        titleSpacing: 10,
         title: const LiveDateTimeHeader(),
         actions: [
           Container(
