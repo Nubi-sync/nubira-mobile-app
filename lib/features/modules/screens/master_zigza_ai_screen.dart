@@ -1,10 +1,53 @@
+import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../main.dart';
+
+class ChatSession {
+  final String id;
+  String title;
+  final List<Map<String, dynamic>> messages;
+  int updatedAt;
+
+  ChatSession({
+    required this.id,
+    required this.title,
+    required this.messages,
+    required this.updatedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'messages': messages,
+        'updatedAt': updatedAt,
+      };
+
+  factory ChatSession.fromJson(Map<String, dynamic> json) {
+    return ChatSession(
+      id: json['id']?.toString() ?? 'session_${DateTime.now().millisecondsSinceEpoch}',
+      title: json['title']?.toString() ?? 'New Conversation',
+      messages: (json['messages'] as List<dynamic>? ?? [])
+          .map((m) => Map<String, dynamic>.from(m as Map))
+          .toList(),
+      updatedAt: (json['updatedAt'] is int)
+          ? json['updatedAt'] as int
+          : (int.tryParse(json['updatedAt']?.toString() ?? '') ??
+              DateTime.now().millisecondsSinceEpoch),
+    );
+  }
+}
 
 class MasterZigzaAiScreen extends ConsumerStatefulWidget {
   const MasterZigzaAiScreen({super.key});
@@ -19,13 +62,11 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   bool _isGenerating = false;
 
-  final List<Map<String, String>> _messages = [
-    {
-      'role': 'assistant',
-      'content':
-          'Hello! I am **Zigza AI Master Copilot**. I provide executive cross-division intelligence across all 11 apparel manufacturing divisions, central fabric godown, and dispatch logistics. How can I assist you with floor operations today?',
-    },
-  ];
+  List<ChatSession> _sessions = [];
+  String? _currentSessionId;
+  bool _isHistoryOpen = false;
+  int _historyPage = 1;
+  static const int _itemsPerPage = 5;
 
   final List<Map<String, String>> _quickQueries = [
     {
@@ -51,25 +92,218 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadHistoryFromCloudAndLocal();
+    });
+  }
+
+  @override
   void dispose() {
     _promptCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
 
+  String _getStoragePath(String email, [String portal = 'modules']) {
+    final sanitizedEmail = email.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9@._-]'), '_');
+    final sanitizedPortal = portal.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9_-]'), '_');
+    return '${sanitizedEmail}_$sanitizedPortal.json';
+  }
+
+  Future<void> _loadHistoryFromCloudAndLocal() async {
+    final authState = ref.read(authProvider);
+    final email = (authState.tenantProfile?.email ??
+            authState.cachedUsername ??
+            supabase.auth.currentUser?.email ??
+            '')
+        .trim();
+
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'zigza_ai_sessions_modules_${email.isNotEmpty ? email : "default"}';
+
+    // 1. Instant display from local cache
+    final cachedStr = prefs.getString(cacheKey);
+    if (cachedStr != null && cachedStr.isNotEmpty) {
+      try {
+        final List decoded = jsonDecode(cachedStr) as List;
+        final cachedSessions = decoded
+            .map((e) => ChatSession.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (cachedSessions.isNotEmpty && mounted) {
+          setState(() {
+            _sessions = cachedSessions;
+            _currentSessionId = cachedSessions.first.id;
+          });
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fetch from Supabase Cloud Storage (same bucket used by web: ai_chat_history)
+    if (email.isNotEmpty) {
+      final filePath = _getStoragePath(email, 'modules');
+      List<dynamic>? cloudList;
+
+      try {
+        final publicUrl =
+            'https://nnhzqvdmkarpwtkzjnra.supabase.co/storage/v1/object/public/ai_chat_history/$filePath';
+        final response = await http.get(Uri.parse(publicUrl));
+        if (response.statusCode == 200 && response.body.isNotEmpty) {
+          final parsed = jsonDecode(response.body);
+          if (parsed is List) {
+            cloudList = parsed;
+          }
+        }
+      } catch (_) {}
+
+      if (cloudList == null || cloudList.isEmpty) {
+        try {
+          final bytes = await supabase.storage.from('ai_chat_history').download(filePath);
+          if (bytes.isNotEmpty) {
+            final parsed = jsonDecode(utf8.decode(bytes));
+            if (parsed is List) {
+              cloudList = parsed;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (cloudList != null && cloudList.isNotEmpty) {
+        final cloudSessions = cloudList
+            .map((e) => ChatSession.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+
+        if (mounted && cloudSessions.isNotEmpty) {
+          setState(() {
+            _sessions = cloudSessions;
+            if (_currentSessionId == null || !_sessions.any((s) => s.id == _currentSessionId)) {
+              _currentSessionId = cloudSessions.first.id;
+            }
+          });
+          await prefs.setString(cacheKey, jsonEncode(_sessions.map((s) => s.toJson()).toList()));
+        }
+      }
+    }
+
+    if (_sessions.isEmpty && mounted) {
+      _createNewSession(persist: false);
+    }
+  }
+
+  Future<void> _persistSessions() async {
+    final authState = ref.read(authProvider);
+    final email = (authState.tenantProfile?.email ??
+            authState.cachedUsername ??
+            supabase.auth.currentUser?.email ??
+            '')
+        .trim();
+
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'zigza_ai_sessions_modules_${email.isNotEmpty ? email : "default"}';
+    final jsonString = jsonEncode(_sessions.map((s) => s.toJson()).toList());
+    await prefs.setString(cacheKey, jsonString);
+
+    if (email.isNotEmpty) {
+      final filePath = _getStoragePath(email, 'modules');
+      try {
+        await supabase.storage.from('ai_chat_history').uploadBinary(
+              filePath,
+              Uint8List.fromList(utf8.encode(jsonString)),
+              fileOptions: const FileOptions(upsert: true),
+            );
+      } catch (err) {
+        debugPrint('Supabase persist error: $err');
+      }
+    }
+  }
+
+  void _createNewSession({bool persist = true}) {
+    final fresh = ChatSession(
+      id: 'session_${DateTime.now().millisecondsSinceEpoch}',
+      title: 'New Conversation',
+      messages: [
+        {
+          'id': 'init_${DateTime.now().millisecondsSinceEpoch}',
+          'role': 'assistant',
+          'content':
+              'Hello! I am **Zigza AI Master Copilot**. I provide executive cross-division intelligence across all 11 apparel manufacturing divisions, central fabric godown, and dispatch logistics. How can I assist you with floor operations today?',
+          'timestamp': DateFormat('hh:mm a').format(DateTime.now()),
+        }
+      ],
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    setState(() {
+      _sessions.insert(0, fresh);
+      _currentSessionId = fresh.id;
+      _isHistoryOpen = false;
+      _historyPage = 1;
+    });
+
+    if (persist) {
+      _persistSessions();
+    }
+  }
+
+  void _deleteSession(String id) {
+    setState(() {
+      _sessions.removeWhere((s) => s.id == id);
+      if (_sessions.isEmpty) {
+        _createNewSession(persist: true);
+      } else {
+        if (_currentSessionId == id) {
+          _currentSessionId = _sessions.first.id;
+        }
+        final totalPages = math.max(1, (_sessions.length / _itemsPerPage).ceil());
+        if (_historyPage > totalPages) {
+          _historyPage = totalPages;
+        }
+      }
+    });
+    _persistSessions();
+  }
+
   void _sendQuery(String prompt) {
     if (prompt.trim().isEmpty || _isGenerating) return;
 
     final userQuery = prompt.trim();
+    final nowStr = DateFormat('hh:mm a').format(DateTime.now());
+
+    ChatSession currentSession;
+    final foundIndex = _sessions.indexWhere((s) => s.id == _currentSessionId);
+    if (foundIndex != -1) {
+      currentSession = _sessions[foundIndex];
+    } else {
+      currentSession = ChatSession(
+        id: 'session_${DateTime.now().millisecondsSinceEpoch}',
+        title: userQuery.length > 32 ? '${userQuery.substring(0, 32)}...' : userQuery,
+        messages: [],
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+      _sessions.insert(0, currentSession);
+      _currentSessionId = currentSession.id;
+    }
+
+    if (currentSession.title == 'New Conversation' || currentSession.messages.isEmpty) {
+      currentSession.title = userQuery.length > 32 ? '${userQuery.substring(0, 32)}...' : userQuery;
+    }
+
     setState(() {
-      _messages.add({'role': 'user', 'content': userQuery});
+      currentSession.messages.add({
+        'id': 'msg_user_${DateTime.now().millisecondsSinceEpoch}',
+        'role': 'user',
+        'content': userQuery,
+        'timestamp': nowStr,
+      });
+      currentSession.updatedAt = DateTime.now().millisecondsSinceEpoch;
       _isGenerating = true;
       _promptCtrl.clear();
     });
 
     _scrollToBottom();
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 700), () {
       if (!mounted) return;
 
       final authState = ref.read(authProvider);
@@ -116,11 +350,18 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
       }
 
       setState(() {
-        _messages.add({'role': 'assistant', 'content': response});
+        currentSession.messages.add({
+          'id': 'msg_bot_${DateTime.now().millisecondsSinceEpoch}',
+          'role': 'assistant',
+          'content': response,
+          'timestamp': DateFormat('hh:mm a').format(DateTime.now()),
+        });
+        currentSession.updatedAt = DateTime.now().millisecondsSinceEpoch;
         _isGenerating = false;
       });
 
       _scrollToBottom();
+      _persistSessions();
     });
   }
 
@@ -141,6 +382,22 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
     final authState = ref.watch(authProvider);
     final company = authState.tenantProfile?.companyName ?? 'Demo Industries';
 
+    final currentSession = _sessions.firstWhere(
+      (s) => s.id == _currentSessionId,
+      orElse: () => _sessions.isNotEmpty
+          ? _sessions.first
+          : ChatSession(
+              id: 'fallback',
+              title: 'New Conversation',
+              messages: [],
+              updatedAt: DateTime.now().millisecondsSinceEpoch,
+            ),
+    );
+
+    final totalPages = math.max(1, (_sessions.length / _itemsPerPage).ceil());
+    final startIndex = (_historyPage - 1) * _itemsPerPage;
+    final paginatedSessions = _sessions.skip(startIndex).take(_itemsPerPage).toList();
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
@@ -151,24 +408,15 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
         trailing: IconButton(
           tooltip: 'Reset Conversation',
           icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0B1220), size: 20),
-          onPressed: () {
-            setState(() {
-              _messages.clear();
-              _messages.add({
-                'role': 'assistant',
-                'content':
-                    'Conversation reset. I am **Zigza AI Master Copilot**. How can I assist your factory floor operations today?',
-              });
-            });
-          },
+          onPressed: () => _createNewSession(),
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Sleek, Decluttered Executive Header
+            // 1. Box Top Header: Zigza AI + Beside it History / Collapse Button (No tags)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.8)),
@@ -184,50 +432,240 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                       border: Border.all(color: const Color(0x26000000)),
                     ),
                     child: const Center(
-                      child: Icon(Icons.auto_awesome, color: Color(0xFF0B1220), size: 17),
+                      child: Icon(Icons.auto_awesome, color: Color(0xFF0B1220), size: 16),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Row(
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            children: const [
-                              TextSpan(text: 'Zigza AI • ', style: TextStyle(color: Color(0xFF0B1220))),
-                              TextSpan(text: 'Master Copilot', style: TextStyle(color: Color(0xFF1D4ED8))),
-                            ],
-                          ),
+                    child: Text(
+                      'Zigza AI',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0B1220),
+                      ),
+                    ),
+                  ),
+
+                  // New Chat Button
+                  InkWell(
+                    onTap: () => _createNewSession(),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Icon(Icons.add, size: 18, color: Color(0xFF0B1220)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // History / Collapse Button with Transition
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isHistoryOpen = !_isHistoryOpen;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _isHistoryOpen ? const Color(0xFFF0FDFA) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _isHistoryOpen
+                              ? const Color(0xFF1D4ED8).withValues(alpha: 0.4)
+                              : const Color(0xFFE2E8F0),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isHistoryOpen ? Icons.keyboard_arrow_up_rounded : Icons.history_rounded,
+                            size: 16,
+                            color: _isHistoryOpen ? const Color(0xFF1D4ED8) : const Color(0xFF0B1220),
                           ),
-                          child: Text(
-                            'OWNER AI',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9.0,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0B1220),
+                          const SizedBox(width: 5),
+                          Text(
+                            _isHistoryOpen ? 'Collapse' : 'History (${_sessions.length})',
+                            style: GoogleFonts.publicSans(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w700,
+                              color: _isHistoryOpen ? const Color(0xFF1D4ED8) : const Color(0xFF0B1220),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // 2. Streamlined Quick Query Chips
+            // 2. Expandable History Panel with Pagination of 5
+            if (_isHistoryOpen) ...[
+              Container(
+                color: const Color(0xFFF8FAFC),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.history_rounded, size: 14, color: Color(0xFF0B1220)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'PREVIOUS CHATS (${_sessions.length})',
+                              style: GoogleFonts.jetBrainsMono(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0B1220),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () => _createNewSession(),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1D4ED8),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.add, size: 12, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'New Chat',
+                                  style: GoogleFonts.publicSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // 5 Paginated Sessions
+                    ...paginatedSessions.map((s) {
+                      final isActive = s.id == _currentSessionId;
+                      final dateStr = DateFormat('MMM dd, hh:mm a').format(
+                        DateTime.fromMillisecondsSinceEpoch(s.updatedAt),
+                      );
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFE2E8F0),
+                            width: isActive ? 1.4 : 1.0,
+                          ),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                          leading: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFCBD5E1),
+                            ),
+                          ),
+                          title: Text(
+                            s.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                          subtitle: Text(
+                            dateStr,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9.5,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
+                            onPressed: () => _deleteSession(s.id),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _currentSessionId = s.id;
+                              _isHistoryOpen = false;
+                            });
+                          },
+                        ),
+                      );
+                    }),
+
+                    // Pagination Controls (5 per page)
+                    if (totalPages > 1) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: const Size(60, 30),
+                              backgroundColor: Colors.white,
+                            ),
+                            onPressed: _historyPage > 1 ? () => setState(() => _historyPage--) : null,
+                            icon: const Icon(Icons.chevron_left, size: 16),
+                            label: const Text('Prev', style: TextStyle(fontSize: 11)),
+                          ),
+                          Text(
+                            'Page $_historyPage of $totalPages',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: const Size(60, 30),
+                              backgroundColor: Colors.white,
+                            ),
+                            onPressed: _historyPage < totalPages ? () => setState(() => _historyPage++) : null,
+                            icon: const Icon(Icons.chevron_right, size: 16),
+                            label: const Text('Next', style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Divider(height: 1, thickness: 0.8, color: Color(0xFFE2E8F0)),
+            ],
+
+            // 3. Streamlined Quick Query Chips
             Container(
               height: 42,
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -267,14 +705,14 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
 
             const Divider(height: 1, thickness: 0.8, color: Color(0xFFE2E8F0)),
 
-            // 3. Conversation Message Stream
+            // 4. Conversation Message Stream
             Expanded(
               child: ListView.builder(
                 controller: _scrollCtrl,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                itemCount: _messages.length,
+                itemCount: currentSession.messages.length,
                 itemBuilder: (ctx, idx) {
-                  final msg = _messages[idx];
+                  final msg = currentSession.messages[idx];
                   final isUser = msg['role'] == 'user';
 
                   return Padding(
@@ -310,7 +748,9 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                                 bottomRight: isUser ? const Radius.circular(2) : const Radius.circular(14),
                               ),
                               border: Border.all(
-                                color: isUser ? const Color(0xFF14C8B4).withValues(alpha: 0.4) : const Color(0xFFE2E8F0),
+                                color: isUser
+                                    ? const Color(0xFF14C8B4).withValues(alpha: 0.4)
+                                    : const Color(0xFFE2E8F0),
                               ),
                               boxShadow: const [
                                 BoxShadow(
@@ -320,7 +760,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                                 ),
                               ],
                             ),
-                            child: _buildFormattedMessage(msg['content']!, isUser),
+                            child: _buildFormattedMessage(msg['content']?.toString() ?? '', isUser),
                           ),
                         ),
                       ],
@@ -353,7 +793,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                 ),
               ),
 
-            // 4. Pinned Input Bar
+            // 5. Pinned Input Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: const BoxDecoration(
@@ -517,7 +957,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
       }
       spans.add(TextSpan(
         text: match.group(1),
-        style: GoogleFonts.publicSans(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 12.5,
           fontWeight: FontWeight.w800,
           color: const Color(0xFF0B1220),
