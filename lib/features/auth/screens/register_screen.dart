@@ -526,68 +526,70 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: 24.0,
-                vertical: isKeyboardOpen ? 8.0 : 16.0,
+                vertical: isKeyboardOpen ? 4.0 : 8.0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top Row: Back Button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          if (_currentStep == 2) {
-                            setState(() => _currentStep = 1);
-                          } else if (_currentStep == 1) {
-                            Navigator.pop(context);
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
+                  // Top Header Row: Back Button on Left & Brand Logo Centered on Same Horizontal Row
+                  SizedBox(
+                    height: 38,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                if (_currentStep == 2) {
+                                  setState(() => _currentStep = 1);
+                                } else if (_currentStep == 1) {
+                                  Navigator.pop(context);
+                                }
+                              },
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFF0F172A), width: 1.2),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x0C000000),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFF0F172A), width: 1.2),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0C000000),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_rounded,
-                              size: 18,
-                              color: Color(0xFF0F172A),
+                                child: const Icon(
+                                  Icons.arrow_back_rounded,
+                                  size: 18,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        const Center(
+                          child: ZigzaBrandLogo(
+                            iconHeight: 28,
+                            logoHeight: 22,
+                            spacing: 7,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 4 : 10),
-
-                  // Official Zigza Brand Logo (Exact matching LoginScreen)
-                  Center(
-                    child: ZigzaBrandLogo(
-                      iconHeight: isKeyboardOpen ? 28 : 36,
-                      logoHeight: isKeyboardOpen ? 22 : 28,
-                      spacing: 9,
-                    ),
-                  ),
-                  SizedBox(height: isKeyboardOpen ? 12 : 20),
+                  SizedBox(height: isKeyboardOpen ? 6 : 10),
 
                   // Stepper Pill & Progress Bar (Matching Welcome Back style)
                   _buildStepperHeader(),
-                  SizedBox(height: isKeyboardOpen ? 12 : 18),
+                  SizedBox(height: isKeyboardOpen ? 6 : 10),
 
                   // Clean Hero Header
                   Center(
@@ -597,14 +599,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : (_currentStep == 2 ? 'Choose Modules' : 'Trial Activated'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: isKeyboardOpen ? 22 : 25,
+                        fontSize: isKeyboardOpen ? 20 : 23,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0B1220),
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 3),
                   Center(
                     child: Text(
                       _currentStep == 1
@@ -614,13 +616,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               : 'Your enterprise apparel MES account is now active'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.publicSans(
-                        fontSize: isKeyboardOpen ? 12.5 : 13.5,
+                        fontSize: isKeyboardOpen ? 12 : 13,
                         color: const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 14 : 22),
+                  SizedBox(height: isKeyboardOpen ? 8 : 12),
 
                   // Error Banner if any
                   if (_errorMsg != null) ...[
@@ -762,17 +764,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         Text(
           'Contact Person Name',
           style: GoogleFonts.publicSans(
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF334155),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFFCBD5E1),
               width: 1.2,
@@ -780,8 +782,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -789,23 +791,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             controller: _nameController,
             textCapitalization: TextCapitalization.words,
             style: GoogleFonts.publicSans(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF0F172A),
             ),
             decoration: InputDecoration(
               hintText: 'Enter your name',
               hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.person_outline_rounded, size: 19, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF64748B)),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
             onChanged: (_) {
               if (_errorMsg != null) setState(() => _errorMsg = null);
             },
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 10 : 16),
+        SizedBox(height: isKeyboardOpen ? 6 : 10),
 
         // 2. MOBILE NUMBER
         Row(
@@ -814,7 +822,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Text(
               'Mobile Number',
               style: GoogleFonts.publicSans(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF334155),
               ),
@@ -862,12 +870,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _phoneStatus == 'error'
                   ? const Color(0xFFE11D48)
@@ -879,8 +887,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -888,10 +896,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               // +91 Flag Strip matching LoginScreen
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: const BoxDecoration(
                   color: Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.horizontal(left: Radius.circular(13)),
+                  borderRadius: BorderRadius.horizontal(left: Radius.circular(11)),
                   border: Border(right: BorderSide(color: Color(0xFFCBD5E1))),
                 ),
                 alignment: Alignment.center,
@@ -899,7 +907,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text('🇮🇳', style: TextStyle(fontSize: 14)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Text(
                       '+91',
                       style: GoogleFonts.jetBrainsMono(
@@ -920,7 +928,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   maxLength: 10,
                   enabled: !_isPhoneVerified,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 14.5,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                     letterSpacing: 0.5,
@@ -934,7 +942,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       fontWeight: FontWeight.normal,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
                   ),
                   onChanged: _onPhoneChanged,
                 ),
@@ -942,10 +956,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
               // Right Button: Send OTP / Verified
               Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: 6),
                 child: _isPhoneVerified
                     ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(8),
@@ -959,7 +973,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             Text(
                               'Verified',
                               style: GoogleFonts.publicSans(
-                                fontSize: 11.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF065F46),
                               ),
@@ -968,7 +982,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                       )
                     : SizedBox(
-                        height: 36,
+                        height: 34,
                         child: ElevatedButton(
                           onPressed: (_phoneController.text.length == 10 &&
                                   _phoneStatus == 'available' &&
@@ -981,8 +995,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             disabledBackgroundColor: const Color(0xFFF1F5F9),
                             disabledForegroundColor: const Color(0xFF94A3B8),
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
                           ),
                           child: _isSendingOtp
                               ? const SizedBox(
@@ -993,7 +1007,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               : Text(
                                   _isOtpBoxOpen ? 'Resend' : 'Send OTP',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
+                                    fontSize: 11.5,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -1200,7 +1214,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 10 : 16),
+        SizedBox(height: isKeyboardOpen ? 6 : 10),
 
         // 3. WORK EMAIL
         Row(
@@ -1209,7 +1223,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Text(
               'Work Email',
               style: GoogleFonts.publicSans(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF334155),
               ),
@@ -1241,12 +1255,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _emailStatus == 'error'
                   ? const Color(0xFFE11D48)
@@ -1258,8 +1272,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -1268,21 +1282,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             focusNode: _emailFocusNode,
             keyboardType: TextInputType.emailAddress,
             style: GoogleFonts.publicSans(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF0F172A),
             ),
             decoration: InputDecoration(
               hintText: 'name@company.com',
               hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.alternate_email_rounded, size: 19, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(Icons.alternate_email_rounded, size: 18, color: Color(0xFF64748B)),
               suffixIcon: _emailStatus == 'available'
-                  ? const Icon(Icons.check_circle_rounded, size: 19, color: Color(0xFF059669))
+                  ? const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF059669))
                   : (_emailStatus == 'error'
-                      ? const Icon(Icons.error_outline_rounded, size: 19, color: Color(0xFFE11D48))
+                      ? const Icon(Icons.error_outline_rounded, size: 18, color: Color(0xFFE11D48))
                       : null),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
             onChanged: (_) {
               if (_emailStatus != 'idle') setState(() => _emailStatus = 'idle');
@@ -1291,7 +1311,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
         if (_emailStatus == 'error' && _emailErrorMsg != null) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Row(
             children: [
               const Icon(Icons.close_rounded, size: 14, color: Color(0xFFE11D48)),
@@ -1309,7 +1329,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 10 : 16),
+        SizedBox(height: isKeyboardOpen ? 6 : 10),
 
         // 4. PASSWORD
         Row(
@@ -1318,7 +1338,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Text(
               'Password',
               style: GoogleFonts.publicSans(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF334155),
               ),
@@ -1334,12 +1354,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFFCBD5E1),
               width: 1.2,
@@ -1347,8 +1367,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -1356,24 +1376,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             controller: _passwordController,
             obscureText: !_showPassword,
             style: GoogleFonts.publicSans(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF0F172A),
             ),
             decoration: InputDecoration(
               hintText: 'Min 6 characters',
               hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 19, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFF64748B)),
               suffixIcon: IconButton(
                 icon: Icon(
                   _showPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  size: 19,
+                  size: 18,
                   color: const Color(0xFF64748B),
                 ),
                 onPressed: () => setState(() => _showPassword = !_showPassword),
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -1381,13 +1407,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
         // 4-Segment Strength Meter
         if (password.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Row(
             children: List.generate(4, (idx) {
               final active = strengthScore >= (idx + 1);
               return Expanded(
                 child: Container(
-                  height: 3.5,
+                  height: 3,
                   margin: EdgeInsets.only(right: idx < 3 ? 4 : 0),
                   decoration: BoxDecoration(
                     color: active ? strengthColor : const Color(0xFFE2E8F0),
@@ -1397,22 +1423,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               );
             }),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 recommendationTip,
-                style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
               ),
               Text(
                 '${password.length} chars (min 6)',
-                style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF94A3B8)),
               ),
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 10 : 16),
+        SizedBox(height: isKeyboardOpen ? 6 : 10),
 
         // 5. CONFIRM PASSWORD
         Row(
@@ -1421,7 +1447,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Text(
               'Confirm Password',
               style: GoogleFonts.publicSans(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF334155),
               ),
@@ -1437,12 +1463,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: confirmPassword.isNotEmpty
                   ? (passwordsMatch ? const Color(0xFF10B981) : const Color(0xFFE11D48))
@@ -1452,8 +1478,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -1461,40 +1487,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             controller: _confirmPasswordController,
             obscureText: !_showConfirmPassword,
             style: GoogleFonts.publicSans(
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF0F172A),
             ),
             decoration: InputDecoration(
               hintText: 'Re-enter password',
               hintStyle: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.vpn_key_outlined, size: 19, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18, color: Color(0xFF64748B)),
               suffixIcon: IconButton(
                 icon: Icon(
                   _showConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  size: 19,
+                  size: 18,
                   color: const Color(0xFF64748B),
                 ),
                 onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
             onChanged: (_) => setState(() {}),
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 16 : 24),
+        SizedBox(height: isKeyboardOpen ? 12 : 16),
 
         // Primary Button: Next: Choose Modules
         Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x381D4ED8),
-                blurRadius: 14,
-                offset: Offset(0, 4),
+                blurRadius: 10,
+                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -1503,7 +1535,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1D4ED8),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
             child: Row(
@@ -1512,7 +1544,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Text(
                   'Next: Choose Modules',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15.5,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1522,7 +1554,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Already have an account? Sign in
         Center(
