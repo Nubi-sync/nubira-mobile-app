@@ -177,45 +177,46 @@ class SplashScreenView extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
 
-                // Meaningful Indian Trust Tagline for Factory Owners
+                // Meaningful Indian Trust Tagline in English letters with italic font style
                 Text(
-                  'आपका विश्वास • हमारी ज़िम्मेदारी',
-                  style: GoogleFonts.notoSansDevanagari(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: const Color(0xFF334155),
+                  'Aapka Vishwas • Hamara Bharosa',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: const Color(0xFF475569),
                   ),
                 ),
               ],
             ),
           ),
 
-          // 2. Bottom Trust Badge Block (Authentic Indian Enterprise Trust Badge PNG)
+          // 2. Bottom Trust Badge Block (Authentic Indian Enterprise Trust Badge - Much Bigger & Bold)
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 34.0, left: 24, right: 24),
+              padding: const EdgeInsets.only(bottom: 36.0, left: 24, right: 24),
               child: Image.asset(
                 'assets/images/indian_trust_badge.png',
-                height: 52,
+                height: 68,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
                       color: const Color(0xFF10B981),
-                      width: 1.5,
+                      width: 1.8,
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x0A000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
+                        color: Color(0x0F000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
@@ -225,16 +226,16 @@ class SplashScreenView extends StatelessWidget {
                       const Icon(
                         Icons.check_circle_rounded,
                         color: Color(0xFF10B981),
-                        size: 18,
+                        size: 22,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text(
                         'BHARAT TRUSTED • 100% SAFE & VERIFIED',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 11,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
-                          letterSpacing: 0.6,
+                          letterSpacing: 0.8,
                         ),
                       ),
                     ],
