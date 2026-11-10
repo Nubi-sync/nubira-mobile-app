@@ -8,7 +8,6 @@ import 'package:mobile_app/features/design/screens/sa_design_approvals_screen.da
 import 'package:mobile_app/features/cutting/screens/cutting_lay_floor_screen.dart';
 import 'package:mobile_app/features/dashboard/lineman_dashboard.dart';
 import 'package:mobile_app/features/modules/screens/company_profile_screen.dart';
-import 'package:mobile_app/features/admin/screens/profile_screen.dart';
 import 'package:mobile_app/features/cutting/screens/cutting_notifications_screen.dart';
 
 class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -346,7 +345,7 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => ProfileScreen()),
+            MaterialPageRoute(builder: (_) => const CompanyProfileScreen()),
           );
         },
         borderRadius: BorderRadius.circular(10),
