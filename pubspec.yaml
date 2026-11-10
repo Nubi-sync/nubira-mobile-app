@@ -81,6 +81,8 @@ flutter:
     - assets/images/icon.png
     - assets/images/zigza_icon.png
     - assets/images/z_i_g_z_a.png
+    - assets/images/indian_trust_badge.png
+    - assets/images/indian_trust_badge_circular.png
     - assets/images/ic_upper_tshirt.png
     - assets/images/ic_lower_pants.png
     - assets/geo/states/
