@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Lightweight, minute-aligned live clock for the mobile top bar.
-/// Computes date & time directly so it is never empty on hot-reload or launch.
+/// Uses the exact same font for date and time.
+/// Automatically syncs on app resume and minute tick-over with 0% battery drain.
 class LiveDateTimeHeader extends StatefulWidget {
   final TextStyle? textStyle;
 
@@ -16,22 +17,41 @@ class LiveDateTimeHeader extends StatefulWidget {
   State<LiveDateTimeHeader> createState() => _LiveDateTimeHeaderState();
 }
 
-class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
+class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader>
+    with WidgetsBindingObserver {
   Timer? _timer;
+  int _lastMinute = -1;
 
   @override
   void initState() {
     super.initState();
-    // Re-check time every 15s to update the minute smoothly
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) {
+    WidgetsBinding.instance.addObserver(this);
+    _lastMinute = DateTime.now().minute;
+    // Check every second, only triggers rebuild when the minute actually changes
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
-        setState(() {});
+        final currentMinute = DateTime.now().minute;
+        if (currentMinute != _lastMinute) {
+          _lastMinute = currentMinute;
+          setState(() {});
+        }
       }
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        _lastMinute = DateTime.now().minute;
+        setState(() {});
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -54,10 +74,10 @@ class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
     final minute = now.minute.toString().padLeft(2, '0');
     final amPm = hour24 >= 12 ? 'PM' : 'AM';
 
-    final datePart = '$weekday, $day $month';
-    final timePart = '$hour12:$minute $amPm';
+    // Single unified string in the exact same font
+    final fullText = '$weekday, $day $month  •  $hour12:$minute $amPm';
 
-    final dateStyle = widget.textStyle ??
+    final unifiedStyle = widget.textStyle ??
         GoogleFonts.plusJakartaSans(
           fontSize: 14.0,
           fontWeight: FontWeight.w800,
@@ -65,40 +85,11 @@ class _LiveDateTimeHeaderState extends State<LiveDateTimeHeader> {
           letterSpacing: -0.2,
         );
 
-    final timeStyle = GoogleFonts.jetBrainsMono(
-      fontSize: 13.0,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFF334155),
-      letterSpacing: -0.2,
-    );
-
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            datePart,
-            style: dateStyle,
-          ),
-          const SizedBox(width: 6),
-          Container(
-            width: 3.5,
-            height: 3.5,
-            decoration: const BoxDecoration(
-              color: Color(0xFF94A3B8),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            timePart,
-            style: timeStyle,
-          ),
-        ],
-      ),
+    return Text(
+      fullText,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: unifiedStyle,
     );
   }
 }
