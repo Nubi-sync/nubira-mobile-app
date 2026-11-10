@@ -75,30 +75,30 @@ class GetStartedScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Top-Left Brand Mark & Pull Indicator Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Official Zigza Icon + Wordmark Logo
-                        const ZigzaBrandLogo(
-                          iconHeight: 32,
-                          logoHeight: 24,
-                          spacing: 9,
-                          mainAxisAlignment: MainAxisAlignment.start,
+                    // 1. Centered Top Sheet Drag Handle
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4.5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(3),
                         ),
-                        // Sheet subtle pull handle
-                        Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
+
+                    // 2. Official Zigza Icon + Wordmark Logo (Top-Left)
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: ZigzaBrandLogo(
+                        iconHeight: 32,
+                        logoHeight: 24,
+                        spacing: 9,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Title & Tagline
                     Text(
@@ -155,11 +155,12 @@ class GetStartedScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Login',
+                              'Already a user? Log In',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
+                                fontSize: 15.5,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
+                                color: Colors.white,
+                                letterSpacing: 0.1,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -197,7 +198,7 @@ class GetStartedScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Get Started',
+                              'New here? Get Started',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.w700,

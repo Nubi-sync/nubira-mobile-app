@@ -859,20 +859,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final lockoutSec = _remainingLockoutSeconds % 60;
     final lockoutTimeString = '${lockoutMin.toString().padLeft(2, '0')}:${lockoutSec.toString().padLeft(2, '0')}';
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Background Art (Garment factory floor sketch watermark)
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.22,
-              child: Image.asset(
-                'assets/images/factory_bg_tinted_sketch.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          // Background Art (Garment factory floor sketch watermark - Fixed to screen bounds so keyboard never moves it)
+          Positioned(
+            top: 0,
+            left: 0,
+            width: screenSize.width,
+            height: screenSize.height,
+            child: RepaintBoundary(
+              child: Opacity(
+                opacity: 0.22,
+                child: Image.asset(
+                  'assets/images/factory_bg_tinted_sketch.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -904,10 +912,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    border: Border.all(color: const Color(0xFF0F172A), width: 1.2),
                                     boxShadow: const [
                                       BoxShadow(
-                                        color: Color(0x08000000),
+                                        color: Color(0x0C000000),
                                         blurRadius: 4,
                                         offset: Offset(0, 1),
                                       ),
