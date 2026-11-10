@@ -183,11 +183,11 @@ class SplashScreenView extends StatelessWidget {
                 Text(
                   'Aapka Vishwas • Hamara Bharosa',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.5,
+                    fontSize: 16.0,
                     fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    color: const Color(0xFF475569),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: const Color(0xFF334155),
                   ),
                 ),
               ],
