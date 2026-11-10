@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/splash_screen.dart';
 import 'features/dashboard/lineman_dashboard.dart';
 import 'features/dashboard/qc_dashboard.dart';
 import 'features/dashboard/store_dashboard.dart';
@@ -40,7 +41,7 @@ class NubiraApp extends StatelessWidget {
     return MaterialApp(
       title: 'Zigza',
       theme: AppTheme.lightTheme,
-      home: const AuthGate(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -55,10 +56,8 @@ class AuthGate extends ConsumerWidget {
 
     if (authState.isLoading) {
       return const Scaffold(
-        backgroundColor: AppTheme.bg,
-        body: Center(
-          child: CircularProgressIndicator(color: AppTheme.steel),
-        ),
+        backgroundColor: Colors.white,
+        body: SplashScreenView(),
       );
     }
 
