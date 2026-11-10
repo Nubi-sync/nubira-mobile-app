@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../auth/screens/get_started_screen.dart';
 import '../screens/enterprise_workspace_hub_screen.dart';
 import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
@@ -128,7 +129,7 @@ class WorkspaceHubDrawer extends ConsumerWidget {
                           }
                           if (context.mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              MaterialPageRoute(builder: (_) => const GetStartedScreen()),
                               (route) => false,
                             );
                           }

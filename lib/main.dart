@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/get_started_screen.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/dashboard/lineman_dashboard.dart';
 import 'features/dashboard/qc_dashboard.dart';
@@ -103,7 +104,7 @@ class AuthGate extends ConsumerWidget {
       return const LinemanDashboard();
     }
 
-    return const LoginScreen();
+    return const GetStartedScreen();
   }
 }
 

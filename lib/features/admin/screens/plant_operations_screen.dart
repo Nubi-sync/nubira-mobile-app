@@ -9,6 +9,7 @@ import '../widgets/plant_stage_drilldown_sheet.dart';
 import 'admin_shell.dart';
 import 'reports_screen.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/get_started_screen.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
 import '../../../core/widgets/live_date_time_header.dart';
 
@@ -516,6 +517,12 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
                                       } finally {
                                         if (ctx.mounted) {
                                           Navigator.pop(ctx);
+                                        }
+                                        if (context.mounted) {
+                                          Navigator.of(context).pushAndRemoveUntil(
+                                            MaterialPageRoute(builder: (_) => const GetStartedScreen()),
+                                            (route) => false,
+                                          );
                                         }
                                       }
                                     },

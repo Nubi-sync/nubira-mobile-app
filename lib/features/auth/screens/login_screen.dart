@@ -893,6 +893,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (Navigator.canPop(context)) ...[
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: InkWell(
+                                onTap: () => Navigator.pop(context),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x08000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF0F172A)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
                           SizedBox(height: isKeyboardOpen ? 4 : 12),
 
                           // --- 1. BRAND LOGO (OFFICIAL ICON + WORDMARK) ---
