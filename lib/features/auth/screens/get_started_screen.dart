@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/zigza_brand_logo.dart';
 import 'login_screen.dart';
 
-/// Draft Get Started / Landing Screen presented on sign out and initial launch.
-/// Displays a full-screen factory visual with a 1/4th bottom sheet featuring Login and Get Started actions.
+/// Get Started / Landing Screen presented on sign out and initial launch.
+/// Displays a full-screen factory visual with an expanded bottom sheet
+/// featuring official Zigza brand mark, Welcome headline, and website-aligned action buttons.
 class GetStartedScreen extends StatelessWidget {
   const GetStartedScreen({super.key});
 
@@ -37,70 +39,27 @@ class GetStartedScreen extends StatelessWidget {
                   Color(0x99000000), // Top shade for status bar
                   Colors.transparent,
                   Color(0x33000000),
-                  Color(0xCC0B1220), // Bottom blend
+                  Color(0xE60B1220), // Bottom blend into sheet
                 ],
-                stops: [0.0, 0.25, 0.65, 1.0],
+                stops: [0.0, 0.25, 0.60, 1.0],
               ),
             ),
           ),
 
-          // Top Brand Pill / Wordmark
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 20.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/zigza_icon.png',
-                        height: 22,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.flash_on_rounded,
-                          color: Color(0xFF14C8B4),
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'ZIGZA',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.5,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. 1/4th Covering Bottom Sheet with Login & Get Started Buttons
+          // 2. Expanded Bottom Sheet with Top-Left Brand Logo, Welcome Text, and Web-Styled Buttons
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 20,
-                    offset: Offset(0, -4),
+                    color: Color(0x40000000),
+                    blurRadius: 24,
+                    offset: Offset(0, -6),
                   ),
                 ],
               ),
@@ -110,49 +69,70 @@ class GetStartedScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Sheet subtle pull handle
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(2),
+                    // Top-Left Brand Mark & Pull Indicator Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Official Zigza Icon + Wordmark Logo
+                        const ZigzaBrandLogo(
+                          iconHeight: 32,
+                          logoHeight: 24,
+                          spacing: 9,
+                          mainAxisAlignment: MainAxisAlignment.start,
                         ),
-                      ),
+                        // Sheet subtle pull handle
+                        Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Title & Tagline
                     Text(
                       'Welcome to Zigza',
-                      textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 20,
+                        fontSize: 23,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                        letterSpacing: -0.3,
+                        color: const Color(0xFF0B1220),
+                        letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
                       'Aapka Vishwas • Hamara Bharosa',
-                      textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
+                        fontSize: 13.5,
                         fontStyle: FontStyle.italic,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF64748B),
+                        letterSpacing: -0.1,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // Primary Button: Login (Opens Welcome Back LoginScreen)
-                    SizedBox(
-                      height: 50,
+                    // Primary Button: Login (Website Royal Electric Blue #1D4ED8)
+                    Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x381D4ED8),
+                            blurRadius: 14,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0B1220),
+                          backgroundColor: const Color(0xFF1D4ED8),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -165,39 +145,61 @@ class GetStartedScreen extends StatelessWidget {
                             MaterialPageRoute(builder: (_) => const LoginScreen()),
                           );
                         },
-                        child: Text(
-                          'Login',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Login',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
-                    // Secondary Button: Get Started (Does nothing for now, as requested)
+                    // Secondary Button: Get Started (Website Brand Mint & Teal Tint #F0FDFA / #14C8B4)
                     SizedBox(
-                      height: 50,
+                      height: 52,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0B1220),
-                          side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
+                          backgroundColor: const Color(0xFFF0FDFA),
+                          foregroundColor: const Color(0xFF0F766E),
+                          side: const BorderSide(
+                            color: Color(0xFF14C8B4),
+                            width: 1.5,
+                          ),
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: () {
-                          // Draft: Does nothing on click
+                          // Draft: Does nothing on click as requested
                         },
-                        child: Text(
-                          'Get Started',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Get Started',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0B1220),
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
