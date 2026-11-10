@@ -119,78 +119,81 @@ class SplashScreenView extends StatelessWidget {
       color: Colors.white,
       child: Stack(
         children: [
-          // 1. Center Brand Block: Icon + Worded Logo Below
+          // 1. Center Brand Block: Elevated by -28px for optical center alignment
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Brand Icon Mark - scaled to 140px to match Android's native launch icon seamlessly
-                Image.asset(
-                  'assets/images/zigza_icon.png',
-                  height: 140,
-                  width: 140,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/icon.png',
+            child: Transform.translate(
+              offset: const Offset(0, -28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Brand Icon Mark - scaled to 140px to match Android's native launch icon seamlessly
+                  Image.asset(
+                    'assets/images/zigza_icon.png',
                     height: 140,
                     width: 140,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 140,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/images/icon.png',
                       height: 140,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0B1220),
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.flash_on_rounded, color: Color(0xFF14C8B4), size: 70),
+                      width: 140,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B1220),
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.flash_on_rounded, color: Color(0xFF14C8B4), size: 70),
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                // Worded "ZIGZA" Logo Beneath the Icon
-                Image.asset(
-                  'assets/images/z_i_g_z_a.png',
-                  height: 32,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/zigza_web_logo.png',
+                  // Worded "ZIGZA" Logo Beneath the Icon
+                  Image.asset(
+                    'assets/images/z_i_g_z_a.png',
                     height: 32,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 4.0,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/images/zigza_web_logo.png',
+                      height: 32,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 4.0,
+                          ),
+                          children: const [
+                            TextSpan(text: 'ZIG', style: TextStyle(color: Color(0xFF0B1220))),
+                            TextSpan(text: 'ZA', style: TextStyle(color: Color(0xFF14C8B4))),
+                          ],
                         ),
-                        children: const [
-                          TextSpan(text: 'ZIG', style: TextStyle(color: Color(0xFF0B1220))),
-                          TextSpan(text: 'ZA', style: TextStyle(color: Color(0xFF14C8B4))),
-                        ],
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 13),
 
-                // Meaningful Indian Trust Tagline in English letters with italic font style
-                Text(
-                  'Aapka Vishwas • Hamara Bharosa',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16.0,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: const Color(0xFF334155),
+                  // Meaningful Indian Trust Tagline in English letters with italic font style
+                  Text(
+                    'Aapka Vishwas • Hamara Bharosa',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.0,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: const Color(0xFF334155),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -198,7 +201,7 @@ class SplashScreenView extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 36.0, left: 24, right: 24),
+              padding: const EdgeInsets.only(bottom: 44.0, left: 24, right: 24),
               child: Image.asset(
                 'assets/images/indian_trust_badge.png',
                 height: 68,
