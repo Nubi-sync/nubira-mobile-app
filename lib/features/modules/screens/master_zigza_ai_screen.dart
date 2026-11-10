@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -430,6 +431,16 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
     final authState = ref.watch(authProvider);
     final company = authState.tenantProfile?.companyName ?? 'Demo Industries';
 
+    final rawEmail = authState.tenantProfile?.userEmail ??
+        supabase.auth.currentUser?.email ??
+        authState.cachedUsername ??
+        'AD';
+    final userInitials = rawEmail.trim().isNotEmpty
+        ? (rawEmail.trim().length >= 2
+            ? rawEmail.trim().substring(0, 2).toUpperCase()
+            : rawEmail.trim().toUpperCase())
+        : 'AD';
+
     final currentSession = _sessions.firstWhere(
       (s) => s.id == _currentSessionId,
       orElse: () => _sessions.isNotEmpty
@@ -623,7 +634,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                     // 5 Paginated Sessions
                     ...paginatedSessions.map((s) {
                       final isActive = s.id == _currentSessionId;
-                      final dateStr = DateFormat('MMM dd, hh:mm a').format(
+                      final dateStr = DateFormat('MMM dd').format(
                         DateTime.fromMillisecondsSinceEpoch(s.updatedAt),
                       );
                       return Container(
@@ -633,47 +644,79 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFE2E8F0),
-                            width: isActive ? 1.4 : 1.0,
+                            width: isActive ? 1.2 : 1.0,
                           ),
+                          boxShadow: isActive
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF14C8B4).withValues(alpha: 0.15),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  )
+                                ]
+                              : null,
                         ),
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                          leading: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFCBD5E1),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () {
+                              setState(() {
+                                _currentSessionId = s.id;
+                                _isHistoryOpen = false;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      s.title.isNotEmpty ? s.title : 'New Conversation',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 12.0,
+                                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                        color: isActive ? const Color(0xFF0B1220) : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    dateStr,
+                                    style: GoogleFonts.publicSans(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(4),
+                                    onTap: () => _deleteSession(s.id),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 15,
+                                        color: Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          title: Text(
-                            s.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-                              color: const Color(0xFF0B1220),
-                            ),
-                          ),
-                          subtitle: Text(
-                            dateStr,
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9.5,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
-                            onPressed: () => _deleteSession(s.id),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _currentSessionId = s.id;
-                              _isHistoryOpen = false;
-                            });
-                          },
                         ),
                       );
                     }),
@@ -730,62 +773,151 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       itemCount: currentSession.messages.length,
                       itemBuilder: (ctx, idx) {
-                  final msg = currentSession.messages[idx];
-                  final isUser = msg['role'] == 'user';
+                        final msg = currentSession.messages[idx];
+                        final isUser = msg['role'] == 'user';
+                        final timestamp = (msg['timestamp'] as String?)?.isNotEmpty == true
+                            ? msg['timestamp'] as String
+                            : DateFormat('hh:mm a').format(DateTime.now());
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!isUser) ...[
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0x1F000000)),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.auto_awesome, size: 14, color: Color(0xFF0B1220)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                            decoration: BoxDecoration(
-                              color: isUser ? const Color(0xFFF0FDFA) : Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(14),
-                                topRight: const Radius.circular(14),
-                                bottomLeft: isUser ? const Radius.circular(14) : const Radius.circular(2),
-                                bottomRight: isUser ? const Radius.circular(2) : const Radius.circular(14),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Row(
+                            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Assistant Avatar (Left)
+                              if (!isUser) ...[
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDFA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0x1F000000)),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(Icons.auto_awesome, size: 14, color: Color(0xFF0B1220)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+
+                              // Message Bubble + Meta (Timestamp & Copy)
+                              Column(
+                                crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * (isUser ? 0.74 : 0.78),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                      decoration: BoxDecoration(
+                                        color: isUser ? const Color(0xFFF0FDFA) : Colors.white,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: const Radius.circular(16),
+                                          topRight: Radius.circular(isUser ? 4 : 16),
+                                          bottomLeft: Radius.circular(isUser ? 16 : 4),
+                                          bottomRight: const Radius.circular(16),
+                                        ),
+                                        border: Border.all(
+                                          color: isUser
+                                              ? const Color(0xFF14C8B4).withValues(alpha: 0.4)
+                                              : const Color(0xFFE2E8F0),
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x05000000),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                      child: _buildFormattedMessage(msg['content']?.toString() ?? '', isUser),
+                                    ),
+                                  ),
+
+                                  // Timestamp & Copy row below bubble
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      top: 4,
+                                      left: isUser ? 0 : 2,
+                                      right: isUser ? 2 : 0,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          timestamp,
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 10,
+                                            color: const Color(0xFF94A3B8),
+                                          ),
+                                        ),
+                                        if (!isUser) ...[
+                                          const SizedBox(width: 12),
+                                          InkWell(
+                                            onTap: () {
+                                              Clipboard.setData(ClipboardData(text: msg['content']?.toString() ?? ''));
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Copied to clipboard'),
+                                                  duration: Duration(seconds: 1),
+                                                ),
+                                              );
+                                            },
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.copy_rounded, size: 12, color: Color(0xFF94A3B8)),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'Copy',
+                                                  style: GoogleFonts.publicSans(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: const Color(0xFF94A3B8),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              border: Border.all(
-                                color: isUser
-                                    ? const Color(0xFF14C8B4).withValues(alpha: 0.4)
-                                    : const Color(0xFFE2E8F0),
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x05000000),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
+
+                              // User Avatar Badge (Right)
+                              if (isUser) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDFA),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: const Color(0xFF14C8B4).withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      userInitials,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0B1220),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
-                            ),
-                            child: _buildFormattedMessage(msg['content']?.toString() ?? '', isUser),
+                            ],
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
 
             if (_isGenerating)
@@ -1008,7 +1140,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
         content,
         style: GoogleFonts.publicSans(
           fontSize: 13,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: const Color(0xFF0B1220),
           height: 1.35,
         ),
