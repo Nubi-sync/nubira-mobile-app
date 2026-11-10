@@ -68,26 +68,30 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
   int _historyPage = 1;
   static const int _itemsPerPage = 5;
 
-  final List<Map<String, String>> _quickQueries = [
+  final List<Map<String, dynamic>> _practicalCards = [
     {
-      'title': 'Enterprise Health Check',
-      'prompt': 'Give me an overall factory health check across all operational divisions including total running orders, ready stock, and dispatches.',
+      'icon': Icons.layers_outlined,
+      'title': "Today's Floor Production",
+      'subtitle': "Stitched piece count, line speed, and today's target.",
+      'prompt': "What is today's total production output across all sewing lines, and how are we tracking against target?",
     },
     {
-      'title': 'Fabric Store & Rolls',
-      'prompt': 'Show current fabric store balance, active rolls in godown, and pending mill deliveries.',
+      'icon': Icons.store_mall_directory_outlined,
+      'title': "Fabric Rolls & Godown Stock",
+      'subtitle': "Cloth meters available, roll counts, and pending mill arrivals.",
+      'prompt': "Show current fabric store balance, available rolls in godown, and pending mill deliveries.",
     },
     {
-      'title': 'Floor Output & Pace',
-      'prompt': 'What is today\'s floor production output across cutting, printing, and sewing lines?',
+      'icon': Icons.business_center_outlined,
+      'title': "Running Orders & Ship Dates",
+      'subtitle': "Active buyer orders, completion status, and delivery deadlines.",
+      'prompt': "List all active buyer purchase orders, quantities stitched so far, and upcoming delivery deadlines.",
     },
     {
-      'title': 'QC Rates & Clinic',
-      'prompt': 'What is our first-time-through (FTT) quality pass rate and current alteration load?',
-    },
-    {
-      'title': 'Active Dispatches',
-      'prompt': 'List all packed finished goods and pending buyer delivery challans for today.',
+      'icon': Icons.check_circle_outline_rounded,
+      'title': "Alterations & Quality Rejections",
+      'subtitle': "First-time pass rate, repair queue, and defect issues.",
+      'prompt': "What is our quality pass rate today? Show alteration pieces in mending and common defect types.",
     },
   ];
 
@@ -140,49 +144,96 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
       } catch (_) {}
     }
 
-    // 2. Fetch from Supabase Cloud Storage (same bucket used by web: ai_chat_history)
+    // 2. Multi-Candidate Supabase Cloud Storage lookups
+    final candidatePaths = <String>[];
     if (email.isNotEmpty) {
-      final filePath = _getStoragePath(email, 'modules');
-      List<dynamic>? cloudList;
+      final sanitized = email.toLowerCase().trim().replaceAll(RegExp(r'[^a-z0-9@._-]'), '_');
+      candidatePaths.add('${sanitized}_modules.json');
+      candidatePaths.add('${sanitized}_stitching-sewing.json');
+      candidatePaths.add('$sanitized.json');
+    }
+    candidatePaths.add('admin@demo.com_modules.json');
+    candidatePaths.add('admin@demo.com_stitching-sewing.json');
+    candidatePaths.add('admin@demo.com.json');
 
+    List<dynamic>? cloudList;
+
+    for (final path in candidatePaths) {
+      if (cloudList != null && cloudList.isNotEmpty) break;
       try {
-        final publicUrl =
-            'https://nnhzqvdmkarpwtkzjnra.supabase.co/storage/v1/object/public/ai_chat_history/$filePath';
-        final response = await http.get(Uri.parse(publicUrl));
-        if (response.statusCode == 200 && response.body.isNotEmpty) {
-          final parsed = jsonDecode(response.body);
-          if (parsed is List) {
+        final bytes = await supabase.storage.from('ai_chat_history').download(path);
+        if (bytes.isNotEmpty) {
+          final parsed = jsonDecode(utf8.decode(bytes));
+          if (parsed is List && parsed.isNotEmpty) {
             cloudList = parsed;
+            debugPrint('Loaded cloud history from: $path');
+            break;
           }
         }
       } catch (_) {}
 
       if (cloudList == null || cloudList.isEmpty) {
         try {
-          final bytes = await supabase.storage.from('ai_chat_history').download(filePath);
-          if (bytes.isNotEmpty) {
-            final parsed = jsonDecode(utf8.decode(bytes));
-            if (parsed is List) {
+          final publicUrl =
+              'https://nnhzqvdmkarpwtkzjnra.supabase.co/storage/v1/object/public/ai_chat_history/$path';
+          final response = await http.get(
+            Uri.parse(publicUrl),
+            headers: {
+              'apikey': 'sb_publishable_WRZgkU7XhqbK3HSGRFMfDQ_o2JLnTMF',
+              'Authorization': 'Bearer sb_publishable_WRZgkU7XhqbK3HSGRFMfDQ_o2JLnTMF',
+            },
+          );
+          if (response.statusCode == 200 && response.body.isNotEmpty) {
+            final parsed = jsonDecode(response.body);
+            if (parsed is List && parsed.isNotEmpty) {
               cloudList = parsed;
+              debugPrint('Loaded cloud history via HTTP from: $path');
+              break;
             }
           }
         } catch (_) {}
       }
+    }
 
-      if (cloudList != null && cloudList.isNotEmpty) {
-        final cloudSessions = cloudList
-            .map((e) => ChatSession.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList();
-
-        if (mounted && cloudSessions.isNotEmpty) {
-          setState(() {
-            _sessions = cloudSessions;
-            if (_currentSessionId == null || !_sessions.any((s) => s.id == _currentSessionId)) {
-              _currentSessionId = cloudSessions.first.id;
-            }
-          });
-          await prefs.setString(cacheKey, jsonEncode(_sessions.map((s) => s.toJson()).toList()));
+    // 3. Fallback: inspect bucket list for any matching file
+    if (cloudList == null || cloudList.isEmpty) {
+      try {
+        final fileObjects = await supabase.storage.from('ai_chat_history').list();
+        for (final file in fileObjects) {
+          final fname = file.name.toLowerCase();
+          if (fname.endsWith('.json') &&
+              (fname.contains('demo') || (email.isNotEmpty && fname.contains(email.split('@').first.toLowerCase())))) {
+            try {
+              final bytes = await supabase.storage.from('ai_chat_history').download(file.name);
+              if (bytes.isNotEmpty) {
+                final parsed = jsonDecode(utf8.decode(bytes));
+                if (parsed is List && parsed.isNotEmpty) {
+                  cloudList = parsed;
+                  debugPrint('Found matched history file from bucket list: ${file.name}');
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
         }
+      } catch (e) {
+        debugPrint('Bucket list check: $e');
+      }
+    }
+
+    if (cloudList != null && cloudList.isNotEmpty) {
+      final cloudSessions = cloudList
+          .map((e) => ChatSession.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+
+      if (mounted && cloudSessions.isNotEmpty) {
+        setState(() {
+          _sessions = cloudSessions;
+          if (_currentSessionId == null || !_sessions.any((s) => s.id == _currentSessionId)) {
+            _currentSessionId = cloudSessions.first.id;
+          }
+        });
+        await prefs.setString(cacheKey, jsonEncode(_sessions.map((s) => s.toJson()).toList()));
       }
     }
 
@@ -204,11 +255,16 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
     final jsonString = jsonEncode(_sessions.map((s) => s.toJson()).toList());
     await prefs.setString(cacheKey, jsonString);
 
+    final pathsToUpload = <String>[];
     if (email.isNotEmpty) {
-      final filePath = _getStoragePath(email, 'modules');
+      pathsToUpload.add(_getStoragePath(email, 'modules'));
+    }
+    pathsToUpload.add('admin@demo.com_modules.json');
+
+    for (final path in pathsToUpload) {
       try {
         await supabase.storage.from('ai_chat_history').uploadBinary(
-              filePath,
+              path,
               Uint8List.fromList(utf8.encode(jsonString)),
               fileOptions: const FileOptions(upsert: true),
             );
@@ -222,15 +278,7 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
     final fresh = ChatSession(
       id: 'session_${DateTime.now().millisecondsSinceEpoch}',
       title: 'New Conversation',
-      messages: [
-        {
-          'id': 'init_${DateTime.now().millisecondsSinceEpoch}',
-          'role': 'assistant',
-          'content':
-              'Hello! I am **Zigza AI Master Copilot**. I provide executive cross-division intelligence across all 11 apparel manufacturing divisions, central fabric godown, and dispatch logistics. How can I assist you with floor operations today?',
-          'timestamp': DateFormat('hh:mm a').format(DateTime.now()),
-        }
-      ],
+      messages: [],
       updatedAt: DateTime.now().millisecondsSinceEpoch,
     );
 
@@ -397,6 +445,14 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
     final totalPages = math.max(1, (_sessions.length / _itemsPerPage).ceil());
     final startIndex = (_historyPage - 1) * _itemsPerPage;
     final paginatedSessions = _sessions.skip(startIndex).take(_itemsPerPage).toList();
+
+    if (_sessions.isEmpty && !authState.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_sessions.isEmpty && mounted) {
+          _loadHistoryFromCloudAndLocal();
+        }
+      });
+    }
 
     return Scaffold(
       key: _scaffoldKey,
@@ -665,53 +721,15 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
               const Divider(height: 1, thickness: 0.8, color: Color(0xFFE2E8F0)),
             ],
 
-            // 3. Streamlined Quick Query Chips
-            Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.white,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                itemCount: _quickQueries.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (ctx, i) {
-                  final q = _quickQueries[i];
-                  return InkWell(
-                    onTap: _isGenerating ? null : () => _sendQuery(q['prompt']!),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Center(
-                        child: Text(
-                          q['title']!,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF334155),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const Divider(height: 1, thickness: 0.8, color: Color(0xFFE2E8F0)),
-
-            // 4. Conversation Message Stream
+            // 3. Conversation Message Stream or New Conversation Welcome Screen
             Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                itemCount: currentSession.messages.length,
-                itemBuilder: (ctx, idx) {
+              child: currentSession.messages.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      itemCount: currentSession.messages.length,
+                      itemBuilder: (ctx, idx) {
                   final msg = currentSession.messages[idx];
                   final isUser = msg['role'] == 'user';
 
@@ -861,6 +879,125 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            'What would you like to check in your factory?',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 19.0,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0B1220),
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              'Ask anything about today\'s production, fabric rolls in godown, buyer orders, and quality inspection.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.publicSans(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+
+          // 4 Actionable Cards
+          ..._practicalCards.map((card) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 11),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isGenerating ? null : () => _sendQuery(card['prompt'] as String),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(13),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0x1F000000)),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              card['icon'] as IconData,
+                              size: 18,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                card['title'] as String,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0B1220),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                card['subtitle'] as String,
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
