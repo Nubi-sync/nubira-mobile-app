@@ -15,6 +15,7 @@ import '../dispatch/screens/dispatch_logistics_hub_screen.dart';
 import '../admin/screens/reports_screen.dart';
 import '../merchandising/screens/active_buyers_screen.dart';
 import 'services/plant_operations_dashboard_service.dart';
+import 'widgets/indian_state_vector_map.dart';
 
 class PlantOperationsDashboardScreen extends ConsumerStatefulWidget {
   const PlantOperationsDashboardScreen({super.key});
@@ -1769,7 +1770,490 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 10. Section 7: Division Heartbeat Section
+  // 10. Section 6B: Portal Usage & Login Location Section
+  Widget _buildPortalUsageAndLocationSection(BuildContext context, OwnerLoginActivityData? activityData) {
+    if (activityData == null) return const SizedBox.shrink();
+
+    final days = activityData.days;
+    final location = activityData.currentLocation;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x1A000000)),
+                ),
+                child: const Center(
+                  child: Icon(Icons.schedule_rounded, color: Color(0xFF0B1220), size: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Portal Usage & ',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0B1220),
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Login Location',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1D4ED8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDFA),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0x1A000000)),
+                          ),
+                          child: Text(
+                            'PAST 7 DAYS',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Weekly login hours and where you are signed in from right now.',
+                      style: GoogleFonts.publicSans(
+                        fontSize: 12,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Legend: Active (Emerald) & Inactive (Slate)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Active',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 14),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(color: const Color(0xFFCBD5E1), width: 0.8),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Inactive',
+                    style: GoogleFonts.publicSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 2. 24x7 HOURLY LOGIN MATRIX CARD
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: 330,
+                    child: Column(
+                      children: [
+                        // Days Header Row
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 54,
+                              child: Text(
+                                'TIME',
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ),
+                            ...days.map((d) {
+                              return Expanded(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      d.dayName.toUpperCase(),
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: d.isToday ? const Color(0xFFE0F2FE) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: d.isToday ? Border.all(color: const Color(0xFFBAE6FD)) : null,
+                                      ),
+                                      child: Text(
+                                        d.formattedDate,
+                                        style: GoogleFonts.jetBrainsMono(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: d.isToday ? const Color(0xFF0369A1) : const Color(0xFF334155),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                        const SizedBox(height: 6),
+
+                        // 24 Hourly Rows
+                        ...List.generate(24, (hourIdx) {
+                          final hourLabel = (days.isNotEmpty && days.first.hourlySlots.length > hourIdx)
+                              ? days.first.hourlySlots[hourIdx].label
+                              : '${hourIdx.toString().padLeft(2, '0')}:00';
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2.0),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 54,
+                                  child: Text(
+                                    hourLabel,
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ),
+                                ...days.map((day) {
+                                  final slot = (day.hourlySlots.length > hourIdx)
+                                      ? day.hourlySlots[hourIdx]
+                                      : LoginHourSlot(hour: hourIdx, label: hourLabel, count: 0, isActive: false);
+
+                                  final isSelected = _selectedHeatmapInfo == '${day.fullDateLabel} (${slot.label})';
+
+                                  return Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedHeatmapInfo = '${day.fullDateLabel} (${slot.label})';
+                                            _selectedHeatmapIsActive = slot.isActive;
+                                            _selectedHeatmapLogins = slot.count;
+                                          });
+                                        },
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 150),
+                                          height: 15,
+                                          decoration: BoxDecoration(
+                                            color: slot.isActive
+                                                ? const Color(0xFF10B981)
+                                                : const Color(0xFFE2E8F0),
+                                            borderRadius: BorderRadius.circular(3.5),
+                                            border: isSelected
+                                                ? Border.all(color: const Color(0xFF0B1220), width: 1.5)
+                                                : (slot.isActive ? null : Border.all(color: const Color(0xFFCBD5E1), width: 0.5)),
+                                            boxShadow: slot.isActive
+                                                ? const [
+                                                    BoxShadow(
+                                                      color: Color(0x1F10B981),
+                                                      blurRadius: 3,
+                                                      offset: Offset(0, 1),
+                                                    )
+                                                  ]
+                                                : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Tooltip / Inspection Bar
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: _selectedHeatmapInfo != null
+                      ? Row(
+                          children: [
+                            Icon(
+                              _selectedHeatmapIsActive ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                              size: 14,
+                              color: _selectedHeatmapIsActive ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '$_selectedHeatmapInfo: ',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF0B1220),
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: _selectedHeatmapIsActive
+                                          ? 'Active ($_selectedHeatmapLogins ${_selectedHeatmapLogins == 1 ? "login" : "logins"})'
+                                          : 'No login during this hour',
+                                      style: GoogleFonts.publicSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: _selectedHeatmapIsActive ? const Color(0xFF059669) : const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            const Icon(Icons.touch_app_outlined, size: 14, color: Color(0xFF94A3B8)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tap any hour slot to check login details.',
+                              style: GoogleFonts.publicSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 3. Indian State Vector Map Card (Matching Web Mobile View)
+          IndianStateVectorMapWidget(
+            stateName: location.state,
+            cityName: location.city,
+            latitude: location.latitude,
+            longitude: location.longitude,
+          ),
+
+          const SizedBox(height: 12),
+
+          // 4. Two Simple Stat Cards: Past 7 Days & Most Active Time
+          Row(
+            children: [
+              // Stat 1: Total Logins
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PAST 7 DAYS',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${activityData.totalSessionsPast7Days} Logins',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Active on ${activityData.activeDaysCount} ${activityData.activeDaysCount == 1 ? "day" : "days"}',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF059669),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Stat 2: Peak Time
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MOST ACTIVE TIME',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF94A3B8),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        activityData.peakHour,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0B1220),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Shift usage window',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 11. Section 7: Division Heartbeat Section
   Widget _buildDivisionHeartbeatSection(BuildContext context, List<DivisionHeartbeatItem> heartbeats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

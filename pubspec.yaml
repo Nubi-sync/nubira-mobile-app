@@ -82,6 +82,7 @@ flutter:
     - assets/images/z_i_g_z_a.png
     - assets/images/ic_upper_tshirt.png
     - assets/images/ic_lower_pants.png
+    - assets/geo/states/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

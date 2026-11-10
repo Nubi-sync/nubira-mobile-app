@@ -242,6 +242,8 @@ class OwnerGeoLocation {
   final String deviceType;
   final String os;
   final bool isCurrentlyActive;
+  final double? latitude;
+  final double? longitude;
 
   const OwnerGeoLocation({
     required this.state,
@@ -253,6 +255,8 @@ class OwnerGeoLocation {
     required this.deviceType,
     required this.os,
     required this.isCurrentlyActive,
+    this.latitude,
+    this.longitude,
   });
 }
 
@@ -1149,6 +1153,17 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
         }
       });
 
+      double? lat;
+      double? lon;
+      if (rawLogins.isNotEmpty) {
+        if (rawLogins.first['latitude'] != null) {
+          lat = double.tryParse(rawLogins.first['latitude'].toString());
+        }
+        if (rawLogins.first['longitude'] != null) {
+          lon = double.tryParse(rawLogins.first['longitude'].toString());
+        }
+      }
+
       final loginActivity = OwnerLoginActivityData(
         days: activityDays,
         currentLocation: OwnerGeoLocation(
@@ -1161,6 +1176,8 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
           deviceType: 'mobile',
           os: 'Android',
           isCurrentlyActive: true,
+          latitude: lat,
+          longitude: lon,
         ),
         totalSessionsPast7Days: math.max(1, totalSessions),
         peakHour: hourLabels[peakHourIdx],
