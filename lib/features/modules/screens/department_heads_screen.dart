@@ -531,11 +531,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           ),
         ),
       ),
-      title: const ZigzaBrandLogo(
-        iconHeight: 30,
-        logoHeight: 24,
-        spacing: 8.5,
-      ),
+      title: const LiveDateTimeHeader(),
       actions: [
         // Royal Blue + v Quick Action Button
         Center(

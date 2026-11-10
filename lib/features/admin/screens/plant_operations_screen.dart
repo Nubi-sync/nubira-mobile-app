@@ -10,6 +10,7 @@ import 'admin_shell.dart';
 import 'reports_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
+import '../../../core/widgets/live_date_time_header.dart';
 
 class PlantOperationsScreen extends ConsumerStatefulWidget {
   const PlantOperationsScreen({super.key});
@@ -196,11 +197,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
           ),
         ),
         titleSpacing: 0,
-        title: const ZigzaBrandLogo(
-          iconHeight: 30,
-          logoHeight: 24,
-          spacing: 8.5,
-        ),
+        title: const LiveDateTimeHeader(),
         actions: [
 
         ],

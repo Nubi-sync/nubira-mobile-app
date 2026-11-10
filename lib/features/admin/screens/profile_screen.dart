@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../widgets/admin_drawer.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
+import '../../../core/widgets/live_date_time_header.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -59,11 +60,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         titleSpacing: 0,
-        title: const ZigzaBrandLogo(
-          iconHeight: 30,
-          logoHeight: 24,
-          spacing: 8.5,
-        ),
+        title: const LiveDateTimeHeader(),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 14),
