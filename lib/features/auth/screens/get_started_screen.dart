@@ -20,9 +20,11 @@ class GetStartedScreen extends StatelessWidget {
           Image.asset(
             'assets/images/zigza_launch_bg_cabin.jpg',
             fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
             errorBuilder: (_, __, ___) => Image.asset(
               'assets/images/zigza_launch_bg_official_logo.jpg',
               fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
               errorBuilder: (_, __, ___) => Image.asset(
                 'assets/images/factory_handshake_art.jpg',
                 fit: BoxFit.cover,
