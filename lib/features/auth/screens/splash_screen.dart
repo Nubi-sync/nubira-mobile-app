@@ -125,26 +125,26 @@ class SplashScreenView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Brand Icon Mark
+                // Brand Icon Mark - scaled to 140px to match Android's native launch icon seamlessly
                 Image.asset(
                   'assets/images/zigza_icon.png',
-                  height: 84,
-                  width: 84,
+                  height: 140,
+                  width: 140,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Image.asset(
                     'assets/images/icon.png',
-                    height: 84,
-                    width: 84,
+                    height: 140,
+                    width: 140,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
-                      width: 84,
-                      height: 84,
+                      width: 140,
+                      height: 140,
                       decoration: BoxDecoration(
                         color: const Color(0xFF0B1220),
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(32),
                       ),
                       child: const Center(
-                        child: Icon(Icons.flash_on_rounded, color: Color(0xFF14C8B4), size: 44),
+                        child: Icon(Icons.flash_on_rounded, color: Color(0xFF14C8B4), size: 70),
                       ),
                     ),
                   ),
@@ -155,16 +155,16 @@ class SplashScreenView extends StatelessWidget {
                 // Worded "ZIGZA" Logo Beneath the Icon
                 Image.asset(
                   'assets/images/z_i_g_z_a.png',
-                  height: 28,
+                  height: 32,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Image.asset(
                     'assets/images/zigza_web_logo.png',
-                    height: 28,
+                    height: 32,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => RichText(
                       text: TextSpan(
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 26,
+                          fontSize: 28,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 4.0,
                         ),
@@ -177,97 +177,69 @@ class SplashScreenView extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
-                // Clean Mono Product Identifier
+                // Meaningful Indian Trust Tagline for Factory Owners
                 Text(
-                  'SMART FACTORY MES',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10.5,
+                  'आपका विश्वास • हमारी ज़िम्मेदारी',
+                  style: GoogleFonts.notoSansDevanagari(
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 2.2,
-                    color: const Color(0xFF64748B),
+                    letterSpacing: 0.6,
+                    color: const Color(0xFF334155),
                   ),
                 ),
               ],
             ),
           ),
 
-          // 2. Bottom Trust Badge Block (Solid Presence, Mono-Colored, Rounded Green Outline)
+          // 2. Bottom Trust Badge Block (Authentic Indian Enterprise Trust Badge PNG)
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 34.0, left: 20, right: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Primary Trust Badge Pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8.5),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: const Color(0xFF10B981),
-                        width: 1.5,
+              padding: const EdgeInsets.only(bottom: 34.0, left: 24, right: 24),
+              child: Image.asset(
+                'assets/images/indian_trust_badge.png',
+                height: 52,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFF10B981),
+                      width: 1.5,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
                       ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0A000000),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Solid Green Tick
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: Color(0xFF10B981),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        // Mono-Colored Bold Status Text
-                        Text(
-                          '100% SAFE & SECURE',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
-
-                  const SizedBox(height: 8),
-
-                  // Enterprise Security Subtitle
-                  Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.shield_outlined,
-                        size: 12,
-                        color: Color(0xFF94A3B8),
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF10B981),
+                        size: 18,
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 8),
                       Text(
-                        'ENTERPRISE CLOUD SYNC • 256-BIT ENCRYPTION',
+                        'BHARAT TRUSTED • 100% SAFE & VERIFIED',
                         style: GoogleFonts.jetBrainsMono(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF94A3B8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F172A),
                           letterSpacing: 0.6,
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
