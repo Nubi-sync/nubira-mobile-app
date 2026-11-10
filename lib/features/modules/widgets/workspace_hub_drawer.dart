@@ -7,6 +7,7 @@ import '../screens/enterprise_workspace_hub_screen.dart';
 import '../screens/supervisor_floor_stations_screen.dart';
 import '../screens/department_heads_screen.dart';
 import '../screens/company_profile_screen.dart';
+import '../screens/master_zigza_ai_screen.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
 import '../../dashboard/plant_operations_dashboard_screen.dart';
@@ -1234,9 +1235,13 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           context: context,
           icon: Icons.smart_toy_outlined,
           title: 'Zigza AI Copilot',
-          isActive: activeRoute == '/store/zigza-ai',
+          isActive: activeRoute == '/store/zigza-ai' || activeRoute == '/zigza-ai',
           onTap: () {
-            _navigateTo(context, const CuttingZigzaAiScreen());
+            if (activeRoute == '/zigza-ai' || activeRoute == '/store/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const MasterZigzaAiScreen());
+            }
           },
         ),
         const SizedBox(height: 16),
@@ -1348,8 +1353,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           context: context,
           icon: Icons.auto_awesome_outlined,
           title: 'Zigza AI',
-          isActive: activeRoute == '/cutting/zigza-ai',
-          onTap: () => _navigateTo(context, const CuttingZigzaAiScreen()),
+          isActive: activeRoute == '/zigza-ai',
+          onTap: () {
+            if (activeRoute == '/zigza-ai') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const MasterZigzaAiScreen());
+            }
+          },
         ),
         _buildNavItem(
           context: context,

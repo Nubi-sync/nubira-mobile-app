@@ -29,23 +29,23 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
 
   final List<Map<String, String>> _quickQueries = [
     {
-      'title': '📊 Enterprise Health Check',
+      'title': 'Enterprise Health Check',
       'prompt': 'Give me an overall factory health check across all operational divisions including total running orders, ready stock, and dispatches.',
     },
     {
-      'title': '🧵 Fabric Store & Rolls',
+      'title': 'Fabric Store & Rolls',
       'prompt': 'Show current fabric store balance, active rolls in godown, and pending mill deliveries.',
     },
     {
-      'title': '📦 Floor Output & Output',
+      'title': 'Floor Output & Pace',
       'prompt': 'What is today\'s floor production output across cutting, printing, and sewing lines?',
     },
     {
-      'title': '✅ QC Rates & Clinic',
+      'title': 'QC Rates & Clinic',
       'prompt': 'What is our first-time-through (FTT) quality pass rate and current alteration load?',
     },
     {
-      'title': '🚚 Active Dispatches',
+      'title': 'Active Dispatches',
       'prompt': 'List all packed finished goods and pending buyer delivery challans for today.',
     },
   ];
@@ -78,37 +78,37 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
 
       String response;
       if (q.contains('health') || q.contains('overall') || q.contains('enterprise')) {
-        response = '### 🏭 $company Enterprise Health Check\n\n'
+        response = '### $company Enterprise Health Check\n\n'
             '- **Operating Divisions:** 11 active units fully connected.\n'
             '- **Active Work Orders:** 8 active purchase orders across 4 major retail buyers.\n'
             '- **Daily Production Pace:** 1,420 / 1,600 target pieces (88.7% target efficiency).\n'
             '- **Material Fulfillment:** 94.2% fabric lots inspected and approved for lay floor.\n'
             '- **Executive Status:** All floor lines operating normally with zero critical bottlenecks.';
       } else if (q.contains('fabric') || q.contains('store') || q.contains('roll') || q.contains('mill')) {
-        response = '### 🧵 Central Fabric Store & Godown Status\n\n'
+        response = '### Central Fabric Store & Godown Status\n\n'
             '- **Total Available Rolls:** 142 inspected rolls (~4,850 kg).\n'
             '- **Shade Continuity:** 100% 4-point system pass on current single-jersey lots.\n'
             '- **Allocated to Cutting:** 18 rolls staged on Spreading Table 01.\n'
             '- **Pending Inward Mill Gate-Passes:** 2 consignments expected before 4:00 PM.';
       } else if (q.contains('output') || q.contains('piece') || q.contains('cut') || q.contains('sew')) {
-        response = '### ⚙️ Multi-Division Floor Output\n\n'
+        response = '### Multi-Division Floor Output\n\n'
             '- **03 Cutting Floor:** 4 lays completed, 850 cut pieces bundled with QR tickets.\n'
             '- **04 Printing Studio:** 620 chest print impressions completed.\n'
             '- **06 Sewing Floor:** 12 active stations operating at 91% line balance efficiency.\n'
             '- **08 Finishing & Iron:** 490 pieces steam-pressed and tagged.';
       } else if (q.contains('qc') || q.contains('quality') || q.contains('defect') || q.contains('clinic')) {
-        response = '### ✅ Quality Clinic & Inspection Audit\n\n'
+        response = '### Quality Clinic & Inspection Audit\n\n'
             '- **First-Time-Through (FTT) Rate:** 96.8% (Target: >=95%).\n'
             '- **Top Minor Defects:** Uneven hem margin (1.2%), loose thread ends (0.9%).\n'
             '- **Alteration Queue:** 14 garments undergoing mending before secondary sign-off.\n'
             '- **Export Carton Audit:** 100% pre-shipment AQL 2.5 pass.';
       } else if (q.contains('dispatch') || q.contains('challan') || q.contains('delivery') || q.contains('truck')) {
-        response = '### 🚚 Dispatch Logistics & Shipments\n\n'
+        response = '### Dispatch Logistics & Shipments\n\n'
             '- **Ready for Dispatch:** 320 packed export master cartons.\n'
             '- **Active Outward Challans:** DC-2026-0881 confirmed gate-out to port godown.\n'
             '- **Vehicle Manifest:** Logistics truck assigned and loading dock active.';
       } else {
-        response = '### 💡 Zigza AI Master Intelligence\n\n'
+        response = '### Zigza AI Master Intelligence\n\n'
             'I have cross-referenced live data across your divisions for "$userQuery":\n\n'
             '- **Factory Floor:** Connected to all 11 stations for $company.\n'
             '- **Live ERP Sync:** Floor logs, supervisor challans, and QR bundle events are current.\n'
