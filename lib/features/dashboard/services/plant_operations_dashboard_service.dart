@@ -558,6 +558,10 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
 
         final primaryOrder = matchingOrders.isNotEmpty ? matchingOrders.first : null;
         final poNumber = primaryOrder?['order_number']?.toString() ?? 'PO-$styleKey';
+        final brandsRaw = primaryOrder?['brands'];
+        final String buyerName = (brandsRaw is List && brandsRaw.isNotEmpty)
+            ? (brandsRaw[0]['brand_name']?.toString() ?? 'Direct Buyer')
+            : (brandsRaw is Map ? (brandsRaw['brand_name']?.toString() ?? 'Direct Buyer') : 'Direct Buyer');
         final totalTarget = matchingOrders.fold<int>(0, (sum, o) => sum + (int.tryParse(o['total_quantity']?.toString() ?? '0') ?? 0));
         final target = totalTarget > 0 ? totalTarget : 3000;
         final isCompleted = primaryOrder?['status']?.toString().toUpperCase() == 'COMPLETED';

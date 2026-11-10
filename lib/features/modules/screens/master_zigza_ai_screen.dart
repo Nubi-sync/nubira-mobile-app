@@ -499,12 +499,26 @@ class _MasterZigzaAiScreenState extends ConsumerState<MasterZigzaAiScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      'Zigza AI',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15.0,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0B1220),
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Zigza ',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'AI',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF1D4ED8),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
