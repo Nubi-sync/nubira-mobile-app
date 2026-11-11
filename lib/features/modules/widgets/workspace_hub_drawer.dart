@@ -19,6 +19,7 @@ import '../../design/screens/tech_pack_catalog_screen.dart';
 import '../../design/screens/sa_design_approvals_screen.dart';
 import '../../merchandising/screens/merchandising_dashboard_screen.dart';
 import '../../merchandising/screens/active_buyers_screen.dart';
+import '../../buyers_vendors/screens/buyers_vendors_screen.dart';
 import '../../merchandising/screens/buyer_purchase_orders_screen.dart';
 import '../../merchandising/screens/tna_planner_screen.dart';
 import '../../cutting/screens/cutting_lay_floor_screen.dart';
@@ -1354,8 +1355,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           context: context,
           icon: Icons.store_mall_directory_outlined,
           title: 'Buyers & Vendors',
-          isActive: activeRoute == '/merchandising/buyers' || activeRoute == '/vendors',
-          onTap: () => _navigateTo(context, const ActiveBuyersScreen()),
+          isActive: activeRoute == '/buyers-vendors' || activeRoute == '/vendors',
+          onTap: () {
+            if (activeRoute == '/buyers-vendors' || activeRoute == '/vendors') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const BuyersVendorsScreen());
+            }
+          },
         ),
         _buildNavItem(
           context: context,

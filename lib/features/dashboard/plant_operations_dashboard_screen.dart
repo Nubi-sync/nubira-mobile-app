@@ -14,7 +14,7 @@ import '../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../store/screens/central_store_godown_screen.dart';
 import '../dispatch/screens/dispatch_logistics_hub_screen.dart';
 import '../admin/screens/reports_screen.dart';
-import '../merchandising/screens/active_buyers_screen.dart';
+import '../buyers_vendors/screens/buyers_vendors_screen.dart';
 import 'services/plant_operations_dashboard_service.dart';
 import 'widgets/indian_state_vector_map.dart';
 
@@ -1310,7 +1310,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ActiveBuyersScreen()),
+                  MaterialPageRoute(builder: (_) => const BuyersVendorsScreen()),
                 );
               },
               child: Row(
