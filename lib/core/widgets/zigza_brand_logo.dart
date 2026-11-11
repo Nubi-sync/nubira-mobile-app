@@ -28,10 +28,12 @@ class ZigzaBrandLogo extends StatelessWidget {
         Image.asset(
           'assets/images/zigza_icon.png',
           height: iconHeight,
+          cacheWidth: 160,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Image.asset(
             'assets/images/icon.png',
             height: iconHeight,
+            cacheWidth: 160,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
@@ -40,10 +42,12 @@ class ZigzaBrandLogo extends StatelessWidget {
         Image.asset(
           'assets/images/zigza_web_logo.png',
           height: logoHeight,
+          cacheHeight: 112,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Image.asset(
             'assets/images/zigza_new_logo.png',
             height: logoHeight,
+            cacheHeight: 112,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),

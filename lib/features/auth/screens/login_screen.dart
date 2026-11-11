@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../../main.dart';
+import '../../../core/widgets/auth_watermark_scaffold.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
 import '../../../core/widgets/zigza_dual_ring_spinner.dart';
 import '../providers/auth_provider.dart';

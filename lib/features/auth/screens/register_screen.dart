@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/auth_watermark_scaffold.dart';
 import '../../../core/widgets/zigza_brand_logo.dart';
 import '../../../core/widgets/zigza_dual_ring_spinner.dart';
 import '../providers/auth_provider.dart';
@@ -19,6 +20,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Stepper State (1: Account Setup, 2: Choose Modules, 3: Activated)
   int _currentStep = 1;
+  final _scrollController = ScrollController();
 
   // Step 1 Controllers
   final _nameController = TextEditingController();
@@ -80,6 +82,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _scrollController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();

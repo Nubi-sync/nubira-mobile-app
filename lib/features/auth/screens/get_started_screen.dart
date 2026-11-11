@@ -22,13 +22,16 @@ class GetStartedScreen extends StatelessWidget {
             'assets/images/zigza_launch_bg_cabin.jpg',
             fit: BoxFit.cover,
             alignment: Alignment.topCenter,
+            cacheWidth: 768,
             errorBuilder: (_, __, ___) => Image.asset(
               'assets/images/zigza_launch_bg_official_logo.jpg',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
+              cacheWidth: 768,
               errorBuilder: (_, __, ___) => Image.asset(
                 'assets/images/factory_handshake_art.jpg',
                 fit: BoxFit.cover,
+                cacheWidth: 768,
                 errorBuilder: (_, __, ___) => Container(
                   color: const Color(0xFF0F172A),
                 ),
