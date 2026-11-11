@@ -858,47 +858,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final lockoutMin = _remainingLockoutSeconds ~/ 60;
     final lockoutSec = _remainingLockoutSeconds % 60;
     final lockoutTimeString = '${lockoutMin.toString().padLeft(2, '0')}:${lockoutSec.toString().padLeft(2, '0')}';
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    final screenSize = MediaQuery.of(context).size;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          // Background Art (Garment factory floor sketch watermark - Fixed to screen bounds so keyboard never moves it)
-          Positioned(
-            top: 0,
-            left: 0,
-            width: screenSize.width,
-            height: screenSize.height,
-            child: RepaintBoundary(
-              child: Opacity(
-                opacity: 0.10,
-                child: Image.asset(
-                  'assets/images/factory_bg_tinted_sketch.jpg',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            ),
-          ),
-
-          // Main Scrollable Content with Keyboard Adaptive Sizing
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: isKeyboardOpen ? 8.0 : 16.0,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: IntrinsicHeight(
-                      child: Column(
+    return AuthWatermarkScaffold(
+      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (Navigator.canPop(context)) ...[
@@ -935,24 +896,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 6),
                           ],
-                          SizedBox(height: isKeyboardOpen ? 4 : 12),
+                          const SizedBox(height: 12),
 
                           // --- 1. BRAND LOGO (OFFICIAL ICON + WORDMARK) ---
                           Center(
                             child: ZigzaBrandLogo(
-                              iconHeight: isKeyboardOpen ? 28 : 36,
-                              logoHeight: isKeyboardOpen ? 22 : 28,
+                              iconHeight: 36,
+                              logoHeight: 28,
                               spacing: 9,
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 12 : 24),
+                          const SizedBox(height: 24),
 
                           // --- 2. CLEAN HERO HEADER ---
                           Center(
                             child: Text(
                               'Welcome Back',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: isKeyboardOpen ? 22 : 25,
+                                fontSize: 25,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF0B1220),
                                 letterSpacing: -0.5,
@@ -965,13 +926,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               'Enter your mobile number or email to continue',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.publicSans(
-                                fontSize: isKeyboardOpen ? 12.5 : 13.5,
+                                fontSize: 13.5,
                                 color: const Color(0xFF64748B),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 14 : 24),
+                          const SizedBox(height: 24),
 
                           // --- 3. NATIVE PILL SWITCHER: MOBILE VS EMAIL (SLIDING BRAND BLUE INDICATOR) ---
                           Container(
@@ -1094,7 +1055,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: isKeyboardOpen ? 14 : 22),
+                          const SizedBox(height: 22),
 
                           // --- 4. IDENTIFIER INPUT (SMOOTH TRANSITION ANIMATION) ---
                           AnimatedSwitcher(
@@ -1282,7 +1243,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ],
-                          SizedBox(height: isKeyboardOpen ? 10 : 16),
+                          const SizedBox(height: 16),
 
                           // --- 5. PASSWORD INPUT ---
                           Text(
@@ -1409,7 +1370,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ],
                           ),
-                          SizedBox(height: isKeyboardOpen ? 14 : 22),
+                          const SizedBox(height: 22),
 
                           // --- 7. AUTH STATE ERROR BANNER ---
                           if (authState.error != null && !authState.isLoading) ...[
@@ -1504,52 +1465,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           // --- 9. FREE TRIAL PROMPT (Positioned directly below Sign In button, hidden when keyboard is open) ---
-                          if (!isKeyboardOpen) ...[
-                            const SizedBox(height: 20),
-                            Center(
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                                  );
-                                },
-                                child: RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: 'New to Zigza? ',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 13.5,
-                                          color: const Color(0xFF64748B),
-                                          fontWeight: FontWeight.w500,
+                          KeyboardHiddenSlot(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 20),
+                              child: Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                    );
+                                  },
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'New to Zigza? ',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 13.5,
+                                            color: const Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
-                                      ),
-                                      TextSpan(
-                                        text: 'Start 7-Day Free Trial →',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 13.5,
-                                          color: const Color(0xFF1D4ED8),
-                                          fontWeight: FontWeight.w700,
+                                        TextSpan(
+                                          text: 'Start 7-Day Free Trial →',
+                                          style: GoogleFonts.publicSans(
+                                            fontSize: 13.5,
+                                            color: const Color(0xFF1D4ED8),
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                           const SizedBox(height: 16),
                         ],
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

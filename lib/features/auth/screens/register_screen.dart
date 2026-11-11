@@ -495,45 +495,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // ----------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    final derivedCompany = RegisterService.deriveCompanyName(_nameController.text);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          // 1. Watermark Background Fixed to Screen Bounds (Identical to LoginScreen)
-          Positioned(
-            top: 0,
-            left: 0,
-            width: screenSize.width,
-            height: screenSize.height,
-            child: RepaintBoundary(
-              child: Opacity(
-                opacity: 0.10,
-                child: Image.asset(
-                  'assets/images/factory_bg_tinted_sketch.jpg',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Main Scrollable Content with Welcome Back Screen Alignment & Font
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: 24.0,
-                right: 24.0,
-                top: isKeyboardOpen ? 6.0 : 16.0,
-                bottom: isKeyboardOpen ? 12.0 : 24.0,
-              ),
-              child: Column(
+    return AuthWatermarkScaffold(
+      scrollController: _scrollController,
+      child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Top Header Row: Back Button on Left & Brand Logo Centered on Same Horizontal Row
@@ -590,11 +554,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 10 : 18),
+                  const SizedBox(height: 18),
 
                   // Stepper Pill & Progress Bar (Matching Welcome Back style)
                   _buildStepperHeader(),
-                  SizedBox(height: isKeyboardOpen ? 12 : 20),
+                  const SizedBox(height: 20),
 
                   // Clean Hero Header
                   Center(
@@ -604,7 +568,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : (_currentStep == 2 ? 'Choose Modules' : 'Trial Activated'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: isKeyboardOpen ? 21 : 24,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0B1220),
                         letterSpacing: -0.5,
@@ -622,14 +586,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               : 'Your enterprise apparel MES account is now active'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.publicSans(
-                        fontSize: isKeyboardOpen ? 12.5 : 13.5,
+                        fontSize: 13.5,
                         color: const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                         height: 1.45,
                       ),
                     ),
                   ),
-                  SizedBox(height: isKeyboardOpen ? 12 : 20),
+                  const SizedBox(height: 20),
 
                   // Error Banner if any
                   if (_errorMsg != null) ...[
@@ -663,19 +627,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                   // Form Content (Matches Welcome Back Input Style exactly)
                   if (_currentStep == 1)
-                    _buildStep1AccountSetup(isKeyboardOpen)
+                    _buildStep1AccountSetup()
                   else if (_currentStep == 2)
-                    _buildStep2ChooseModules(derivedCompany)
+                    _buildStep2ChooseModules()
                   else
                     _buildStep3Activated(),
 
                   const SizedBox(height: 24),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
