@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../../../main.dart';
 import '../services/supervisor_workers_service.dart';
 
@@ -56,14 +56,14 @@ class AppointDepartmentHeadScreen extends ConsumerStatefulWidget {
 
 class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentHeadScreen> {
   // Theme Color Constants (Zigza Brand System)
+  static const Color kBrandPrimary = AppTheme.brandRoyalBlue;
   static const Color kBrandIndigo = AppTheme.headingObsidian;
   static const Color kSheetBg = AppTheme.cardSurface;
   static const Color kTextPrimary = AppTheme.headingObsidian;
-  static const Color kLabelText = AppTheme.faintInk;
+  static const Color kLabelText = AppTheme.mutedInk;
   static const Color kPlaceholderText = AppTheme.faintInk;
   static const Color kInputBorder = AppTheme.borderLight;
-  static const Color kBadgeAmberBg = AppTheme.badgeAmberBg;
-  static const Color kBadgeAmberText = AppTheme.badgeAmberText;
+  static const Color kMintIcon = Color(0xFF0F766E);
 
   final _formKey = GlobalKey<FormState>();
 
@@ -230,19 +230,19 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           'Discard Unsaved Changes?',
-          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary),
+          style: zigzaHeadingStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kTextPrimary),
         ),
         content: Text(
           'You have filled form details that are not saved yet. Are you sure you want to discard them?',
-          style: GoogleFonts.publicSans(fontSize: 13, color: AppTheme.mutedInk, height: 1.4),
+          style: zigzaBodyStyle(fontSize: 13, color: AppTheme.mutedInk, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Keep Editing', style: GoogleFonts.publicSans(fontWeight: FontWeight.w600, color: kBrandIndigo)),
+            child: Text('Keep Editing', style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBrandPrimary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -253,7 +253,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
               elevation: 0,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Discard', style: GoogleFonts.publicSans(fontWeight: FontWeight.bold)),
+            child: Text('Discard', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
           ),
         ],
       ),
@@ -385,10 +385,10 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                     Center(
                       child: Container(
                         margin: const EdgeInsets.only(top: 10, bottom: 4),
-                        width: 40,
+                        width: 42,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDAD9D3),
+                          color: AppTheme.borderLight,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -404,12 +404,12 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFAF7F0),
+                              color: AppTheme.mintSurface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0x14000000)),
+                              border: Border.all(color: AppTheme.badgeMintBorder),
                             ),
                             child: const Center(
-                              child: Icon(Icons.person_add_outlined, color: kBrandIndigo, size: 20),
+                              child: Icon(Icons.person_add_outlined, color: kMintIcon, size: 20),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -421,43 +421,55 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                       decoration: BoxDecoration(
-                                        color: kBadgeAmberBg,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0x338A6D2F)),
+                                        color: const Color(0xFFEFF6FF),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: const Color(0xFFBFDBFE)),
                                       ),
                                       child: Text(
-                                        isEditing ? 'EDIT HEAD' : 'Appoint head',
-                                        style: GoogleFonts.jetBrainsMono(
+                                        isEditing ? 'EDIT HEAD' : 'APPOINT HEAD',
+                                        style: zigzaBodyStyle(
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w800,
-                                          color: kBadgeAmberText,
+                                          color: kBrandPrimary,
+                                          letterSpacing: 0.5,
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
-                                        '- ${widget.companyName}',
-                                        style: GoogleFonts.publicSans(
-                                          fontSize: 11,
+                                        widget.companyName,
+                                        style: zigzaBodyStyle(
+                                          fontSize: 11.5,
                                           fontWeight: FontWeight.w600,
-                                          color: kLabelText,
+                                          color: AppTheme.mutedInk,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isEditing ? 'Edit department head' : 'Appoint department head',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: kTextPrimary,
-                                    letterSpacing: -0.3,
+                                const SizedBox(height: 3),
+                                RichText(
+                                  text: TextSpan(
+                                    style: zigzaHeadingStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: kTextPrimary,
+                                    ),
+                                    children: [
+                                      TextSpan(text: isEditing ? 'Edit ' : 'Appoint '),
+                                      TextSpan(
+                                        text: 'Department Head',
+                                        style: zigzaHeadingStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          color: kBrandPrimary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -475,7 +487,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                         ],
                       ),
                     ),
-                    const Divider(color: Color(0x14000000), height: 1),
+                    const Divider(color: AppTheme.borderLight, height: 1),
 
                     // Form Body
                     Expanded(
@@ -492,7 +504,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                               TextFormField(
                                 controller: _nameCtrl,
                                 onChanged: _onNameChanged,
-                                style: GoogleFonts.publicSans(
+                                style: zigzaBodyStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
                                   color: kTextPrimary,
@@ -513,9 +525,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                   setState(() {});
                                   _checkUsernameAvailability(val);
                                 },
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                                style: zigzaBodyStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
                                   color: kTextPrimary,
                                 ),
                                 decoration: _buildInputDecoration(
@@ -532,7 +544,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                               TextFormField(
                                 controller: _designationCtrl,
                                 onChanged: (_) => setState(() {}),
-                                style: GoogleFonts.publicSans(
+                                style: zigzaBodyStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w600,
                                   color: kTextPrimary,
@@ -553,9 +565,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                   // Dedicated Country Code Box
                                   Container(
                                     height: 46,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 11),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFAFAF8),
+                                      color: AppTheme.bgCanvas,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: kInputBorder),
                                     ),
@@ -570,9 +582,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                         const SizedBox(width: 5),
                                         Text(
                                           '+91',
-                                          style: GoogleFonts.jetBrainsMono(
+                                          style: zigzaHeadingStyle(
                                             fontSize: 13,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w700,
                                             color: kTextPrimary,
                                           ),
                                         ),
@@ -589,9 +601,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                         FilteringTextInputFormatter.digitsOnly,
                                         LengthLimitingTextInputFormatter(10),
                                       ],
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
                                         color: kTextPrimary,
                                       ),
                                       decoration: _buildInputDecoration(
@@ -619,15 +631,14 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.auto_awesome_rounded, size: 13, color: kBrandIndigo),
+                                          const Icon(Icons.auto_awesome_rounded, size: 13, color: kBrandPrimary),
                                           const SizedBox(width: 4),
                                           Text(
                                             'Auto-generate strong',
-                                            style: GoogleFonts.publicSans(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: kBrandIndigo,
-                                              decoration: TextDecoration.underline,
+                                            style: zigzaBodyStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: kBrandPrimary,
                                             ),
                                           ),
                                         ],
@@ -641,9 +652,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                 controller: _passwordCtrl,
                                 obscureText: _obscurePassword,
                                 onChanged: (_) => setState(() {}),
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                                style: zigzaBodyStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
                                   color: kTextPrimary,
                                 ),
                                 decoration: _buildInputDecoration(
@@ -683,9 +694,9 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         child: Text(
                                           'Clear',
-                                          style: GoogleFonts.publicSans(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
+                                          style: zigzaBodyStyle(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
                                             color: AppTheme.mutedInk,
                                           ),
                                         ),
@@ -697,7 +708,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                               const SizedBox(height: 4),
                               Text(
                                 'Select the manufacturing unit this department head will lead (1 Unit per Head):',
-                                style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.mutedInk),
+                                style: zigzaBodyStyle(fontSize: 12, color: AppTheme.mutedInk),
                               ),
                               const SizedBox(height: 8),
 
@@ -705,16 +716,16 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFAFAF8),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0x14000000)),
+                                  color: AppTheme.bgCanvas,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: kInputBorder),
                                 ),
                                 child: available.isEmpty
                                     ? Padding(
                                         padding: const EdgeInsets.all(16.0),
                                         child: Text(
                                           'No authorized operating units found for this tenant.',
-                                          style: GoogleFonts.publicSans(fontSize: 12.5, color: AppTheme.mutedInk),
+                                          style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.mutedInk),
                                         ),
                                       )
                                     : Column(
@@ -728,10 +739,10 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                               margin: const EdgeInsets.only(bottom: 6),
                                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                               decoration: BoxDecoration(
-                                                color: isChecked ? const Color(0xFFF9F9FB) : Colors.white,
+                                                color: isChecked ? AppTheme.mintSurface : Colors.white,
                                                 borderRadius: BorderRadius.circular(12),
                                                 border: Border.all(
-                                                  color: isChecked ? kBrandIndigo : kInputBorder,
+                                                  color: isChecked ? kBrandPrimary : kInputBorder,
                                                   width: isChecked ? 1.5 : 1.0,
                                                 ),
                                                 boxShadow: isChecked
@@ -748,7 +759,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                                     decoration: BoxDecoration(
                                                       shape: BoxShape.circle,
                                                       border: Border.all(
-                                                        color: isChecked ? kBrandIndigo : const Color(0xFFCBD5E1),
+                                                        color: isChecked ? kBrandPrimary : const Color(0xFFCBD5E1),
                                                         width: isChecked ? 6.0 : 1.8,
                                                       ),
                                                       color: Colors.white,
@@ -761,11 +772,11 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                                     width: 32,
                                                     height: 32,
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFFAF7F0),
+                                                      color: isChecked ? Colors.white : AppTheme.mintSurface,
                                                       borderRadius: BorderRadius.circular(8),
-                                                      border: Border.all(color: const Color(0x14000000)),
+                                                      border: Border.all(color: AppTheme.badgeMintBorder),
                                                     ),
-                                                    child: Icon(div.icon, size: 16, color: kBrandIndigo),
+                                                    child: Icon(div.icon, size: 16, color: kMintIcon),
                                                   ),
                                                   const SizedBox(width: 10),
 
@@ -777,18 +788,17 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                                       children: [
                                                         Text(
                                                           '${div.code}. ${div.name}',
-                                                          style: GoogleFonts.publicSans(
+                                                          style: zigzaHeadingStyle(
                                                             fontSize: 12.5,
-                                                            fontWeight: isChecked ? FontWeight.bold : FontWeight.w600,
+                                                            fontWeight: isChecked ? FontWeight.w800 : FontWeight.w700,
                                                             color: kTextPrimary,
-                                                            height: 1.25,
                                                           ),
                                                         ),
                                                         const SizedBox(height: 2),
                                                         Text(
                                                           div.route,
-                                                          style: GoogleFonts.jetBrainsMono(
-                                                            fontSize: 10,
+                                                          style: zigzaBodyStyle(
+                                                            fontSize: 10.5,
                                                             color: kPlaceholderText,
                                                           ),
                                                         ),
@@ -820,7 +830,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                       Expanded(
                                         child: Text(
                                           _generalError!,
-                                          style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF9F1239), fontWeight: FontWeight.w600),
+                                          style: zigzaBodyStyle(fontSize: 12, color: const Color(0xFF9F1239), fontWeight: FontWeight.w600),
                                         ),
                                       ),
                                     ],
@@ -839,7 +849,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       decoration: const BoxDecoration(
                         color: Colors.white,
-                        border: Border(top: BorderSide(color: Color(0x14000000))),
+                        border: Border(top: BorderSide(color: AppTheme.borderLight)),
                       ),
                       child: Row(
                         children: [
@@ -852,7 +862,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                             },
                             child: Text(
                               'Cancel',
-                              style: GoogleFonts.publicSans(
+                              style: zigzaBodyStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.mutedInk,
@@ -862,12 +872,12 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                           const Spacer(),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: kBrandIndigo,
-                              disabledBackgroundColor: kBrandIndigo.withValues(alpha: 0.35),
+                              backgroundColor: kBrandPrimary,
+                              disabledBackgroundColor: kBrandPrimary.withValues(alpha: 0.35),
                               foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 44),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              minimumSize: const Size(0, 46),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                               elevation: 0,
                             ),
                             onPressed: (_isFormValid && !_isSaving) ? _handleConfirmSubmit : null,
@@ -878,10 +888,11 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                   )
                                 : Text(
-                                    isEditing ? 'Save Head Changes' : 'Confirm & appoint head',
-                                    style: GoogleFonts.publicSans(
+                                    isEditing ? 'Save Head Changes' : 'Appoint Department Head',
+                                    style: zigzaHeadingStyle(
                                       fontSize: 13.5,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
                           ),
@@ -901,11 +912,11 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
   Widget _buildFieldLabel(String label) {
     return Text(
       label,
-      style: GoogleFonts.jetBrainsMono(
-        fontSize: 10.5,
-        fontWeight: FontWeight.w800,
+      style: zigzaBodyStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
         color: kLabelText,
-        letterSpacing: 0.8,
+        letterSpacing: 0.6,
       ),
       overflow: TextOverflow.ellipsis,
     );
@@ -921,15 +932,15 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: GoogleFonts.publicSans(fontSize: 13, color: kPlaceholderText),
+      hintStyle: zigzaBodyStyle(fontSize: 13, color: kPlaceholderText),
       errorText: errorText,
-      errorStyle: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFFBE123C)),
+      errorStyle: zigzaBodyStyle(fontSize: 11, color: const Color(0xFFBE123C)),
       prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 18, color: const Color(0xFF94A3B8)) : null,
       prefixText: prefixText,
       prefixStyle: prefixStyle,
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppTheme.bgCanvas,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
@@ -942,7 +953,7 @@ class _AppointDepartmentHeadScreenState extends ConsumerState<AppointDepartmentH
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: kBrandIndigo, width: 1.5),
+        borderSide: const BorderSide(color: kBrandPrimary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
