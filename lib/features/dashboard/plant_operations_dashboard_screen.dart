@@ -1263,14 +1263,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           const SizedBox(height: 14),
 
           // 8-Step Grid (2 columns x 4 rows)
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          _buildTwoColumnGrid(
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
             childAspectRatio: 2.2,
-            children: [
+            items: [
               _buildStepTile('1. Tech-Pack', 'READY', 'CAD & Specs', false),
               _buildStepTile('2. Buyer PO', _format(selectedArticle.buyerPoTarget), 'Target pieces', false),
               _buildStepTile('3. Raw Fabric', '${_format(selectedArticle.fabricMetersInStore)} m', 'In Godown', false),
@@ -1955,216 +1952,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           const SizedBox(height: 12),
 
           // 2. 24x7 HOURLY LOGIN MATRIX CARD
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: SizedBox(
-                    width: 330,
-                    child: Column(
-                      children: [
-                        // Days Header Row
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 54,
-                              child: Text(
-                                'TIME',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ),
-                            ...days.map((d) {
-                              return Expanded(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      d.dayName.toUpperCase(),
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 8.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: d.isToday ? const Color(0xFFE0F2FE) : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: d.isToday ? Border.all(color: const Color(0xFFBAE6FD)) : null,
-                                      ),
-                                      child: Text(
-                                        d.formattedDate,
-                                        style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: d.isToday ? const Color(0xFF0369A1) : const Color(0xFF334155),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-                        const SizedBox(height: 6),
-
-                        // 24 Hourly Rows
-                        ...List.generate(24, (hourIdx) {
-                          final hourLabel = (days.isNotEmpty && days.first.hourlySlots.length > hourIdx)
-                              ? days.first.hourlySlots[hourIdx].label
-                              : '${hourIdx.toString().padLeft(2, '0')}:00';
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2.0),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 54,
-                                  child: Text(
-                                    hourLabel,
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 8.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ),
-                                ...days.map((day) {
-                                  final slot = (day.hourlySlots.length > hourIdx)
-                                      ? day.hourlySlots[hourIdx]
-                                      : LoginHourSlot(hour: hourIdx, label: hourLabel, count: 0, isActive: false);
-
-                                  final isSelected = _selectedHeatmapInfo == '${day.fullDateLabel} (${slot.label})';
-
-                                  return Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                                      child: InkWell(
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedHeatmapInfo = '${day.fullDateLabel} (${slot.label})';
-                                            _selectedHeatmapIsActive = slot.isActive;
-                                            _selectedHeatmapLogins = slot.count;
-                                          });
-                                        },
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(milliseconds: 150),
-                                          height: 15,
-                                          decoration: BoxDecoration(
-                                            color: slot.isActive
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFFE2E8F0),
-                                            borderRadius: BorderRadius.circular(3.5),
-                                            border: isSelected
-                                                ? Border.all(color: const Color(0xFF0B1220), width: 1.5)
-                                                : (slot.isActive ? null : Border.all(color: const Color(0xFFCBD5E1), width: 0.5)),
-                                            boxShadow: slot.isActive
-                                                ? const [
-                                                    BoxShadow(
-                                                      color: Color(0x1F10B981),
-                                                      blurRadius: 3,
-                                                      offset: Offset(0, 1),
-                                                    )
-                                                  ]
-                                                : null,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Tooltip / Inspection Bar
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: _selectedHeatmapInfo != null
-                      ? Row(
-                          children: [
-                            Icon(
-                              _selectedHeatmapIsActive ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-                              size: 14,
-                              color: _selectedHeatmapIsActive ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: '$_selectedHeatmapInfo: ',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0B1220),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: _selectedHeatmapIsActive
-                                          ? 'Active ($_selectedHeatmapLogins ${_selectedHeatmapLogins == 1 ? "login" : "logins"})'
-                                          : 'No login during this hour',
-                                      style: GoogleFonts.publicSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: _selectedHeatmapIsActive ? const Color(0xFF059669) : const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            const Icon(Icons.touch_app_outlined, size: 14, color: Color(0xFF94A3B8)),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Tap any hour slot to check login details.',
-                              style: GoogleFonts.publicSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ],
-            ),
-          ),
+          _PortalUsageHeatmapCard(days: days),
 
           const SizedBox(height: 14),
 
@@ -2336,18 +2124,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           ],
         ),
         const SizedBox(height: 12),
-        GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: heartbeats.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.9,
-          ),
-          itemBuilder: (context, idx) {
-            final div = heartbeats[idx];
+        _buildTwoColumnGrid(
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.9,
+          items: heartbeats.map((div) {
             final isActive = div.status == 'ACTIVE';
 
             return InkWell(
@@ -2404,7 +2185,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 ),
               ),
             );
-          },
+          }).toList(),
         ),
       ],
     );
@@ -2462,5 +2243,342 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         target = const EnterpriseWorkspaceHubScreen();
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => target));
+  }
+}
+
+class _PortalUsageHeatmapCard extends StatefulWidget {
+  final List<LoginDayActivity> days;
+
+  const _PortalUsageHeatmapCard({required this.days});
+
+  @override
+  State<_PortalUsageHeatmapCard> createState() => _PortalUsageHeatmapCardState();
+}
+
+class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
+    with AutomaticKeepAliveClientMixin {
+  static const double _rowHeight = 19.0;
+  static const int _hoursPerDay = 24;
+  static const double _timeColumnWidth = 42.0;
+
+  int? _selectedDayIdx;
+  int? _selectedHourIdx;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void didUpdateWidget(covariant _PortalUsageHeatmapCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedDayIdx != null && _selectedDayIdx! >= widget.days.length) {
+      _selectedDayIdx = null;
+      _selectedHourIdx = null;
+    }
+  }
+
+  String _hourLabel(int hourIdx) {
+    if (widget.days.isNotEmpty && widget.days.first.hourlySlots.length > hourIdx) {
+      return widget.days.first.hourlySlots[hourIdx].label;
+    }
+    return '${hourIdx.toString().padLeft(2, '0')}:00';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final days = widget.days;
+
+    String? selectedInfo;
+    bool selectedIsActive = false;
+    int selectedLogins = 0;
+
+    if (_selectedDayIdx != null &&
+        _selectedHourIdx != null &&
+        _selectedDayIdx! >= 0 &&
+        _selectedDayIdx! < days.length) {
+      final day = days[_selectedDayIdx!];
+      final hourIdx = _selectedHourIdx!;
+      final slot = day.hourlySlots.length > hourIdx
+          ? day.hourlySlots[hourIdx]
+          : LoginHourSlot(hour: hourIdx, label: _hourLabel(hourIdx), count: 0, isActive: false);
+      selectedInfo = '${day.fullDateLabel} (${slot.label})';
+      selectedIsActive = slot.isActive;
+      selectedLogins = slot.count;
+    }
+
+    Widget buildMatrix() {
+      return Column(
+        children: [
+          // Days Header Row
+          Row(
+            children: [
+              SizedBox(
+                width: _timeColumnWidth,
+                child: Text(
+                  'TIME',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ),
+              ...days.map((d) {
+                return Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        d.dayName.toUpperCase(),
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: d.isToday ? const Color(0xFFE0F2FE) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                          border: d.isToday ? Border.all(color: const Color(0xFFBAE6FD)) : null,
+                        ),
+                        child: Text(
+                          d.formattedDate,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: d.isToday ? const Color(0xFF0369A1) : const Color(0xFF334155),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 6),
+
+          // Single CustomPaint grid replacing 168 InkWell + AnimatedContainer widgets
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: _timeColumnWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(_hoursPerDay, (hourIdx) {
+                    return SizedBox(
+                      height: _rowHeight,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _hourLabel(hourIdx),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, gridConstraints) {
+                    final gridWidth = gridConstraints.maxWidth;
+                    const gridHeight = _hoursPerDay * _rowHeight;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (details) {
+                        if (days.isEmpty || gridWidth <= 0) return;
+                        final colWidth = gridWidth / days.length;
+                        final col = (details.localPosition.dx / colWidth).floor().clamp(0, days.length - 1);
+                        final row = (details.localPosition.dy / _rowHeight).floor().clamp(0, _hoursPerDay - 1);
+                        setState(() {
+                          _selectedDayIdx = col;
+                          _selectedHourIdx = row;
+                        });
+                      },
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          size: Size(gridWidth, gridHeight),
+                          isComplex: true,
+                          willChange: false,
+                          painter: _HeatmapGridPainter(
+                            days: days,
+                            rowHeight: _rowHeight,
+                            selectedDayIdx: _selectedDayIdx,
+                            selectedHourIdx: _selectedHourIdx,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const minMatrixWidth = 268.0;
+              if (constraints.maxWidth >= minMatrixWidth) {
+                return buildMatrix();
+              }
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: SizedBox(width: minMatrixWidth, child: buildMatrix()),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: selectedInfo != null
+                ? Row(
+                    children: [
+                      Icon(
+                        selectedIsActive ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                        size: 14,
+                        color: selectedIsActive ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$selectedInfo: ',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0B1220),
+                                ),
+                              ),
+                              TextSpan(
+                                text: selectedIsActive
+                                    ? 'Active ($selectedLogins ${selectedLogins == 1 ? "login" : "logins"})'
+                                    : 'No login during this hour',
+                                style: GoogleFonts.publicSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: selectedIsActive ? const Color(0xFF059669) : const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      const Icon(Icons.touch_app_outlined, size: 14, color: Color(0xFF94A3B8)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tap any hour slot to check login details.',
+                        style: GoogleFonts.publicSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeatmapGridPainter extends CustomPainter {
+  final List<LoginDayActivity> days;
+  final double rowHeight;
+  final int? selectedDayIdx;
+  final int? selectedHourIdx;
+
+  static final Paint _activeFill = Paint()..color = const Color(0xFF10B981);
+  static final Paint _inactiveFill = Paint()..color = const Color(0xFFE2E8F0);
+  static final Paint _inactiveStroke = Paint()
+    ..color = const Color(0xFFCBD5E1)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.5;
+  static final Paint _selectedStroke = Paint()
+    ..color = const Color(0xFF0B1220)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+
+  const _HeatmapGridPainter({
+    required this.days,
+    required this.rowHeight,
+    required this.selectedDayIdx,
+    required this.selectedHourIdx,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (days.isEmpty || size.width <= 0) return;
+
+    final colWidth = size.width / days.length;
+    const radius = Radius.circular(3.5);
+    const cellHeight = 15.0;
+    final verticalInset = (rowHeight - cellHeight) / 2;
+
+    for (int col = 0; col < days.length; col++) {
+      final day = days[col];
+      final left = col * colWidth + 2.0;
+      final width = math.max(1.0, colWidth - 4.0);
+
+      for (int row = 0; row < 24; row++) {
+        final isActive = row < day.hourlySlots.length && day.hourlySlots[row].isActive;
+        final isSelected = col == selectedDayIdx && row == selectedHourIdx;
+        final top = row * rowHeight + verticalInset;
+        final rrect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, width, cellHeight),
+          radius,
+        );
+
+        canvas.drawRRect(rrect, isActive ? _activeFill : _inactiveFill);
+        if (isSelected) {
+          canvas.drawRRect(rrect.deflate(0.75), _selectedStroke);
+        } else if (!isActive) {
+          canvas.drawRRect(rrect.deflate(0.25), _inactiveStroke);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeatmapGridPainter oldDelegate) {
+    return oldDelegate.days != days ||
+        oldDelegate.selectedDayIdx != selectedDayIdx ||
+        oldDelegate.selectedHourIdx != selectedHourIdx ||
+        oldDelegate.rowHeight != rowHeight;
   }
 }

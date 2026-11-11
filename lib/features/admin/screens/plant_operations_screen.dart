@@ -264,7 +264,7 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
     String companyName,
   ) {
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1610,9 +1610,13 @@ class _PlantOperationsScreenState extends ConsumerState<PlantOperationsScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  CustomPaint(
-                    size: const Size(140, 140),
-                    painter: DonutChartPainter(segments: segs),
+                  RepaintBoundary(
+                    child: CustomPaint(
+                      size: const Size(140, 140),
+                      isComplex: true,
+                      willChange: false,
+                      painter: DonutChartPainter(segments: segs),
+                    ),
                   ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -2382,5 +2386,6 @@ class DonutChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant DonutChartPainter oldDelegate) =>
+      oldDelegate.segments != segments;
 }

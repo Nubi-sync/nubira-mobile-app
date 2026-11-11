@@ -242,6 +242,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -368,7 +369,7 @@ class _EnterpriseWorkspaceHubScreenState extends ConsumerState<EnterpriseWorkspa
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      const _PulsingGreenDot(),
+                      const RepaintBoundary(child: _PulsingGreenDot()),
                       const SizedBox(width: 7),
                       Text(
                         _searchQuery.isNotEmpty
