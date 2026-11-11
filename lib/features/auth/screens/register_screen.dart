@@ -28,9 +28,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  late final Listenable _passwordPairListenable =
+      Listenable.merge([_passwordController, _confirmPasswordController]);
 
   // Focus nodes
   final _emailFocusNode = FocusNode();
+
+  void _resetScroll() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
 
   // Obscure toggles
   bool _showPassword = false;
@@ -438,6 +446,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _currentStep = 2;
       _errorMsg = null;
     });
+    _resetScroll();
   }
 
   // ----------------------------------------------------------------------
@@ -476,6 +485,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _trialExpiresAt = res.expiresAt ?? '';
         _currentStep = 3;
       });
+      _resetScroll();
 
       // Auto-authenticate into local Riverpod auth session
       ref.read(authProvider.notifier).login(
@@ -1300,15 +1310,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 color: const Color(0xFF334155),
               ),
             ),
-            if (password.isNotEmpty)
-              Text(
-                strengthText,
-                style: GoogleFonts.publicSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: strengthColor,
-                ),
-              ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _passwordController,
+              builder: (context, value, _) {
+                final password = value.text;
+                if (password.isEmpty) return const SizedBox.shrink();
+                final (strengthColor, strengthText) =
+                    _strengthStyle(_calculateStrengthScore(password));
+                return Text(
+                  strengthText,
+                  style: GoogleFonts.publicSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: strengthColor,
+                  ),
+                );
+              },
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -1358,43 +1376,55 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               filled: false,
               contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            onChanged: (_) => setState(() {}),
           ),
         ),
 
         // 4-Segment Strength Meter
-        if (password.isNotEmpty) ...[
-          const SizedBox(height: 5),
-          Row(
-            children: List.generate(4, (idx) {
-              final active = strengthScore >= (idx + 1);
-              return Expanded(
-                child: Container(
-                  height: 3,
-                  margin: EdgeInsets.only(right: idx < 3 ? 4 : 0),
-                  decoration: BoxDecoration(
-                    color: active ? strengthColor : const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _passwordController,
+          builder: (context, value, _) {
+            final password = value.text;
+            if (password.isEmpty) return const SizedBox.shrink();
+            final strengthScore = _calculateStrengthScore(password);
+            final (strengthColor, _) = _strengthStyle(strengthScore);
+            final recommendationTip = _get5WordRecommendation(password);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 5),
+                Row(
+                  children: List.generate(4, (idx) {
+                    final active = strengthScore >= (idx + 1);
+                    return Expanded(
+                      child: Container(
+                        height: 3,
+                        margin: EdgeInsets.only(right: idx < 3 ? 4 : 0),
+                        decoration: BoxDecoration(
+                          color: active ? strengthColor : const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    );
+                  }),
                 ),
-              );
-            }),
-          ),
-          const SizedBox(height: 3),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                recommendationTip,
-                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
-              ),
-              Text(
-                '${password.length} chars (min 6)',
-                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF94A3B8)),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      recommendationTip,
+                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                    ),
+                    Text(
+                      '${password.length} chars (min 6)',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 10, color: const Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
         const SizedBox(height: 14),
 
         // 5. CONFIRM PASSWORD
@@ -1409,37 +1439,54 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 color: const Color(0xFF334155),
               ),
             ),
-            if (confirmPassword.isNotEmpty)
-              Text(
-                passwordsMatch ? '✓ Match' : '✗ No match',
-                style: GoogleFonts.publicSans(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: passwordsMatch ? const Color(0xFF059669) : const Color(0xFFE11D48),
-                ),
-              ),
+            ListenableBuilder(
+              listenable: _passwordPairListenable,
+              builder: (context, _) {
+                final password = _passwordController.text;
+                final confirmPassword = _confirmPasswordController.text;
+                if (confirmPassword.isEmpty) return const SizedBox.shrink();
+                final passwordsMatch = password == confirmPassword;
+                return Text(
+                  passwordsMatch ? '✓ Match' : '✗ No match',
+                  style: GoogleFonts.publicSans(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: passwordsMatch ? const Color(0xFF059669) : const Color(0xFFE11D48),
+                  ),
+                );
+              },
+            ),
           ],
         ),
         const SizedBox(height: 6),
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: confirmPassword.isNotEmpty
-                  ? (passwordsMatch ? const Color(0xFF10B981) : const Color(0xFFE11D48))
-                  : const Color(0xFFCBD5E1),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
+        ListenableBuilder(
+          listenable: _passwordPairListenable,
+          builder: (context, child) {
+            final confirmPassword = _confirmPasswordController.text;
+            final passwordsMatch =
+                confirmPassword.isNotEmpty && _passwordController.text == confirmPassword;
+            return Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: confirmPassword.isNotEmpty
+                      ? (passwordsMatch ? const Color(0xFF10B981) : const Color(0xFFE11D48))
+                      : const Color(0xFFCBD5E1),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-            ],
-          ),
+              child: child,
+            );
+          },
           child: TextField(
             controller: _confirmPasswordController,
             obscureText: !_showConfirmPassword,
@@ -1469,10 +1516,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               filled: false,
               contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
-            onChanged: (_) => setState(() {}),
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 14 : 22),
+        const SizedBox(height: 22),
 
         // Primary Button: Next: Choose Modules
         Container(
@@ -1553,7 +1599,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // ----------------------------------------------------------------------
   // STEP 2: CHOOSE MODULES (Matches Welcome Back Theme)
   // ----------------------------------------------------------------------
-  Widget _buildStep2ChooseModules(String derivedCompany) {
+  Widget _buildStep2ChooseModules() {
+    final derivedCompany = RegisterService.deriveCompanyName(_nameController.text);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1727,7 +1774,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             SizedBox(
               height: 52,
               child: OutlinedButton(
-                onPressed: _isSubmitting ? null : () => setState(() => _currentStep = 1),
+                onPressed: _isSubmitting
+                    ? null
+                    : () {
+                        setState(() => _currentStep = 1);
+                        _resetScroll();
+                      },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

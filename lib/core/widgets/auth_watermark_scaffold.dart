@@ -238,7 +238,7 @@ class _KeyboardBottomSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return SliverToBoxAdapter(
-      child: SizedBox(height: bottomInset > 0 ? bottomInset + 24.0 : 0.0),
+      child: SizedBox(height: bottomInset),
     );
   }
 }
