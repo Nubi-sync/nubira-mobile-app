@@ -14,12 +14,14 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
   final Widget? trailing;
   final bool showMenu;
+  final VoidCallback? onAppointHead;
 
   const ZigzaAppBar({
     super.key,
     this.onMenuPressed,
     this.trailing,
     this.showMenu = true,
+    this.onAppointHead,
   });
 
   @override
@@ -106,10 +108,14 @@ class ZigzaAppBar extends StatelessWidget implements PreferredSizeWidget {
           onSelected: (value) {
             switch (value) {
               case 'appoint_head':
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => DepartmentHeadsScreen()),
-                );
+                if (onAppointHead != null) {
+                  onAppointHead!();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => DepartmentHeadsScreen()),
+                  );
+                }
                 break;
               case 'design_approvals':
                 Navigator.push(

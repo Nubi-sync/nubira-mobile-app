@@ -2,15 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/zigza_brand_logo.dart';
-import '../../../core/widgets/live_date_time_header.dart';
+import '../../../core/widgets/zigza_app_bar.dart';
 import '../widgets/workspace_hub_drawer.dart';
-import 'enterprise_workspace_hub_screen.dart';
-import 'company_profile_screen.dart';
 import 'appoint_department_head_screen.dart';
-import '../../cutting/screens/cutting_notifications_screen.dart';
-import '../../cutting/screens/cutting_lay_floor_screen.dart';
-import '../../design/screens/sa_design_approvals_screen.dart';
 import '../services/supervisor_workers_service.dart';
 
 class DepartmentHeadsScreen extends ConsumerStatefulWidget {
@@ -22,7 +16,6 @@ class DepartmentHeadsScreen extends ConsumerStatefulWidget {
 
 class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey _createButtonKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
@@ -71,184 +64,18 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
     return '+91 $clean';
   }
 
-  void _showQuickActionsMenu(BuildContext context) {
-    final RenderBox? renderBox = _createButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    final size = renderBox?.size ?? const Size(54, 34);
-    final offset = renderBox?.localToGlobal(Offset.zero) ?? const Offset(200, 50);
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx - 170,
-        offset.dy + size.height + 8,
-        MediaQuery.of(context).size.width - offset.dx - size.width,
-        0,
-      ),
-      color: Colors.white,
-      elevation: 10,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
-      ),
-      items: <PopupMenuEntry<String>>[
-        PopupMenuItem<String>(
-          enabled: false,
-          height: 28,
-          child: Text(
-            'QUICK ACTIONS',
-            style: GoogleFonts.publicSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF94A3B8),
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'appoint_head',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              if (context.mounted) {
-                final state = ref.read(supervisorWorkersProvider);
-                final result = await AppointDepartmentHeadScreen.show(
-                  context,
-                  companyName: state.companyName,
-                  allowedDivisions: state.divisions.map((d) => d.route).toList(),
-                );
-                if (result == true) {
-                  ref.read(supervisorWorkersProvider.notifier).fetchData();
-                  _showToast('Department Head appointed successfully');
-                }
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.people_outline_rounded, color: Color(0xFF10B981), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Appoint Department Head',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'review_approvals',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SADesignApprovalsScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.auto_awesome_outlined, color: Color(0xFF1D4ED8), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Review Design Approvals',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'cutting_floor',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CuttingLayFloorScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.content_cut_rounded, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Open Cutting Floor',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'sewing_dashboard',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.layers_outlined, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Open Sewing Dashboard',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'company_profile',
-          onTap: () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
-                );
-              }
-            });
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.business_outlined, color: Color(0xFF64748B), size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Company Profile & Units',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0B1220),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  Future<void> _openAppointHeadSheet() async {
+    final state = ref.read(supervisorWorkersProvider);
+    final result = await AppointDepartmentHeadScreen.show(
+      context,
+      companyName: state.companyName,
+      allowedDivisions: state.divisions.map((d) => d.route).toList(),
     );
+    if (!mounted) return;
+    if (result == true) {
+      ref.read(supervisorWorkersProvider.notifier).fetchData();
+      _showToast('Department Head appointed successfully');
+    }
   }
 
   void _showResetPasswordDialog(String name, String phone) {
@@ -477,7 +304,10 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: const WorkspaceHubDrawer(activeRoute: '/access-control'),
-      appBar: _buildTopBar(context),
+      appBar: ZigzaAppBar(
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        onAppointHead: _openAppointHeadSheet,
+      ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.headingObsidian))
           : RefreshIndicator(
@@ -503,122 +333,6 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  PreferredSizeWidget _buildTopBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0.5,
-      titleSpacing: 0,
-      shape: const Border(
-        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.8),
-      ),
-      leading: Center(
-        child: InkWell(
-          onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: const Icon(Icons.menu_rounded, color: Color(0xFF0B1220), size: 20),
-          ),
-        ),
-      ),
-      title: const LiveDateTimeHeader(),
-      actions: [
-        // Royal Blue + v Quick Action Button
-        Center(
-          child: InkWell(
-            key: _createButtonKey,
-            onTap: () => _showQuickActionsMenu(context),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1D4ED8),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 3),
-                  Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Mint Tint Notification Bell
-        Center(
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => CuttingNotificationsScreen()),
-              );
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
-              ),
-              child: const Center(
-                child: Icon(Icons.notifications_none_rounded, color: Color(0xFF0B1220), size: 19),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Mint Tint Profile Avatar
-        Center(
-          child: Container(
-            margin: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CompanyProfileScreen()),
-                );
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.35)),
-                ),
-                child: const Center(
-                  child: Icon(Icons.person_outline_rounded, color: Color(0xFF0B1220), size: 19),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
