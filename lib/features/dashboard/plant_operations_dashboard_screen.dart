@@ -282,6 +282,131 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    required String accent,
+    String? badge,
+    Widget? trailing,
+    bool withDivider = true,
+  }) {
+    return Container(
+      padding: EdgeInsets.only(bottom: withDivider ? 12 : 0),
+      decoration: withDivider
+          ? const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+            )
+          : null,
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x1A000000)),
+            ),
+            child: Center(
+              child: Icon(icon, color: const Color(0xFF0B1220), size: 17),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 7,
+              runSpacing: 4,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '$title ',
+                        style: _dashHeadingStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                      TextSpan(
+                        text: accent,
+                        style: _dashHeadingStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1D4ED8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (badge != null && badge.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDFA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0x1A000000)),
+                    ),
+                    child: Text(
+                      badge.toUpperCase(),
+                      style: _dashBodyStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0B1220),
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationRow({
+    required int currentPage,
+    required int totalPages,
+    required VoidCallback onPrev,
+    required VoidCallback onNext,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            minimumSize: const Size(60, 30),
+            backgroundColor: Colors.white,
+          ),
+          onPressed: currentPage > 1 ? onPrev : null,
+          icon: const Icon(Icons.chevron_left, size: 16),
+          label: Text('Prev', style: _dashBodyStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
+        ),
+        Text(
+          'Page $currentPage of $totalPages',
+          style: _dashBodyStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            minimumSize: const Size(60, 30),
+            backgroundColor: Colors.white,
+          ),
+          onPressed: currentPage < totalPages ? onNext : null,
+          icon: const Icon(Icons.chevron_right, size: 16),
+          label: Text('Next', style: _dashBodyStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
+        ),
+      ],
+    );
+  }
+
   // 1. Header Card with Article Dropdown
   Widget _buildHeaderCard(BuildContext context, PlantOperationsDashboardData data) {
     return Container(
@@ -302,18 +427,18 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDFA),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
                 child: const Center(
-                  child: Icon(Icons.dashboard_outlined, color: Color(0xFF0B1220), size: 22),
+                  child: Icon(Icons.dashboard_outlined, color: Color(0xFF0B1220), size: 21),
                 ),
               ),
               const SizedBox(width: 12),
@@ -326,15 +451,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                         children: [
                           TextSpan(
                             text: 'Plant ',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0B1220),
-                            ),
+                            style: _dashHeadingStyle(fontSize: 18, fontWeight: FontWeight.w800),
                           ),
                           TextSpan(
-                            text: 'Operations Dashboard',
-                            style: GoogleFonts.plusJakartaSans(
+                            text: 'Operations',
+                            style: _dashHeadingStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF1D4ED8),
@@ -352,11 +473,12 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                         border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
                       ),
                       child: Text(
-                        data.companyName,
-                        style: GoogleFonts.jetBrainsMono(
+                        data.companyName.toUpperCase(),
+                        style: _dashBodyStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF0B1220),
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ),
@@ -365,18 +487,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Real-time throughput, floor stage reconciliation, and per-article solo lifecycle analytics.',
-            style: GoogleFonts.publicSans(
-              fontSize: 12,
-              color: const Color(0xFF64748B),
-              height: 1.4,
-            ),
-          ),
           const SizedBox(height: 14),
 
-          // Article Filter Dropdown (matching Web Mobile)
+          // Article Filter Dropdown
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
             decoration: BoxDecoration(
@@ -398,12 +511,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                         DropdownMenuItem<String>(
                           value: 'ALL',
                           child: Text(
-                            'All Articles (Aggregated)',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0B1220),
-                            ),
+                            'All Articles',
+                            style: _dashHeadingStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                           ),
                         ),
                         ...data.articlesCatalog.map((art) {
@@ -411,11 +520,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                             value: art.id,
                             child: Text(
                               '${art.artNo} — ${art.category} (${_format(art.buyerPoTarget)} pcs)',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0B1220),
-                              ),
+                              style: _dashHeadingStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
@@ -446,9 +551,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   icon: const Icon(Icons.refresh_rounded, size: 15, color: Color(0xFF475569)),
                   label: Text(
                     'Refresh',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: _dashHeadingStyle(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xFF334155),
                     ),
                   ),
@@ -471,9 +576,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   icon: const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
                   label: Text(
                     'Reports',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: _dashHeadingStyle(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),
@@ -493,7 +598,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  // 2. Solo Article Active Banner (matching Web Mobile)
+  // 2. Solo Article Active Banner
   Widget _buildSoloArticleBanner(ArticleJourneyItem article) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -508,15 +613,15 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
                 ),
                 child: const Center(
-                  child: Icon(Icons.checkroom_rounded, color: Color(0xFF0B1220), size: 18),
+                  child: Icon(Icons.checkroom_rounded, color: Color(0xFF0B1220), size: 17),
                 ),
               ),
               const SizedBox(width: 10),
@@ -534,11 +639,12 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                             border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.4)),
                           ),
                           child: Text(
-                            'SOLO ARTICLE VIEW',
-                            style: GoogleFonts.jetBrainsMono(
+                            'ACTIVE STYLE',
+                            style: _dashBodyStyle(
                               fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: const Color(0xFF0B1220),
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),
@@ -546,11 +652,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                         Expanded(
                           child: Text(
                             article.artNo,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0B1220),
-                            ),
+                            style: _dashHeadingStyle(fontSize: 14, fontWeight: FontWeight.w800),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -559,7 +661,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     const SizedBox(height: 2),
                     Text(
                       'Buyer: ${article.buyerName} (${article.poNumber})',
-                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF475569)),
+                      style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF475569)),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -573,11 +675,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             children: [
               Text(
                 'Target: ${_format(article.buyerPoTarget)} pcs (${article.overallProgressPct}%)',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0B1220),
-                ),
+                style: _dashHeadingStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               InkWell(
                 onTap: () {
@@ -600,12 +698,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       const Icon(Icons.close_rounded, size: 13, color: Color(0xFF64748B)),
                       const SizedBox(width: 4),
                       Text(
-                        'Reset to All',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0B1220),
-                        ),
+                        'Reset',
+                        style: _dashHeadingStyle(fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -647,7 +741,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             children: [
               Text(
                 s['label']!,
-                style: GoogleFonts.publicSans(
+                style: _dashBodyStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF64748B),
@@ -659,11 +753,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               const SizedBox(height: 2),
               Text(
                 s['value']!,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0B1220),
-                ),
+                style: _dashHeadingStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -721,71 +811,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'LIVE PRODUCTION FLOW',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF64748B),
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        if (isSoloMode && selectedArticle != null) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
-                            ),
-                            child: Text(
-                              selectedArticle.artNo,
-                              style: GoogleFonts.jetBrainsMono(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8)),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isSoloMode
-                          ? 'Current station inventory for ${selectedArticle?.artNo}'
-                          : 'Current pieces across all manufacturing stages',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Text(
-                  '${pipeline.length} Stages Active',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF334155),
-                  ),
-                ),
-              ),
-            ],
+          _buildSectionHeader(
+            icon: Icons.layers_outlined,
+            title: 'Live Production',
+            accent: 'Flow',
+            badge: isSoloMode && selectedArticle != null
+                ? selectedArticle.artNo
+                : '${pipeline.length} Stages',
           ),
           const SizedBox(height: 14),
           RepaintBoundary(
@@ -793,63 +825,59 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               child: Row(
-              children: pipeline.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final stage = entry.value;
-                final isLast = idx == pipeline.length - 1;
+                children: pipeline.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final stage = entry.value;
+                  final isLast = idx == pipeline.length - 1;
 
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 96,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            stage.label,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF64748B),
-                              letterSpacing: 0.5,
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 96,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              stage.label,
+                              style: _dashBodyStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _format(stage.count),
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0B1220),
+                            const SizedBox(height: 4),
+                            Text(
+                              _format(stage.count),
+                              style: _dashHeadingStyle(fontSize: 15, fontWeight: FontWeight.w800),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            stage.unit,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF94A3B8),
+                            const SizedBox(height: 2),
+                            Text(
+                              stage.unit,
+                              style: _dashBodyStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF94A3B8),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    if (!isLast)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFFCBD5E1)),
-                      ),
-                  ],
-                );
-              }).toList(),
-            ),
+                      if (!isLast)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFFCBD5E1)),
+                        ),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -876,54 +904,30 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSectionHeader(
+            icon: Icons.bar_chart_rounded,
+            title: '7-Day',
+            accent: 'Output Trend',
+            badge: 'Avg ${_format(dailyAvg)} pcs/d',
+          ),
+          const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DAILY SEWING OUTPUT (7-DAY TREND)',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isSoloMode
-                          ? 'Assembly output for ${selectedArticle?.artNo}'
-                          : 'Stitched pieces/day • Avg: ${_format(dailyAvg)} pcs',
-                      style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF14C8B4), shape: BoxShape.circle)),
-                  const SizedBox(width: 3),
-                  Text('Stitched', style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFF64748B))),
-                  const SizedBox(width: 6),
-                  Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle)),
-                  const SizedBox(width: 3),
-                  Text('Today', style: GoogleFonts.publicSans(fontSize: 9.5, color: const Color(0xFFB45309))),
-                ],
-              ),
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF14C8B4), shape: BoxShape.circle)),
+              const SizedBox(width: 4),
+              Text('Stitched', style: _dashBodyStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
+              const SizedBox(width: 10),
+              Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle)),
+              const SizedBox(width: 4),
+              Text('Today', style: _dashBodyStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFB45309))),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Bar Chart
           SizedBox(
-            height: 140,
+            height: 136,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -937,15 +941,15 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     children: [
                       Text(
                         _format(t.pieces),
-                        style: GoogleFonts.jetBrainsMono(
+                        style: _dashBodyStyle(
                           fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF475569),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Container(
-                        height: 90 * heightFactor,
+                        height: 88 * heightFactor,
                         width: 26,
                         decoration: BoxDecoration(
                           color: barColor,
@@ -955,7 +959,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       const SizedBox(height: 6),
                       Text(
                         t.dayName,
-                        style: GoogleFonts.publicSans(
+                        style: _dashBodyStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF64748B),
@@ -966,20 +970,6 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 );
               }).toList(),
             ),
-          ),
-          const Divider(height: 24, color: Color(0xFFF1F5F9)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Production throughput',
-                style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-              ),
-              Text(
-                '7-Day Continuous Flow',
-                style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
-              ),
-            ],
           ),
         ],
       ),
@@ -998,51 +988,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'QUALITY CONTROL RATE',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isSoloMode
-                          ? 'Inspection metrics for ${selectedArticle?.artNo}'
-                          : '3-Stage QC inspection pass vs scrap',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Text(
-                  'AQL 2.5',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0B1220),
-                  ),
-                ),
-              ),
-            ],
+          _buildSectionHeader(
+            icon: Icons.verified_user_outlined,
+            title: 'Quality',
+            accent: 'Compliance',
+            badge: 'AQL 2.5',
           ),
           const SizedBox(height: 16),
           Row(
@@ -1072,17 +1022,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                         children: [
                           Text(
                             '${qc.passRatePct}%',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF0B1220),
-                            ),
+                            style: _dashHeadingStyle(fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
                             'PASS',
-                            style: GoogleFonts.publicSans(
+                            style: _dashBodyStyle(
                               fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               color: const Color(0xFF64748B),
                             ),
                           ),
@@ -1100,10 +1046,10 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TOP DEFECTS RECORDED',
-                      style: GoogleFonts.publicSans(
+                      'TOP DEFECTS',
+                      style: _dashBodyStyle(
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF94A3B8),
                         letterSpacing: 0.6,
                       ),
@@ -1111,8 +1057,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     const SizedBox(height: 6),
                     if (qc.topDefects.isEmpty)
                       Text(
-                        'No defects recorded for this tenant.',
-                        style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                        'No defects recorded',
+                        style: _dashBodyStyle(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                       )
                     else
                       ...qc.topDefects.map((d) => Padding(
@@ -1126,13 +1072,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                                     Expanded(
                                       child: Text(
                                         d.name,
-                                        style: GoogleFonts.publicSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B)),
+                                        style: _dashBodyStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B)),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     Text(
                                       '${d.count} pcs (${d.pct}%)',
-                                      style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                                      style: _dashBodyStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF0B1220)),
                                     ),
                                   ],
                                 ),
@@ -1154,23 +1100,23 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
             ],
           ),
-          const Divider(height: 24, color: Color(0xFFF1F5F9)),
+          const Divider(height: 22, color: Color(0xFFF1F5F9)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               RichText(
                 text: TextSpan(
                   children: [
-                    TextSpan(text: 'Passed: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                    TextSpan(text: '${_format(qc.totalPassed)} pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF059669))),
+                    TextSpan(text: 'Passed: ', style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B))),
+                    TextSpan(text: '${_format(qc.totalPassed)} pcs', style: _dashHeadingStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF059669))),
                   ],
                 ),
               ),
               RichText(
                 text: TextSpan(
                   children: [
-                    TextSpan(text: 'Rejected: ', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                    TextSpan(text: '${_format(qc.totalRejected)} pcs', style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFE11D48))),
+                    TextSpan(text: 'Rejected: ', style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B))),
+                    TextSpan(text: '${_format(qc.totalRejected)} pcs', style: _dashHeadingStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFFE11D48))),
                   ],
                 ),
               ),
@@ -1193,67 +1139,38 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          _buildSectionHeader(
+            icon: Icons.palette_outlined,
+            title: 'Tech-Pack &',
+            accent: 'Specs',
+            badge: selectedArticle.artNo,
+            trailing: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDFA),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
+                  Text(
+                    'Studio',
+                    style: _dashHeadingStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1D4ED8),
                     ),
-                    child: const Icon(Icons.palette_outlined, color: Color(0xFF0B1220), size: 18),
                   ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Technical Tech-Pack & Specs',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0B1220),
-                        ),
-                      ),
-                      Text(
-                        'Style #${selectedArticle.artNo} • ${selectedArticle.category}',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
                 ],
               ),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EnterpriseWorkspaceHubScreen()),
-                  );
-                },
-                child: Row(
-                  children: [
-                    Text(
-                      'Design Studio',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1D4ED8),
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
 
-          // 3 Spec Boxes
+          // Spec Summary Box
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1266,45 +1183,62 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Fabric Specification:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                    Text(selectedArticle.fabricType, style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220))),
+                    Text('Fabric', style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B))),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${selectedArticle.fabricType} (${selectedArticle.targetGsm} GSM)',
+                        style: _dashHeadingStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Embellishment Flow:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                    Text(selectedArticle.embellishmentSequence, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF059669))),
+                    Text('Embellishment', style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B))),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        selectedArticle.embellishmentSequence,
+                        style: _dashHeadingStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF059669)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total Contract Volume:', style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B))),
-                    Text('${_format(selectedArticle.buyerPoTarget)} pcs (${selectedArticle.overallProgressPct}%)', style: GoogleFonts.jetBrainsMono(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8))),
+                    Text('Contract', style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B))),
+                    Text(
+                      '${_format(selectedArticle.buyerPoTarget)} pcs (${selectedArticle.overallProgressPct}%)',
+                      style: _dashHeadingStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF1D4ED8)),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // 8-Step Grid (2 columns x 4 rows)
           _buildTwoColumnGrid(
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            childAspectRatio: 2.2,
+            childAspectRatio: 2.35,
             items: [
-              _buildStepTile('1. Tech-Pack', 'READY', 'CAD & Specs', false),
-              _buildStepTile('2. Buyer PO', _format(selectedArticle.buyerPoTarget), 'Target pieces', false),
-              _buildStepTile('3. Raw Fabric', '${_format(selectedArticle.fabricMetersInStore)} m', 'In Godown', false),
-              _buildStepTile('4. Cutting', _format(selectedArticle.cutPieces), 'Bundles cut', false),
-              _buildStepTile('5. Stitching', _format(selectedArticle.stitchedPieces), 'Sewing active', true),
-              _buildStepTile('6. QC Passed', _format(selectedArticle.qcPassedPieces), 'Cleared', false),
-              _buildStepTile('7. Godown', _format(selectedArticle.godownPieces), 'Finished stock', false),
-              _buildStepTile('8. Dispatch', _format(selectedArticle.dispatchedPieces), 'Shipped', false),
+              _buildStepTile('1. Tech-Pack', 'READY', false),
+              _buildStepTile('2. Buyer PO', _format(selectedArticle.buyerPoTarget), false),
+              _buildStepTile('3. Fabric', '${_format(selectedArticle.fabricMetersInStore)} m', false),
+              _buildStepTile('4. Cutting', _format(selectedArticle.cutPieces), false),
+              _buildStepTile('5. Stitching', _format(selectedArticle.stitchedPieces), true),
+              _buildStepTile('6. QC Passed', _format(selectedArticle.qcPassedPieces), false),
+              _buildStepTile('7. Godown', _format(selectedArticle.godownPieces), false),
+              _buildStepTile('8. Dispatch', _format(selectedArticle.dispatchedPieces), false),
             ],
           ),
         ],
@@ -1312,7 +1246,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
     );
   }
 
-  Widget _buildStepTile(String step, String value, String subtitle, bool isHighlighted) {
+  Widget _buildStepTile(String step, String value, bool isHighlighted) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -1328,28 +1262,20 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            step,
-            style: GoogleFonts.publicSans(
+            step.toUpperCase(),
+            style: _dashBodyStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
               color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF64748B),
+              letterSpacing: 0.4,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1220),
-            ),
-          ),
-          Text(
-            subtitle,
-            style: GoogleFonts.publicSans(
-              fontSize: 9,
-              color: isHighlighted ? const Color(0xFF0E7490) : const Color(0xFF94A3B8),
-            ),
+            style: _dashHeadingStyle(fontSize: 14, fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -1375,74 +1301,34 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'BUYER PURCHASE ORDERS',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF64748B),
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            '${allOrders.length} ${allOrders.length == 1 ? 'Order' : 'Orders'}',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
-                          ),
-                        ),
-                      ],
+          _buildSectionHeader(
+            icon: Icons.shopping_bag_outlined,
+            title: 'Buyer',
+            accent: 'Orders',
+            badge: '${allOrders.length} ${allOrders.length == 1 ? 'Order' : 'Orders'}',
+            trailing: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ActiveBuyersScreen()),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Buyers Hub',
+                    style: _dashHeadingStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1D4ED8),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isSoloMode ? 'Fulfillment progress for selected style' : 'Active contracts sorted by delivery progress',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                ],
               ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ActiveBuyersScreen()),
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Buyers Hub',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1D4ED8),
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF1D4ED8)),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
           if (paginatedOrders.isEmpty)
@@ -1454,8 +1340,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
               child: Center(
                 child: Text(
-                  'No active buyer contracts found.',
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                  'No active buyer orders found.',
+                  style: _dashBodyStyle(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                 ),
               ),
             )
@@ -1474,42 +1360,41 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              bo.buyerName,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0B1220),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  bo.buyerName,
+                                  style: _dashHeadingStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Text(
+                                  bo.poNumber,
+                                  style: _dashBodyStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                                ),
                               ),
-                              child: Text(
-                                bo.poNumber,
-                                style: GoogleFonts.jetBrainsMono(fontSize: 9.5, color: const Color(0xFF64748B)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '${bo.percent}% fulfilled',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: barColor,
+                            ],
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${bo.percent}%',
+                          style: _dashHeadingStyle(fontSize: 12, fontWeight: FontWeight.w800, color: barColor),
                         ),
                       ],
                     ),
@@ -1524,12 +1409,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Delivered: ${_format(bo.deliveredPieces)} pcs', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF64748B))),
-                        Text('Target: ${_format(bo.targetPieces)} pcs', style: GoogleFonts.publicSans(fontSize: 10.5, color: const Color(0xFF64748B))),
-                      ],
+                    Text(
+                      'Delivered ${_format(bo.deliveredPieces)} / ${_format(bo.targetPieces)} pcs',
+                      style: _dashBodyStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -1539,38 +1421,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           // Pagination Controls for Orders
           if (totalPages > 1) ...[
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: const Size(60, 30),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: currentPage > 1 ? () => setState(() => _ordersPage--) : null,
-                  icon: const Icon(Icons.chevron_left, size: 16),
-                  label: const Text('Prev', style: TextStyle(fontSize: 11)),
-                ),
-                Text(
-                  'Page $currentPage of $totalPages',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: const Size(60, 30),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: currentPage < totalPages ? () => setState(() => _ordersPage++) : null,
-                  icon: const Icon(Icons.chevron_right, size: 16),
-                  label: const Text('Next', style: TextStyle(fontSize: 11)),
-                ),
-              ],
+            _buildPaginationRow(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              onPrev: () => setState(() => _ordersPage--),
+              onNext: () => setState(() => _ordersPage++),
             ),
           ],
         ],
@@ -1595,66 +1450,28 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'COMPANY ARTICLES & STYLES',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF64748B),
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            '${allArticles.length} ${allArticles.length == 1 ? 'Style' : 'Styles'}',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
-                          ),
-                        ),
-                      ],
+          _buildSectionHeader(
+            icon: Icons.checkroom_outlined,
+            title: 'Company',
+            accent: 'Articles',
+            badge: '${allArticles.length} ${allArticles.length == 1 ? 'Style' : 'Styles'}',
+            trailing: _selectedArticleId != 'ALL'
+                ? InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedArticleId = 'ALL';
+                      });
+                    },
+                    child: Text(
+                      'Show All →',
+                      style: _dashHeadingStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1D4ED8),
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Garment styles catalog. Tap any style to inspect floor progress.',
-                      style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              if (_selectedArticleId != 'ALL')
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedArticleId = 'ALL';
-                    });
-                  },
-                  child: Text(
-                    'Reset to All →',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1D4ED8),
-                    ),
-                  ),
-                ),
-            ],
+                  )
+                : null,
           ),
           const SizedBox(height: 14),
 
@@ -1667,8 +1484,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               ),
               child: Center(
                 child: Text(
-                  'No garment articles logged for this company.',
-                  style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
+                  'No garment articles found.',
+                  style: _dashBodyStyle(fontSize: 11.5, color: const Color(0xFF94A3B8)),
                 ),
               ),
             )
@@ -1701,35 +1518,33 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFCBD5E1)),
-                                ),
-                                child: Text(
-                                  art.artNo,
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0B1220),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                                  ),
+                                  child: Text(
+                                    art.artNo,
+                                    style: _dashHeadingStyle(fontSize: 10.5, fontWeight: FontWeight.w800),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                art.category,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0B1220),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    art.category,
+                                    style: _dashHeadingStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
@@ -1740,10 +1555,10 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                               ),
                             ),
                             child: Text(
-                              isSelected ? 'Active Solo' : 'Select Solo',
-                              style: GoogleFonts.plusJakartaSans(
+                              isSelected ? 'Active' : 'Inspect',
+                              style: _dashHeadingStyle(
                                 fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: isSelected ? Colors.white : const Color(0xFF64748B),
                               ),
                             ),
@@ -1753,7 +1568,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       const SizedBox(height: 6),
                       Text(
                         'Buyer: ${art.buyerName}',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF64748B)),
+                        style: _dashBodyStyle(fontSize: 11, color: const Color(0xFF64748B)),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       ClipRRect(
@@ -1769,8 +1585,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Contract: ${_format(art.buyerPoTarget)} pcs', style: GoogleFonts.publicSans(fontSize: 10, color: const Color(0xFF64748B))),
-                          Text('Progress: ${art.overallProgressPct}%', style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1D4ED8))),
+                          Text('Target: ${_format(art.buyerPoTarget)} pcs', style: _dashBodyStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
+                          Text('${art.overallProgressPct}%', style: _dashHeadingStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: const Color(0xFF1D4ED8))),
                         ],
                       ),
                     ],
@@ -1782,38 +1598,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
           // Pagination Controls for Articles
           if (totalPages > 1) ...[
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: const Size(60, 30),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: currentPage > 1 ? () => setState(() => _articlesPage--) : null,
-                  icon: const Icon(Icons.chevron_left, size: 16),
-                  label: const Text('Prev', style: TextStyle(fontSize: 11)),
-                ),
-                Text(
-                  'Page $currentPage of $totalPages',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: const Size(60, 30),
-                    backgroundColor: Colors.white,
-                  ),
-                  onPressed: currentPage < totalPages ? () => setState(() => _articlesPage++) : null,
-                  icon: const Icon(Icons.chevron_right, size: 16),
-                  label: const Text('Next', style: TextStyle(fontSize: 11)),
-                ),
-              ],
+            _buildPaginationRow(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              onPrev: () => setState(() => _articlesPage--),
+              onNext: () => setState(() => _articlesPage++),
             ),
           ],
         ],
@@ -1845,87 +1634,13 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Header Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x1A000000)),
-                ),
-                child: const Center(
-                  child: Icon(Icons.schedule_rounded, color: Color(0xFF0B1220), size: 20),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Portal Usage & ',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Login Location',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1D4ED8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0x1A000000)),
-                          ),
-                          child: Text(
-                            'PAST 7 DAYS',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0B1220),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Weekly login hours and where you are signed in from right now.',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          _buildSectionHeader(
+            icon: Icons.schedule_rounded,
+            title: 'Portal',
+            accent: 'Usage',
+            badge: 'Past 7 Days',
           ),
-
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Legend: Active (Emerald) & Inactive (Slate)
           Row(
@@ -1934,8 +1649,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
               Row(
                 children: [
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: 11,
+                    height: 11,
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981),
                       borderRadius: BorderRadius.circular(3),
@@ -1944,20 +1659,16 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   const SizedBox(width: 5),
                   Text(
                     'Active',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF475569),
-                    ),
+                    style: _dashBodyStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
                   ),
                 ],
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Row(
                 children: [
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: 11,
+                    height: 11,
                     decoration: BoxDecoration(
                       color: const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(3),
@@ -1967,25 +1678,21 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   const SizedBox(width: 5),
                   Text(
                     'Inactive',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF475569),
-                    ),
+                    style: _dashBodyStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
                   ),
                 ],
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // 2. 24x7 HOURLY LOGIN MATRIX CARD
           _PortalUsageHeatmapCard(days: days),
 
           const SizedBox(height: 14),
 
-          // 3. Indian State Vector Map Card (Matching Web Mobile View)
+          // 3. Indian State Vector Map Card
           IndianStateVectorMapWidget(
             stateName: location.state,
             cityName: location.city,
@@ -1995,10 +1702,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
 
           const SizedBox(height: 12),
 
-          // 4. Two Simple Stat Cards: Past 7 Days & Most Active Time
+          // 4. Two Simple Stat Cards: Past 7 Days & Peak Time
           Row(
             children: [
-              // Stat 1: Total Logins
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -2012,7 +1718,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     children: [
                       Text(
                         'PAST 7 DAYS',
-                        style: GoogleFonts.jetBrainsMono(
+                        style: _dashBodyStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF94A3B8),
@@ -2022,16 +1728,12 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       const SizedBox(height: 4),
                       Text(
                         '${activityData.totalSessionsPast7Days} Logins',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0B1220),
-                        ),
+                        style: _dashHeadingStyle(fontSize: 15, fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Active on ${activityData.activeDaysCount} ${activityData.activeDaysCount == 1 ? "day" : "days"}',
-                        style: GoogleFonts.publicSans(
+                        '${activityData.activeDaysCount} active ${activityData.activeDaysCount == 1 ? "day" : "days"}',
+                        style: _dashBodyStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF059669),
@@ -2042,8 +1744,6 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 ),
               ),
               const SizedBox(width: 10),
-
-              // Stat 2: Peak Time
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -2056,8 +1756,8 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MOST ACTIVE TIME',
-                        style: GoogleFonts.jetBrainsMono(
+                        'PEAK TIME',
+                        style: _dashBodyStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF94A3B8),
@@ -2067,22 +1767,9 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                       const SizedBox(height: 4),
                       Text(
                         activityData.peakHour,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0B1220),
-                        ),
+                        style: _dashHeadingStyle(fontSize: 14, fontWeight: FontWeight.w800),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Shift usage window',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
                       ),
                     ],
                   ),
@@ -2097,37 +1784,22 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
 
   // 11. Section 7: Division Heartbeat Section
   Widget _buildDivisionHeartbeatSection(BuildContext context, List<DivisionHeartbeatItem> heartbeats) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DIVISION HEARTBEAT (${heartbeats.length} DEPARTMENTS)',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF64748B),
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Verified active status & direct navigation',
-                    style: GoogleFonts.publicSans(fontSize: 11.5, color: const Color(0xFF94A3B8)),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            icon: Icons.grid_view_rounded,
+            title: 'Division',
+            accent: 'Heartbeat',
+            badge: '${heartbeats.length} ${heartbeats.length == 1 ? 'Unit' : 'Units'}',
+            trailing: InkWell(
               onTap: () {
                 Navigator.push(
                   context,
@@ -2138,10 +1810,10 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'All Modules',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                    'Modules',
+                    style: _dashHeadingStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xFF1D4ED8),
                     ),
                   ),
@@ -2150,73 +1822,66 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                 ],
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildTwoColumnGrid(
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.9,
-          items: heartbeats.map((div) {
-            final isActive = div.status == 'ACTIVE';
+          ),
+          const SizedBox(height: 14),
+          _buildTwoColumnGrid(
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.9,
+            items: heartbeats.map((div) {
+              final isActive = div.status == 'ACTIVE';
 
-            return InkWell(
-              onTap: () => _navigateDivision(context, div.id),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+              return InkWell(
+                onTap: () => _navigateDivision(context, div.id),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _getDivisionIcon(div.iconName),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isActive ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            div.name,
+                            style: _dashHeadingStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            div.metric,
+                            style: _dashBodyStyle(fontSize: 10, color: const Color(0xFF64748B)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _getDivisionIcon(div.iconName),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          div.name,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0B1220),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          div.metric,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 10,
-                            color: const Color(0xFF64748B),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2345,10 +2010,11 @@ class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
                 width: _timeColumnWidth,
                 child: Text(
                   'TIME',
-                  style: GoogleFonts.jetBrainsMono(
+                  style: _dashBodyStyle(
                     fontSize: 9.0,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF94A3B8),
+                    letterSpacing: 0.4,
                   ),
                 ),
               ),
@@ -2358,9 +2024,9 @@ class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
                     children: [
                       Text(
                         d.dayName.toUpperCase(),
-                        style: GoogleFonts.jetBrainsMono(
+                        style: _dashBodyStyle(
                           fontSize: 8.5,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF94A3B8),
                         ),
                       ),
@@ -2374,7 +2040,7 @@ class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
                         ),
                         child: Text(
                           d.formattedDate,
-                          style: GoogleFonts.jetBrainsMono(
+                          style: _dashHeadingStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: d.isToday ? const Color(0xFF0369A1) : const Color(0xFF334155),
@@ -2406,7 +2072,7 @@ class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
                         alignment: Alignment.centerLeft,
                         child: Text(
                           _hourLabel(hourIdx),
-                          style: GoogleFonts.jetBrainsMono(
+                          style: _dashBodyStyle(
                             fontSize: 8.5,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF64748B),
@@ -2479,67 +2145,61 @@ class _PortalUsageHeatmapCardState extends State<_PortalUsageHeatmapCard>
               );
             },
           ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: selectedInfo != null
-                ? Row(
-                    children: [
-                      Icon(
-                        selectedIsActive ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-                        size: 14,
-                        color: selectedIsActive ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '$selectedInfo: ',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0B1220),
-                                ),
-                              ),
-                              TextSpan(
-                                text: selectedIsActive
-                                    ? 'Active ($selectedLogins ${selectedLogins == 1 ? "login" : "logins"})'
-                                    : 'No login during this hour',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: selectedIsActive ? const Color(0xFF059669) : const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      const Icon(Icons.touch_app_outlined, size: 14, color: Color(0xFF94A3B8)),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tap any hour slot to check login details.',
-                        style: GoogleFonts.publicSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ],
+          if (selectedInfo != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    selectedIsActive ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                    size: 14,
+                    color: selectedIsActive ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
                   ),
-          ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$selectedInfo: ',
+                            style: _dashBodyStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0B1220),
+                            ),
+                          ),
+                          TextSpan(
+                            text: selectedIsActive
+                                ? 'Active ($selectedLogins ${selectedLogins == 1 ? "login" : "logins"})'
+                                : 'No login',
+                            style: _dashBodyStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: selectedIsActive ? const Color(0xFF059669) : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedDayIdx = null;
+                      _selectedHourIdx = null;
+                    }),
+                    child: const Icon(Icons.close_rounded, size: 15, color: Color(0xFF94A3B8)),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
