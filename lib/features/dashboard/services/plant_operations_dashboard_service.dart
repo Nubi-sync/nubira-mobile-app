@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 
 class FactoryPulseKPIs {
   final int activeStyles;
@@ -321,14 +325,58 @@ class PlantOperationsDashboardData {
       );
 }
 
+class _MobileLiveGeo {
+  final String state;
+  final String city;
+  final String ip;
+  final String country;
+  final double? latitude;
+  final double? longitude;
+
+  const _MobileLiveGeo({
+    required this.state,
+    required this.city,
+    required this.ip,
+    required this.country,
+    this.latitude,
+    this.longitude,
+  });
+}
+
+const List<String> _portalHourLabels = [
+  '12-01 AM', '01-02 AM', '02-03 AM', '03-04 AM', '04-05 AM', '05-06 AM',
+  '06-07 AM', '07-08 AM', '08-09 AM', '09-10 AM', '10-11 AM', '11-12 AM',
+  '12-01 PM', '01-02 PM', '02-03 PM', '03-04 PM', '04-05 PM', '05-06 PM',
+  '06-07 PM', '07-08 PM', '08-09 PM', '09-10 PM', '10-11 PM', '11-12 PM'
+];
+
+String _stateCodeForName(String stateName) {
+  final lower = stateName.toLowerCase();
+  if (lower.contains('gujarat')) return 'GJ';
+  if (lower.contains('maharashtra')) return 'MH';
+  if (lower.contains('tamil')) return 'TN';
+  if (lower.contains('karnataka')) return 'KA';
+  if (lower.contains('delhi')) return 'DL';
+  if (lower.contains('uttar pradesh')) return 'UP';
+  if (lower.contains('haryana')) return 'HR';
+  if (lower.contains('rajasthan')) return 'RJ';
+  if (lower.contains('punjab')) return 'PB';
+  if (lower.contains('telangana')) return 'TS';
+  return 'WB';
+}
+
 class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOperationsDashboardData>> {
   final Ref ref;
+  static _MobileLiveGeo? _cachedLiveGeo;
+  static String? _lastRecordedSlotKey;
+  int _fetchGeneration = 0;
 
   PlantOperationsDashboardNotifier(this.ref) : super(const AsyncValue.loading()) {
     fetchData();
   }
 
   Future<void> fetchData() async {
+    final int gen = ++_fetchGeneration;
     state = const AsyncValue.loading();
     try {
       final authState = ref.read(authProvider);
@@ -1052,14 +1100,44 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
         ),
       ];
 
-      // 9. Login Activity (Past 7 Days)
+      // 9. Login Activity (Past 7 Days) & Real Factory / Live Location (matching Web)
+      final DateTime istNow = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+
+      String detectedState = 'West Bengal';
+      String detectedCity = 'Kolkata';
+      final rawCityState = (tenant?.cityState ?? '').trim();
+      if (rawCityState.isNotEmpty && rawCityState.contains(',')) {
+        final parts = rawCityState.split(',').map((s) => s.trim()).toList();
+        if (parts.isNotEmpty && parts[0].isNotEmpty) detectedCity = parts[0];
+        if (parts.length > 1 && parts[1].isNotEmpty) detectedState = parts[1];
+      } else if (rawCityState.length > 2) {
+        detectedState = rawCityState;
+      } else if (companyName.isNotEmpty) {
+        try {
+          final factoryRow = await client
+              .from('platform_tenant_factories')
+              .select('city_state')
+              .ilike('company_name', companyName.trim())
+              .limit(1)
+              .maybeSingle();
+          final factoryCityState = factoryRow?['city_state']?.toString().trim() ?? '';
+          if (factoryCityState.contains(',')) {
+            final parts = factoryCityState.split(',').map((s) => s.trim()).toList();
+            if (parts.isNotEmpty && parts[0].isNotEmpty) detectedCity = parts[0];
+            if (parts.length > 1 && parts[1].isNotEmpty) detectedState = parts[1];
+          }
+        } catch (_) {}
+      }
+
       List<dynamic> rawLogins = [];
       try {
-        final res = await client
-            .from('user_login_activity')
-            .select()
-            .order('logged_in_at', ascending: false)
-            .limit(200);
+        final query = companyName.isNotEmpty
+            ? client
+                .from('user_login_activity')
+                .select()
+                .ilike('company_name', '%$companyName%')
+            : client.from('user_login_activity').select();
+        final res = await query.order('logged_in_at', ascending: false).limit(200);
         if (res is List && res.isNotEmpty) {
           rawLogins = res;
         }
@@ -1067,37 +1145,39 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
         debugPrint('[PlantDashboard] user_login_activity query error: $e');
       }
 
-      final hourLabels = [
-        '12-01 AM', '01-02 AM', '02-03 AM', '03-04 AM', '04-05 AM', '05-06 AM',
-        '06-07 AM', '07-08 AM', '08-09 AM', '09-10 AM', '10-11 AM', '11-12 AM',
-        '12-01 PM', '01-02 PM', '02-03 PM', '03-04 PM', '04-05 PM', '05-06 PM',
-        '06-07 PM', '07-08 PM', '08-09 PM', '09-10 PM', '10-11 PM', '11-12 PM'
-      ];
-
-      final currentHour = now.hour;
+      final currentHour = istNow.hour;
       final activityDays = <LoginDayActivity>[];
       int totalSessions = 0;
       final Map<int, int> hourTotals = {};
       int activeDays = 0;
 
-      String detectedState = tenant?.cityState?.split(',').last.trim() ?? 'West Bengal';
-      String detectedCity = tenant?.cityState?.split(',').first.trim() ?? 'Kolkata';
       if (rawLogins.isNotEmpty && rawLogins.first['state'] != null) {
-        detectedState = rawLogins.first['state'].toString();
+        final dbState = rawLogins.first['state'].toString().trim();
+        if (dbState.isNotEmpty) detectedState = dbState;
         if (rawLogins.first['city'] != null) {
-          detectedCity = rawLogins.first['city'].toString();
+          final dbCity = rawLogins.first['city'].toString().trim();
+          if (dbCity.isNotEmpty) detectedCity = dbCity;
         }
       }
 
+      final liveGeo = _cachedLiveGeo;
+      if (liveGeo != null && liveGeo.state.isNotEmpty) {
+        detectedState = liveGeo.state;
+        if (liveGeo.city.isNotEmpty) detectedCity = liveGeo.city;
+      }
+
       for (int i = 6; i >= 0; i--) {
-        final d = now.subtract(Duration(days: i));
+        final d = istNow.subtract(Duration(days: i));
         final dStr = DateFormat('yyyy-MM-dd').format(d);
         final isToday = i == 0;
         final dayName = DateFormat('E').format(d);
         final formattedDate = DateFormat('dd').format(d);
         final fullDateLabel = DateFormat('MMM dd, yyyy').format(d);
 
-        final dateLogins = rawLogins.where((r) => r['login_date']?.toString() == dStr).toList();
+        final dateLogins = rawLogins.where((r) {
+          final loginDate = r['login_date']?.toString().split('T').first.trim();
+          return loginDate == dStr;
+        }).toList();
         int dayLoginsCount = 0;
         final slots = <LoginHourSlot>[];
 
@@ -1106,15 +1186,8 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
             final slotVal = r['hour_slot'];
             return slotVal is int ? slotVal == h : int.tryParse(slotVal?.toString() ?? '') == h;
           }).toList();
-          bool isSlotActive = matchingRows.isNotEmpty;
-          int count = matchingRows.length;
-
-          if (!isSlotActive && ((h >= 9 && h <= 18) || (isToday && h == currentHour))) {
-            if (i % 2 == 0 || isToday || h == 11 || h == 15) {
-              isSlotActive = true;
-              count = (h == 11 || h == 15) ? 2 : 1;
-            }
-          }
+          final bool isSlotActive = matchingRows.isNotEmpty;
+          final int count = matchingRows.length;
 
           if (isSlotActive) {
             dayLoginsCount += count;
@@ -1124,10 +1197,10 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
 
           slots.add(LoginHourSlot(
             hour: h,
-            label: hourLabels[h],
+            label: _portalHourLabels[h],
             count: count,
             isActive: isSlotActive,
-            lastActiveAt: isSlotActive ? '$fullDateLabel at ${hourLabels[h]}' : null,
+            lastActiveAt: isSlotActive ? '$fullDateLabel at ${_portalHourLabels[h]}' : null,
           ));
         }
 
@@ -1153,35 +1226,41 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
         }
       });
 
-      double? lat;
-      double? lon;
-      if (rawLogins.isNotEmpty) {
-        if (rawLogins.first['latitude'] != null) {
-          lat = double.tryParse(rawLogins.first['latitude'].toString());
-        }
-        if (rawLogins.first['longitude'] != null) {
-          lon = double.tryParse(rawLogins.first['longitude'].toString());
-        }
+      double? lat = liveGeo?.latitude;
+      double? lon = liveGeo?.longitude;
+      if (lat == null && rawLogins.isNotEmpty && rawLogins.first['latitude'] != null) {
+        lat = double.tryParse(rawLogins.first['latitude'].toString());
       }
+      if (lon == null && rawLogins.isNotEmpty && rawLogins.first['longitude'] != null) {
+        lon = double.tryParse(rawLogins.first['longitude'].toString());
+      }
+
+      final resolvedIp = (liveGeo != null && liveGeo.ip.isNotEmpty)
+          ? liveGeo.ip
+          : (rawLogins.isNotEmpty ? (rawLogins.first['ip_address']?.toString() ?? '') : '');
+
+      final platformOs = kIsWeb
+          ? 'Browser'
+          : (Platform.isIOS ? 'iOS' : 'Android');
 
       final loginActivity = OwnerLoginActivityData(
         days: activityDays,
         currentLocation: OwnerGeoLocation(
           state: detectedState,
-          stateCode: detectedState == 'Gujarat' ? 'GJ' : (detectedState == 'Maharashtra' ? 'MH' : 'WB'),
+          stateCode: _stateCodeForName(detectedState),
           city: detectedCity,
-          ipAddress: rawLogins.isNotEmpty ? (rawLogins.first['ip_address']?.toString() ?? '103.211.14.88') : '103.211.14.88',
-          country: 'India',
-          lastLoginAt: 'Today at ${DateFormat('hh:mm a').format(now)}',
-          deviceType: 'mobile',
-          os: 'Android',
+          ipAddress: resolvedIp,
+          country: liveGeo?.country.isNotEmpty == true ? liveGeo!.country : 'India',
+          lastLoginAt: 'Today at ${DateFormat('hh:mm a').format(istNow)}',
+          deviceType: kIsWeb ? 'web' : 'mobile',
+          os: platformOs,
           isCurrentlyActive: true,
           latitude: lat,
           longitude: lon,
         ),
-        totalSessionsPast7Days: math.max(1, totalSessions),
-        peakHour: hourLabels[peakHourIdx],
-        activeDaysCount: math.max(1, activeDays),
+        totalSessionsPast7Days: totalSessions,
+        peakHour: totalSessions > 0 ? _portalHourLabels[peakHourIdx] : 'No logins yet',
+        activeDaysCount: activeDays,
       );
 
       final dashboardData = PlantOperationsDashboardData(
@@ -1196,12 +1275,237 @@ class PlantOperationsDashboardNotifier extends StateNotifier<AsyncValue<PlantOpe
         articlesCatalog: articlesCatalog,
         divisionHeartbeat: divisionHeartbeat,
         loginActivity: loginActivity,
-        lastUpdated: "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}",
+        lastUpdated: "${istNow.hour.toString().padLeft(2, '0')}:${istNow.minute.toString().padLeft(2, '0')}",
       );
 
+      if (gen != _fetchGeneration) return;
       state = AsyncValue.data(dashboardData);
+
+      unawaited(_syncLiveGeoAndRecordSession(
+        generation: gen,
+        tenant: tenant,
+        companyName: companyName,
+        istNow: istNow,
+        fallbackState: detectedState,
+        fallbackCity: detectedCity,
+      ));
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (gen == _fetchGeneration) {
+        state = AsyncValue.error(e, st);
+      }
+    }
+  }
+
+  Future<void> _syncLiveGeoAndRecordSession({
+    required int generation,
+    required ResolvedTenantProfile? tenant,
+    required String companyName,
+    required DateTime istNow,
+    required String fallbackState,
+    required String fallbackCity,
+  }) async {
+    try {
+      final bool neededGeoFetch = _cachedLiveGeo == null && !kIsWeb;
+      if (neededGeoFetch) {
+        _cachedLiveGeo = await _fetchLiveIpGeo();
+      }
+      if (generation != _fetchGeneration) return;
+
+      final liveGeo = _cachedLiveGeo;
+      final String geoState = (liveGeo?.state ?? '').trim().isNotEmpty
+          ? liveGeo!.state.trim()
+          : fallbackState.trim();
+      final String geoCity = (liveGeo?.city ?? '').trim().isNotEmpty
+          ? liveGeo!.city.trim()
+          : fallbackCity.trim();
+
+      bool recordedNow = false;
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      final String loginDate = DateFormat('yyyy-MM-dd').format(istNow);
+      final int hourSlot = istNow.hour;
+
+      if (user != null && geoState.isNotEmpty) {
+        final String slotKey = '${user.id}|$loginDate|$hourSlot';
+        if (_lastRecordedSlotKey != slotKey || neededGeoFetch) {
+          final String osName = kIsWeb ? 'Browser' : (Platform.isIOS ? 'iOS' : 'Android');
+          final Map<String, dynamic> row = {
+            'user_id': user.id,
+            'email': (user.email ?? tenant?.userEmail ?? '').toLowerCase(),
+            'role': tenant?.role ?? 'MEMBER',
+            'company_name': companyName.isNotEmpty ? companyName : null,
+            'tenant_id': tenant?.tenantId,
+            'ip_address': (liveGeo?.ip ?? '').isNotEmpty ? liveGeo!.ip : null,
+            'city': geoCity.isNotEmpty ? geoCity : null,
+            'state': geoState,
+            'country': (liveGeo?.country ?? '').isNotEmpty ? liveGeo!.country : 'India',
+            'device_type': kIsWeb ? 'web' : 'mobile',
+            'browser': 'Zigza Mobile App',
+            'operating_system': osName,
+            'logged_in_at': DateTime.now().toUtc().toIso8601String(),
+            'login_date': loginDate,
+            'hour_slot': hourSlot,
+          };
+
+          final existing = await client
+              .from('user_login_activity')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('login_date', loginDate)
+              .eq('hour_slot', hourSlot)
+              .limit(1)
+              .maybeSingle();
+
+          if (existing != null && existing['id'] != null) {
+            await client
+                .from('user_login_activity')
+                .update(row)
+                .eq('id', existing['id']);
+          } else {
+            await client.from('user_login_activity').insert(row);
+          }
+
+          _lastRecordedSlotKey = slotKey;
+          recordedNow = true;
+        }
+      }
+
+      if (generation != _fetchGeneration) return;
+      final currentData = state.maybeWhen(data: (d) => d, orElse: () => null);
+      final currentLogin = currentData?.loginActivity;
+      if (currentData == null || currentLogin == null) return;
+
+      final bool shouldActivateSlot = recordedNow &&
+          currentLogin.days.any((d) =>
+              d.isToday &&
+              hourSlot < d.hourlySlots.length &&
+              !d.hourlySlots[hourSlot].isActive);
+
+      final bool hasGeoUpdate = liveGeo != null &&
+          (currentLogin.currentLocation.latitude != liveGeo.latitude ||
+              currentLogin.currentLocation.longitude != liveGeo.longitude ||
+              currentLogin.currentLocation.state != geoState ||
+              currentLogin.currentLocation.city != geoCity);
+
+      if (!shouldActivateSlot && !hasGeoUpdate) return;
+
+      final List<LoginDayActivity> updatedDays = shouldActivateSlot
+          ? currentLogin.days.map((d) {
+              if (!d.isToday || hourSlot >= d.hourlySlots.length || d.hourlySlots[hourSlot].isActive) {
+                return d;
+              }
+              final updatedSlots = d.hourlySlots.map((s) {
+                if (s.hour != hourSlot) return s;
+                return LoginHourSlot(
+                  hour: s.hour,
+                  label: s.label,
+                  count: math.max(1, s.count),
+                  isActive: true,
+                  lastActiveAt: '${d.fullDateLabel} at ${s.label}',
+                );
+              }).toList();
+              return LoginDayActivity(
+                date: d.date,
+                dayName: d.dayName,
+                formattedDate: d.formattedDate,
+                fullDateLabel: d.fullDateLabel,
+                isToday: d.isToday,
+                totalLogins: d.totalLogins + 1,
+                hourlySlots: updatedSlots,
+              );
+            }).toList()
+          : currentLogin.days;
+
+      int newTotalSessions = 0;
+      int newActiveDays = 0;
+      final Map<int, int> newHourTotals = {};
+      for (final d in updatedDays) {
+        if (d.totalLogins > 0) newActiveDays++;
+        for (final s in d.hourlySlots) {
+          if (s.isActive) {
+            newTotalSessions += s.count;
+            newHourTotals[s.hour] = (newHourTotals[s.hour] ?? 0) + s.count;
+          }
+        }
+      }
+
+      int newPeakIdx = hourSlot;
+      int newMaxCnt = 0;
+      newHourTotals.forEach((h, cnt) {
+        if (cnt > newMaxCnt) {
+          newMaxCnt = cnt;
+          newPeakIdx = h;
+        }
+      });
+
+      final prevLoc = currentLogin.currentLocation;
+      final updatedLoc = OwnerGeoLocation(
+        state: geoState.isNotEmpty ? geoState : prevLoc.state,
+        stateCode: _stateCodeForName(geoState.isNotEmpty ? geoState : prevLoc.state),
+        city: geoCity.isNotEmpty ? geoCity : prevLoc.city,
+        ipAddress: (liveGeo?.ip ?? '').isNotEmpty ? liveGeo!.ip : prevLoc.ipAddress,
+        country: (liveGeo?.country ?? '').isNotEmpty ? liveGeo!.country : prevLoc.country,
+        lastLoginAt: prevLoc.lastLoginAt,
+        deviceType: prevLoc.deviceType,
+        os: prevLoc.os,
+        isCurrentlyActive: prevLoc.isCurrentlyActive,
+        latitude: liveGeo?.latitude ?? prevLoc.latitude,
+        longitude: liveGeo?.longitude ?? prevLoc.longitude,
+      );
+
+      final updatedActivity = OwnerLoginActivityData(
+        days: updatedDays,
+        currentLocation: updatedLoc,
+        totalSessionsPast7Days: newTotalSessions,
+        peakHour: newTotalSessions > 0 ? _portalHourLabels[newPeakIdx] : 'No logins yet',
+        activeDaysCount: newActiveDays,
+      );
+
+      state = AsyncValue.data(PlantOperationsDashboardData(
+        companyName: currentData.companyName,
+        pulse: currentData.pulse,
+        pipeline: currentData.pipeline,
+        outputTrend: currentData.outputTrend,
+        dailyAverage: currentData.dailyAverage,
+        qc: currentData.qc,
+        buyerOrders: currentData.buyerOrders,
+        fabricStock: currentData.fabricStock,
+        articlesCatalog: currentData.articlesCatalog,
+        divisionHeartbeat: currentData.divisionHeartbeat,
+        loginActivity: updatedActivity,
+        lastUpdated: currentData.lastUpdated,
+      ));
+    } catch (e) {
+      debugPrint('[PlantDashboard] Live geo/session sync skipped: $e');
+    }
+  }
+
+  Future<_MobileLiveGeo?> _fetchLiveIpGeo() async {
+    HttpClient? httpClient;
+    try {
+      httpClient = HttpClient()..connectionTimeout = const Duration(seconds: 2);
+      final req = await httpClient
+          .getUrl(Uri.parse('https://get.geojs.io/v1/ip/geo.json'))
+          .timeout(const Duration(seconds: 2));
+      final res = await req.close().timeout(const Duration(seconds: 2));
+      if (res.statusCode != 200) return null;
+      final body = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 2));
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) return null;
+      final state = decoded['region']?.toString().trim() ?? '';
+      if (state.isEmpty) return null;
+      return _MobileLiveGeo(
+        state: state,
+        city: decoded['city']?.toString().trim() ?? '',
+        ip: decoded['ip']?.toString().trim() ?? '',
+        country: decoded['country']?.toString().trim() ?? 'India',
+        latitude: double.tryParse(decoded['latitude']?.toString() ?? ''),
+        longitude: double.tryParse(decoded['longitude']?.toString() ?? ''),
+      );
+    } catch (_) {
+      return null;
+    } finally {
+      httpClient?.close(force: true);
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +17,34 @@ import '../admin/screens/reports_screen.dart';
 import '../merchandising/screens/active_buyers_screen.dart';
 import 'services/plant_operations_dashboard_service.dart';
 import 'widgets/indian_state_vector_map.dart';
+
+TextStyle _dashHeadingStyle({
+  double fontSize = 15,
+  FontWeight fontWeight = FontWeight.w800,
+  Color color = const Color(0xFF0B1220),
+  double? letterSpacing,
+}) =>
+    GoogleFonts.plusJakartaSans(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+    ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+
+TextStyle _dashBodyStyle({
+  double fontSize = 11.5,
+  FontWeight fontWeight = FontWeight.w500,
+  Color color = const Color(0xFF64748B),
+  double? letterSpacing,
+  double? height,
+}) =>
+    GoogleFonts.publicSans(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
 
 class PlantOperationsDashboardScreen extends ConsumerStatefulWidget {
   const PlantOperationsDashboardScreen({super.key});

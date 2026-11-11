@@ -441,19 +441,19 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'YOUR CURRENT LOCATION',
-                      style: GoogleFonts.jetBrainsMono(
+                      'CURRENT LOCATION',
+                      style: GoogleFonts.publicSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF94A3B8),
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.6,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       displayName,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0B1220),
                       ),
@@ -480,11 +480,11 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
                   ),
                   child: Text(
                     '${_geo!.districts.length} ${_geo!.slug == "delhi" ? "wards" : "districts"}',
-                    style: GoogleFonts.jetBrainsMono(
+                    style: GoogleFonts.publicSans(
                       fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xFF0B1220),
-                    ),
+                    ).copyWith(fontFeatures: const [ui.FontFeature.tabularFigures()]),
                   ),
                 ),
             ],
