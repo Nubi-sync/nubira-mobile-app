@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -139,7 +141,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                         ),
                         Text(
                           '₹${NumberFormat('#,##,###').format(totalAmount)}',
-                          style: GoogleFonts.jetBrainsMono(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0B1220)),
+                          style: zigzaHeadingStyle(fontSize: 17, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -204,18 +206,17 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
           children: [
             Text(
               label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5,
+              style: zigzaHeadingStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0B1220),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               sub,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+              style: zigzaBodyStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
                 color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF94A3B8),
               ),
             ),
@@ -301,7 +302,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                     const SizedBox(height: 14),
                     Text(
                       'Reason for Decommissioning:',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                      style: zigzaBodyStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -309,7 +310,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                       maxLines: 2,
                       decoration: InputDecoration(
                         hintText: 'e.g. Closing manufacturing unit...',
-                        hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                        hintStyle: zigzaBodyStyle(fontSize: 12, color: const Color(0xFF94A3B8)),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
@@ -317,12 +318,12 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                       ),
-                      style: GoogleFonts.publicSans(fontSize: 12.5),
+                      style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.headingObsidian),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Type "DELETE" to confirm:',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF475569)),
+                      style: zigzaBodyStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -334,7 +335,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                       },
                       decoration: InputDecoration(
                         hintText: 'DELETE',
-                        hintStyle: GoogleFonts.jetBrainsMono(fontSize: 12, color: const Color(0xFF94A3B8)),
+                        hintStyle: zigzaHeadingStyle(fontSize: 12, color: const Color(0xFF94A3B8)),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
@@ -342,7 +343,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                       ),
-                      style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0B1220)),
+                      style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
@@ -418,11 +419,11 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10,
+                  style: zigzaBodyStyle(
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.8,
+                    color: AppTheme.faintInk,
+                    letterSpacing: 0.4,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -576,17 +577,16 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF0FDFA),
+                                  color: AppTheme.mintSurface,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0x26000000)),
+                                  border: Border.all(color: const Color(0x3314C8B4)),
                                 ),
                                 child: Text(
                                   companyName.toUpperCase(),
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9.5,
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: 0.6,
+                                    letterSpacing: 0.4,
                                   ),
                                 ),
                               ),
@@ -599,25 +599,15 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                                 ),
                                 child: Text(
                                   isSuperAdmin ? 'FACTORY OWNER' : (tenant?.role.toUpperCase() == 'ADMIN' ? 'FACTORY MANAGER' : (tenant?.role.toUpperCase() ?? 'FACTORY MANAGER')),
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: 9.5,
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF047857),
-                                    letterSpacing: 0.6,
+                                    letterSpacing: 0.4,
                                   ),
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Factory organization identity, master admin credentials, and live multi-division subscription entitlement.',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12,
-                              color: const Color(0xFF64748B),
-                              height: 1.35,
-                              fontWeight: FontWeight.w500,
-                            ),
                           ),
                         ],
                       ),

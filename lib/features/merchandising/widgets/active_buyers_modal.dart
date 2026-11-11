@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../providers/merchandising_provider.dart';
 
 class ActiveBuyersModal extends ConsumerWidget {
@@ -45,45 +47,48 @@ class ActiveBuyersModal extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDFA),
+                      color: AppTheme.mintSurface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x26000000)),
+                      border: Border.all(color: const Color(0x3314C8B4)),
                     ),
-                    child: const Icon(Icons.people_outline_rounded, color: Color(0xFF0B1220), size: 20),
+                    child: const Icon(Icons.people_outline_rounded, color: Color(0xFF0F766E), size: 19),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    'Active Buyers (${buyers.length})',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0B1220),
+                  Text.rich(
+                    TextSpan(
+                      style: zigzaHeadingStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Active '),
+                        TextSpan(
+                          text: 'Buyers (${buyers.length})',
+                          style: const TextStyle(color: AppTheme.brandRoyalBlue),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                icon: const Icon(Icons.close_rounded, color: AppTheme.faintInk),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Contracted buyer accounts, allocated volumes, and linked articles.',
-            style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF475569)),
-          ),
-          const Divider(height: 24, color: Color(0xFFF1F5F9)),
+          const Divider(height: 18, color: AppTheme.borderLight),
 
           Expanded(
             child: buyers.isEmpty
                 ? Center(
                     child: Text(
                       'No active buyers contracted yet.',
-                      style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                      style: zigzaBodyStyle(fontSize: 13, color: AppTheme.faintInk),
                     ),
                   )
                 : ListView.separated(
@@ -119,10 +124,10 @@ class ActiveBuyersModal extends ConsumerWidget {
                                         Flexible(
                                           child: Text(
                                             b.buyerName,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: isSelected ? Colors.white : const Color(0xFF0B1220),
+                                            style: zigzaHeadingStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: isSelected ? Colors.white : AppTheme.headingObsidian,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -132,18 +137,18 @@ class ActiveBuyersModal extends ConsumerWidget {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: isSelected ? const Color(0x33FFFFFF) : const Color(0xFFF0FDFA),
+                                              color: isSelected ? const Color(0x33FFFFFF) : AppTheme.mintSurface,
                                               borderRadius: BorderRadius.circular(4),
                                               border: Border.all(
-                                                color: isSelected ? const Color(0x4DFFFFFF) : const Color(0x26000000),
+                                                color: isSelected ? const Color(0x4DFFFFFF) : const Color(0x3314C8B4),
                                               ),
                                             ),
                                             child: Text(
                                               b.linkedArticleNumber!,
-                                              style: GoogleFonts.jetBrainsMono(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: isSelected ? Colors.white : const Color(0xFF0B1220),
+                                              style: zigzaHeadingStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: isSelected ? Colors.white : AppTheme.headingObsidian,
                                               ),
                                             ),
                                           ),
@@ -152,10 +157,10 @@ class ActiveBuyersModal extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${b.contractedVolume.toString()} Pcs • ${b.currency == 'INR' ? '₹' : '\$'}${b.pricePerPiece.toStringAsFixed(2)} / pc',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 11,
-                                        color: isSelected ? const Color(0xCCFFFFFF) : const Color(0xFF475569),
+                                      '${NumberFormat.decimalPattern('en_IN').format(b.contractedVolume)} Pcs • ${b.currency == 'INR' ? '₹' : '\$'}${b.pricePerPiece.toStringAsFixed(2)} / pc',
+                                      style: zigzaBodyStyle(
+                                        fontSize: 11.5,
+                                        color: isSelected ? const Color(0xCCFFFFFF) : AppTheme.bodyInk,
                                       ),
                                     ),
                                   ],

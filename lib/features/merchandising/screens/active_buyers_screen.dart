@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/merchandising_models.dart';
 import '../providers/merchandising_provider.dart';
@@ -142,42 +143,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // =========================================================
-              // 1. BREADCRUMB HIERARCHY TRAIL
-              // =========================================================
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Text(
-                      'Merchandising & Sourcing',
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.faintInk,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      '/',
-                      style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFFCBD5E1)),
-                    ),
-                  ),
-                  Text(
-                    'Active Buyers',
-                    style: GoogleFonts.publicSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.headingObsidian,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // =========================================================
-              // 2. TOP HERO HEADER CARD
+              // 1. TOP HERO HEADER CARD (Dashboard Typography)
               // =========================================================
               Container(
                 padding: const EdgeInsets.all(16),
@@ -197,56 +163,48 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
-                          width: 44,
-                          height: 44,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: AppTheme.mintSurface,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(11),
                             border: Border.all(color: const Color(0x3314C8B4)),
                           ),
                           child: const Icon(
                             Icons.people_outline_rounded,
-                            color: AppTheme.headingObsidian,
-                            size: 22,
+                            color: Color(0xFF0F766E),
+                            size: 20,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Active Buyers & Accounts',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.headingObsidian,
-                                  letterSpacing: -0.3,
-                                ),
+                          child: Text.rich(
+                            TextSpan(
+                              style: zigzaHeadingStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'Contracted buyer order volumes, piece-rate pricing, and tech pack article allocations',
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12,
-                                  color: AppTheme.bodyInk,
-                                  height: 1.3,
+                              children: const [
+                                TextSpan(text: 'Active Buyers '),
+                                TextSpan(
+                                  text: '& Accounts',
+                                  style: TextStyle(color: AppTheme.brandRoyalBlue),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
 
-                    // Controls Row: Refresh Button + Filled "+ Contract new buyer" Button
+                    // Controls Row: Refresh Button + Filled "Contract new buyer" Button
                     Row(
                       children: [
-                        // Square Refresh Button
                         InkWell(
                           onTap: () => ref.read(merchandisingProvider.notifier).fetchMerchandisingData(),
                           borderRadius: BorderRadius.circular(12),
@@ -267,7 +225,6 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                         ),
                         const SizedBox(width: 10),
 
-                        // Filled "+ Contract new buyer" Button (Royal Blue)
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -284,8 +241,12 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                 const Icon(Icons.add_rounded, size: 18),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '+ Contract new buyer',
-                                  style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
+                                  'Contract New Buyer',
+                                  style: zigzaBodyStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -346,11 +307,19 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               // =========================================================
-              // 4. SEARCH BAR & FILTER TABS
+              // 4. BUYER CONTRACTS SECTION HEADER + SEARCH + FILTER TABS
               // =========================================================
+              ZigzaSectionHeader(
+                icon: Icons.assignment_outlined,
+                title: 'Buyer',
+                accent: 'Contracts',
+                badge: '${buyers.length} Total',
+              ),
+              const SizedBox(height: 12),
+
               TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v),
@@ -535,10 +504,10 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                       buyer.buyerName.isNotEmpty
                                           ? buyer.buyerName.substring(0, buyer.buyerName.length >= 2 ? 2 : 1).toUpperCase()
                                           : 'BY',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 12,
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 12.5,
                                         fontWeight: FontWeight.w800,
-                                        color: AppTheme.headingObsidian,
+                                        color: const Color(0xFF0F766E),
                                       ),
                                     ),
                                   ),
@@ -555,10 +524,10 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                           Flexible(
                                             child: Text(
                                               buyer.buyerName,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppTheme.headingObsidian,
+                                              style: zigzaHeadingStyle(
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: -0.2,
                                               ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -567,7 +536,7 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                             const SizedBox(width: 6),
                                             Text(
                                               '• ${buyer.brandName}',
-                                              style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
+                                              style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.bodyInk),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
@@ -576,8 +545,8 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                       const SizedBox(height: 2),
                                       Text(
                                         buyer.buyerCode,
-                                        style: GoogleFonts.jetBrainsMono(
-                                          fontSize: 10.5,
+                                        style: zigzaBodyStyle(
+                                          fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                           color: AppTheme.faintInk,
                                         ),
@@ -597,10 +566,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     ),
                                     child: Text(
                                       buyer.linkedArticleNumber!,
-                                      style: GoogleFonts.jetBrainsMono(
+                                      style: zigzaHeadingStyle(
                                         fontSize: 10.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.headingObsidian,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   )
@@ -614,9 +582,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                                     ),
                                     child: Text(
                                       'Pending Link',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.bold,
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
                                         color: const Color(0xFF92400E),
                                       ),
                                     ),
@@ -659,20 +627,23 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    '${NumberFormat.decimalPattern('en_IN').format(buyer.contractedVolume)} Pcs · $curSym${buyer.pricePerPiece.toStringAsFixed(2)} / pc',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.bodyInk,
+                                  Flexible(
+                                    child: Text(
+                                      '${NumberFormat.decimalPattern('en_IN').format(buyer.contractedVolume)} Pcs · $curSym${buyer.pricePerPiece.toStringAsFixed(2)} / pc',
+                                      style: zigzaBodyStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.bodyInk,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     'Total: $curSym${NumberFormat.decimalPattern('en_IN').format(buyer.totalContractValue.round())}',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.headingObsidian,
+                                    style: zigzaHeadingStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 ],
@@ -781,11 +752,11 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
           const SizedBox(height: 10),
           Text(
             label,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 9.5,
-              fontWeight: FontWeight.bold,
+            style: zigzaBodyStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
               color: AppTheme.faintInk,
-              letterSpacing: 0.3,
+              letterSpacing: 0.4,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -796,16 +767,15 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
             overflow: TextOverflow.ellipsis,
             text: TextSpan(
               text: value,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 16,
+              style: zigzaHeadingStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.headingObsidian,
               ),
               children: unit != null
                   ? [
                       TextSpan(
                         text: ' $unit',
-                        style: GoogleFonts.publicSans(
+                        style: zigzaBodyStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.bodyInk,
@@ -839,9 +809,9 @@ class _ActiveBuyersScreenState extends ConsumerState<ActiveBuyersScreen> {
         ),
         child: Text(
           label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+          style: zigzaBodyStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
             color: isSelected ? AppTheme.headingObsidian : AppTheme.bodyInk,
           ),
         ),
@@ -1011,22 +981,13 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                       child: const Icon(Icons.apartment_rounded, color: AppTheme.headingObsidian, size: 20),
                     ),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Contract New Active Buyer',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.headingObsidian,
-                          ),
-                        ),
-                        Text(
-                          'Record volume, unit rate, and contract terms',
-                          style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
-                        ),
-                      ],
+                    Text(
+                      'Contract New Active Buyer',
+                      style: zigzaHeadingStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ],
                 ),
@@ -1160,18 +1121,18 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
                         children: [
                           Text(
                             'ESTIMATED TOTAL CONTRACT VALUE',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                            style: zigzaBodyStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
                               color: AppTheme.faintInk,
+                              letterSpacing: 0.3,
                             ),
                           ),
                           Text(
                             '$curSym${NumberFormat.decimalPattern('en_IN').format(calcTotal.round())}',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 13,
+                            style: zigzaHeadingStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.headingObsidian,
                             ),
                           ),
                         ],
@@ -1256,9 +1217,9 @@ class _CreateBuyerBottomSheetState extends ConsumerState<_CreateBuyerBottomSheet
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
-        style: GoogleFonts.jetBrainsMono(
-          fontSize: 9.5,
-          fontWeight: FontWeight.bold,
+        style: zigzaBodyStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
           color: AppTheme.faintInk,
           letterSpacing: 0.3,
         ),
@@ -1385,15 +1346,15 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                     children: [
                       Text(
                         'Link Tech Pack Article',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: zigzaHeadingStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.headingObsidian,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       Text(
                         'Allocate article to ${widget.buyer.buyerName}',
-                        style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
+                        style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.bodyInk),
                       ),
                     ],
                   ),
@@ -1455,16 +1416,15 @@ class _LinkArticleBottomSheetState extends ConsumerState<_LinkArticleBottomSheet
                                   children: [
                                     Text(
                                       art.styleNumber,
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.headingObsidian,
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       '${art.category} • ${art.fabricComposition}',
-                                      style: GoogleFonts.publicSans(fontSize: 11, color: AppTheme.bodyInk),
+                                      style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.bodyInk),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1572,17 +1532,17 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         children: [
                           Text(
                             buyer.buyerName,
-                            style: GoogleFonts.plusJakartaSans(
+                            style: zigzaHeadingStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.headingObsidian,
+                              letterSpacing: -0.2,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             'Ref: ${buyer.buyerCode} • ${buyer.brandName ?? "Direct Buyer"}',
-                            style: GoogleFonts.jetBrainsMono(fontSize: 10.5, color: AppTheme.faintInk),
+                            style: zigzaBodyStyle(fontSize: 11, color: AppTheme.faintInk),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1650,10 +1610,11 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 'ALLOCATED TECH PACK ARTICLE',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                style: zigzaBodyStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
                                   color: AppTheme.faintInk,
+                                  letterSpacing: 0.3,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1669,9 +1630,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                               ),
                               child: Text(
                                 isLinked ? 'Active' : 'Action Required',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
+                                style: zigzaHeadingStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                   color: isLinked ? AppTheme.headingObsidian : const Color(0xFF92400E),
                                 ),
                               ),
@@ -1688,10 +1649,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                                   children: [
                                     Text(
                                       buyer.linkedArticleNumber!,
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.headingObsidian,
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -1699,7 +1659,7 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                                     if (buyer.linkedArticleName != null)
                                       Text(
                                         buyer.linkedArticleName!,
-                                        style: GoogleFonts.publicSans(fontSize: 11.5, color: AppTheme.bodyInk),
+                                        style: zigzaBodyStyle(fontSize: 12, color: AppTheme.bodyInk),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -1752,10 +1712,11 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                       children: [
                         Text(
                           'COMMERCIAL & CONTACT TERMS',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          style: zigzaBodyStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
                             color: AppTheme.faintInk,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -1765,7 +1726,42 @@ class _ViewContractBottomSheet extends ConsumerWidget {
                         _buildDetailRow('Contact Email', buyer.contactEmail ?? '-'),
                         _buildDetailRow('Target Season', buyer.targetSeason ?? 'AW26'),
                         _buildDetailRow('Contract Status', buyer.status),
-                        if (buyer.notes != null) _buildDetailRow('Notes', buyer.notes!),
+                        if (buyer.notes != null && buyer.notes!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'CONTRACT BRIEFING & SPECIAL TERMS',
+                                  style: zigzaBodyStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.faintInk,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  buyer.notes!,
+                                  style: zigzaBodyStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.headingObsidian,
+                                    height: 1.45,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1786,7 +1782,11 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Close Contract View',
-              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
+              style: zigzaBodyStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.headingObsidian,
+              ),
             ),
           ),
         ],
@@ -1807,10 +1807,11 @@ class _ViewContractBottomSheet extends ConsumerWidget {
         children: [
           Text(
             title,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 8.5,
-              fontWeight: FontWeight.bold,
+            style: zigzaBodyStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
               color: AppTheme.faintInk,
+              letterSpacing: 0.2,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1821,10 +1822,9 @@ class _ViewContractBottomSheet extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               val,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 13,
+              style: zigzaHeadingStyle(
+                fontSize: 13.5,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.headingObsidian,
               ),
               maxLines: 1,
             ),
@@ -1842,13 +1842,13 @@ class _ViewContractBottomSheet extends ConsumerWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.publicSans(fontSize: 12, color: AppTheme.bodyInk),
+            style: zigzaBodyStyle(fontSize: 12, color: AppTheme.bodyInk),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               value,
-              style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.headingObsidian),
+              style: zigzaHeadingStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
