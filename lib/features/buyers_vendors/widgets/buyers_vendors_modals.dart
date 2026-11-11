@@ -313,7 +313,7 @@ class _ArticleContractDetailSheetState extends State<_ArticleContractDetailSheet
             const Divider(height: 1, color: AppTheme.borderLight),
 
             // Scrollable Tab Body
-            Expanded(
+            Flexible(
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),

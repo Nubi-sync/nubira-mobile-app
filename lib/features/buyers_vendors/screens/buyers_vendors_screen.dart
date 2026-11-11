@@ -398,7 +398,7 @@ class _BuyersVendorsScreenState extends ConsumerState<BuyersVendorsScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.85,
+      childAspectRatio: 1.68,
       children: [
         _buildKpiTile(
           label: 'TOTAL BUYERS',

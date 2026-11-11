@@ -423,3 +423,4 @@ class BuyersVendorsSummary {
     this.totalModulesCount = 12,
   });
 }
+
