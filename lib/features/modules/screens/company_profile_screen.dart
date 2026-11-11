@@ -637,80 +637,11 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDFA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0x26000000)),
-                      ),
-                      child: const Icon(Icons.credit_card_rounded, color: Color(0xFF0B1220), size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Active Subscription &\n',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'License Status',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1D4ED8),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              isTrial ? '7-DAY TRIAL' : 'ACTIVE PLAN',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0B1220),
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'License entitlement, validity cycle, and operational module coverage for $companyName',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12,
-                              color: const Color(0xFF64748B),
-                              height: 1.35,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                ZigzaSectionHeader(
+                  icon: Icons.credit_card_rounded,
+                  title: 'Subscription &',
+                  accent: 'License',
+                  badge: isTrial ? '7-DAY TRIAL' : 'ACTIVE PLAN',
                 ),
                 const SizedBox(height: 14),
 
@@ -799,65 +730,51 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                       child: Center(
                         child: Text(
                           initials,
-                          style: GoogleFonts.jetBrainsMono(
+                          style: zigzaHeadingStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             color: Colors.white,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.4,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                adminName,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0B1220),
-                                ),
+                          Flexible(
+                            child: Text(
+                              adminName,
+                              style: zigzaHeadingStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF0FDFA),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0xFF14C8B4).withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.shield_outlined, size: 12, color: Color(0xFF0B1220)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'SUPER ADMIN',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF0B1220),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Primary factory administrator credentials and master root account holder',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12,
-                              color: const Color(0xFF64748B),
-                              height: 1.35,
-                              fontWeight: FontWeight.w500,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.mintSurface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0x3314C8B4)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.shield_outlined, size: 12, color: Color(0xFF0F766E)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'SUPER ADMIN',
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -911,96 +828,39 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFECDD3)),
-                      ),
-                      child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFE11D48), size: 22),
+                ZigzaSectionHeader(
+                  icon: Icons.warning_amber_rounded,
+                  title: 'Danger Zone:',
+                  accent: 'Decommission',
+                  badge: 'IRREVERSIBLE',
+                  iconColor: const Color(0xFFE11D48),
+                  iconBgColor: const Color(0xFFFFF1F2),
+                  accentColor: const Color(0xFFE11D48),
+                ),
+                const SizedBox(height: 10),
+                RichText(
+                  text: TextSpan(
+                    style: zigzaBodyStyle(
+                      fontSize: 12.5,
+                      color: AppTheme.bodyInk,
+                      height: 1.4,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Danger Zone: ',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0B1220),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Account Decommission',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFFE11D48),
-                                    letterSpacing: -0.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF1F2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFFFECDD3)),
-                            ),
-                            child: Text(
-                              'IRREVERSIBLE',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFBE123C),
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          RichText(
-                            text: TextSpan(
-                              style: GoogleFonts.publicSans(
-                                fontSize: 12,
-                                color: const Color(0xFF64748B),
-                                height: 1.35,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              children: [
-                                const TextSpan(
-                                  text: 'Need to decommission or close this company account? Submit an official deletion request. Our administration desk at ',
-                                ),
-                                TextSpan(
-                                  text: 'support@zigza.in',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0B1220),
-                                  ),
-                                ),
-                                const TextSpan(
-                                  text: ' will verify your company credentials and securely archive all production records.',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    children: [
+                      const TextSpan(
+                        text: 'Need to decommission or close this company account? Submit an official deletion request. Our administration desk at ',
                       ),
-                    ),
-                  ],
+                      TextSpan(
+                        text: 'support@zigza.in',
+                        style: zigzaHeadingStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: ' will verify your company credentials and securely archive all production records.',
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 14),
 
