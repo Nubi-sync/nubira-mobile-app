@@ -701,29 +701,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
+  (Color, String) _strengthStyle(int score) {
+    return switch (score) {
+      2 => (const Color(0xFFD97706), 'Fair'),
+      3 => (const Color(0xFF2563EB), 'Good'),
+      4 => (const Color(0xFF059669), 'Strong'),
+      _ => (const Color(0xFFE11D48), 'Too Short'),
+    };
+  }
+
   // ----------------------------------------------------------------------
   // STEP 1: ACCOUNT SETUP (Exact Welcome Back Styling)
   // ----------------------------------------------------------------------
-  Widget _buildStep1AccountSetup(bool isKeyboardOpen) {
-    final password = _passwordController.text;
-    final confirmPassword = _confirmPasswordController.text;
-    final strengthScore = _calculateStrengthScore(password);
-    final recommendationTip = _get5WordRecommendation(password);
-    final passwordsMatch = confirmPassword.isNotEmpty && password == confirmPassword;
-
-    Color strengthColor = const Color(0xFFE11D48);
-    String strengthText = 'Too Short';
-    if (strengthScore == 2) {
-      strengthColor = const Color(0xFFD97706);
-      strengthText = 'Fair';
-    } else if (strengthScore == 3) {
-      strengthColor = const Color(0xFF2563EB);
-      strengthText = 'Good';
-    } else if (strengthScore == 4) {
-      strengthColor = const Color(0xFF059669);
-      strengthText = 'Strong';
-    }
-
+  Widget _buildStep1AccountSetup() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -780,7 +770,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             },
           ),
         ),
-        SizedBox(height: isKeyboardOpen ? 8 : 14),
+        const SizedBox(height: 14),
 
         // 2. MOBILE NUMBER
         Row(
@@ -1181,7 +1171,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 8 : 14),
+        const SizedBox(height: 14),
 
         // 3. WORK EMAIL
         Row(
@@ -1296,7 +1286,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 8 : 14),
+        const SizedBox(height: 14),
 
         // 4. PASSWORD
         Row(
@@ -1405,7 +1395,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
         ],
-        SizedBox(height: isKeyboardOpen ? 8 : 14),
+        const SizedBox(height: 14),
 
         // 5. CONFIRM PASSWORD
         Row(

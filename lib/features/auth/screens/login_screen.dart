@@ -1320,7 +1320,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ],
-                          SizedBox(height: isKeyboardOpen ? 8 : 14),
+                          const SizedBox(height: 14),
 
                           // --- 6. REMEMBER ME & FORGOT PASSWORD ROW ---
                           Row(
