@@ -1,5 +1,9 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -108,46 +112,137 @@ class StateGeoData {
 }
 
 final Map<String, StateGeoData> _geoCache = {};
+final Map<String, ui.Image> _geoRasterCache = {};
+final Set<String> _pendingRasterKeys = {};
 
-Path parseSvgPath(String d) {
-  final path = Path();
-  final regExp = RegExp(r'([MLZmlz])([^MLZmlz]*)');
-  final matches = regExp.allMatches(d);
+final RegExp _svgCmdRegex = RegExp(r'([MLZmlz])([^MLZmlz]*)');
+final RegExp _svgSepRegex = RegExp(r'[\s,]+');
 
-  for (final match in matches) {
+class _SvgCommand {
+  final int type; // 0 = M, 1 = L, 2 = Z
+  final Float64List coords;
+
+  const _SvgCommand(this.type, this.coords);
+}
+
+class _ParsedDistrict {
+  final String name;
+  final List<_SvgCommand> commands;
+
+  const _ParsedDistrict(this.name, this.commands);
+}
+
+class _ParsedGeoPayload {
+  final String state;
+  final String slug;
+  final double width;
+  final double height;
+  final double minLon;
+  final double maxLon;
+  final double minLat;
+  final double maxLat;
+  final double k;
+  final double scale;
+  final double pad;
+  final List<_ParsedDistrict> districts;
+
+  const _ParsedGeoPayload({
+    required this.state,
+    required this.slug,
+    required this.width,
+    required this.height,
+    required this.minLon,
+    required this.maxLon,
+    required this.minLat,
+    required this.maxLat,
+    required this.k,
+    required this.scale,
+    required this.pad,
+    required this.districts,
+  });
+}
+
+List<_SvgCommand> _parseSvgCommands(String d) {
+  final commands = <_SvgCommand>[];
+  for (final match in _svgCmdRegex.allMatches(d)) {
     final cmd = match.group(1);
-    final argsStr = match.group(2)?.trim() ?? '';
-
     if (cmd == 'Z' || cmd == 'z') {
-      path.close();
+      commands.add(_SvgCommand(2, Float64List(0)));
       continue;
     }
 
+    final argsStr = match.group(2)?.trim() ?? '';
     if (argsStr.isEmpty) continue;
 
-    final rawNumbers = argsStr.split(RegExp(r'[\s,]+'));
+    final rawNumbers = argsStr.split(_svgSepRegex);
     final numbers = <double>[];
     for (final s in rawNumbers) {
       final n = double.tryParse(s);
       if (n != null) numbers.add(n);
     }
+    if (numbers.isEmpty) continue;
 
-    if (cmd == 'M' || cmd == 'm') {
-      if (numbers.length >= 2) {
-        path.moveTo(numbers[0], numbers[1]);
-        for (int i = 2; i + 1 < numbers.length; i += 2) {
-          path.lineTo(numbers[i], numbers[i + 1]);
+    final type = (cmd == 'M' || cmd == 'm') ? 0 : 1;
+    commands.add(_SvgCommand(type, Float64List.fromList(numbers)));
+  }
+  return commands;
+}
+
+Path _buildPathFromCommands(List<_SvgCommand> commands) {
+  final path = Path();
+  for (final cmd in commands) {
+    if (cmd.type == 2) {
+      path.close();
+      continue;
+    }
+    final coords = cmd.coords;
+    if (cmd.type == 0) {
+      if (coords.length >= 2) {
+        path.moveTo(coords[0], coords[1]);
+        for (int i = 2; i + 1 < coords.length; i += 2) {
+          path.lineTo(coords[i], coords[i + 1]);
         }
       }
-    } else if (cmd == 'L' || cmd == 'l') {
-      for (int i = 0; i + 1 < numbers.length; i += 2) {
-        path.lineTo(numbers[i], numbers[i + 1]);
+    } else {
+      for (int i = 0; i + 1 < coords.length; i += 2) {
+        path.lineTo(coords[i], coords[i + 1]);
       }
     }
   }
-
   return path;
 }
+
+_ParsedGeoPayload _parseGeoJsonPayload(String jsonStr, String fallbackSlug) {
+  final Map<String, dynamic> data = jsonDecode(jsonStr) as Map<String, dynamic>;
+  final bounds = data['bounds'] as Map<String, dynamic>? ?? {};
+  final rawDistricts = (data['districts'] as List<dynamic>?) ?? [];
+  final parsedDistricts = <_ParsedDistrict>[];
+
+  for (final item in rawDistricts) {
+    final name = item['name']?.toString() ?? '';
+    final d = item['d']?.toString() ?? '';
+    if (d.isNotEmpty) {
+      parsedDistricts.add(_ParsedDistrict(name, _parseSvgCommands(d)));
+    }
+  }
+
+  return _ParsedGeoPayload(
+    state: data['state']?.toString() ?? 'Delhi',
+    slug: data['slug']?.toString() ?? fallbackSlug,
+    width: (data['width'] as num?)?.toDouble() ?? 933,
+    height: (data['height'] as num?)?.toDouble() ?? 1000,
+    minLon: (bounds['minLon'] as num?)?.toDouble() ?? 76.838,
+    maxLon: (bounds['maxLon'] as num?)?.toDouble() ?? 77.347,
+    minLat: (bounds['minLat'] as num?)?.toDouble() ?? 28.404,
+    maxLat: (bounds['maxLat'] as num?)?.toDouble() ?? 28.883,
+    k: (data['k'] as num?)?.toDouble() ?? 0.877,
+    scale: (data['scale'] as num?)?.toDouble() ?? 2036.5,
+    pad: (data['pad'] as num?)?.toDouble() ?? 12,
+    districts: parsedDistricts,
+  );
+}
+
+Path parseSvgPath(String d) => _buildPathFromCommands(_parseSvgCommands(d));
 
 class IndianStateVectorMapWidget extends StatefulWidget {
   final String stateName;
@@ -212,35 +307,31 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
 
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
-        final Map<String, dynamic> data = jsonDecode(jsonStr);
-        final bounds = data['bounds'] as Map<String, dynamic>? ?? {};
+        final rawJson = jsonStr;
+        final parsed = kIsWeb
+            ? _parseGeoJsonPayload(rawJson, slug)
+            : await Isolate.run(() => _parseGeoJsonPayload(rawJson, slug));
 
-        final rawDistricts = (data['districts'] as List<dynamic>?) ?? [];
-        final parsedDistricts = <StateDistrictData>[];
-
-        for (final item in rawDistricts) {
-          final name = item['name']?.toString() ?? '';
-          final d = item['d']?.toString() ?? '';
-          if (d.isNotEmpty) {
-            parsedDistricts.add(StateDistrictData(
-              name: name,
-              path: parseSvgPath(d),
-            ));
-          }
-        }
+        final parsedDistricts = <StateDistrictData>[
+          for (final item in parsed.districts)
+            StateDistrictData(
+              name: item.name,
+              path: _buildPathFromCommands(item.commands),
+            ),
+        ];
 
         final parsedGeo = StateGeoData(
-          state: data['state']?.toString() ?? 'Delhi',
-          slug: data['slug']?.toString() ?? slug,
-          width: (data['width'] as num?)?.toDouble() ?? 933,
-          height: (data['height'] as num?)?.toDouble() ?? 1000,
-          minLon: (bounds['minLon'] as num?)?.toDouble() ?? 76.838,
-          maxLon: (bounds['maxLon'] as num?)?.toDouble() ?? 77.347,
-          minLat: (bounds['minLat'] as num?)?.toDouble() ?? 28.404,
-          maxLat: (bounds['maxLat'] as num?)?.toDouble() ?? 28.883,
-          k: (data['k'] as num?)?.toDouble() ?? 0.877,
-          scale: (data['scale'] as num?)?.toDouble() ?? 2036.5,
-          pad: (data['pad'] as num?)?.toDouble() ?? 12,
+          state: parsed.state,
+          slug: parsed.slug,
+          width: parsed.width,
+          height: parsed.height,
+          minLon: parsed.minLon,
+          maxLon: parsed.maxLon,
+          minLat: parsed.minLat,
+          maxLat: parsed.maxLat,
+          k: parsed.k,
+          scale: parsed.scale,
+          pad: parsed.pad,
           districts: parsedDistricts,
         );
 
@@ -261,6 +352,44 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
     if (mounted) {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _ensureRasterized(StateGeoData geo, Size logicalSize, double dpr, String cacheKey) {
+    if (_geoRasterCache.containsKey(cacheKey) || _pendingRasterKeys.contains(cacheKey)) {
+      return;
+    }
+    if (logicalSize.width <= 0 || logicalSize.height <= 0) return;
+
+    _pendingRasterKeys.add(cacheKey);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final pixelW = math.max(1, (logicalSize.width * dpr).round());
+        final pixelH = math.max(1, (logicalSize.height * dpr).round());
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        canvas.scale(dpr, dpr);
+        _paintDistrictLayers(canvas, logicalSize, geo);
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(pixelW, pixelH);
+        picture.dispose();
+
+        if (_geoRasterCache.length >= 4) {
+          final oldestKey = _geoRasterCache.keys.first;
+          final evicted = _geoRasterCache.remove(oldestKey);
+          if (evicted != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => evicted.dispose());
+          }
+        }
+        _geoRasterCache[cacheKey] = image;
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        debugPrint('[IndianStateVectorMap] Raster cache error: $e');
+      } finally {
+        _pendingRasterKeys.remove(cacheKey);
+      }
+    });
   }
 
   Offset? _calculatePin(StateGeoData geo) {
@@ -373,12 +502,31 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
                     child: CircularProgressIndicator(color: Color(0xFF0B1220), strokeWidth: 2),
                   )
                 : (_geo != null
-                    ? CustomPaint(
-                        size: const Size(double.infinity, 340),
-                        painter: StateVectorMapPainter(
-                          geo: _geo!,
-                          pin: _calculatePin(_geo!),
-                        ),
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+                              ? constraints.maxWidth
+                              : 320.0;
+                          const height = 340.0;
+                          final dpr = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 3.0);
+                          final cacheKey = '${_geo!.slug}_${width.round()}x340_${dpr.toStringAsFixed(2)}';
+                          final cachedImage = _geoRasterCache[cacheKey];
+                          if (cachedImage == null) {
+                            _ensureRasterized(_geo!, Size(width, height), dpr, cacheKey);
+                          }
+                          return RepaintBoundary(
+                            child: CustomPaint(
+                              size: Size(width, height),
+                              isComplex: true,
+                              willChange: false,
+                              painter: StateVectorMapPainter(
+                                geo: _geo!,
+                                pin: _calculatePin(_geo!),
+                                cachedImage: cachedImage,
+                              ),
+                            ),
+                          );
+                        },
                       )
                     : Center(
                         child: Text(
@@ -393,55 +541,81 @@ class _IndianStateVectorMapWidgetState extends State<IndianStateVectorMapWidget>
   }
 }
 
+({double scale, double offsetX, double offsetY}) _computeMapTransform(Size size, StateGeoData geo) {
+  final scaleX = size.width / geo.width;
+  final scaleY = size.height / geo.height;
+  final scale = math.min(scaleX, scaleY);
+  return (
+    scale: scale,
+    offsetX: (size.width - geo.width * scale) / 2,
+    offsetY: (size.height - geo.height * scale) / 2,
+  );
+}
+
+void _paintDistrictLayers(Canvas canvas, Size size, StateGeoData geo) {
+  if (geo.width <= 0 || geo.height <= 0) return;
+
+  final t = _computeMapTransform(size, geo);
+  canvas.save();
+  canvas.translate(t.offsetX, t.offsetY);
+  canvas.scale(t.scale, t.scale);
+
+  // Layer 1: thick black stroke for outer boundary
+  final outerBorderPaint = Paint()
+    ..color = const Color(0xFF0B1220)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3.2 / t.scale
+    ..strokeJoin = StrokeJoin.round;
+
+  for (final d in geo.districts) {
+    canvas.drawPath(d.path, outerBorderPaint);
+  }
+
+  // Layer 2: district white fill + thin internal political boundaries
+  final fillPaint = Paint()
+    ..color = Colors.white
+    ..style = PaintingStyle.fill;
+
+  final innerBorderPaint = Paint()
+    ..color = const Color(0xFF64748B)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.7 / t.scale
+    ..strokeJoin = StrokeJoin.round;
+
+  for (final d in geo.districts) {
+    canvas.drawPath(d.path, fillPaint);
+    canvas.drawPath(d.path, innerBorderPaint);
+  }
+
+  canvas.restore();
+}
+
 class StateVectorMapPainter extends CustomPainter {
   final StateGeoData geo;
   final Offset? pin;
+  final ui.Image? cachedImage;
 
-  StateVectorMapPainter({required this.geo, this.pin});
+  StateVectorMapPainter({required this.geo, this.pin, this.cachedImage});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (geo.width <= 0 || geo.height <= 0) return;
 
-    final scaleX = size.width / geo.width;
-    final scaleY = size.height / geo.height;
-    final scale = math.min(scaleX, scaleY);
-    final offsetX = (size.width - geo.width * scale) / 2;
-    final offsetY = (size.height - geo.height * scale) / 2;
-
-    canvas.save();
-    canvas.translate(offsetX, offsetY);
-    canvas.scale(scale, scale);
-
-    // Layer 1: thick black stroke for outer boundary
-    final outerBorderPaint = Paint()
-      ..color = const Color(0xFF0B1220)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.2 / scale
-      ..strokeJoin = StrokeJoin.round;
-
-    for (final d in geo.districts) {
-      canvas.drawPath(d.path, outerBorderPaint);
-    }
-
-    // Layer 2: district white fill + thin internal political boundaries
-    final fillPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final innerBorderPaint = Paint()
-      ..color = const Color(0xFF64748B)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7 / scale
-      ..strokeJoin = StrokeJoin.round;
-
-    for (final d in geo.districts) {
-      canvas.drawPath(d.path, fillPaint);
-      canvas.drawPath(d.path, innerBorderPaint);
+    if (cachedImage != null) {
+      final src = Rect.fromLTWH(0, 0, cachedImage!.width.toDouble(), cachedImage!.height.toDouble());
+      final dst = Offset.zero & size;
+      canvas.drawImageRect(cachedImage!, src, dst, Paint()..filterQuality = FilterQuality.low);
+    } else {
+      _paintDistrictLayers(canvas, size, geo);
     }
 
     // Layer 3: Location pin (deep blue with crisp white border)
     if (pin != null) {
+      final t = _computeMapTransform(size, geo);
+      canvas.save();
+      canvas.translate(t.offsetX, t.offsetY);
+      canvas.scale(t.scale, t.scale);
+
       final pinRadius = math.max(geo.width, geo.height) / 95;
       canvas.drawCircle(
         pin!,
@@ -456,16 +630,17 @@ class StateVectorMapPainter extends CustomPainter {
         Paint()
           ..color = Colors.white
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0 / scale,
+          ..strokeWidth = 2.0 / t.scale,
       );
+      canvas.restore();
     }
-
-    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant StateVectorMapPainter oldDelegate) {
-    return oldDelegate.geo != geo || oldDelegate.pin != pin;
+    return oldDelegate.geo != geo ||
+        oldDelegate.pin != pin ||
+        oldDelegate.cachedImage != cachedImage;
   }
 }
 

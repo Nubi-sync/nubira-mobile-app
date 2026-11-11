@@ -31,9 +31,6 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
   int _articlesPage = 1;
   int _ordersPage = 1;
   static const int _itemsPerPage = 5;
-  String? _selectedHeatmapInfo;
-  bool _selectedHeatmapIsActive = false;
-  int _selectedHeatmapLogins = 0;
 
   String _format(num? val) {
     if (val == null) return '0';
@@ -199,60 +196,59 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
         .take(_itemsPerPage)
         .toList();
 
+    final sections = <Widget Function()>[
+      // 1. Header Card (with Article Filter Dropdown + Actions)
+      () => _buildHeaderCard(context, data),
+
+      // 2. Solo Article Active Banner (only in Solo mode)
+      if (isSoloMode && selectedArticle != null)
+        () => _buildSoloArticleBanner(selectedArticle),
+
+      // 3. Section 1: Factory Pulse (6 KPI Cards — dynamic)
+      () => _buildStatGrid(effectivePulse, isSoloMode),
+
+      // 4. Section 2: Live Production Flow Card (7 Stages — dynamic)
+      () => _buildLiveProductionFlowCard(effectivePipeline, isSoloMode, selectedArticle),
+
+      // 5. Section 3A: Daily Output (7-Day Trend) Card
+      () => _buildDailyOutputTrendCard(data.outputTrend, data.dailyAverage, isSoloMode, selectedArticle),
+
+      // 6. Section 3B: Quality Control Rate Card
+      () => _buildQualityControlCard(data.qc, isSoloMode, selectedArticle),
+
+      // 7. Section 4: Technical Tech-Pack & Production Specs (ONLY in Solo mode)
+      if (isSoloMode && selectedArticle != null)
+        () => _buildTechnicalTechPackSpecsCard(context, selectedArticle),
+
+      // 8. Section 5: Buyer Purchase Orders & Fulfillment (Paginated 5 per page)
+      () => _buildBuyerOrdersCard(context, effectiveOrders, paginatedOrders, currentOrdersPage, totalOrderPages, isSoloMode),
+
+      // 9. Section 6: Company Articles & Styles Directory (Paginated 5 per page)
+      () => _buildArticlesDirectoryCard(data.articlesCatalog, paginatedArticles, currentArticlesPage, totalArticlePages),
+
+      // 10. Portal Usage & Login Location Section (Weekly 24x7 Heatmap + Verified Location)
+      if (data.loginActivity != null)
+        () => _buildPortalUsageAndLocationSection(context, data.loginActivity),
+
+      // 11. Section 7: Division Heartbeat Section
+      () => _buildDivisionHeartbeatSection(context, data.divisionHeartbeat),
+    ];
+
     return RefreshIndicator(
       color: const Color(0xFF0B1220),
       onRefresh: () => ref.read(plantOperationsDashboardProvider.notifier).fetchData(),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        children: [
-          // 1. Header Card (with Article Filter Dropdown + Actions)
-          _buildHeaderCard(context, data),
-          const SizedBox(height: 14),
-
-          // 2. Solo Article Active Banner (only in Solo mode)
-          if (isSoloMode && selectedArticle != null) ...[
-            _buildSoloArticleBanner(selectedArticle),
-            const SizedBox(height: 14),
-          ],
-
-          // 3. Section 1: Factory Pulse (6 KPI Cards — dynamic)
-          _buildStatGrid(effectivePulse, isSoloMode),
-          const SizedBox(height: 14),
-
-          // 4. Section 2: Live Production Flow Card (7 Stages — dynamic)
-          _buildLiveProductionFlowCard(effectivePipeline, isSoloMode, selectedArticle),
-          const SizedBox(height: 14),
-
-          // 5. Section 3A: Daily Output (7-Day Trend) Card
-          _buildDailyOutputTrendCard(data.outputTrend, data.dailyAverage, isSoloMode, selectedArticle),
-          const SizedBox(height: 14),
-
-          // 6. Section 3B: Quality Control Rate Card
-          _buildQualityControlCard(data.qc, isSoloMode, selectedArticle),
-          const SizedBox(height: 14),
-
-          // 7. Section 4: Technical Tech-Pack & Production Specs (ONLY in Solo mode)
-          if (isSoloMode && selectedArticle != null) ...[
-            _buildTechnicalTechPackSpecsCard(context, selectedArticle),
-            const SizedBox(height: 14),
-          ],
-
-          // 8. Section 5: Buyer Purchase Orders & Fulfillment (Paginated 5 per page)
-          _buildBuyerOrdersCard(context, effectiveOrders, paginatedOrders, currentOrdersPage, totalOrderPages, isSoloMode),
-          const SizedBox(height: 14),
-
-          // 9. Section 6: Company Articles & Styles Directory (Paginated 5 per page)
-          _buildArticlesDirectoryCard(data.articlesCatalog, paginatedArticles, currentArticlesPage, totalArticlePages),
-          const SizedBox(height: 14),
-
-          // 10. Portal Usage & Login Location Section (Weekly 24x7 Heatmap + Verified Location)
-          _buildPortalUsageAndLocationSection(context, data.loginActivity),
-          const SizedBox(height: 14),
-
-          // 11. Section 7: Division Heartbeat Section
-          _buildDivisionHeartbeatSection(context, data.divisionHeartbeat),
-          const SizedBox(height: 28),
-        ],
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        cacheExtent: 600,
+        padding: const EdgeInsets.fromLTRB(14, 16, 14, 28),
+        itemCount: sections.length,
+        itemBuilder: (context, index) {
+          final isLast = index == sections.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 14),
+            child: sections[index](),
+          );
+        },
       ),
     );
   }
@@ -604,18 +600,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
       {'label': 'DISPATCHED', 'value': _format(pulse.dispatchedPieces)},
     ];
 
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: 6,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 2.1,
-      ),
-      itemBuilder: (context, index) {
-        final s = stats[index];
+    return _buildTwoColumnGrid(
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 2.1,
+      items: stats.map((s) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -650,7 +639,40 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             ],
           ),
         );
-      },
+      }).toList(),
+    );
+  }
+
+  Widget _buildTwoColumnGrid({
+    required List<Widget> items,
+    double crossAxisSpacing = 10,
+    double mainAxisSpacing = 10,
+    double childAspectRatio = 2.0,
+  }) {
+    final rows = <Widget>[];
+    for (int i = 0; i < items.length; i += 2) {
+      if (i > 0) rows.add(SizedBox(height: mainAxisSpacing));
+      final left = items[i];
+      final right = i + 1 < items.length ? items[i + 1] : null;
+      rows.add(
+        Row(
+          children: [
+            Expanded(
+              child: AspectRatio(aspectRatio: childAspectRatio, child: left),
+            ),
+            SizedBox(width: crossAxisSpacing),
+            Expanded(
+              child: right != null
+                  ? AspectRatio(aspectRatio: childAspectRatio, child: right)
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: rows,
     );
   }
 
@@ -737,9 +759,11 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
             ],
           ),
           const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          RepaintBoundary(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
               children: pipeline.asMap().entries.map((entry) {
                 final idx = entry.key;
                 final stage = entry.value;
@@ -796,6 +820,7 @@ class _PlantOperationsDashboardScreenState extends ConsumerState<PlantOperations
                   ],
                 );
               }).toList(),
+            ),
             ),
           ),
         ],
