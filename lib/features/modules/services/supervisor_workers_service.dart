@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ProductionManagerItem {
@@ -270,6 +271,7 @@ class FloorWorkerItem {
   final String phone;
   final String departmentRoute;
   final String role;
+  final String shift;
   final String status;
 
   const FloorWorkerItem({
@@ -278,9 +280,99 @@ class FloorWorkerItem {
     required this.phone,
     required this.departmentRoute,
     required this.role,
+    this.shift = 'General',
     required this.status,
   });
+
+  FloorWorkerItem copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? departmentRoute,
+    String? role,
+    String? shift,
+    String? status,
+  }) {
+    return FloorWorkerItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      departmentRoute: departmentRoute ?? this.departmentRoute,
+      role: role ?? this.role,
+      shift: shift ?? this.shift,
+      status: status ?? this.status,
+    );
+  }
 }
+
+class _DivisionWorkerConfig {
+  final String table;
+  final String roleField;
+  final String nameField;
+  final String phoneField;
+  final String defaultRole;
+
+  const _DivisionWorkerConfig({
+    required this.table,
+    required this.roleField,
+    required this.nameField,
+    required this.phoneField,
+    required this.defaultRole,
+  });
+}
+
+// Strictly matches Web Admin DIVISION_WORKER_MAP in access-control/actions.ts
+const Map<String, _DivisionWorkerConfig> _kDivisionWorkerMap = {
+  '/cutting': _DivisionWorkerConfig(
+    table: 'cutting_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Knife Cutter',
+  ),
+  '/stitching-sewing': _DivisionWorkerConfig(
+    table: 'stitching_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Tailor',
+  ),
+  '/printing': _DivisionWorkerConfig(
+    table: 'printing_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Screen Printer',
+  ),
+  '/embroidery': _DivisionWorkerConfig(
+    table: 'embroidery_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Machine Operator',
+  ),
+  '/washing': _DivisionWorkerConfig(
+    table: 'washing_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Washer',
+  ),
+  '/iron': _DivisionWorkerConfig(
+    table: 'iron_workers',
+    roleField: 'role',
+    nameField: 'worker_name',
+    phoneField: 'phone_number',
+    defaultRole: 'Ironer',
+  ),
+  '/design': _DivisionWorkerConfig(
+    table: 'design_team_members',
+    roleField: 'role',
+    nameField: 'name',
+    phoneField: 'phone_number',
+    defaultRole: 'Designer',
+  ),
+};
 
 class SupervisorWorkersState {
   final String companyName;
@@ -356,101 +448,43 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
   Future<void> fetchData() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final authState = ref.read(authProvider);
-      final tenant = authState.tenantProfile;
-      final companyName = tenant?.companyName ?? 'Nubira Creation';
-      final ownerEmail = tenant?.userEmail ?? '';
-
       final client = Supabase.instance.client;
+      final authState = ref.read(authProvider);
+      final currentUser = client.auth.currentUser;
+      final tenant = authState.tenantProfile ??
+          (currentUser != null
+              ? await TenantResolverService.resolveUserTenant(currentUser)
+              : null);
 
-      // 1. Fetch profiles for this company
-      List<dynamic> rawProfiles = [];
-      try {
-        final res = await client
-            .from('profiles')
-            .select('*')
-            .eq('company_name', companyName)
-            .order('created_at', ascending: false);
-        rawProfiles = (res as List<dynamic>?) ?? [];
-      } catch (_) {}
+      final companyName = (tenant?.companyName ?? 'Nubira Creation').trim();
+      final normCompany = companyName.toLowerCase().trim();
+      final ownerEmail = (tenant?.userEmail ?? currentUser?.email ?? '').trim();
+      final normOwnerEmail = ownerEmail.toLowerCase();
+      final roleUpper = (tenant?.role ?? authState.userRole ?? '').toUpperCase();
+      final isOwnerCaller = (tenant?.isSuperAdmin == true) ||
+          roleUpper == 'SUPERADMIN' ||
+          roleUpper == 'ADMIN' ||
+          roleUpper == 'PLATFORM_SUPERADMIN' ||
+          normOwnerEmail == 'admin@zigza.in' ||
+          normOwnerEmail == 'team.anga9@gmail.com' ||
+          normOwnerEmail == 'aj@nubiracreation.com';
+      final isPlatformSuperAdmin =
+          (tenant?.isPlatformAdmin == true) || normOwnerEmail == 'admin@zigza.in';
 
-      // 2. Fetch workers
-      List<FloorWorkerItem> workers = [];
-      try {
-        final cuttingRes = await client.from('cutting_workers').select('*').limit(200);
-        for (final w in (cuttingRes as List<dynamic>? ?? [])) {
-          workers.add(FloorWorkerItem(
-            id: w['id']?.toString() ?? '',
-            name: w['worker_name']?.toString() ?? w['name']?.toString() ?? 'Worker',
-            phone: w['phone_number']?.toString() ?? w['phone']?.toString() ?? '',
-            departmentRoute: '/cutting',
-            role: w['role']?.toString() ?? 'Knife Cutter',
-            status: w['is_active'] == false ? 'INACTIVE' : 'ACTIVE',
-          ));
-        }
-      } catch (_) {}
-
-      try {
-        final stitchRes = await client.from('stitching_workers').select('*').limit(200);
-        for (final w in (stitchRes as List<dynamic>? ?? [])) {
-          workers.add(FloorWorkerItem(
-            id: w['id']?.toString() ?? '',
-            name: w['worker_name']?.toString() ?? w['name']?.toString() ?? 'Worker',
-            phone: w['phone_number']?.toString() ?? w['phone']?.toString() ?? '',
-            departmentRoute: '/stitching-sewing',
-            role: w['role']?.toString() ?? 'Tailor',
-            status: w['is_active'] == false ? 'INACTIVE' : 'ACTIVE',
-          ));
-        }
-      } catch (_) {}
-
-      // Parse PMs and Heads
-      final List<ProductionManagerItem> pms = [];
-      final List<DepartmentHeadItem> heads = [];
-
-      for (final p in rawProfiles) {
-        final role = (p['role']?.toString() ?? '').toUpperCase();
-        final isPM = role == 'PRODUCTION_MANAGER';
-        final isHead = p['is_head'] == true || role == 'DEPARTMENT_HEAD';
-
-        if (isPM) {
-          pms.add(ProductionManagerItem(
-            id: p['id']?.toString() ?? '',
-            name: p['username']?.toString() ?? 'Production Manager',
-            username: p['username']?.toString() ?? 'pm_user',
-            phone: p['phone']?.toString() ?? '',
-            email: p['email']?.toString(),
-            isActive: p['is_active'] != false,
-            createdAt: p['created_at']?.toString(),
-          ));
-        } else if (isHead) {
-          final rawMods = p['allowed_modules'];
-          final List<String> modules = rawMods is List ? rawMods.map((e) => e.toString()).toList() : [];
-
-          heads.add(DepartmentHeadItem(
-            id: p['id']?.toString() ?? '',
-            displayName: p['username']?.toString() ?? 'Department Head',
-            username: p['username']?.toString() ?? 'dept_head',
-            email: p['email']?.toString() ?? '',
-            role: role,
-            designation: p['designation']?.toString() ?? 'Department In-charge',
-            allowedModules: modules,
-            isActive: p['is_active'] != false,
-            phone: p['phone']?.toString() ?? '',
-            createdAt: p['created_at']?.toString(),
-          ));
-        }
-      }
-
-      // 3. Resolve configured / purchased divisions for this tenant account (Strictly matching Web Admin)
+      // 1. Resolve configured / purchased divisions first (Strictly matching Web Admin)
       List<String> allowedRoutes = [];
-      if (tenant != null && tenant.allowedDivisions.isNotEmpty) {
+      if (!isPlatformSuperAdmin &&
+          tenant != null &&
+          tenant.allowedDivisions.isNotEmpty &&
+          !tenant.allowedDivisions.contains('/platform-admin')) {
         allowedRoutes = List<String>.from(tenant.allowedDivisions);
-      } else if (authState.allowedDivisions.isNotEmpty) {
+      } else if (!isPlatformSuperAdmin &&
+          authState.allowedDivisions.isNotEmpty &&
+          !authState.allowedDivisions.contains('/platform-admin')) {
         allowedRoutes = List<String>.from(authState.allowedDivisions);
       }
 
-      if (allowedRoutes.isEmpty && ownerEmail.isNotEmpty) {
+      if (allowedRoutes.isEmpty && !isPlatformSuperAdmin && ownerEmail.isNotEmpty) {
         try {
           final factoryRes = await client
               .from('platform_tenant_factories')
@@ -459,14 +493,17 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
               .limit(1)
               .maybeSingle();
           if (factoryRes != null && factoryRes['allowed_divisions'] is List) {
-            allowedRoutes = (factoryRes['allowed_divisions'] as List).map((e) => e.toString()).toList();
+            allowedRoutes =
+                (factoryRes['allowed_divisions'] as List).map((e) => e.toString()).toList();
           }
         } catch (_) {}
       }
 
       bool isRouteAllowed(String route) {
-        if (allowedRoutes.isEmpty) return true;
-        if (allowedRoutes.contains('/platform-admin') || allowedRoutes.contains('*')) return true;
+        if (isPlatformSuperAdmin || allowedRoutes.isEmpty) return true;
+        if (allowedRoutes.contains('/platform-admin') || allowedRoutes.contains('*')) {
+          return true;
+        }
         if (allowedRoutes.contains(route)) return true;
         if ((route == '/fabric-store' || route == '/store') &&
             (allowedRoutes.contains('/fabric-store') || allowedRoutes.contains('/store'))) {
@@ -479,19 +516,178 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
         return false;
       }
 
-      final List<DivisionDef> activeDivisions = (allowedRoutes.isEmpty || allowedRoutes.contains('/platform-admin'))
-          ? kAllDefaultDivisions
-          : kAllDefaultDivisions.where((d) => isRouteAllowed(d.route)).toList();
+      final List<DivisionDef> resolvedDivisions =
+          (isPlatformSuperAdmin ||
+                  allowedRoutes.isEmpty ||
+                  allowedRoutes.contains('/platform-admin'))
+              ? kAllDefaultDivisions
+              : kAllDefaultDivisions.where((d) => isRouteAllowed(d.route)).toList();
+      final List<DivisionDef> activeDivisions =
+          resolvedDivisions.isNotEmpty ? resolvedDivisions : kAllDefaultDivisions;
+      final Set<String> activeRouteSet = activeDivisions.map((d) => d.route).toSet();
 
-      final resolvedOwnerName = (tenant?.adminDisplayName != null && tenant!.adminDisplayName.trim().isNotEmpty)
-          ? tenant.adminDisplayName.trim()
-          : ((authState.cachedUsername != null && !authState.cachedUsername!.contains('@'))
-              ? authState.cachedUsername!
-              : 'AJ');
+      // 2. Fetch Company Profiles & Floor Workers across purchased divisions in parallel
+      List<dynamic> rawProfiles = [];
+      final Map<String, List<FloorWorkerItem>> workersByRoute = {};
 
-      final resolvedOwnerPhone = (tenant?.phone != null && tenant!.phone.trim().isNotEmpty)
-          ? tenant.phone.trim()
-          : '8583987997';
+      final List<Future<void>> fetches = [
+        () async {
+          try {
+            var query = client.from('profiles').select('*');
+            if (companyName.isNotEmpty) {
+              query = query.ilike('company_name', '%$companyName%');
+            }
+            final res = await query.order('created_at', ascending: false);
+            final rows = (res as List<dynamic>?) ?? [];
+            rawProfiles = rows.where((p) {
+              final pComp = (p['company_name']?.toString() ?? '').toLowerCase().trim();
+              return pComp == normCompany;
+            }).toList();
+          } catch (_) {}
+        }(),
+      ];
+
+      for (final entry in _kDivisionWorkerMap.entries) {
+        final route = entry.key;
+        final config = entry.value;
+        if (!activeRouteSet.contains(route)) continue;
+
+        fetches.add(() async {
+          final List<FloorWorkerItem> divWorkers = [];
+          try {
+            var query = client.from(config.table).select('*');
+            if (companyName.isNotEmpty) {
+              query = query.ilike('company_name', '%$companyName%');
+            }
+            final res = await query.order('created_at', ascending: false);
+            for (final w in (res as List<dynamic>? ?? [])) {
+              final rowComp = (w['company_name']?.toString() ?? '').toLowerCase().trim();
+              if (rowComp != normCompany) continue;
+
+              final candidateName = w[config.nameField]?.toString().trim() ?? '';
+              final fallbackDesigner = w['designer_name']?.toString().trim() ?? '';
+              final fallbackWorker = w['worker_name']?.toString().trim() ?? '';
+              final fallbackGeneric = w['name']?.toString().trim() ?? '';
+              final name = candidateName.isNotEmpty
+                  ? candidateName
+                  : (fallbackDesigner.isNotEmpty
+                      ? fallbackDesigner
+                      : (fallbackWorker.isNotEmpty
+                          ? fallbackWorker
+                          : (fallbackGeneric.isNotEmpty
+                              ? fallbackGeneric
+                              : 'Shop Floor Worker')));
+
+              final candidatePhone = w[config.phoneField]?.toString().trim() ?? '';
+              final fallbackDesignerPhone = w['designer_phone']?.toString().trim() ?? '';
+              final fallbackPhone = w['phone']?.toString().trim() ?? '';
+              final phone = candidatePhone.isNotEmpty
+                  ? candidatePhone
+                  : (fallbackDesignerPhone.isNotEmpty ? fallbackDesignerPhone : fallbackPhone);
+
+              final candidateRole = w[config.roleField]?.toString().trim() ?? '';
+              final role = candidateRole.isNotEmpty ? candidateRole : config.defaultRole;
+
+              final candidateShift = w['shift']?.toString().trim() ?? '';
+              final shift = candidateShift.isNotEmpty ? candidateShift : 'General';
+
+              final rawStatus = w['status']?.toString().trim() ?? '';
+              final status = rawStatus.isNotEmpty
+                  ? rawStatus.toUpperCase()
+                  : (w['is_active'] == false ? 'INACTIVE' : 'ACTIVE');
+
+              divWorkers.add(FloorWorkerItem(
+                id: w['id']?.toString() ?? '',
+                name: name,
+                phone: phone,
+                departmentRoute: route,
+                role: role,
+                shift: shift,
+                status: status,
+              ));
+            }
+          } catch (_) {}
+          workersByRoute[route] = divWorkers;
+        }());
+      }
+
+      await Future.wait(fetches);
+
+      final List<FloorWorkerItem> workers = [];
+      for (final div in activeDivisions) {
+        final list = workersByRoute[div.route];
+        if (list != null) workers.addAll(list);
+      }
+
+      // 3. Parse PMs and Department Heads (strictly matching Web Admin rules)
+      final List<ProductionManagerItem> pms = [];
+      final List<DepartmentHeadItem> heads = [];
+
+      for (final p in rawProfiles) {
+        final profileId = p['id']?.toString() ?? '';
+        if (currentUser != null && profileId == currentUser.id && isOwnerCaller) {
+          continue;
+        }
+
+        final role = (p['role']?.toString() ?? '').toUpperCase();
+        final isPM = role == 'PRODUCTION_MANAGER';
+        final isHead = p['is_head'] == true || role == 'DEPARTMENT_HEAD';
+
+        if (isPM) {
+          pms.add(ProductionManagerItem(
+            id: profileId,
+            name: p['username']?.toString() ?? 'Production Manager',
+            username: p['username']?.toString() ?? 'pm_user',
+            phone: p['phone']?.toString() ?? '',
+            email: p['email']?.toString(),
+            isActive: p['is_active'] != false,
+            createdAt: p['created_at']?.toString(),
+          ));
+        } else if (isHead) {
+          final rawMods = p['allowed_modules'];
+          final List<String> modules =
+              rawMods is List ? rawMods.map((e) => e.toString()).toList() : [];
+
+          final rawPhone = p['phone']?.toString() ?? '';
+          String primaryPhone = rawPhone.trim();
+          String? secondaryPhone;
+          if (rawPhone.contains('/')) {
+            final parts = rawPhone
+                .split('/')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
+            primaryPhone = parts.isNotEmpty ? parts[0] : '';
+            if (parts.length > 1) secondaryPhone = parts[1];
+          }
+
+          heads.add(DepartmentHeadItem(
+            id: profileId,
+            displayName: p['username']?.toString() ?? 'Department Head',
+            username: p['username']?.toString() ?? 'dept_head',
+            email: p['email']?.toString() ?? '',
+            role: role,
+            designation: p['designation']?.toString() ?? 'Department In-charge',
+            allowedModules: modules,
+            isActive: p['is_active'] != false,
+            phone: primaryPhone,
+            phone2: secondaryPhone,
+            createdAt: p['created_at']?.toString(),
+          ));
+        }
+      }
+
+      final resolvedOwnerName =
+          (tenant?.adminDisplayName != null && tenant!.adminDisplayName.trim().isNotEmpty)
+              ? tenant.adminDisplayName.trim()
+              : ((authState.cachedUsername != null && !authState.cachedUsername!.contains('@'))
+                  ? authState.cachedUsername!
+                  : 'Company Owner');
+
+      final resolvedOwnerPhone =
+          (tenant?.phone != null && tenant!.phone.trim().isNotEmpty)
+              ? tenant.phone.trim()
+              : '';
 
       state = state.copyWith(
         companyName: companyName,
@@ -500,7 +696,7 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
         ownerPhone: resolvedOwnerPhone,
         productionManagers: pms,
         departmentHeads: heads,
-        divisions: activeDivisions.isNotEmpty ? activeDivisions : kAllDefaultDivisions,
+        divisions: activeDivisions,
         workers: workers,
         isLoading: false,
       );
@@ -509,9 +705,27 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
     }
   }
 
-  Future<bool> toggleStaffStatus(String id, String type, bool currentStatus) async {
+  Future<bool> toggleStaffStatus(
+    String id,
+    String type,
+    bool currentStatus, {
+    String? divisionRoute,
+  }) async {
     try {
       final client = Supabase.instance.client;
+      if (type == 'WORKER') {
+        final config = divisionRoute != null ? _kDivisionWorkerMap[divisionRoute] : null;
+        if (config == null) return false;
+        final nextStatus = currentStatus ? 'INACTIVE' : 'ACTIVE';
+        await client.from(config.table).update({'status': nextStatus}).eq('id', id);
+        state = state.copyWith(
+          workers: state.workers
+              .map((w) => w.id == id ? w.copyWith(status: nextStatus) : w)
+              .toList(),
+        );
+        return true;
+      }
+
       await client.from('profiles').update({'is_active': !currentStatus}).eq('id', id);
 
       if (type == 'PRODUCTION_MANAGER') {
@@ -529,9 +743,19 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
     }
   }
 
-  Future<bool> deleteStaff(String id, String type) async {
+  Future<bool> deleteStaff(String id, String type, {String? divisionRoute}) async {
     try {
       final client = Supabase.instance.client;
+      if (type == 'WORKER') {
+        final config = divisionRoute != null ? _kDivisionWorkerMap[divisionRoute] : null;
+        if (config == null) return false;
+        await client.from(config.table).delete().eq('id', id);
+        state = state.copyWith(
+          workers: state.workers.filter((w) => w.id != id).toList(),
+        );
+        return true;
+      }
+
       await client.from('profiles').delete().eq('id', id);
 
       if (type == 'PRODUCTION_MANAGER') {
@@ -554,17 +778,56 @@ class SupervisorWorkersNotifier extends StateNotifier<SupervisorWorkersState> {
     required String phone,
     required String departmentRoute,
     required String role,
+    String shift = 'General',
   }) async {
     try {
       final client = Supabase.instance.client;
-      final table = departmentRoute == '/cutting' ? 'cutting_workers' : 'stitching_workers';
+      final config = _kDivisionWorkerMap[departmentRoute];
+      if (config == null) return false;
 
-      await client.from(table).insert({
-        'worker_name': name,
-        'phone_number': phone,
-        'role': role,
-        'is_active': true,
-      });
+      final authState = ref.read(authProvider);
+      final companyName = state.companyName.trim().isNotEmpty
+          ? state.companyName.trim()
+          : (authState.tenantProfile?.companyName ?? 'Nubira Creation').trim();
+
+      final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
+      final cleanPhone = rawDigits.length >= 10
+          ? rawDigits.substring(rawDigits.length - 10)
+          : rawDigits;
+      final cleanName = name.trim();
+      final effectiveRole = role.trim().isNotEmpty ? role.trim() : config.defaultRole;
+      final effectiveShift = shift.trim().isNotEmpty ? shift.trim() : 'General';
+
+      if (departmentRoute == '/design') {
+        await client.from(config.table).insert({
+          if (client.auth.currentUser?.id != null) 'ph_user_id': client.auth.currentUser!.id,
+          'designer_name': cleanName,
+          'phone_number': cleanPhone,
+          'designer_phone': cleanPhone,
+          'company_name': companyName,
+          'status': 'ACTIVE',
+        });
+      } else {
+        final payload = <String, dynamic>{
+          config.nameField: cleanName,
+          config.phoneField: cleanPhone,
+          config.roleField: effectiveRole,
+          'shift': effectiveShift,
+          'company_name': companyName,
+          'status': 'ACTIVE',
+        };
+        try {
+          await client.from(config.table).insert(payload);
+        } catch (insertErr) {
+          // Some floor tables (e.g. legacy cutting_workers) may not have a shift column
+          if (insertErr.toString().toLowerCase().contains('shift')) {
+            payload.remove('shift');
+            await client.from(config.table).insert(payload);
+          } else {
+            rethrow;
+          }
+        }
+      }
 
       await fetchData();
       return true;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
@@ -84,14 +85,40 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         title: Row(
           children: [
-            const Icon(Icons.key_rounded, color: AppTheme.brandRoyalBlue, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              'Reset Password',
-              style: zigzaHeadingStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.mintSurface,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: AppTheme.badgeMintBorder),
+              ),
+              child: const Icon(Icons.key_rounded, color: Color(0xFF0F766E), size: 19),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: zigzaHeadingStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+                  children: [
+                    const TextSpan(text: 'Reset '),
+                    TextSpan(
+                      text: 'Password',
+                      style: zigzaHeadingStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.brandRoyalBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -101,21 +128,43 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
           children: [
             Text(
               'Set a new login password for $name (+91 $phone):',
-              style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.bodyInk),
+              style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.bodyInk, height: 1.4),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Text(
+              'NEW PASSWORD *',
+              style: zigzaBodyStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.mutedInk,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 6),
             TextField(
               controller: newPassCtrl,
               obscureText: true,
-              style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
+              style: zigzaBodyStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
               decoration: InputDecoration(
                 hintText: 'Enter new password (min 6 chars)',
                 hintStyle: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.faintInk),
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: AppTheme.faintInk),
                 filled: true,
                 fillColor: AppTheme.bgCanvas,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderLight),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.borderLight),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
             ),
           ],
@@ -123,7 +172,7 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
+            child: Text('Cancel', style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.bodyInk)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -140,9 +189,10 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
               backgroundColor: AppTheme.brandRoyalBlue,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
             ),
-            child: Text('Save Password', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+            child: Text('Save Password', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
           ),
         ],
       ),
@@ -154,25 +204,39 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         title: Row(
           children: [
-            const Icon(Icons.delete_outline_rounded, color: AppTheme.badgeRoseText, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              'Remove Member',
-              style: zigzaHeadingStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.badgeRoseBg,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: AppTheme.badgeRoseBorder),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppTheme.badgeRoseText, size: 19),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Remove Member',
+                style: zigzaHeadingStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         ),
         content: Text(
           'Are you sure you want to remove access for $name? This action cannot be undone.',
-          style: zigzaBodyStyle(fontSize: 13, color: AppTheme.bodyInk),
+          style: zigzaBodyStyle(fontSize: 13, color: AppTheme.bodyInk, height: 1.45),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.bodyInk)),
+            child: Text('Cancel', style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.bodyInk)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -188,9 +252,10 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
               backgroundColor: AppTheme.badgeRoseText,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
             ),
-            child: Text('Remove Access', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+            child: Text('Remove Access', style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
           ),
         ],
       ),
@@ -206,98 +271,282 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 4),
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // Modal Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
+                child: Row(
                   children: [
-                    Text(
-                      'Add Floor Worker',
-                      style: zigzaHeadingStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppTheme.mintSurface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.badgeMintBorder),
+                      ),
+                      child: const Icon(Icons.person_add_alt_1_outlined, color: Color(0xFF0F766E), size: 20),
                     ),
-                    Text(
-                      'Department: $departmentName',
-                      style: zigzaBodyStyle(fontSize: 12, color: AppTheme.bodyInk),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                                ),
+                                child: Text(
+                                  'ADD WORKER',
+                                  style: zigzaBodyStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.brandRoyalBlue,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  departmentName,
+                                  style: zigzaBodyStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.mutedInk,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          RichText(
+                            text: TextSpan(
+                              style: zigzaHeadingStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                              children: [
+                                const TextSpan(text: 'Register '),
+                                TextSpan(
+                                  text: 'Floor Worker',
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.brandRoyalBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close_rounded, size: 22, color: AppTheme.mutedInk),
                     ),
                   ],
                 ),
-                IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded, size: 20)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
-              decoration: InputDecoration(
-                labelText: 'Worker Full Name',
-                hintText: 'e.g. Ramesh Kumar',
-                filled: true,
-                fillColor: AppTheme.bgCanvas,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
-              decoration: InputDecoration(
-                labelText: 'Mobile Phone Number',
-                hintText: '10-digit number',
-                prefixText: '+91 ',
-                filled: true,
-                fillColor: AppTheme.bgCanvas,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: roleCtrl,
-              style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
-              decoration: InputDecoration(
-                labelText: 'Role / Skill Classification',
-                hintText: 'e.g. Master Tailor, Overlock Operator',
-                filled: true,
-                fillColor: AppTheme.bgCanvas,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.trim().isEmpty) return;
-                  Navigator.pop(ctx);
-                  final ok = await ref.read(supervisorWorkersProvider.notifier).addWorker(
-                        name: nameCtrl.text.trim(),
-                        phone: phoneCtrl.text.trim(),
-                        departmentRoute: departmentRoute,
-                        role: roleCtrl.text.trim(),
-                      );
-                  if (ok) {
-                    _showToast('Worker ${nameCtrl.text.trim()} added to $departmentName');
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.brandRoyalBlue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              const Divider(height: 1, color: AppTheme.borderLight),
+
+              // Form Fields
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'WORKER FULL NAME *',
+                      style: zigzaBodyStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mutedInk,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      style: zigzaBodyStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Ramesh Kumar',
+                        hintStyle: zigzaBodyStyle(fontSize: 13, color: AppTheme.faintInk),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, size: 18, color: AppTheme.faintInk),
+                        filled: true,
+                        fillColor: AppTheme.bgCanvas,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    Text(
+                      'MOBILE NUMBER *',
+                      style: zigzaBodyStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mutedInk,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          height: 46,
+                          padding: const EdgeInsets.symmetric(horizontal: 11),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bgCanvas,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.borderLight),
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🇮🇳', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 5),
+                              Text(
+                                '+91',
+                                style: zigzaHeadingStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.headingObsidian,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(10),
+                            ],
+                            style: zigzaHeadingStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppTheme.headingObsidian),
+                            decoration: InputDecoration(
+                              hintText: '98765 43210',
+                              hintStyle: zigzaBodyStyle(fontSize: 13, color: AppTheme.faintInk),
+                              prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: AppTheme.faintInk),
+                              filled: true,
+                              fillColor: AppTheme.bgCanvas,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    Text(
+                      'DESIGNATION / SKILL ROLE',
+                      style: zigzaBodyStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mutedInk,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: roleCtrl,
+                      style: zigzaBodyStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.headingObsidian),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Master Tailor, Overlock Operator',
+                        hintStyle: zigzaBodyStyle(fontSize: 13, color: AppTheme.faintInk),
+                        prefixIcon: const Icon(Icons.work_outline_rounded, size: 18, color: AppTheme.faintInk),
+                        filled: true,
+                        fillColor: AppTheme.bgCanvas,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.borderLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            'Cancel',
+                            style: zigzaBodyStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mutedInk),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (nameCtrl.text.trim().isEmpty) return;
+                              Navigator.pop(ctx);
+                              final ok = await ref.read(supervisorWorkersProvider.notifier).addWorker(
+                                    name: nameCtrl.text.trim(),
+                                    phone: phoneCtrl.text.trim(),
+                                    departmentRoute: departmentRoute,
+                                    role: roleCtrl.text.trim(),
+                                  );
+                              if (ok) {
+                                _showToast('Worker ${nameCtrl.text.trim()} added to $departmentName');
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.brandRoyalBlue,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              minimumSize: const Size(0, 46),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(
+                              'Add Worker to Roster',
+                              style: zigzaHeadingStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: Text('Add Worker to Roster', style: zigzaHeadingStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -418,15 +667,6 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Factory leadership hierarchy, department heads, and floor worker roster for ${state.companyName}.',
-            style: zigzaBodyStyle(
-              fontSize: 12.5,
-              color: AppTheme.bodyInk,
-              height: 1.45,
-            ),
           ),
           const SizedBox(height: 14),
 
@@ -589,24 +829,26 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                           ),
                         ],
                       ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_outlined, size: 13, color: AppTheme.faintInk),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _formatPhone(state.ownerPhone),
-                            style: zigzaHeadingStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.headingObsidian,
+                    if (state.ownerPhone.trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_outlined, size: 13, color: AppTheme.faintInk),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _formatPhone(state.ownerPhone),
+                              style: zigzaHeadingStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.headingObsidian,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1128,22 +1370,21 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                         ),
                       ),
 
-                      // Expanded Roster Details
+                      // Expanded Roster Details (Single-surface clean drawer with hairline list dividers)
                       if (isExpanded) ...[
                         const Divider(height: 1, color: AppTheme.borderLight),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
+                        Container(
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(13)),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Department In-Charge Sub-Section (White panel inside #F8FAFC card)
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.borderLight),
-                                ),
+                              // Sub-Section A: Department In-Charge
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1168,19 +1409,24 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                               ref.read(supervisorWorkersProvider.notifier).fetchData();
                                             }
                                           },
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.add_rounded, size: 15, color: AppTheme.brandRoyalBlue),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                head != null ? 'Edit Details' : 'Assign Head',
-                                                style: zigzaHeadingStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppTheme.brandRoyalBlue,
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.add_rounded, size: 15, color: AppTheme.brandRoyalBlue),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  head != null ? 'Edit Details' : 'Assign Head',
+                                                  style: zigzaHeadingStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTheme.brandRoyalBlue,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1188,73 +1434,137 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                     const SizedBox(height: 8),
                                     if (headsForDiv.isEmpty)
                                       Container(
-                                        padding: const EdgeInsets.all(10),
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                         decoration: BoxDecoration(
                                           color: AppTheme.bgCanvas,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(11),
                                           border: Border.all(color: AppTheme.borderLight),
                                         ),
-                                        child: Center(
-                                          child: Text(
-                                            'No department head appointed for ${div.name}.',
-                                            textAlign: TextAlign.center,
-                                            style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.bodyInk),
-                                          ),
+                                        child: Text(
+                                          'No department head appointed for ${div.name}.',
+                                          textAlign: TextAlign.center,
+                                          style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.mutedInk),
                                         ),
                                       )
                                     else
-                                      ...headsForDiv.map((h) => Container(
-                                            margin: const EdgeInsets.only(bottom: 6),
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.bgCanvas,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: AppTheme.borderLight),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        h.displayName,
-                                                        style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.bgCanvas,
+                                          borderRadius: BorderRadius.circular(11),
+                                          border: Border.all(color: AppTheme.borderLight),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            for (int i = 0; i < headsForDiv.length; i++) ...[
+                                              if (i > 0) const Divider(height: 1, color: AppTheme.borderLight),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                child: Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            headsForDiv[i].displayName,
+                                                            style: zigzaHeadingStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+                                                          ),
+                                                          const SizedBox(height: 2),
+                                                          Text(
+                                                            headsForDiv[i].designation,
+                                                            style: zigzaBodyStyle(
+                                                              fontSize: 11.5,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: AppTheme.bodyInk,
+                                                            ),
+                                                          ),
+                                                          if (headsForDiv[i].phone.isNotEmpty) ...[
+                                                            const SizedBox(height: 4),
+                                                            Row(
+                                                              children: [
+                                                                const Icon(Icons.phone_outlined, size: 13, color: AppTheme.faintInk),
+                                                                const SizedBox(width: 4),
+                                                                Text(
+                                                                  '+91 ${headsForDiv[i].phone}',
+                                                                  style: zigzaHeadingStyle(
+                                                                    fontSize: 12,
+                                                                    fontWeight: FontWeight.w700,
+                                                                    color: AppTheme.headingObsidian,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                          if (headsForDiv[i].phone2 != null && headsForDiv[i].phone2!.isNotEmpty) ...[
+                                                            const SizedBox(height: 2),
+                                                            Row(
+                                                              children: [
+                                                                const Icon(Icons.phone_outlined, size: 13, color: AppTheme.faintInk),
+                                                                const SizedBox(width: 4),
+                                                                Text(
+                                                                  headsForDiv[i].phone2!.startsWith('+')
+                                                                      ? headsForDiv[i].phone2!
+                                                                      : '+91 ${headsForDiv[i].phone2}',
+                                                                  style: zigzaHeadingStyle(
+                                                                    fontSize: 12,
+                                                                    fontWeight: FontWeight.w700,
+                                                                    color: AppTheme.headingObsidian,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ],
                                                       ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        '+91 ${h.phone} • ${h.designation}',
-                                                        style: zigzaBodyStyle(fontSize: 11, color: AppTheme.bodyInk),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    InkWell(
+                                                      onTap: () => _showResetPasswordDialog(headsForDiv[i].displayName, headsForDiv[i].phone),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      child: Container(
+                                                        width: 32,
+                                                        height: 32,
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius: BorderRadius.circular(8),
+                                                          border: Border.all(color: AppTheme.borderLight),
+                                                        ),
+                                                        child: const Icon(Icons.key_rounded, size: 15, color: AppTheme.brandRoyalBlue),
                                                       ),
-                                                    ],
-                                                  ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    InkWell(
+                                                      onTap: () => _showDeleteConfirmDialog(headsForDiv[i].id, headsForDiv[i].displayName, 'DEPARTMENT_HEAD'),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      child: Container(
+                                                        width: 32,
+                                                        height: 32,
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius: BorderRadius.circular(8),
+                                                          border: Border.all(color: AppTheme.badgeRoseBorder),
+                                                        ),
+                                                        child: const Icon(Icons.delete_outline_rounded, size: 15, color: AppTheme.badgeRoseText),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                IconButton(
-                                                  onPressed: () => _showResetPasswordDialog(h.displayName, h.phone),
-                                                  icon: const Icon(Icons.key_rounded, size: 17, color: AppTheme.bodyInk),
-                                                  tooltip: 'Reset Password',
-                                                ),
-                                                IconButton(
-                                                  onPressed: () => _showDeleteConfirmDialog(h.id, h.displayName, 'DEPARTMENT_HEAD'),
-                                                  icon: const Icon(Icons.delete_outline_rounded, size: 17, color: AppTheme.badgeRoseText),
-                                                  tooltip: 'Remove',
-                                                ),
-                                              ],
-                                            ),
-                                          )),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 10),
 
-                              // Floor Workers Sub-Section (White panel inside #F8FAFC card)
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.borderLight),
-                                ),
+                              const Divider(height: 1, color: AppTheme.borderLight),
+
+                              // Sub-Section B: Floor Workers Roster
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1269,19 +1579,24 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                         ),
                                         InkWell(
                                           onTap: () => _showAddWorkerModal(div.route, div.name),
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.add_rounded, size: 15, color: AppTheme.brandRoyalBlue),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                'Add Worker',
-                                                style: zigzaHeadingStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppTheme.brandRoyalBlue,
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.add_rounded, size: 15, color: AppTheme.brandRoyalBlue),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  'Add Worker',
+                                                  style: zigzaHeadingStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTheme.brandRoyalBlue,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1289,73 +1604,126 @@ class _DepartmentHeadsScreenState extends ConsumerState<DepartmentHeadsScreen> {
                                     const SizedBox(height: 8),
                                     if (workersForDiv.isEmpty)
                                       Container(
-                                        padding: const EdgeInsets.all(10),
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                         decoration: BoxDecoration(
                                           color: AppTheme.bgCanvas,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(11),
                                           border: Border.all(color: AppTheme.borderLight),
                                         ),
-                                        child: Center(
-                                          child: Text(
-                                            'No floor workers registered under ${div.name}.',
-                                            textAlign: TextAlign.center,
-                                            style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.bodyInk),
-                                          ),
+                                        child: Text(
+                                          'No floor workers registered under ${div.name}.',
+                                          textAlign: TextAlign.center,
+                                          style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.mutedInk),
                                         ),
                                       )
                                     else
-                                      ...workersForDiv.map((w) {
-                                        final isWorkerActive = w.status.toUpperCase() != 'INACTIVE';
-                                        return Container(
-                                          margin: const EdgeInsets.only(bottom: 6),
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.bgCanvas,
-                                            borderRadius: BorderRadius.circular(10),
-                                            border: Border.all(color: AppTheme.borderLight),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      w.name,
-                                                      style: zigzaHeadingStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.bgCanvas,
+                                          borderRadius: BorderRadius.circular(11),
+                                          border: Border.all(color: AppTheme.borderLight),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            for (int i = 0; i < workersForDiv.length; i++) ...[
+                                              if (i > 0) const Divider(height: 1, color: AppTheme.borderLight),
+                                              Builder(
+                                                builder: (context) {
+                                                  final w = workersForDiv[i];
+                                                  final isWorkerActive = w.status.toUpperCase() != 'INACTIVE';
+                                                  return Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Row(
+                                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                w.name,
+                                                                style: zigzaHeadingStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+                                                              ),
+                                                            ),
+                                                            if (!isWorkerActive) ...[
+                                                              const SizedBox(width: 8),
+                                                              Container(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                                                decoration: BoxDecoration(
+                                                                  color: AppTheme.badgeRoseBg,
+                                                                  borderRadius: BorderRadius.circular(999),
+                                                                  border: Border.all(
+                                                                    color: AppTheme.badgeRoseBorder,
+                                                                  ),
+                                                                ),
+                                                                child: Text(
+                                                                  '• Inactive',
+                                                                  style: zigzaHeadingStyle(
+                                                                    fontSize: 10,
+                                                                    fontWeight: FontWeight.w700,
+                                                                    color: AppTheme.badgeRoseText,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ],
+                                                        ),
+                                                        if (w.role.isNotEmpty || w.shift.isNotEmpty) ...[
+                                                          const SizedBox(height: 2.5),
+                                                          Text(
+                                                            w.role.isNotEmpty && w.shift.isNotEmpty
+                                                                ? '${w.role} • ${w.shift}'
+                                                                : (w.role.isNotEmpty ? w.role : w.shift),
+                                                            style: zigzaBodyStyle(
+                                                              fontSize: 11.5,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: AppTheme.bodyInk,
+                                                              height: 1.35,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        if (w.phone.isNotEmpty) ...[
+                                                          const SizedBox(height: 5),
+                                                          Row(
+                                                            children: [
+                                                              const Icon(Icons.phone_outlined, size: 13, color: AppTheme.faintInk),
+                                                              const SizedBox(width: 4),
+                                                              Text(
+                                                                '+91 ${w.phone}',
+                                                                style: zigzaHeadingStyle(
+                                                                  fontSize: 12,
+                                                                  fontWeight: FontWeight.w700,
+                                                                  color: AppTheme.headingObsidian,
+                                                                ),
+                                                              ),
+                                                              const Spacer(),
+                                                              InkWell(
+                                                                onTap: () => _showResetPasswordDialog(w.name, w.phone),
+                                                                borderRadius: BorderRadius.circular(8),
+                                                                child: Container(
+                                                                  width: 30,
+                                                                  height: 30,
+                                                                  decoration: BoxDecoration(
+                                                                    color: Colors.white,
+                                                                    borderRadius: BorderRadius.circular(8),
+                                                                    border: Border.all(color: AppTheme.borderLight),
+                                                                  ),
+                                                                  child: const Icon(Icons.key_rounded, size: 14, color: AppTheme.brandRoyalBlue),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ],
                                                     ),
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      '${w.role}${w.phone.isNotEmpty ? " • +91 ${w.phone}" : ""}',
-                                                      style: zigzaBodyStyle(fontSize: 11, color: AppTheme.bodyInk),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: isWorkerActive ? AppTheme.badgeEmeraldBg : AppTheme.badgeRoseBg,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: isWorkerActive ? AppTheme.badgeEmeraldBorder : AppTheme.badgeRoseBorder,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  isWorkerActive ? 'Active' : 'Inactive',
-                                                  style: zigzaHeadingStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: isWorkerActive ? AppTheme.badgeEmeraldText : AppTheme.badgeRoseText,
-                                                  ),
-                                                ),
+                                                  );
+                                                },
                                               ),
                                             ],
-                                          ),
-                                        );
-                                      }),
+                                          ],
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
