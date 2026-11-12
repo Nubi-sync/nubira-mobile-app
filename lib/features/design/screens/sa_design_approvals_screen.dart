@@ -30,7 +30,7 @@ class SARowItem {
   final String? saNotes;
   final String? designerNotes;
   final DateTime? submittedAt;
-  final DesignBriefModel brief;
+  final DesignBriefModel? brief;
 
   const SARowItem({
     required this.key,
@@ -53,7 +53,7 @@ class SARowItem {
     this.saNotes,
     this.designerNotes,
     this.submittedAt,
-    required this.brief,
+    this.brief,
   });
 }
 
@@ -110,99 +110,93 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     return const Color(0xFF332B6B);
   }
 
-  List<SARowItem> _deriveSARows(List<DesignBriefModel> briefs) {
+  List<SARowItem> _deriveSARows(DesignerState studioState) {
     final List<SARowItem> rows = [];
+    final briefById = <String, DesignBriefModel>{
+      for (final b in studioState.briefs) b.id: b,
+    };
 
-    for (final brief in briefs) {
-      final subs = brief.submissions;
-      if (subs.isEmpty) continue;
+    // Combine direct PH-approved submissions (matching Web fetchDesignSubmissionsAction)
+    // with any embedded brief submissions, deduplicated by submission id.
+    final Map<String, DesignSubmissionModel> subMap = {};
+    for (final s in studioState.approvedSubmissions) {
+      if (s.id.isNotEmpty) subMap[s.id] = s;
+    }
+    for (final brief in studioState.briefs) {
+      for (final s in brief.submissions) {
+        if (s.id.isNotEmpty &&
+            s.phVerdict.toUpperCase() == 'APPROVED' &&
+            !subMap.containsKey(s.id)) {
+          subMap[s.id] = s.copyWith(brief: s.brief ?? brief);
+        }
+      }
+    }
 
-      for (final sub in subs) {
-        final instructedConcepts = brief.safeDesignConceptsBrief;
-        final subConcepts = sub.safeConcepts;
-        final subSubmittedAt = DateTime.tryParse(sub.submittedAt);
+    for (final sub in subMap.values) {
+      final brief = sub.brief ?? briefById[sub.briefId];
+      final instructedConcepts =
+          brief?.safeDesignConceptsBrief ?? const <BriefDesignConceptRequirementModel>[];
+      final subConcepts = sub.safeConcepts;
+      final subSubmittedAt = DateTime.tryParse(sub.submittedAt);
 
-        if (subConcepts.isNotEmpty) {
-          for (int cIdx = 0; cIdx < subConcepts.length; cIdx++) {
-            final concept = subConcepts[cIdx];
-            final cNum = concept.conceptNumber ?? (cIdx + 1);
-            final instructedReq = instructedConcepts.where((b) => b.conceptNumber == cNum).firstOrNull;
+      if (subConcepts.isNotEmpty) {
+        for (int cIdx = 0; cIdx < subConcepts.length; cIdx++) {
+          final concept = subConcepts[cIdx];
+          final cNum = concept.conceptNumber ?? (cIdx + 1);
+          final instructedReq =
+              instructedConcepts.where((b) => b.conceptNumber == cNum).firstOrNull;
 
-            final baseArtNo = concept.artNumber?.trim().isNotEmpty == true
-                ? concept.artNumber!.trim()
-                : (instructedReq?.artNumber?.trim().isNotEmpty == true
-                    ? instructedReq!.artNumber!.trim()
-                    : 'DEMO-10$cNum');
+          final baseArtNo = concept.artNumber?.trim().isNotEmpty == true
+              ? concept.artNumber!.trim()
+              : (instructedReq?.artNumber?.trim().isNotEmpty == true
+                  ? instructedReq!.artNumber!.trim()
+                  : 'DEMO-10$cNum');
 
-            final garmentMatch = RegExp(r'Garment:\s*([^|]+)', caseSensitive: false).firstMatch(instructedReq?.notes ?? '');
-            final garment = garmentMatch?.group(1)?.trim() ??
-                (brief.garmentType.split(',').length >= cNum
-                    ? brief.garmentType.split(',')[cNum - 1].trim()
-                    : brief.garmentType);
+          final garmentMatch = RegExp(r'Garment:\s*([^|]+)', caseSensitive: false)
+              .firstMatch(instructedReq?.notes ?? '');
+          final rawBriefGarment = brief?.garmentType ?? '';
+          final garmentParts = rawBriefGarment.split(',');
+          final garment = garmentMatch?.group(1)?.trim() ??
+              (garmentParts.length >= cNum && garmentParts[cNum - 1].trim().isNotEmpty
+                  ? garmentParts[cNum - 1].trim()
+                  : rawBriefGarment.trim());
 
-            final category = concept.title.trim().isNotEmpty == true
-                ? concept.title.trim()
-                : (instructedReq?.categoryStyle?.trim().isNotEmpty == true
-                    ? instructedReq!.categoryStyle!.trim()
-                    : (brief.category.trim().isNotEmpty ? brief.category.trim() : 'Casual'));
+          final category = concept.title.trim().isNotEmpty
+              ? concept.title.trim()
+              : (instructedReq?.categoryStyle?.trim().isNotEmpty == true
+                  ? instructedReq!.categoryStyle!.trim()
+                  : (brief != null && brief.category.trim().isNotEmpty
+                      ? brief.category.trim()
+                      : 'Casual'));
 
-            final colorways = concept.safeColorways;
+          final colorways = concept.safeColorways;
 
-            if (colorways.isNotEmpty) {
-              for (int cwIdx = 0; cwIdx < colorways.length; cwIdx++) {
-                final cw = colorways[cwIdx];
-                final variantArtNo = _getVariantArtNumber(baseArtNo, cwIdx, colorways.length);
+          if (colorways.isNotEmpty) {
+            for (int cwIdx = 0; cwIdx < colorways.length; cwIdx++) {
+              final cw = colorways[cwIdx];
+              final variantArtNo = _getVariantArtNumber(baseArtNo, cwIdx, colorways.length);
 
-                if (cw.status == 'REJECTED') continue;
-                if (cw.status == null && concept.phVerdict == 'REJECTED') continue;
-                if (cw.status == null && concept.phVerdict == null && sub.phVerdict == 'REJECTED') continue;
-                if (cw.status == null && concept.phVerdict == null && sub.phVerdict != 'APPROVED') continue;
-
-                final isPHApproved = cw.status == 'APPROVED' ||
-                    (cw.status == null && concept.phVerdict == 'APPROVED') ||
-                    sub.phVerdict == 'APPROVED';
-                if (!isPHApproved) continue;
-
-                final saVerdict = (cw.saVerdict ?? concept.saVerdict ?? sub.saVerdict ?? 'PENDING').toUpperCase();
-                final status = saVerdict == 'APPROVED'
-                    ? 'SA_APPROVED'
-                    : saVerdict == 'SAVED_FOR_LATER'
-                        ? 'SA_SAVED_FOR_LATER'
-                        : saVerdict == 'REJECTED'
-                            ? 'PH_REJECTED'
-                            : 'PH_APPROVED';
-
-                rows.add(SARowItem(
-                  key: '${sub.id}-c-$cNum-cw-${cw.colorName}-$cwIdx',
-                  submissionId: sub.id,
-                  briefId: sub.briefId,
-                  conceptNumber: cNum,
-                  artNumber: variantArtNo,
-                  baseArtNumber: baseArtNo,
-                  colorName: cw.colorName,
-                  colorway: cw,
-                  garment: garment.isEmpty ? 'Apparel' : garment,
-                  category: category,
-                  designerName: sub.designerName ?? brief.designerName ?? 'Designer',
-                  designerPhone: brief.designerPhone,
-                  isPHApproved: true,
-                  isPHRejected: false,
-                  saVerdict: saVerdict,
-                  status: status,
-                  phFeedback: concept.phFeedback ?? sub.phFeedback,
-                  saNotes: cw.saNotes ?? concept.saNotes ?? sub.saNotes,
-                  designerNotes: concept.notes ?? sub.designerNotes,
-                  submittedAt: subSubmittedAt,
-                  brief: brief,
-                ));
+              if (cw.status == 'REJECTED') continue;
+              if (cw.status == null && concept.phVerdict == 'REJECTED') continue;
+              if (cw.status == null &&
+                  concept.phVerdict == null &&
+                  sub.phVerdict == 'REJECTED') {
+                continue;
               }
-            } else {
-              // Fallback without sub-colorways
-              if (concept.phVerdict == 'REJECTED' || sub.phVerdict == 'REJECTED') continue;
-              final isPHApproved = concept.phVerdict == 'APPROVED' || sub.phVerdict == 'APPROVED';
+              if (cw.status == null &&
+                  concept.phVerdict == null &&
+                  sub.phVerdict != 'APPROVED') {
+                continue;
+              }
+
+              final isPHApproved = cw.status == 'APPROVED' ||
+                  (cw.status == null && concept.phVerdict == 'APPROVED') ||
+                  sub.phVerdict == 'APPROVED';
               if (!isPHApproved) continue;
 
-              final saVerdict = (concept.saVerdict ?? sub.saVerdict ?? 'PENDING').toUpperCase();
+              final saVerdict =
+                  (cw.saVerdict ?? concept.saVerdict ?? sub.saVerdict ?? 'PENDING')
+                      .toUpperCase();
               final status = saVerdict == 'APPROVED'
                   ? 'SA_APPROVED'
                   : saVerdict == 'SAVED_FOR_LATER'
@@ -212,72 +206,117 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                           : 'PH_APPROVED';
 
               rows.add(SARowItem(
-                key: '${sub.id}-c-$cNum',
+                key: '${sub.id}-c-$cNum-cw-${cw.colorName}-$cwIdx',
                 submissionId: sub.id,
                 briefId: sub.briefId,
                 conceptNumber: cNum,
-                artNumber: baseArtNo,
+                artNumber: variantArtNo,
                 baseArtNumber: baseArtNo,
-                colorName: 'Standard',
-                colorway: ConceptColorwayModel(
-                  colorName: 'Standard',
-                  photoFront: sub.photoUrl1,
-                  photoBack: sub.photoUrl2,
-                ),
+                colorName: cw.colorName,
+                colorway: cw,
                 garment: garment.isEmpty ? 'Apparel' : garment,
                 category: category,
-                designerName: sub.designerName ?? brief.designerName ?? 'Designer',
-                designerPhone: brief.designerPhone,
+                designerName: sub.designerName ?? brief?.designerName ?? 'Designer',
+                designerPhone: brief?.designerPhone,
                 isPHApproved: true,
                 isPHRejected: false,
                 saVerdict: saVerdict,
                 status: status,
                 phFeedback: concept.phFeedback ?? sub.phFeedback,
-                saNotes: concept.saNotes ?? sub.saNotes,
-                designerNotes: concept.notes ?? sub.designerNotes,
+                saNotes: cw.saNotes ?? concept.saNotes ?? sub.saNotes,
+                designerNotes: concept.notes ?? sub.cleanDesignerNotes ?? sub.designerNotes,
                 submittedAt: subSubmittedAt,
                 brief: brief,
               ));
             }
-          }
-        } else if (sub.phVerdict == 'APPROVED') {
-          final artNo = brief.safeDesignConceptsBrief.firstOrNull?.artNumber ?? 'DEMO-101';
-          final garment = brief.garmentType.isNotEmpty ? brief.garmentType : 'Apparel';
-          final category = brief.category.isNotEmpty ? brief.category : 'Casual';
-          final saVerdict = (sub.saVerdict ?? 'PENDING').toUpperCase();
+          } else {
+            if (concept.phVerdict == 'REJECTED' || sub.phVerdict == 'REJECTED') continue;
+            final isPHApproved =
+                concept.phVerdict == 'APPROVED' || sub.phVerdict == 'APPROVED';
+            if (!isPHApproved) continue;
 
-          rows.add(SARowItem(
-            key: '${sub.id}-c-1',
-            submissionId: sub.id,
-            briefId: sub.briefId,
-            conceptNumber: 1,
-            artNumber: artNo,
-            baseArtNumber: artNo,
-            colorName: brief.targetColors.isNotEmpty ? brief.targetColors.first : 'Default',
-            colorway: ConceptColorwayModel(
-              colorName: brief.targetColors.isNotEmpty ? brief.targetColors.first : 'Default',
-              photoFront: sub.photoUrl1,
-              photoBack: sub.photoUrl2,
-            ),
-            garment: garment,
-            category: category,
-            designerName: sub.designerName ?? brief.designerName ?? 'Designer',
-            designerPhone: brief.designerPhone,
-            isPHApproved: true,
-            isPHRejected: false,
-            saVerdict: saVerdict,
-            status: saVerdict == 'APPROVED'
+            final saVerdict =
+                (concept.saVerdict ?? sub.saVerdict ?? 'PENDING').toUpperCase();
+            final status = saVerdict == 'APPROVED'
                 ? 'SA_APPROVED'
                 : saVerdict == 'SAVED_FOR_LATER'
                     ? 'SA_SAVED_FOR_LATER'
-                    : 'PH_APPROVED',
-            phFeedback: sub.phFeedback,
-            saNotes: sub.saNotes,
-            designerNotes: sub.designerNotes,
-            submittedAt: subSubmittedAt,
-            brief: brief,
-          ));
+                    : saVerdict == 'REJECTED'
+                        ? 'PH_REJECTED'
+                        : 'PH_APPROVED';
+
+            rows.add(SARowItem(
+              key: '${sub.id}-c-$cNum',
+              submissionId: sub.id,
+              briefId: sub.briefId,
+              conceptNumber: cNum,
+              artNumber: baseArtNo,
+              baseArtNumber: baseArtNo,
+              colorName: 'Standard',
+              colorway: ConceptColorwayModel(
+                colorName: 'Standard',
+                photoFront: sub.photoUrl1,
+                photoBack: sub.photoUrl2,
+              ),
+              garment: garment.isEmpty ? 'Apparel' : garment,
+              category: category,
+              designerName: sub.designerName ?? brief?.designerName ?? 'Designer',
+              designerPhone: brief?.designerPhone,
+              isPHApproved: true,
+              isPHRejected: false,
+              saVerdict: saVerdict,
+              status: status,
+              phFeedback: concept.phFeedback ?? sub.phFeedback,
+              saNotes: concept.saNotes ?? sub.saNotes,
+              designerNotes: concept.notes ?? sub.cleanDesignerNotes ?? sub.designerNotes,
+              submittedAt: subSubmittedAt,
+              brief: brief,
+            ));
+          }
         }
+      } else if (sub.phVerdict == 'APPROVED') {
+        final artNo =
+            brief?.safeDesignConceptsBrief.firstOrNull?.artNumber ?? 'DEMO-101';
+        final garment =
+            (brief != null && brief.garmentType.isNotEmpty) ? brief.garmentType : 'Apparel';
+        final category =
+            (brief != null && brief.category.isNotEmpty) ? brief.category : 'Casual';
+        final saVerdict = (sub.saVerdict ?? 'PENDING').toUpperCase();
+        final defaultColor = (brief != null && brief.targetColors.isNotEmpty)
+            ? brief.targetColors.first
+            : 'Default';
+
+        rows.add(SARowItem(
+          key: '${sub.id}-c-1',
+          submissionId: sub.id,
+          briefId: sub.briefId,
+          conceptNumber: 1,
+          artNumber: artNo,
+          baseArtNumber: artNo,
+          colorName: defaultColor,
+          colorway: ConceptColorwayModel(
+            colorName: defaultColor,
+            photoFront: sub.photoUrl1,
+            photoBack: sub.photoUrl2,
+          ),
+          garment: garment,
+          category: category,
+          designerName: sub.designerName ?? brief?.designerName ?? 'Designer',
+          designerPhone: brief?.designerPhone,
+          isPHApproved: true,
+          isPHRejected: false,
+          saVerdict: saVerdict,
+          status: saVerdict == 'APPROVED'
+              ? 'SA_APPROVED'
+              : saVerdict == 'SAVED_FOR_LATER'
+                  ? 'SA_SAVED_FOR_LATER'
+                  : 'PH_APPROVED',
+          phFeedback: sub.phFeedback,
+          saNotes: sub.saNotes,
+          designerNotes: sub.cleanDesignerNotes ?? sub.designerNotes,
+          submittedAt: subSubmittedAt,
+          brief: brief,
+        ));
       }
     }
 
@@ -291,58 +330,120 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(12),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxHeight: 520, maxWidth: 500),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.black12),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 520, maxWidth: 500),
+          decoration: BoxDecoration(
+            color: AppTheme.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.borderLight),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF64748B)),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 220,
-                          color: const Color(0xFFF8FAFC),
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 40),
-                        ),
-                      ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: zigzaHeadingStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.bodyInk),
+                    onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Flexible(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 220,
+                      color: AppTheme.bgCanvas,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image_rounded, color: AppTheme.faintInk, size: 40),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMockupPreviewCard(
+    BuildContext context, {
+    required String? photoUrl,
+    required String label,
+    required String emptyLabel,
+    required String lightboxTitle,
+  }) {
+    if (photoUrl != null && photoUrl.isNotEmpty) {
+      return InkWell(
+        onTap: () => _showImageLightbox(context, photoUrl, lightboxTitle),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 155,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppTheme.bgCanvas,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.borderLight),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Icon(Icons.image_not_supported_outlined, color: AppTheme.faintInk),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 4,
+                left: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppTheme.borderLight),
+                  ),
+                  child: Text(
+                    label,
+                    style: zigzaHeadingStyle(fontSize: 9.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Container(
+      height: 155,
+      decoration: BoxDecoration(
+        color: AppTheme.bgCanvas,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        emptyLabel,
+        style: zigzaBodyStyle(fontSize: 11.5, color: AppTheme.faintInk),
       ),
     );
   }
@@ -375,18 +476,22 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                 Navigator.pop(ctx);
                 if (success) {
                   final msg = verdict == 'APPROVED'
-                      ? 'Design ${item.artNumber} greenlit! Ready for Tech-Pack creation.'
+                      ? 'Design ${item.artNumber} greenlit! Ready for Tech-Pack.'
                       : verdict == 'SAVED_FOR_LATER'
-                          ? 'Design ${item.artNumber} saved in Seasonal Archive.'
+                          ? 'Design ${item.artNumber} saved in Archive.'
                           : 'Design ${item.artNumber} returned for revisions.';
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      backgroundColor: verdict == 'APPROVED' ? AppTheme.badgeEmeraldText : AppTheme.brandRoyalBlue,
+                      backgroundColor: verdict == 'APPROVED'
+                          ? AppTheme.badgeEmeraldText
+                          : AppTheme.brandRoyalBlue,
                       content: Row(
                         children: [
                           Icon(
-                            verdict == 'APPROVED' ? Icons.check_circle_outline : Icons.bookmark_outline,
+                            verdict == 'APPROVED'
+                                ? Icons.check_circle_outline
+                                : Icons.bookmark_outline,
                             color: Colors.white,
                             size: 18,
                           ),
@@ -394,7 +499,11 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                           Expanded(
                             child: Text(
                               msg,
-                              style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                              style: zigzaBodyStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -417,438 +526,369 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: Color(0xFFE11D48),
-                      content: Text('Failed to record SA decision. Please retry.'),
+                    SnackBar(
+                      backgroundColor: AppTheme.badgeRoseText,
+                      content: Text(
+                        'Failed to record decision. Please retry.',
+                        style: zigzaBodyStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   );
                 }
               }
             }
 
-            return Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.cardSurface,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                      border: Border(bottom: BorderSide(color: Color(0x1A000000))),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFECFDF5),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFA7F3D0)),
-                                    ),
-                                    child: Text(
-                                      'PH Approved',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF065F46),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0x1A000000)),
-                                    ),
-                                    child: Text(
-                                      'ART NO: ${item.artNumber}',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${item.garment} (${item.category})',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: swColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.black26),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.colorName,
-                                    style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF334155)),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '• Designer: ${item.designerName}',
-                                    style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF64748B)),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(modalCtx).viewInsets.bottom),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 12, 14),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.mintSurface,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                          border: Border(bottom: BorderSide(color: AppTheme.borderLight)),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Content Body
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(20),
-                      children: [
-                        Text(
-                          'ARTWORK MOCKUPS (${item.artNumber})',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF475569),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Front and Back images
-                        Row(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Front View
                             Expanded(
-                              child: item.colorway.photoFront != null && item.colorway.photoFront!.isNotEmpty
-                                  ? InkWell(
-                                      onTap: () => _showImageLightbox(context, item.colorway.photoFront!, '${item.artNumber} - Front View'),
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        height: 160,
-                                        padding: const EdgeInsets.all(6),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF8FAFC),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          color: AppTheme.badgeEmeraldBg,
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: AppTheme.badgeEmeraldBorder),
                                         ),
-                                        child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: Image.network(
-                                                item.colorway.photoFront!,
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (_, __, ___) => const Center(
-                                                  child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                                                ),
-                                              ),
-                                            ),
-                                            Positioned(
-                                              bottom: 4,
-                                              left: 4,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: const Color(0x1A000000)),
-                                                ),
-                                                child: Text(
-                                                  'Front View',
-                                                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        child: Text(
+                                          'PH Approved',
+                                          style: zigzaHeadingStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.badgeEmeraldText,
+                                          ),
                                         ),
                                       ),
-                                    )
-                                  : Container(
-                                      height: 160,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF8FAFC),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0x1A000000)),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: AppTheme.borderLight),
+                                        ),
+                                        child: Text(
+                                          'ART ${item.artNumber}',
+                                          style: zigzaHeadingStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.headingObsidian,
+                                          ),
+                                        ),
                                       ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'No Front View',
-                                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '${item.garment} (${item.category})',
+                                    style: zigzaHeadingStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: swColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.black26),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        item.colorName,
+                                        style: zigzaHeadingStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '• ${item.designerName}',
+                                          style: zigzaBodyStyle(fontSize: 12, color: AppTheme.bodyInk),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(width: 10),
-
-                            // Back View
-                            Expanded(
-                              child: item.colorway.photoBack != null && item.colorway.photoBack!.isNotEmpty
-                                  ? InkWell(
-                                      onTap: () => _showImageLightbox(context, item.colorway.photoBack!, '${item.artNumber} - Back View'),
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Container(
-                                        height: 160,
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF8FAFC),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                                        ),
-                                        child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
-                                              child: Image.network(
-                                                item.colorway.photoBack!,
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (_, __, ___) => const Center(
-                                                  child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-                                                ),
-                                              ),
-                                            ),
-                                            Positioned(
-                                              bottom: 4,
-                                              left: 4,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: const Color(0x1A000000)),
-                                                ),
-                                                child: Text(
-                                                  'Back View',
-                                                  style: GoogleFonts.jetBrainsMono(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      height: 160,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF8FAFC),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0x1A000000)),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'No Back View',
-                                        style: GoogleFonts.publicSans(fontSize: 11, color: const Color(0xFF94A3B8)),
-                                      ),
-                                    ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: AppTheme.bodyInk),
+                              onPressed: () => Navigator.pop(ctx),
                             ),
                           ],
                         ),
+                      ),
 
-                        // Designer notes
-                        if (item.designerNotes != null && item.designerNotes!.trim().isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0x1A000000)),
+                      // Content Body
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            Text(
+                              'ARTWORK MOCKUPS',
+                              style: zigzaHeadingStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.bodyInk,
+                                letterSpacing: 0.4,
+                              ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 8),
+
+                            Row(
                               children: [
-                                Text(
-                                  'DESIGNER NOTES',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+                                Expanded(
+                                  child: _buildMockupPreviewCard(
+                                    context,
+                                    photoUrl: item.colorway.photoFront,
+                                    label: 'Front View',
+                                    emptyLabel: 'No Front View',
+                                    lightboxTitle: '${item.artNumber} - Front View',
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.designerNotes!,
-                                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF334155), fontStyle: FontStyle.italic),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildMockupPreviewCard(
+                                    context,
+                                    photoUrl: item.colorway.photoBack,
+                                    label: 'Back View',
+                                    emptyLabel: 'No Back View',
+                                    lightboxTitle: '${item.artNumber} - Back View',
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
 
-                        // PH Feedback
-                        if (item.phFeedback != null && item.phFeedback!.trim().isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F9FF),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFBAE6FD)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'PROVISIONAL HEAD NOTES',
-                                  style: GoogleFonts.jetBrainsMono(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF0369A1)),
+                            if (item.designerNotes != null && item.designerNotes!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.bgCanvas,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.borderLight),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.phFeedback!,
-                                  style: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF075985), fontStyle: FontStyle.italic),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(height: 16),
-                        Text(
-                          'SUPER ADMIN DECISION NOTES',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF475569),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: notesController,
-                          maxLines: 2,
-                          decoration: InputDecoration(
-                            hintText: 'e.g. Greenlit for Summer Drop / Saved in seasonal library...',
-                            hintStyle: GoogleFonts.publicSans(fontSize: 12, color: const Color(0xFF94A3B8)),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            contentPadding: const EdgeInsets.all(12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0x1A000000)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0x1A000000)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppTheme.brandRoyalBlue, width: 1.5),
-                            ),
-                          ),
-                          style: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF0F172A)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Footer Actions
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.cardSurface,
-                      border: Border(top: BorderSide(color: Color(0x1A000000))),
-                    ),
-                    child: isSaving
-                        ? const Center(child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue))
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  // Request Revisions (Reject)
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFFBE123C),
-                                        backgroundColor: const Color(0xFFFFF1F2),
-                                        side: const BorderSide(color: Color(0xFFFECDD3)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                      ),
-                                      onPressed: () => submitVerdict('REJECTED'),
-                                      icon: const Icon(Icons.cancel_outlined, size: 16),
-                                      label: Text(
-                                        'Revisions',
-                                        style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'DESIGNER NOTES',
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.bodyInk,
+                                        letterSpacing: 0.4,
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      item.designerNotes!,
+                                      style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.headingObsidian),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
 
-                                  // Save for Later
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppTheme.brandRoyalBlue,
-                                        backgroundColor: Colors.white,
-                                        side: const BorderSide(color: Color(0x26000000)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                            if (item.phFeedback != null && item.phFeedback!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.badgeBlueBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.badgeBlueBorder),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'SUPERVISOR NOTES',
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.brandRoyalBlue,
+                                        letterSpacing: 0.4,
                                       ),
-                                      onPressed: () => submitVerdict('SAVED_FOR_LATER'),
-                                      icon: const Icon(Icons.bookmark_border_rounded, size: 16),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      item.phFeedback!,
+                                      style: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.headingObsidian),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 14),
+                            Text(
+                              'DECISION NOTES',
+                              style: zigzaHeadingStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.bodyInk,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: notesController,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText: 'Add review notes (optional)...',
+                                hintStyle: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.faintInk),
+                                filled: true,
+                                fillColor: AppTheme.bgCanvas,
+                                contentPadding: const EdgeInsets.all(12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppTheme.borderLight),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppTheme.borderLight),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.3),
+                                ),
+                              ),
+                              style: zigzaBodyStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.headingObsidian,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Footer Actions
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          border: Border(top: BorderSide(color: AppTheme.borderLight)),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 48,
+                                child: Center(child: CircularProgressIndicator(color: AppTheme.brandRoyalBlue)),
+                              )
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppTheme.badgeRoseText,
+                                            backgroundColor: AppTheme.badgeRoseBg,
+                                            side: const BorderSide(color: AppTheme.badgeRoseBorder),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                                            padding: const EdgeInsets.symmetric(vertical: 11),
+                                          ),
+                                          onPressed: () => submitVerdict('REJECTED'),
+                                          icon: const Icon(Icons.cancel_outlined, size: 16),
+                                          label: Text(
+                                            'Revisions',
+                                            style: zigzaHeadingStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTheme.badgeRoseText,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppTheme.headingObsidian,
+                                            backgroundColor: Colors.white,
+                                            side: const BorderSide(color: AppTheme.borderLight),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                                            padding: const EdgeInsets.symmetric(vertical: 11),
+                                          ),
+                                          onPressed: () => submitVerdict('SAVED_FOR_LATER'),
+                                          icon: const Icon(Icons.bookmark_border_rounded, size: 16, color: AppTheme.brandRoyalBlue),
+                                          label: Text(
+                                            'Save Later',
+                                            style: zigzaHeadingStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTheme.headingObsidian,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF059669),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        elevation: 0,
+                                      ),
+                                      onPressed: () => submitVerdict('APPROVED'),
+                                      icon: const Icon(Icons.check_circle_rounded, size: 18),
                                       label: Text(
-                                        'Save Later',
-                                        style: GoogleFonts.publicSans(fontSize: 12, fontWeight: FontWeight.bold),
+                                        'Greenlight for Tech-Pack',
+                                        style: zigzaHeadingStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-
-                              // Greenlight Primary Button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF059669),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    padding: const EdgeInsets.symmetric(vertical: 13),
-                                    elevation: 0,
-                                  ),
-                                  onPressed: () => submitVerdict('APPROVED'),
-                                  icon: const Icon(Icons.check_circle_rounded, size: 18),
-                                  label: Text(
-                                    'Greenlight for Tech-Pack',
-                                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -863,18 +903,11 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 3,
-            offset: Offset(0, 1),
-          ),
-        ],
+        color: AppTheme.bgCanvas,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppTheme.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,34 +922,34 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 9.5,
+                  style: zigzaBodyStyle(
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.5,
+                    color: AppTheme.bodyInk,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ),
               const SizedBox(width: 4),
               Container(
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDFA),
+                  color: AppTheme.mintSurface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0x26000000)),
+                  border: Border.all(color: AppTheme.badgeMintBorder),
                 ),
-                child: Icon(icon, color: const Color(0xFF0B1220), size: 14),
+                child: Icon(icon, color: const Color(0xFF0F766E), size: 13.5),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             '$count',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 24,
+            style: zigzaHeadingStyle(
+              fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF0B1220),
+              color: AppTheme.headingObsidian,
             ),
           ),
         ],
@@ -924,10 +957,29 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     );
   }
 
+  Widget _buildSectionCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(designerProvider);
-    final allRows = _deriveSARows(state.briefs);
+    final allRows = _deriveSARows(state);
 
     final pendingItems = allRows.where((r) => r.isPHApproved && (r.saVerdict == 'PENDING' || r.saVerdict.isEmpty)).toList();
     final approvedItems = allRows.where((r) => r.saVerdict == 'APPROVED').toList();
@@ -960,250 +1012,203 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.bgCanvas,
       appBar: ZigzaAppBar(
         onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       drawer: const WorkspaceHubDrawer(activeRoute: '/all-designs'),
-      body: RefreshIndicator(
-        color: const Color(0xFF1D4ED8),
-        onRefresh: () => ref.read(designerProvider.notifier).fetchStudioData(),
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          children: [
-            // Layer 2: Encapsulated Top Header Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x04000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: state.isLoading && allRows.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.headingObsidian))
+          : RefreshIndicator(
+              color: AppTheme.brandRoyalBlue,
+              backgroundColor: Colors.white,
+              onRefresh: () => ref.read(designerProvider.notifier).fetchStudioData(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDFA),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0x26000000)),
+                  // 1. Compact Header Card
+                  _buildSectionCard(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.mintSurface,
+                            borderRadius: BorderRadius.circular(11),
+                            border: Border.all(color: AppTheme.badgeMintBorder),
+                          ),
+                          child: const Icon(Icons.shield_outlined, color: Color(0xFF0F766E), size: 20),
                         ),
-                        child: const Icon(Icons.shield_outlined, color: Color(0xFF0B1220), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: 'Approved ',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF0B1220),
-                                      letterSpacing: -0.4,
-                                    ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text.rich(
+                                TextSpan(
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
                                   ),
-                                  TextSpan(
-                                    text: 'Designs',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF1D4ED8),
-                                      letterSpacing: -0.4,
+                                  children: const [
+                                    TextSpan(text: 'Approved '),
+                                    TextSpan(
+                                      text: 'Designs',
+                                      style: TextStyle(color: AppTheme.brandRoyalBlue),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDFA),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0x33000000)),
-                              ),
-                              child: Text(
-                                '${pendingItems.length} AWAITING DECISION',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0B1220),
-                                  letterSpacing: 0.6,
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Review Supervisor-approved designs individually with unique Art Numbers, greenlight for Tech-Pack, or save in seasonal archive',
-                              style: GoogleFonts.publicSans(
-                                fontSize: 12,
-                                color: const Color(0xFF64748B),
-                                height: 1.35,
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.mintSurface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppTheme.badgeMintBorder),
+                                ),
+                                child: Text(
+                                  '${pendingItems.length} Awaiting Decision',
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0F766E),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const DesignStudioScreen()),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x06000000),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const DesignStudioScreen()),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderLight),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.chevron_left_rounded, color: AppTheme.bodyInk, size: 16),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'Studio',
+                                  style: zigzaHeadingStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.headingObsidian,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.chevron_left_rounded,
-                              color: Color(0xFF64748B),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Design Studio',
-                              style: GoogleFonts.publicSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF334155),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
+                  const SizedBox(height: 14),
 
-            // Layer 3: 4 KPI Stat Cards in a 2x2 grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.45,
-              children: [
-                _buildKpiCard(
-                  label: 'TOTAL DESIGNS',
-                  count: allRows.length,
-                  icon: Icons.layers_outlined,
-                ),
-                _buildKpiCard(
-                  label: 'AWAITING DECISION',
-                  count: pendingItems.length,
-                  icon: Icons.access_time_rounded,
-                ),
-                _buildKpiCard(
-                  label: 'APPROVED DESIGNS',
-                  count: approvedItems.length,
-                  icon: Icons.check_circle_outline_rounded,
-                ),
-                _buildKpiCard(
-                  label: 'SEASONAL ARCHIVE',
-                  count: savedItems.length,
-                  icon: Icons.bookmark_border_rounded,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Layer 4 & 5: Primary Approvals Ledger Container
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x04000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 1),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Filter tabs toolbar
-                  Padding(
-                    padding: const EdgeInsets.all(14),
+                  // 2. Design Overview (2x2 Inset KPI Grid)
+                  _buildSectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        ZigzaSectionHeader(
+                          icon: Icons.analytics_outlined,
+                          title: 'Design',
+                          accent: 'Overview',
+                          badge: '${allRows.length} Total',
+                        ),
+                        const SizedBox(height: 12),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.65,
+                          children: [
+                            _buildKpiCard(
+                              label: 'TOTAL DESIGNS',
+                              count: allRows.length,
+                              icon: Icons.layers_outlined,
+                            ),
+                            _buildKpiCard(
+                              label: 'AWAITING DECISION',
+                              count: pendingItems.length,
+                              icon: Icons.access_time_rounded,
+                            ),
+                            _buildKpiCard(
+                              label: 'APPROVED',
+                              count: approvedItems.length,
+                              icon: Icons.check_circle_outline_rounded,
+                            ),
+                            _buildKpiCard(
+                              label: 'ARCHIVE',
+                              count: savedItems.length,
+                              icon: Icons.bookmark_border_rounded,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 3. Design Ledger Container (Box-inside-Box)
+                  _buildSectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ZigzaSectionHeader(
+                          icon: Icons.checkroom_outlined,
+                          title: 'Design',
+                          accent: 'Ledger',
+                          badge: '${filteredList.length}',
+                        ),
+                        const SizedBox(height: 12),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildTabChip('ALL', 'All Designs (${allRows.length})'),
-                              const SizedBox(width: 8),
+                              _buildTabChip('ALL', 'All (${allRows.length})'),
+                              const SizedBox(width: 7),
                               _buildTabChip('APPROVED', 'Approved (${approvedItems.length})'),
-                              const SizedBox(width: 8),
-                              _buildTabChip('REJECTED', 'Revisions Needed (${rejectedItems.length})'),
+                              const SizedBox(width: 7),
+                              _buildTabChip('REJECTED', 'Revisions (${rejectedItems.length})'),
                               if (pendingItems.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                _buildTabChip('PENDING', 'Awaiting Decision (${pendingItems.length})'),
+                                const SizedBox(width: 7),
+                                _buildTabChip('PENDING', 'Pending (${pendingItems.length})'),
                               ],
-                              const SizedBox(width: 8),
-                              _buildTabChip('SAVED_FOR_LATER', 'Seasonal Archive (${savedItems.length})'),
+                              const SizedBox(width: 7),
+                              _buildTabChip('SAVED_FOR_LATER', 'Archive (${savedItems.length})'),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-
-                        // Search Bar Inside Ledger
+                        const SizedBox(height: 10),
                         TextField(
                           controller: _searchController,
                           onChanged: (val) => setState(() => _searchQuery = val),
                           decoration: InputDecoration(
-                            hintText: 'Search art no, colors, garment...',
-                            hintStyle: GoogleFonts.publicSans(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF94A3B8)),
+                            hintText: 'Search art no, color, garment...',
+                            hintStyle: zigzaBodyStyle(fontSize: 12.5, color: AppTheme.faintInk),
+                            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.faintInk),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 16, color: Color(0xFF94A3B8)),
+                                    icon: const Icon(Icons.clear_rounded, size: 16, color: AppTheme.bodyInk),
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() => _searchQuery = '');
@@ -1211,86 +1216,80 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
                                   )
                                 : null,
                             filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
+                            fillColor: AppTheme.bgCanvas,
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              borderSide: const BorderSide(color: AppTheme.borderLight),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              borderSide: const BorderSide(color: AppTheme.borderLight),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+                              borderSide: const BorderSide(color: AppTheme.headingObsidian, width: 1.3),
                             ),
                           ),
-                          style: GoogleFonts.publicSans(fontSize: 13, color: const Color(0xFF0B1220)),
+                          style: zigzaBodyStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.headingObsidian,
+                          ),
                         ),
+                        const SizedBox(height: 12),
+
+                        if (filteredList.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgCanvas,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.mintSurface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppTheme.badgeMintBorder),
+                                  ),
+                                  child: const Icon(Icons.shield_outlined, color: Color(0xFF0F766E), size: 22),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No Designs Found',
+                                  style: zigzaHeadingStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Supervisor-approved designs appear here for executive review.',
+                                  style: zigzaBodyStyle(fontSize: 12, color: AppTheme.bodyInk),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredList.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (ctx, idx) => _buildApprovalCard(context, filteredList[idx]),
+                          ),
                       ],
                     ),
                   ),
-
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-
-                  // Ledger Items or Empty State
-                  if (filteredList.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDFA),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0x26000000)),
-                            ),
-                            child: const Icon(Icons.shield_outlined, color: Color(0xFF0B1220), size: 24),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No designs found in this category',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0B1220),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'When Supervisors approve designer submissions, each individual design and colorway appears here for Owner executive review.',
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12,
-                              color: const Color(0xFF64748B),
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredList.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                      itemBuilder: (ctx, idx) => _buildApprovalCard(context, filteredList[idx]),
-                    ),
+                  const SizedBox(height: 28),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1298,14 +1297,14 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     final isActive = _activeTab == tabKey;
     return InkWell(
       onTap: () => setState(() => _activeTab = tabKey),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF14C8B4) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? const Color(0xFF14C8B4) : const Color(0xFFE2E8F0),
+            color: isActive ? const Color(0xFF14C8B4) : AppTheme.borderLight,
           ),
           boxShadow: isActive
               ? const [
@@ -1319,11 +1318,64 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
         ),
         child: Text(
           label,
-          style: GoogleFonts.publicSans(
+          style: zigzaHeadingStyle(
             fontSize: 12,
             fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-            color: isActive ? const Color(0xFF0B1220) : const Color(0xFF475569),
+            color: isActive ? AppTheme.headingObsidian : AppTheme.bodyInk,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildStatusPill({
+    required bool isPendingSA,
+    required bool isGreenlit,
+    required bool isSaved,
+    required bool isRejected,
+  }) {
+    late final Color bg;
+    late final Color border;
+    late final Color fg;
+    late final String label;
+
+    if (isPendingSA) {
+      bg = const Color(0xFFFFFBEB);
+      border = const Color(0xFFFDE68A);
+      fg = const Color(0xFF92400E);
+      label = 'Pending';
+    } else if (isGreenlit) {
+      bg = const Color(0xFFECFDF5);
+      border = const Color(0xFFA7F3D0);
+      fg = const Color(0xFF065F46);
+      label = 'Greenlit';
+    } else if (isSaved) {
+      bg = AppTheme.mintSurface;
+      border = AppTheme.badgeMintBorder;
+      fg = const Color(0xFF0F766E);
+      label = 'Archived';
+    } else if (isRejected) {
+      bg = const Color(0xFFFFF1F2);
+      border = const Color(0xFFFECDD3);
+      fg = const Color(0xFFBE123C);
+      label = 'Revisions';
+    } else {
+      return null;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label,
+        style: zigzaHeadingStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: fg,
         ),
       ),
     );
@@ -1336,239 +1388,209 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
     final isRejected = item.saVerdict == 'REJECTED';
 
     final swColor = _getColorSwatchBg(item.colorName);
+    final hasPhoto = item.colorway.photoFront != null && item.colorway.photoFront!.isNotEmpty;
+    final notePreview = (item.saNotes != null && item.saNotes!.trim().isNotEmpty)
+        ? item.saNotes!.trim()
+        : (item.designerNotes != null && item.designerNotes!.trim().isNotEmpty)
+            ? item.designerNotes!.trim()
+            : null;
+    final statusPill = _buildStatusPill(
+      isPendingSA: isPendingSA,
+      isGreenlit: isGreenlit,
+      isSaved: isSaved,
+      isRejected: isRejected,
+    );
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.bgCanvas,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderLight),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row: Art Number + Concept Tag + Verdict Badge
+          // Top Row: Thumbnail + Art Number/Garment + Status Pill
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (hasPhoto)
+                Padding(
+                  padding: const EdgeInsets.only(right: 11),
+                  child: InkWell(
+                    onTap: () => _showImageLightbox(context, item.colorway.photoFront!, '${item.artNumber} - Front View'),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardSurface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderLight),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.network(
+                          item.colorway.photoFront!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.broken_image_rounded,
+                            size: 20,
+                            color: AppTheme.faintInk,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Text(
-                          item.artNumber,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0B1220),
+                        Flexible(
+                          child: Text(
+                            item.artNumber,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: zigzaHeadingStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.headingObsidian,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: AppTheme.cardSurface,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: AppTheme.borderLight),
                           ),
                           child: Text(
                             '#${item.conceptNumber}',
-                            style: GoogleFonts.jetBrainsMono(
+                            style: zigzaHeadingStyle(
                               fontSize: 10,
-                              color: const Color(0xFF64748B),
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.bodyInk,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       item.garment,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: zigzaHeadingStyle(
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0B1220),
+                        color: AppTheme.headingObsidian,
                       ),
                     ),
+                    const SizedBox(height: 1),
                     Text(
                       item.category,
-                      style: GoogleFonts.publicSans(
-                        fontSize: 12,
-                        color: const Color(0xFF64748B),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: zigzaBodyStyle(
+                        fontSize: 11.5,
+                        color: AppTheme.bodyInk,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (isPendingSA)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFBEB),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFDE68A)),
-                  ),
-                  child: Text(
-                    'Awaiting Decision',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF92400E),
-                    ),
-                  ),
-                ),
-              if (isGreenlit)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
-                  ),
-                  child: Text(
-                    'Greenlit',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF065F46),
-                    ),
-                  ),
-                ),
-              if (isSaved)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDFA),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0x33000000)),
-                  ),
-                  child: Text(
-                    'Archived',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0B1220),
-                    ),
-                  ),
-                ),
-              if (isRejected)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF1F2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFECDD3)),
-                  ),
-                  child: Text(
-                    'Revisions',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFBE123C),
-                    ),
-                  ),
-                ),
+              if (statusPill != null) ...[
+                const SizedBox(width: 8),
+                statusPill,
+              ],
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 11),
 
-          // Designer & Colorway Row with Thumbnail
+          // Inner White Box: Designer & Colorway
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: AppTheme.cardSurface,
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: AppTheme.borderLight),
             ),
             child: Row(
               children: [
-                if (item.colorway.photoFront != null && item.colorway.photoFront!.isNotEmpty)
-                  InkWell(
-                    onTap: () => _showImageLightbox(context, item.colorway.photoFront!, '${item.artNumber} - Front View'),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
-                          item.colorway.photoFront!,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_rounded, size: 20, color: Colors.grey),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DESIGNER',
+                        style: zigzaBodyStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.faintInk,
+                          letterSpacing: 0.4,
                         ),
                       ),
-                    ),
-                  ),
-
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'DESIGNER',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF94A3B8),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.designerName,
-                            style: GoogleFonts.publicSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0B1220),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 2),
+                      Text(
+                        item.designerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: zigzaBodyStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.headingObsidian,
+                        ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'COLORWAY',
+                        style: zigzaBodyStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.faintInk,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'COLORWAY',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF94A3B8),
-                              letterSpacing: 0.5,
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: swColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black26),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: swColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.black26),
-                                ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              item.colorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: zigzaBodyStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.headingObsidian,
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                item.colorName,
-                                style: GoogleFonts.publicSans(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0B1220),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -1578,29 +1600,51 @@ class _SADesignApprovalsScreenState extends ConsumerState<SADesignApprovalsScree
               ],
             ),
           ),
-          const SizedBox(height: 12),
+
+          if (notePreview != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              notePreview,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: zigzaBodyStyle(
+                fontSize: 11.5,
+                color: AppTheme.bodyInk,
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 11),
 
           // Action Button: View & Decide
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 40,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
+                backgroundColor: AppTheme.brandRoyalBlue,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
               ),
               onPressed: () => _showDecisionSheet(context, item),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.visibility_outlined, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    'View & Decide ${item.artNumber}',
-                    style: GoogleFonts.publicSans(fontSize: 13, fontWeight: FontWeight.w700),
+                  const Icon(Icons.visibility_outlined, size: 15.5),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      'View & Decide ${item.artNumber}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: zigzaHeadingStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 4),
                   const Icon(Icons.chevron_right_rounded, size: 16),
