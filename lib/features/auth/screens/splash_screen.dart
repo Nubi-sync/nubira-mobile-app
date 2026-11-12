@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../providers/auth_provider.dart';
 import '../../../main.dart';
 
 /// The official Zigza splash screen displaying the brand icon mark,
 /// the "ZIGZA" wordmark beneath it, and an enterprise trust badge at the bottom.
+/// Features a smooth entrance animation and a cinematic dissolve/fade-out exit transition.
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration minimumDuration;
   final Widget? destination;
@@ -21,10 +22,15 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProviderStateMixin {
   late final AnimationController _animController;
   late final Animation<double> _fadeAnimation;
   late final Animation<double> _scaleAnimation;
+
+  late final AnimationController _exitController;
+  late final Animation<double> _exitFadeAnimation;
+  late final Animation<double> _exitScaleAnimation;
+
   bool _minTimeElapsed = false;
   bool _navigated = false;
 
@@ -32,9 +38,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   void initState() {
     super.initState();
 
+    // 1. Entrance animation (Fade-in + Scale up)
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 850),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -44,6 +51,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
     _scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+
+    // 2. Professional Outro animation (Fade-out + Subtle depth expansion)
+    _exitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _exitFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _exitController, curve: Curves.easeInOutCubic),
+    );
+
+    _exitScaleAnimation = Tween<double>(begin: 1.0, end: 1.04).animate(
+      CurvedAnimation(parent: _exitController, curve: Curves.easeInOutCubic),
     );
 
     _animController.forward();
@@ -62,21 +83,33 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   @override
   void dispose() {
     _animController.dispose();
+    _exitController.dispose();
     super.dispose();
   }
 
-  void _checkAndNavigate() {
+  Future<void> _checkAndNavigate() async {
     if (_navigated || !mounted) return;
 
     final authState = ref.read(authProvider);
     if (_minTimeElapsed && !authState.isLoading) {
       _navigated = true;
+
+      // Silky smooth exit fade-out transition
+      await _exitController.forward();
+      if (!mounted) return;
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 600),
           pageBuilder: (_, __, ___) => widget.destination ?? const AuthGate(),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
+          transitionsBuilder: (_, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              ),
+              child: child,
+            );
           },
         ),
       );
@@ -96,10 +129,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       backgroundColor: Colors.white,
       body: SafeArea(
         child: FadeTransition(
-          opacity: _fadeAnimation,
+          opacity: _exitFadeAnimation,
           child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: const SplashScreenView(),
+            scale: _exitScaleAnimation,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: const SplashScreenView(),
+              ),
+            ),
           ),
         ),
       ),
@@ -165,7 +204,7 @@ class SplashScreenView extends StatelessWidget {
                       fit: BoxFit.contain,
                       errorBuilder: (_, __, ___) => RichText(
                         text: TextSpan(
-                          style: GoogleFonts.plusJakartaSans(
+                          style: zigzaHeadingStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 4.0,
@@ -184,13 +223,12 @@ class SplashScreenView extends StatelessWidget {
                   // Meaningful Indian Trust Tagline in English letters with italic font style
                   Text(
                     'Aapka Vishwas • Hamara Bharosa',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16.0,
-                      fontStyle: FontStyle.italic,
+                    style: zigzaHeadingStyle(
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
                       color: const Color(0xFF334155),
-                    ),
+                    ).copyWith(fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
@@ -234,8 +272,8 @@ class SplashScreenView extends StatelessWidget {
                       const SizedBox(width: 10),
                       Text(
                         'BHARAT TRUSTED • 100% SAFE & VERIFIED',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12.5,
+                        style: zigzaHeadingStyle(
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
                           letterSpacing: 0.8,
@@ -252,4 +290,3 @@ class SplashScreenView extends StatelessWidget {
     );
   }
 }
-

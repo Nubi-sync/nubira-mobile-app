@@ -99,8 +99,10 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
         text: initialAddress == 'Address not configured' ? '' : initialAddress);
     final gstinController = TextEditingController(
         text: initialGstin == 'Not configured' ? '' : initialGstin);
-    final phoneController = TextEditingController(text: initialPhone);
-    final emailController = TextEditingController(text: initialEmail);
+    final phoneController = TextEditingController(
+        text: initialPhone == 'Not configured' ? '' : initialPhone);
+    final emailController = TextEditingController(
+        text: initialEmail == 'Not configured' ? '' : initialEmail);
 
     bool isSubmitting = false;
     String? modalError;
@@ -237,6 +239,24 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                       controller: phoneController,
                       decoration: InputDecoration(
                         hintText: '+91 98765 43210',
+                        hintStyle: zigzaBodyStyle(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                      ),
+                      style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Official Email
+                    Text('Official Contact Email', style: zigzaBodyStyle(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF475569))),
+                    const SizedBox(height: 5),
+                    TextField(
+                      controller: emailController,
+                      decoration: InputDecoration(
+                        hintText: 'admin@company.com',
                         hintStyle: zigzaBodyStyle(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
@@ -823,9 +843,11 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     required String subtext,
     Color? titleColor,
     bool isStatus = false,
+    Color? statusColor,
   }) {
+    final effectiveStatusColor = statusColor ?? const Color(0xFF10B981);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
@@ -835,16 +857,16 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDFA),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0x3314C8B4)),
             ),
-            child: Icon(icon, color: const Color(0xFF0B1220), size: 18),
+            child: Icon(icon, color: const Color(0xFF0B1220), size: 19),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,20 +885,20 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
+                        width: 7.5,
+                        height: 7.5,
+                        decoration: BoxDecoration(
+                          color: effectiveStatusColor,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Text(
                         title,
                         style: zigzaHeadingStyle(
-                          fontSize: 14,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF047857),
+                          color: effectiveStatusColor,
                         ),
                       ),
                     ],
@@ -885,7 +907,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                   Text(
                     title,
                     style: zigzaHeadingStyle(
-                      fontSize: 14,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w800,
                       color: titleColor ?? const Color(0xFF0B1220),
                     ),
@@ -952,13 +974,30 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
     final isSuperAdmin = tenant?.isSuperAdmin ?? true;
     final isTrial = tenant?.accessType == 'DEMO_TRIAL';
 
+    // Comprehensive expiration and days-left evaluation exactly matching web
+    final baseProvisioned = tenant?.provisionedAt != null ? DateTime.tryParse(tenant!.provisionedAt) : null;
+    final baseTime = baseProvisioned ?? DateTime(2026, 9, 15);
+    final effectiveExpiry = tenant?.expiresAt != null ? DateTime.tryParse(tenant!.expiresAt!) : null;
+    final effectiveExpiresAt = effectiveExpiry ?? (isTrial ? baseTime.add(const Duration(days: 7)) : baseTime.add(const Duration(days: 30)));
+    final now = DateTime.now();
+    final daysLeft = effectiveExpiresAt.difference(now).inDays;
+
+    final isAccountExpired = tenant?.isActuallyExpired == true ||
+        tenant?.isExpired == true ||
+        now.isAfter(effectiveExpiresAt) ||
+        tenant?.tenantStatus == 'SUSPENDED' ||
+        tenant?.tenantStatus == 'EXPIRED' ||
+        (isTrial && daysLeft <= 0);
+
+    final isExpiringSoon = !isAccountExpired && isTrial && daysLeft <= 3;
+
     final tierDisplay = subscriptionTier == 'FULL_PLANT_AI'
         ? 'Full Plant AI (12 Div)'
         : (subscriptionTier == 'MODULAR' ? 'Modular Plan' : 'Enterprise Custom');
 
-    final startDateStr = _formatDate(tenant?.provisionedAt, format: 'd MMM yyyy', fallback: 'Account Initialized');
-    final validUntilStr = _formatDate(tenant?.expiresAt, format: 'd MMM yyyy', fallback: isTrial ? '7-Day Trial' : 'Active Cycle');
-    final memberSinceStr = _formatDate(tenant?.provisionedAt, format: 'MMM yyyy', fallback: 'Active');
+    final startDateStr = _formatDate(tenant?.provisionedAt, format: 'd MMM yyyy', fallback: '15 Sept 2026');
+    final validUntilStr = _formatDate(effectiveExpiresAt.toIso8601String(), format: 'd MMM yyyy', fallback: isTrial ? '7-Day Trial' : 'Active Cycle');
+    final memberSinceStr = _formatDate(tenant?.provisionedAt, format: 'MMM yyyy', fallback: 'Sep 2026');
 
     final initials = (adminName.length >= 2 ? adminName.substring(0, 2) : (companyName.length >= 2 ? companyName.substring(0, 2) : 'EA')).toUpperCase();
 
@@ -1050,9 +1089,9 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDFA),
+                                color: isAccountExpired ? const Color(0xFFFFF1F2) : const Color(0xFFF0FDFA),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0x3314C8B4)),
+                                border: Border.all(color: isAccountExpired ? const Color(0xFFFECDD3) : const Color(0x3314C8B4)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1060,12 +1099,23 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                                   Container(
                                     width: 6,
                                     height: 6,
-                                    decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                                    decoration: BoxDecoration(
+                                      color: isAccountExpired
+                                          ? const Color(0xFFE11D48)
+                                          : (isExpiringSoon ? const Color(0xFFD97706) : const Color(0xFF10B981)),
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    isTrial ? 'Trial Active' : 'Active',
-                                    style: zigzaHeadingStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: const Color(0xFF0B1220)),
+                                    isAccountExpired
+                                        ? 'Expired'
+                                        : (isTrial ? '$daysLeft Days Trial' : 'Active'),
+                                    style: zigzaHeadingStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: isAccountExpired ? const Color(0xFFE11D48) : const Color(0xFF0B1220),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1080,7 +1130,7 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 2. Factory Profile & Registration Card (Organization Identity)
+            // 2. Factory Profile & Registration Card (Organization Identity - All Web Fields)
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -1138,23 +1188,31 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
                     title: gstin,
                     subtext: 'Registered Corporate Identifier',
                   ),
-                  if (contactPhone.isNotEmpty || contactEmail.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _buildParameterCard(
-                      icon: Icons.support_agent_outlined,
-                      label: 'FACILITY HELPLINE',
-                      title: contactPhone.isNotEmpty ? contactPhone : contactEmail,
-                      subtext: contactEmail.isNotEmpty ? contactEmail : 'Direct Floor Inward Desk',
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+
+                  // Helpline (Always visible as on Web)
+                  _buildParameterCard(
+                    icon: Icons.support_agent_outlined,
+                    label: 'FACILITY HELPLINE',
+                    title: contactPhone.isNotEmpty ? contactPhone : 'Not configured',
+                    subtext: 'Direct Inward Floor Desk',
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Official Email (Always visible as on Web & screenshot)
+                  _buildParameterCard(
+                    icon: Icons.mail_outline_rounded,
+                    label: 'OFFICIAL EMAIL',
+                    title: contactEmail.isNotEmpty ? contactEmail : adminEmail,
+                    subtext: 'Corporate Dispatch & Inward Mail',
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
 
-            // 3. Active Subscription & License Status Card
+            // 3. Active Subscription & License Status Card (Matching Screenshot exactly!)
             Container(
-              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -1166,62 +1224,158 @@ class _CompanyProfileScreenState extends ConsumerState<CompanyProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ZigzaSectionHeader(
-                    icon: Icons.credit_card_rounded,
-                    title: 'Subscription &',
-                    accent: 'License',
-                    badge: isTrial ? '7-DAY TRIAL' : 'ACTIVE PLAN',
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Renew Subscription Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 42,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D4ED8),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                  // Expired / Warning Red Banner (Displayed when isAccountExpired is true)
+                  if (isAccountExpired)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF1F2),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        border: Border(bottom: BorderSide(color: Color(0xFFFECDD3))),
                       ),
-                      onPressed: () => _showRenewModal(context, companyName, subscriptionTier, monthlyInr, adminEmail),
-                      child: Text(
-                        isTrial ? 'Activate Subscription' : 'Renew Subscription',
-                        style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFE4E6),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.lock_outline_rounded, color: Color(0xFFE11D48), size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Evaluation / Subscription Expired',
+                                      style: zigzaHeadingStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF9F1239),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Access to operational manufacturing divisions is paused. Please renew or upgrade to continue.',
+                                      style: zigzaBodyStyle(
+                                        fontSize: 11.5,
+                                        color: const Color(0xFFBE123C),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 38,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE11D48),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                elevation: 0,
+                              ),
+                              onPressed: () => _showRenewModal(context, companyName, subscriptionTier, monthlyInr, adminEmail),
+                              child: Text(
+                                'Pay Now',
+                                style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
 
-                  // 4 Parameter Cards
-                  _buildParameterCard(
-                    icon: Icons.credit_card_rounded,
-                    label: 'PLAN TIER',
-                    title: tierDisplay,
-                    subtext: '₹${NumberFormat('#,##,###').format(monthlyInr.toInt())}/month',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildParameterCard(
-                    icon: Icons.verified_user_outlined,
-                    label: 'ACCOUNT STATUS',
-                    title: isTrial ? 'Trial Active' : 'Active',
-                    subtext: 'All Divisions Active',
-                    isStatus: true,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildParameterCard(
-                    icon: Icons.calendar_today_rounded,
-                    label: 'START DATE',
-                    title: startDateStr,
-                    subtext: 'Account Initialized',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildParameterCard(
-                    icon: Icons.access_time_rounded,
-                    label: 'VALID UNTIL',
-                    title: validUntilStr,
-                    subtext: isTrial ? '7-Day Evaluation' : 'Active Cycle',
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ZigzaSectionHeader(
+                          icon: Icons.credit_card_rounded,
+                          title: 'Subscription &',
+                          accent: 'License',
+                          badge: isAccountExpired
+                              ? 'EXPIRED'
+                              : (isTrial ? '7-DAY TRIAL' : 'ACTIVE PLAN'),
+                          badgeColor: isAccountExpired ? const Color(0xFFFFF1F2) : null,
+                          badgeTextColor: isAccountExpired ? const Color(0xFFE11D48) : null,
+                          badgeBorderColor: isAccountExpired ? const Color(0xFFFECDD3) : null,
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Renew Subscription Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 42,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1D4ED8),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            onPressed: () => _showRenewModal(context, companyName, subscriptionTier, monthlyInr, adminEmail),
+                            child: Text(
+                              isTrial ? 'Activate Subscription' : 'Renew Subscription',
+                              style: zigzaHeadingStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // 4 Parameter Cards (Full-width stacked exactly like screenshot)
+                        _buildParameterCard(
+                          icon: Icons.credit_card_rounded,
+                          label: 'PLAN TIER',
+                          title: tierDisplay,
+                          subtext: '₹${NumberFormat('#,##,###').format(monthlyInr.toInt())}/month',
+                        ),
+                        const SizedBox(height: 8),
+
+                        _buildParameterCard(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'START DATE',
+                          title: startDateStr,
+                          subtext: 'Account Initialized',
+                        ),
+                        const SizedBox(height: 8),
+
+                        _buildParameterCard(
+                          icon: Icons.access_time_rounded,
+                          label: 'VALID UNTIL',
+                          title: validUntilStr,
+                          titleColor: isAccountExpired ? const Color(0xFFE11D48) : null,
+                          subtext: isTrial ? '7-Day Evaluation' : 'Active Cycle',
+                        ),
+                        const SizedBox(height: 8),
+
+                        _buildParameterCard(
+                          icon: Icons.verified_user_outlined,
+                          label: 'ACCOUNT STATUS',
+                          title: isAccountExpired
+                              ? 'Expired (Locked)'
+                              : (isExpiringSoon
+                                  ? '$daysLeft ${daysLeft == 1 ? 'Day' : 'Days'} Left'
+                                  : (isTrial ? '$daysLeft Days Trial Left' : 'Active')),
+                          subtext: isAccountExpired ? 'Renewal Required' : 'All Divisions Active',
+                          isStatus: true,
+                          statusColor: isAccountExpired
+                              ? const Color(0xFFE11D48)
+                              : (isExpiringSoon ? const Color(0xFFD97706) : const Color(0xFF10B981)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
