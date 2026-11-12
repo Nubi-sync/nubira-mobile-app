@@ -1376,3 +1376,4 @@ class _DetailStatTile extends StatelessWidget {
     );
   }
 }
+

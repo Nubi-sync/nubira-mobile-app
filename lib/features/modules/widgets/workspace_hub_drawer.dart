@@ -46,6 +46,7 @@ import '../../iron/screens/iron_notifications_screen.dart';
 import '../../iron/screens/iron_zigza_ai_screen.dart';
 import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../../store/screens/central_store_godown_screen.dart';
+import '../../fabric_store/screens/fabric_store_screen.dart';
 import '../../dispatch/screens/dispatch_logistics_hub_screen.dart';
 import '../../admin/screens/admin_shell.dart';
 import '../../admin/screens/employees_screen.dart';
@@ -1382,8 +1383,14 @@ class WorkspaceHubDrawer extends ConsumerWidget {
           context: context,
           icon: Icons.layers_outlined,
           title: 'Fabric & Store',
-          isActive: activeRoute == '/store' || activeRoute == '/stitching-sewing/store',
-          onTap: () => _navigateTo(context, const CentralStoreGodownScreen()),
+          isActive: activeRoute == '/fabric-store',
+          onTap: () {
+            if (activeRoute == '/fabric-store') {
+              Navigator.pop(context);
+            } else {
+              _navigateTo(context, const FabricStoreScreen());
+            }
+          },
         ),
         _buildNavItem(
           context: context,

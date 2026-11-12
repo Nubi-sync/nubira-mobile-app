@@ -279,3 +279,4 @@ String getStoreAvatarInitials(String? name) {
   }
   return (words[0][0] + words[1][0]).toUpperCase();
 }
+
