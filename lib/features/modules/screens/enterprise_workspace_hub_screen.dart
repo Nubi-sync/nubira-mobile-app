@@ -18,6 +18,7 @@ import '../../ready_goods/screens/quality_clinic_floor_screen.dart';
 import '../models/module_card_model.dart';
 import '../widgets/workspace_hub_drawer.dart';
 import 'generic_division_screen.dart';
+import 'company_profile_screen.dart';
 
 class EnterpriseWorkspaceHubScreen extends ConsumerStatefulWidget {
   const EnterpriseWorkspaceHubScreen({super.key});
