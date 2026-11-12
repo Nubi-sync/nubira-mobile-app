@@ -56,6 +56,9 @@ class ZigzaSectionHeader extends StatelessWidget {
   final Color iconColor;
   final Color iconBgColor;
   final Color? accentColor;
+  final Color? badgeColor;
+  final Color? badgeTextColor;
+  final Color? badgeBorderColor;
   final bool withDivider;
   final EdgeInsetsGeometry padding;
 
@@ -69,6 +72,9 @@ class ZigzaSectionHeader extends StatelessWidget {
     this.iconColor = const Color(0xFF0F766E),
     this.iconBgColor = AppTheme.mintSurface,
     this.accentColor,
+    this.badgeColor,
+    this.badgeTextColor,
+    this.badgeBorderColor,
     this.withDivider = true,
     this.padding = const EdgeInsets.only(bottom: 10),
   });
@@ -137,16 +143,16 @@ class ZigzaSectionHeader extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: badgeColor ?? const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(color: badgeBorderColor ?? AppTheme.borderLight),
                     ),
                     child: Text(
                       badge!,
                       style: zigzaHeadingStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.bodyInk,
+                        color: badgeTextColor ?? AppTheme.bodyInk,
                       ),
                     ),
                   ),

@@ -86,6 +86,32 @@ class ResolvedTenantProfile {
     );
   }
 
+  DateTime get effectiveExpiryDate {
+    if (expiresAt != null && expiresAt!.isNotEmpty) {
+      final parsed = DateTime.tryParse(expiresAt!);
+      if (parsed != null) return parsed;
+    }
+    final prov = DateTime.tryParse(provisionedAt) ?? DateTime(2026, 9, 15);
+    final days = accessType == 'DEMO_TRIAL' ? 7 : 30;
+    return prov.add(Duration(days: days));
+  }
+
+  int get daysLeft {
+    final diff = effectiveExpiryDate.difference(DateTime.now()).inDays;
+    return diff > 0 ? diff : 0;
+  }
+
+  bool get isActuallyExpired {
+    if (isExpired) return true;
+    if (tenantStatus == 'SUSPENDED' || tenantStatus == 'EXPIRED') return true;
+    final now = DateTime.now();
+    if (now.isAfter(effectiveExpiryDate)) return true;
+    if (accessType == 'DEMO_TRIAL' && daysLeft <= 0) return true;
+    return false;
+  }
+
+  bool get isExpiringSoon => !isActuallyExpired && accessType == 'DEMO_TRIAL' && daysLeft <= 3;
+
   int get operatingUnitsCount => allowedDivisions.length;
 
   Map<String, dynamic> toJson() => {
@@ -375,10 +401,34 @@ class TenantResolverService {
             ? (tenantRow['admin_name'] ?? metadata['displayName'] ?? 'Plant Head')
             : (metadata['display_name'] ?? metadata['displayName'] ?? (profileUsername.isNotEmpty ? profileUsername : 'Department Head'));
 
-        final expiresAt = tenantRow['expires_at']?.toString();
+        final accessType = (tenantRow['access_type'] ?? 'FULL_ACCESS').toString();
+        final rawProvisionedAt = (tenantRow['provisioned_at'] ?? '2026-09-15T00:00:00.000Z').toString();
+        final provisionedTime = DateTime.tryParse(rawProvisionedAt) ?? DateTime(2026, 9, 15);
+        final defaultCalculatedExpiry = accessType == 'DEMO_TRIAL'
+            ? provisionedTime.add(const Duration(days: 7))
+            : provisionedTime.add(const Duration(days: 30));
+
+        final rawExpiresAt = tenantRow['expires_at']?.toString();
+        String expiresAt = rawExpiresAt ?? defaultCalculatedExpiry.toIso8601String();
+
+        // Auto-correct any Full Access accounts that were mistakenly given a 7/8-day trial expiry
+        if (accessType == 'FULL_ACCESS' && rawExpiresAt != null) {
+          final storedExpiry = DateTime.tryParse(rawExpiresAt);
+          if (storedExpiry != null && storedExpiry.difference(provisionedTime).inDays < 15) {
+            expiresAt = provisionedTime.add(const Duration(days: 30)).toIso8601String();
+            try {
+              supabase
+                  .from('platform_tenant_factories')
+                  .update({'expires_at': expiresAt})
+                  .eq('id', tenantRow['id']);
+            } catch (_) {}
+          }
+        }
+
         final tenantStatus = (tenantRow['status'] ?? 'ACTIVE').toString();
-        final isPastExpiry = expiresAt != null ? DateTime.tryParse(expiresAt)?.isBefore(DateTime.now()) ?? false : false;
-        final isExpired = tenantStatus == 'SUSPENDED' || tenantStatus == 'EXPIRED' || isPastExpiry;
+        final expiryDateTime = DateTime.tryParse(expiresAt) ?? defaultCalculatedExpiry;
+        final isPastExpiry = DateTime.now().isAfter(expiryDateTime);
+        final isExpired = tenantStatus == 'SUSPENDED' || tenantStatus == 'EXPIRED' || isPastExpiry || (accessType == 'DEMO_TRIAL' && isPastExpiry);
 
         return ResolvedTenantProfile(
           userId: user.id,
@@ -395,9 +445,9 @@ class TenantResolverService {
           allowedDivisions: divisions,
           isProvisionedTenant: true,
           tenantId: tenantRow['id']?.toString(),
-          accessType: tenantRow['access_type'] ?? 'FULL_ACCESS',
+          accessType: accessType,
           expiresAt: expiresAt,
-          provisionedAt: tenantRow['provisioned_at'] ?? '2026-09-15T00:00:00.000Z',
+          provisionedAt: rawProvisionedAt,
           isExpired: isExpired,
           tenantStatus: tenantStatus,
           monthlyBillingInr: (tenantRow['monthly_billing_inr'] as num?)?.toDouble() ?? 4999,
@@ -467,6 +517,8 @@ class TenantResolverService {
         isProvisionedTenant: false,
         accessType: 'DEMO_TRIAL',
         expiresAt: '2026-09-22T23:59:59.000Z',
+        isExpired: true,
+        tenantStatus: 'EXPIRED',
       );
     }
 
@@ -493,6 +545,8 @@ class TenantResolverService {
       isProvisionedTenant: true,
       accessType: 'DEMO_TRIAL',
       expiresAt: '2026-09-22T23:59:59.000Z',
+      isExpired: true,
+      tenantStatus: 'EXPIRED',
     );
   }
 }
