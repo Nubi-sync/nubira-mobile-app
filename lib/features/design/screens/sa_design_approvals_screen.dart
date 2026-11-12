@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/zigza_app_bar.dart';
+import '../../../core/widgets/zigza_section_header.dart';
 import '../../modules/widgets/workspace_hub_drawer.dart';
 import '../models/design_brief_model.dart';
 import '../providers/designer_provider.dart';

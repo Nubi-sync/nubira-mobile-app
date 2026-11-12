@@ -129,6 +129,113 @@ class DesignConceptItemModel {
   }
 }
 
+class ParsedConceptsResult {
+  final List<DesignConceptItemModel> concepts;
+  final List<Map<String, dynamic>> rawConceptMaps;
+  final String? cleanNotes;
+
+  const ParsedConceptsResult({
+    this.concepts = const [],
+    this.rawConceptMaps = const [],
+    this.cleanNotes,
+  });
+}
+
+/// Shared balanced-bracket extractor matching Web Admin's `parseConceptsFromNotes`.
+ParsedConceptsResult parseConceptsFromNotes(String? rawNotes) {
+  if (rawNotes == null || rawNotes.trim().isEmpty) {
+    return const ParsedConceptsResult();
+  }
+  const marker = '[CONCEPTS_JSON:';
+  final markerIdx = rawNotes.indexOf(marker);
+  if (markerIdx == -1) {
+    return ParsedConceptsResult(cleanNotes: rawNotes.trim());
+  }
+
+  int jsonStart = markerIdx + marker.length;
+  while (jsonStart < rawNotes.length && rawNotes[jsonStart].trim().isEmpty) {
+    jsonStart++;
+  }
+  if (jsonStart >= rawNotes.length ||
+      (rawNotes[jsonStart] != '[' && rawNotes[jsonStart] != '{')) {
+    return ParsedConceptsResult(cleanNotes: rawNotes.trim());
+  }
+
+  final openChar = rawNotes[jsonStart];
+  final closeChar = openChar == '[' ? ']' : '}';
+  int depth = 0;
+  bool inString = false;
+  bool escaped = false;
+  int jsonEnd = -1;
+
+  for (int i = jsonStart; i < rawNotes.length; i++) {
+    final ch = rawNotes[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (inString) {
+      if (ch == r'\') {
+        escaped = true;
+      } else if (ch == '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch == '"') {
+      inString = true;
+    } else if (ch == openChar) {
+      depth++;
+    } else if (ch == closeChar) {
+      depth--;
+      if (depth == 0) {
+        jsonEnd = i;
+        break;
+      }
+    }
+  }
+
+  if (jsonEnd == -1) {
+    return ParsedConceptsResult(cleanNotes: rawNotes.trim());
+  }
+
+  int tagClose = jsonEnd + 1;
+  while (tagClose < rawNotes.length && rawNotes[tagClose].trim().isEmpty) {
+    tagClose++;
+  }
+  if (tagClose < rawNotes.length && rawNotes[tagClose] == ']') {
+    tagClose++;
+  } else {
+    tagClose = jsonEnd + 1;
+  }
+
+  try {
+    final jsonStr = rawNotes.substring(jsonStart, jsonEnd + 1);
+    final dynamic decoded = jsonDecode(jsonStr);
+    final List<Map<String, dynamic>> rawMaps = [];
+    if (decoded is List) {
+      for (final item in decoded) {
+        if (item is Map) rawMaps.add(Map<String, dynamic>.from(item));
+      }
+    } else if (decoded is Map) {
+      rawMaps.add(Map<String, dynamic>.from(decoded));
+    }
+
+    final concepts = rawMaps.map(DesignConceptItemModel.fromJson).toList();
+    final before = rawNotes.substring(0, markerIdx);
+    final after = rawNotes.substring(tagClose);
+    final cleaned = ('$before $after').trim();
+
+    return ParsedConceptsResult(
+      concepts: concepts,
+      rawConceptMaps: rawMaps,
+      cleanNotes: cleaned.isEmpty ? null : cleaned,
+    );
+  } catch (_) {
+    return ParsedConceptsResult(cleanNotes: rawNotes.trim());
+  }
+}
+
 class DesignSubmissionModel {
   final String id;
   final String briefId;
@@ -143,8 +250,10 @@ class DesignSubmissionModel {
   final String? phFeedback;
   final String? saVerdict; // 'APPROVED' | 'SAVED_FOR_LATER' | 'REJECTED'
   final String? saNotes;
+  final String? companyName;
   final String submittedAt;
   final String? reviewedAt;
+  final DesignBriefModel? brief;
 
   List<DesignConceptItemModel> get safeConcepts => concepts ?? const <DesignConceptItemModel>[];
 
@@ -162,9 +271,36 @@ class DesignSubmissionModel {
     this.phFeedback,
     this.saVerdict,
     this.saNotes,
+    this.companyName,
     required this.submittedAt,
     this.reviewedAt,
+    this.brief,
   });
+
+  DesignSubmissionModel copyWith({
+    String? designerName,
+    DesignBriefModel? brief,
+  }) {
+    return DesignSubmissionModel(
+      id: id,
+      briefId: briefId,
+      designerMemberId: designerMemberId,
+      designerName: designerName ?? this.designerName,
+      photoUrl1: photoUrl1,
+      photoUrl2: photoUrl2,
+      designerNotes: designerNotes,
+      cleanDesignerNotes: cleanDesignerNotes,
+      concepts: concepts,
+      phVerdict: phVerdict,
+      phFeedback: phFeedback,
+      saVerdict: saVerdict,
+      saNotes: saNotes,
+      companyName: companyName,
+      submittedAt: submittedAt,
+      reviewedAt: reviewedAt,
+      brief: brief ?? this.brief,
+    );
+  }
 
   factory DesignSubmissionModel.fromJson(Map<String, dynamic> json) {
     final rawNotes = json['designer_notes'] as String?;
@@ -177,23 +313,9 @@ class DesignSubmissionModel {
           .map((c) => DesignConceptItemModel.fromJson(Map<String, dynamic>.from(c)))
           .toList();
     } else if (rawNotes != null && rawNotes.contains('[CONCEPTS_JSON:')) {
-      try {
-        final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawNotes);
-        if (match != null) {
-          final jsonStr = match.group(1);
-          if (jsonStr != null) {
-            final dynamic decoded = jsonDecode(jsonStr);
-            if (decoded is List) {
-              parsedConcepts = decoded
-                  .whereType<Map>()
-                  .map((c) => DesignConceptItemModel.fromJson(Map<String, dynamic>.from(c)))
-                  .toList();
-            }
-          }
-          cleanNotes = rawNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
-          if (cleanNotes.isEmpty) cleanNotes = null;
-        }
-      } catch (_) {}
+      final parsed = parseConceptsFromNotes(rawNotes);
+      parsedConcepts = parsed.concepts;
+      cleanNotes = parsed.cleanNotes;
     }
 
     String p1 = json['photo_url_1'] as String? ?? '';
@@ -214,11 +336,31 @@ class DesignSubmissionModel {
       }
     }
 
+    final directTeam = json['design_team_members'] is Map
+        ? Map<String, dynamic>.from(json['design_team_members'] as Map)
+        : null;
+    final briefJson = json['design_briefs'] is Map
+        ? Map<String, dynamic>.from(json['design_briefs'] as Map)
+        : null;
+    final parsedBrief = briefJson != null ? DesignBriefModel.fromJson(briefJson) : null;
+    final briefTeam = briefJson != null && briefJson['design_team_members'] is Map
+        ? Map<String, dynamic>.from(briefJson['design_team_members'] as Map)
+        : null;
+
+    final resolvedDesignerName =
+        (json['designer_name'] as String?)?.trim().isNotEmpty == true
+            ? (json['designer_name'] as String).trim()
+            : ((directTeam?['designer_name'] as String?)?.trim().isNotEmpty == true
+                ? (directTeam!['designer_name'] as String).trim()
+                : ((briefTeam?['designer_name'] as String?)?.trim().isNotEmpty == true
+                    ? (briefTeam!['designer_name'] as String).trim()
+                    : parsedBrief?.designerName));
+
     return DesignSubmissionModel(
       id: json['id'] as String? ?? '',
       briefId: json['brief_id'] as String? ?? '',
       designerMemberId: json['designer_member_id'] as String?,
-      designerName: json['designer_name'] as String?,
+      designerName: resolvedDesignerName,
       photoUrl1: p1,
       photoUrl2: p2,
       designerNotes: rawNotes,
@@ -228,8 +370,10 @@ class DesignSubmissionModel {
       phFeedback: json['ph_feedback'] as String?,
       saVerdict: json['sa_verdict'] as String?,
       saNotes: json['sa_notes'] as String?,
+      companyName: json['company_name'] as String?,
       submittedAt: json['submitted_at'] as String? ?? DateTime.now().toIso8601String(),
       reviewedAt: json['reviewed_at'] as String?,
+      brief: parsedBrief,
     );
   }
 
@@ -312,6 +456,7 @@ class DesignBriefModel {
   final String createdAt;
   final String updatedAt;
   final DesignSubmissionModel? latestSubmission;
+  final List<DesignSubmissionModel> allSubmissions;
 
   List<BriefDesignConceptRequirementModel> get safeDesignConceptsBrief => designConceptsBrief ?? const <BriefDesignConceptRequirementModel>[];
 
@@ -354,7 +499,10 @@ class DesignBriefModel {
         .trim();
   }
 
-  List<DesignSubmissionModel> get submissions => latestSubmission != null ? [latestSubmission!] : const [];
+  List<DesignSubmissionModel> get submissions =>
+      allSubmissions.isNotEmpty
+          ? allSubmissions
+          : (latestSubmission != null ? [latestSubmission!] : const []);
 
   const DesignBriefModel({
     required this.id,
@@ -375,19 +523,23 @@ class DesignBriefModel {
     required this.createdAt,
     required this.updatedAt,
     this.latestSubmission,
+    this.allSubmissions = const [],
   });
 
   factory DesignBriefModel.fromJson(Map<String, dynamic> json) {
     DesignSubmissionModel? sub;
+    List<DesignSubmissionModel> parsedAllSubs = [];
     if (json['design_submissions'] != null && json['design_submissions'] is List) {
       final list = (json['design_submissions'] as List).whereType<Map>().toList();
       if (list.isNotEmpty) {
         final sorted = list.map((m) => Map<String, dynamic>.from(m)).toList();
         sorted.sort((a, b) => (b['submitted_at']?.toString() ?? '').compareTo(a['submitted_at']?.toString() ?? ''));
-        sub = DesignSubmissionModel.fromJson(sorted.first);
+        parsedAllSubs = sorted.map(DesignSubmissionModel.fromJson).toList();
+        sub = parsedAllSubs.first;
       }
     } else if (json['latest_submission'] != null && json['latest_submission'] is Map) {
       sub = DesignSubmissionModel.fromJson(Map<String, dynamic>.from(json['latest_submission'] as Map));
+      parsedAllSubs = [sub];
     }
 
     final teamMember = json['design_team_members'] is Map ? json['design_team_members'] as Map : null;
@@ -460,6 +612,7 @@ class DesignBriefModel {
       createdAt: json['created_at'] as String? ?? DateTime.now().toIso8601String(),
       updatedAt: json['updated_at'] as String? ?? DateTime.now().toIso8601String(),
       latestSubmission: sub,
+      allSubmissions: parsedAllSubs,
     );
   }
 }

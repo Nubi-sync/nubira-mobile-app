@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/tenant_resolver_service.dart';
 import '../../../main.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/design_brief_model.dart';
@@ -10,6 +11,7 @@ class DesignerState {
   final bool isLoading;
   final String? error;
   final List<DesignBriefModel> briefs;
+  final List<DesignSubmissionModel> approvedSubmissions;
   final List<DesignTeamMemberModel> teamMembers;
   final List<TechPackSummaryModel> techPacks;
   final bool isSubmitting;
@@ -18,6 +20,7 @@ class DesignerState {
     this.isLoading = false,
     this.error,
     this.briefs = const [],
+    this.approvedSubmissions = const [],
     this.teamMembers = const [],
     this.techPacks = const [],
     this.isSubmitting = false,
@@ -27,6 +30,7 @@ class DesignerState {
     bool? isLoading,
     String? error,
     List<DesignBriefModel>? briefs,
+    List<DesignSubmissionModel>? approvedSubmissions,
     List<DesignTeamMemberModel>? teamMembers,
     List<TechPackSummaryModel>? techPacks,
     bool? isSubmitting,
@@ -35,6 +39,7 @@ class DesignerState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       briefs: briefs ?? this.briefs,
+      approvedSubmissions: approvedSubmissions ?? this.approvedSubmissions,
       teamMembers: teamMembers ?? this.teamMembers,
       techPacks: techPacks ?? this.techPacks,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -53,30 +58,33 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final authState = _ref.read(authProvider);
-      final company = (authState.tenantProfile?.companyName ?? '').trim();
+      final currentUser = supabase.auth.currentUser;
+      final resolvedTenant = authState.tenantProfile ??
+          (currentUser != null
+              ? await TenantResolverService.resolveUserTenant(currentUser)
+              : null);
+      final company = (resolvedTenant?.companyName ?? '').trim();
+      final normCompany = company.toLowerCase();
+
+      bool matchesCompany(dynamic row) {
+        if (normCompany.isEmpty) return true;
+        final rowComp = (row['company_name']?.toString() ?? '').toLowerCase().trim();
+        return rowComp == normCompany;
+      }
 
       // 1. Fetch briefs with joined submissions and team member info strictly for this company
       List<DesignBriefModel> briefList = [];
       try {
-        dynamic briefsResp;
-        if (company.isNotEmpty) {
-          briefsResp = await supabase
-              .from('design_briefs')
-              .select('*, design_team_members(*), design_submissions(*)')
-              .eq('company_name', company)
-              .order('created_at', ascending: false);
-        } else {
-          briefsResp = await supabase
-              .from('design_briefs')
-              .select('*, design_team_members(*), design_submissions(*)')
-              .order('created_at', ascending: false);
-        }
+        var query = supabase
+            .from('design_briefs')
+            .select('*, design_team_members(*), design_submissions(*)');
+        final briefsResp = company.isNotEmpty
+            ? await query.ilike('company_name', '%$company%').order('created_at', ascending: false)
+            : await query.order('created_at', ascending: false);
 
         if (briefsResp is List) {
           for (final item in briefsResp) {
-            if (item is Map<String, dynamic>) {
-              briefList.add(DesignBriefModel.fromJson(item));
-            } else if (item is Map) {
+            if (item is Map && matchesCompany(item)) {
               briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item)));
             }
           }
@@ -84,22 +92,15 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       } catch (e) {
         // Fallback simple query strictly filtered by company if set
         try {
-          dynamic simpleResp;
-          if (company.isNotEmpty) {
-            simpleResp = await supabase
-                .from('design_briefs')
-                .select('*')
-                .eq('company_name', company)
-                .order('created_at', ascending: false);
-          } else {
-            simpleResp = await supabase
-                .from('design_briefs')
-                .select('*')
-                .order('created_at', ascending: false);
-          }
+          var query = supabase.from('design_briefs').select('*');
+          final simpleResp = company.isNotEmpty
+              ? await query.ilike('company_name', '%$company%').order('created_at', ascending: false)
+              : await query.order('created_at', ascending: false);
           if (simpleResp is List) {
             for (final item in simpleResp) {
-              briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item as Map)));
+              if (item is Map && matchesCompany(item)) {
+                briefList.add(DesignBriefModel.fromJson(Map<String, dynamic>.from(item)));
+              }
             }
           }
         } catch (_) {}
@@ -108,22 +109,14 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       // 2. Fetch team members strictly for this company
       List<DesignTeamMemberModel> teamList = [];
       try {
-        dynamic teamResp;
-        if (company.isNotEmpty) {
-          teamResp = await supabase
-              .from('design_team_members')
-              .select('*')
-              .eq('company_name', company)
-              .order('designer_name', ascending: true);
-        } else {
-          teamResp = await supabase
-              .from('design_team_members')
-              .select('*')
-              .order('designer_name', ascending: true);
-        }
+        var query = supabase.from('design_team_members').select('*');
+        final teamResp = company.isNotEmpty
+            ? await query.ilike('company_name', '%$company%').order('designer_name', ascending: true)
+            : await query.order('designer_name', ascending: true);
         if (teamResp is List) {
           teamList = teamResp
               .whereType<Map>()
+              .where(matchesCompany)
               .map((m) => DesignTeamMemberModel.fromJson(Map<String, dynamic>.from(m)))
               .toList();
         }
@@ -133,37 +126,21 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
       List<TechPackSummaryModel> tpList = [];
       try {
         dynamic tpResp;
-        if (company.isNotEmpty) {
-          try {
-            tpResp = await supabase
-                .from('design_tech_packs')
-                .select('*, brands(*)')
-                .eq('company_name', company)
-                .order('created_at', ascending: false);
-          } catch (_) {
-            tpResp = await supabase
-                .from('design_tech_packs')
-                .select('*')
-                .eq('company_name', company)
-                .order('created_at', ascending: false);
-          }
-        } else {
-          try {
-            tpResp = await supabase
-                .from('design_tech_packs')
-                .select('*, brands(*)')
-                .order('created_at', ascending: false);
-          } catch (_) {
-            tpResp = await supabase
-                .from('design_tech_packs')
-                .select('*')
-                .order('created_at', ascending: false);
-          }
+        try {
+          var query = supabase.from('design_tech_packs').select('*, brands(*)');
+          tpResp = company.isNotEmpty
+              ? await query.ilike('company_name', '%$company%').order('created_at', ascending: false)
+              : await query.order('created_at', ascending: false);
+        } catch (_) {
+          var query = supabase.from('design_tech_packs').select('*');
+          tpResp = company.isNotEmpty
+              ? await query.ilike('company_name', '%$company%').order('created_at', ascending: false)
+              : await query.order('created_at', ascending: false);
         }
 
         if (tpResp is List) {
           for (final raw in tpResp) {
-            if (raw is Map) {
+            if (raw is Map && matchesCompany(raw)) {
               try {
                 final pack = TechPackSummaryModel.fromJson(Map<String, dynamic>.from(raw));
                 tpList.add(pack);
@@ -173,9 +150,62 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
         }
       } catch (_) {}
 
+      // 4. Fetch PH-approved design_submissions directly (matches Web Admin fetchDesignSubmissionsAction)
+      List<DesignSubmissionModel> approvedSubs = [];
+      try {
+        var subQuery = supabase
+            .from('design_submissions')
+            .select('*, design_briefs(*, design_team_members(*)), design_team_members(*)')
+            .eq('ph_verdict', 'APPROVED');
+        final subsResp = company.isNotEmpty
+            ? await subQuery.ilike('company_name', '%$company%').order('submitted_at', ascending: false)
+            : await subQuery.order('submitted_at', ascending: false);
+
+        if (subsResp is List) {
+          for (final raw in subsResp) {
+            if (raw is Map && matchesCompany(raw)) {
+              approvedSubs.add(DesignSubmissionModel.fromJson(Map<String, dynamic>.from(raw)));
+            }
+          }
+        }
+      } catch (_) {
+        // Fallback without FK joins, stitching already-fetched briefs & team members
+        try {
+          var simpleSubQuery = supabase
+              .from('design_submissions')
+              .select('*')
+              .eq('ph_verdict', 'APPROVED');
+          final simpleSubsResp = company.isNotEmpty
+              ? await simpleSubQuery.ilike('company_name', '%$company%').order('submitted_at', ascending: false)
+              : await simpleSubQuery.order('submitted_at', ascending: false);
+
+          if (simpleSubsResp is List) {
+            final briefById = {for (final b in briefList) b.id: b};
+            final memberById = {for (final m in teamList) m.id: m};
+            for (final raw in simpleSubsResp) {
+              if (raw is Map && matchesCompany(raw)) {
+                final parsedSub = DesignSubmissionModel.fromJson(Map<String, dynamic>.from(raw));
+                final matchedBrief = briefById[parsedSub.briefId];
+                final matchedMember = parsedSub.designerMemberId != null
+                    ? memberById[parsedSub.designerMemberId!]
+                    : null;
+                approvedSubs.add(parsedSub.copyWith(
+                  designerName: parsedSub.designerName ??
+                      matchedMember?.designerName ??
+                      matchedBrief?.designerName ??
+                      'Designer',
+                  brief: parsedSub.brief ?? matchedBrief,
+                ));
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       state = state.copyWith(
         isLoading: false,
         briefs: briefList,
+        approvedSubmissions: approvedSubs,
         teamMembers: teamList,
         techPacks: tpList,
       );
@@ -311,19 +341,10 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
           .single();
 
       final rawNotes = subData['designer_notes'] as String?;
-      String cleanNotes = rawNotes ?? '';
-      List<Map<String, dynamic>> updatedConcepts = [];
-
-      if (rawNotes != null && rawNotes.contains('[CONCEPTS_JSON:')) {
-        final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawNotes);
-        if (match != null && match.group(1) != null) {
-          final decoded = jsonDecode(match.group(1)!);
-          if (decoded is List) {
-            updatedConcepts = decoded.map((c) => Map<String, dynamic>.from(c as Map)).toList();
-          }
-          cleanNotes = rawNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
-        }
-      }
+      final parsedNotes = parseConceptsFromNotes(rawNotes);
+      final cleanNotes = parsedNotes.cleanNotes ?? '';
+      List<Map<String, dynamic>> updatedConcepts =
+          parsedNotes.rawConceptMaps.map((m) => Map<String, dynamic>.from(m)).toList();
 
       if (conceptNumber != null && updatedConcepts.isNotEmpty) {
         updatedConcepts = updatedConcepts.map((c) {
@@ -405,19 +426,10 @@ class DesignerNotifier extends StateNotifier<DesignerState> {
           .single();
 
       final rawNotes = subData['designer_notes'] as String?;
-      String cleanNotes = rawNotes ?? '';
-      List<Map<String, dynamic>> updatedConcepts = [];
-
-      if (rawNotes != null && rawNotes.contains('[CONCEPTS_JSON:')) {
-        final match = RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true).firstMatch(rawNotes);
-        if (match != null && match.group(1) != null) {
-          final decoded = jsonDecode(match.group(1)!);
-          if (decoded is List) {
-            updatedConcepts = decoded.map((c) => Map<String, dynamic>.from(c as Map)).toList();
-          }
-          cleanNotes = rawNotes.replaceAll(RegExp(r'\[CONCEPTS_JSON:\s*(\[.*?\])\]', dotAll: true), '').trim();
-        }
-      }
+      final parsedNotes = parseConceptsFromNotes(rawNotes);
+      final cleanNotes = parsedNotes.cleanNotes ?? '';
+      List<Map<String, dynamic>> updatedConcepts =
+          parsedNotes.rawConceptMaps.map((m) => Map<String, dynamic>.from(m)).toList();
 
       if (conceptNumber != null && updatedConcepts.isNotEmpty) {
         updatedConcepts = updatedConcepts.map((c) {
