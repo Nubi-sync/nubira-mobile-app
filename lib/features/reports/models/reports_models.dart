@@ -233,3 +233,4 @@ class ReportsData {
     this.generatedAt = 'Just now',
   });
 }
+

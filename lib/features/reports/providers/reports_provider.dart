@@ -1008,3 +1008,4 @@ class ReportsNotifier extends StateNotifier<ReportsState> {
 final reportsProvider = StateNotifierProvider<ReportsNotifier, ReportsState>((ref) {
   return ReportsNotifier(ref);
 });
+
